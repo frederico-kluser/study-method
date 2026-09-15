@@ -3,1189 +3,277 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="plannotator-theme" content="host">
-<title>Explainer — 5 mudanças de UX na tela de aula (Study Method)</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23221d47'/%3E%3Cpath d='M20 46V18h6l6 12 6-12h6v28' fill='none' stroke='%238b7bff' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>EXPLAINER — study-method · run 20260915-072001-496917</title>
 <style>
-  /* ============ TOKENS PLANNOTATOR (padrão claro; dark via media query) ============ */
-  :root {
-    --background: oklch(0.97 0.005 260);
-    --foreground: oklch(0.18 0.02 260);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.18 0.02 260);
-    --muted: oklch(0.92 0.01 260);
-    --muted-foreground: oklch(0.40 0.02 260);
-    --primary: oklch(0.50 0.25 280);
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.50 0.18 180);
-    --accent: oklch(0.60 0.22 50);
-    --accent-foreground: oklch(0.18 0.02 260);
-    --destructive: oklch(0.50 0.25 25);
-    --success: oklch(0.45 0.20 150);
-    --warning: oklch(0.55 0.18 85);
-    --border: oklch(0.88 0.01 260);
-    --code-bg: oklch(0.92 0.01 260);
-    --ring: oklch(0.50 0.25 280);
-    --radius: 0.625rem;
-    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
-    color-scheme: light dark;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: oklch(0.15 0.02 260);
-      --foreground: oklch(0.90 0.01 260);
-      --card: oklch(0.22 0.02 260);
-      --card-foreground: oklch(0.90 0.01 260);
-      --muted: oklch(0.26 0.02 260);
-      --muted-foreground: oklch(0.72 0.02 260);
-      --primary: oklch(0.75 0.18 280);
-      --primary-foreground: oklch(0.15 0.02 260);
-      --accent: oklch(0.70 0.20 60);
-      --accent-foreground: oklch(0.15 0.02 260);
-      --border: oklch(0.35 0.02 260);
-      --code-bg: oklch(0.26 0.02 260);
-      --destructive: oklch(0.65 0.20 25);
-      --success: oklch(0.72 0.17 150);
-      --warning: oklch(0.75 0.15 85);
-    }
-  }
-
-  /* ============ BASE ============ */
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.65;
-    padding: 48px 24px 80px;
-    -webkit-font-smoothing: antialiased;
-  }
-  .container { max-width: 880px; margin: 0 auto; }
-  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; letter-spacing: -0.01em; }
-  h1 { font-size: 40px; font-weight: 700; margin: 8px 0 10px; }
-  h2 { font-size: 27px; font-weight: 600; margin: 0 0 14px; }
-  h3 { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
-  p { max-width: 65ch; margin-bottom: 14px; }
-  a { color: var(--primary); }
-  strong { font-weight: 600; }
-  code {
-    font-family: var(--font-mono);
-    font-size: 0.82em;
-    background: var(--code-bg);
-    color: var(--primary);
-    padding: 1px 6px;
-    border-radius: 5px;
-    overflow-wrap: break-word;
-  }
-  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
-
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted-foreground);
-  }
-  .subtitle {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--muted-foreground);
-    margin-bottom: 6px;
-  }
-  .validade {
-    font-size: 13px;
-    color: var(--muted-foreground);
-    margin-bottom: 28px;
-  }
-
-  /* ============ CARDS E SEÇÕES ============ */
-  .ve-card {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 22px 24px;
-    margin-bottom: 26px;
-  }
-  .ve-card--hero {
-    background: color-mix(in oklab, var(--primary) 6%, var(--card));
-    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
-  }
-  .ve-card--hero p { font-size: 17px; max-width: 62ch; margin-bottom: 0; }
-  .hero-tag {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--primary);
-    margin-bottom: 10px;
-  }
-  section.bloco { margin-bottom: 46px; }
-  section.bloco > h2 {
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-    margin-bottom: 18px;
-  }
-
-  /* ============ KPI STRIP ============ */
-  .kpi-strip {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
-    gap: 12px;
-    margin-bottom: 30px;
-  }
-  .kpi-card {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    min-width: 0;
-  }
-  .kpi-card .kpi-num {
-    font-family: var(--font-mono);
-    font-size: 22px;
-    font-weight: 500;
-    color: var(--primary);
-    font-variant-numeric: tabular-nums;
-  }
-  .kpi-card .kpi-label {
-    font-size: 12px;
-    color: var(--muted-foreground);
-    margin-top: 2px;
-  }
-
-  /* ============ TABELAS ============ */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-    margin-bottom: 16px;
-  }
-  th, td {
-    text-align: left;
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    min-width: 0;
-  }
-  th {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted-foreground);
-    border-bottom: 2px solid var(--border);
-  }
-  td code { white-space: normal; }
-  .tabela-scroll { overflow-x: auto; }
-
-  /* ============ FIGURA 1: MOCKUP ANTES/DEPOIS (CSS puro) ============ */
-  .mock-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin: 18px 0 6px;
-  }
-  @media (max-width: 720px) { .mock-grid { grid-template-columns: 1fr; } }
-  .mock-window {
-    background: var(--muted);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-  .mock-title {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted-foreground);
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--card);
-  }
-  .mock-body { flex: 1; min-height: 210px; }
-
-  /* Antes: header horizontal no topo */
-  .mock-antes { display: flex; flex-direction: column; height: 100%; }
-  .mock-header-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: color-mix(in oklab, var(--primary) 12%, var(--card));
-    border-bottom: 1.5px solid var(--primary);
-  }
-  .mock-chip {
-    height: 22px;
-    width: 56px;
-    border-radius: 5px;
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
-  .mock-chip.wide { width: 110px; }
-  .mock-header-note {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted-foreground);
-    text-align: center;
-    padding: 10px 8px;
-  }
-  .mock-content {
-    flex: 1;
-    margin: 10px;
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-    background: var(--card);
-  }
-
-  /* Depois: rail | sidebar | divisória | main */
-  .mock-depois { display: flex; height: 100%; }
-  .mock-rail {
-    width: 34px;
-    background: color-mix(in oklab, var(--primary) 10%, var(--card));
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding-top: 12px;
-  }
-  .mock-rail i {
-    width: 16px; height: 16px;
-    border-radius: 4px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    display: block;
-  }
-  .mock-rail i.on { background: var(--primary); border-color: var(--primary); }
-  .mock-sidebar {
-    width: 88px;
-    padding: 12px 8px;
-    border-right: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-  }
-  .mock-line {
-    height: 8px;
-    border-radius: 3px;
-    background: var(--muted);
-  }
-  .mock-line.short { width: 60%; }
-  .mock-divider {
-    width: 7px;
-    background: var(--primary);
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .mock-divider span {
-    width: 2px; height: 26px;
-    background: var(--primary-foreground, #fff);
-    border-radius: 2px;
-    display: block;
-  }
-  .mock-main {
-    flex: 1;
-    margin: 10px;
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-    background: var(--card);
-    min-width: 0;
-  }
-  .mock-tag {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    color: var(--muted-foreground);
-    margin: 6px 0 0 6px;
-    display: block;
-  }
-  .mock-tags-row { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 0; }
-
-  /* ============ MERMAID CANÔNICO (shell com zoom/pan/expand) ============ */
-  .diagram-shell { margin: 18px 0 10px; }
-  .diagram-shell__hint {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted-foreground);
-    margin-bottom: 8px;
-    opacity: 0.8;
-  }
-  .mermaid-wrap {
-    position: relative;
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 380px;
-    cursor: grab;
-  }
-  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
-  .zoom-controls {
-    position: absolute;
-    top: 8px; right: 8px;
-    display: flex;
-    gap: 2px;
-    z-index: 10;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px;
-  }
-  .zoom-controls button {
-    width: 28px; height: 28px;
-    border: none;
-    background: transparent;
-    color: var(--muted-foreground);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
-  .zoom-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted-foreground);
-    padding: 0 6px;
-    white-space: nowrap;
-    align-self: center;
-  }
-  .mermaid-viewport {
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-    min-height: 300px;
-  }
-  .mermaid-canvas { position: absolute; top: 0; left: 0; }
-  .mermaid .nodeLabel { font-family: var(--font-sans) !important; font-size: 15px !important; }
-  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; }
-  .mermaid .actor, .mermaid .messageText { font-family: var(--font-sans) !important; }
-  .mermaid .messageText { font-size: 14px !important; }
-  figcaption {
-    font-size: 14px;
-    color: var(--muted-foreground);
-    border-left: 3px solid var(--primary);
-    padding: 8px 0 8px 14px;
-    margin: 6px 0 22px;
-    max-width: 70ch;
-  }
-  figcaption strong { color: var(--foreground); }
-
-  /* ============ CALLOUT / CRÍTICO SINALIZADO ============ */
-  .callout {
-    background: color-mix(in oklab, var(--accent) 7%, var(--card));
-    border: 1.5px solid color-mix(in oklab, var(--accent) 35%, var(--border));
-    border-left: 4px solid var(--accent);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 14px 18px;
-    font-size: 14px;
-    max-width: 70ch;
-    margin: 0 0 18px;
-  }
-  .callout strong { color: var(--accent-foreground); }
-  .callout.critico {
-    background: color-mix(in oklab, var(--primary) 7%, var(--card));
-    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
-    border-left-color: var(--primary);
-  }
-
-  /* ============ DETAILS (ANDAIME DOBRADO) ============ */
-  details {
-    background: var(--muted);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0;
-    margin-bottom: 14px;
-  }
-  details summary {
-    cursor: pointer;
-    font-weight: 600;
-    padding: 13px 18px;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  details summary::before {
-    content: '+';
-    font-family: var(--font-mono);
-    color: var(--primary);
-    font-weight: 500;
-  }
-  details[open] summary::before { content: '−'; }
-  details summary::-webkit-details-marker { display: none; }
-  details .det-corpo { padding: 2px 18px 16px; font-size: 14px; }
-  details .det-corpo p, details .det-corpo li { font-size: 14px; }
-  details .det-corpo ul, details .det-corpo ol { margin: 0 0 12px 20px; }
-  details .det-corpo li { margin-bottom: 4px; }
-
-  /* ============ CÓDIGO ============ */
-  .code-block {
-    background: var(--code-bg);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.6;
-    padding: 14px 16px;
-    overflow-x: auto;
-    margin-bottom: 16px;
-  }
-  .code-block .kw { color: var(--primary); }
-  .code-block .cm { color: var(--muted-foreground); font-style: italic; }
-
-  /* ============ RODAPÉ ============ */
-  footer {
-    border-top: 1px solid var(--border);
-    margin-top: 50px;
-    padding-top: 18px;
-    font-size: 13px;
-    color: var(--muted-foreground);
-  }
-  footer p { max-width: 72ch; }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
-  }
-  @media (max-width: 640px) {
-    body { padding: 24px 14px 60px; }
-    h1 { font-size: 28px; }
-    h2 { font-size: 22px; }
-  }
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e2330; --ink:#e8eaf0; --muted:#9aa3b2;
+  --accent:#5b9dff; --accent2:#2dd4a7; --warn:#f0b429; --line:#2a3040;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.65 -apple-system,"Segoe UI",Roboto,Inter,Ubuntu,"Noto Sans",sans-serif;}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 90px;}
+.hero{background:linear-gradient(135deg,#141826,#10131c);border:1px solid var(--line);
+  border-radius:16px;padding:28px 26px;margin-bottom:8px;}
+.hero h1{margin:0 0 .4rem;font-size:1.85rem;letter-spacing:-.02em;line-height:1.3;}
+.hero .sub{color:var(--muted);margin:.2rem 0 1rem;font-size:.95rem;}
+.pills{display:flex;flex-wrap:wrap;gap:8px;}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+  padding:.22rem .75rem;font-size:.8rem;color:var(--muted);}
+.pill b{color:var(--ink);font-weight:600;}
+h2{font-size:1.28rem;margin:2.4rem 0 .7rem;padding-bottom:.35rem;
+  border-bottom:1px solid var(--line);color:var(--accent);}
+h3{font-size:1.05rem;margin:1.6rem 0 .4rem;color:var(--ink);}
+p{margin:.55rem 0;}
+ul,ol{margin:.5rem 0 .8rem;padding-left:1.4rem;}
+li{margin:.28rem 0;}
+code{background:#232a3a;border:1px solid var(--line);border-radius:6px;
+  padding:.06em .38em;font-size:.87em;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.93rem;}
+th,td{padding:.5rem .7rem;border:1px solid var(--line);text-align:left;vertical-align:top;}
+th{background:var(--panel2);}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.02);}
+figure{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:18px 18px 12px;margin:1.3rem 0;}
+figure .diagram{display:flex;justify-content:center;overflow-x:auto;}
+figcaption{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;
+  color:var(--muted);font-size:.92rem;}
+figcaption b{color:var(--accent2);}
+.callout{border-left:3px solid var(--accent);background:var(--panel);
+  padding:.7rem 1rem;border-radius:0 10px 10px 0;margin:.9rem 0;}
+.callout.warn{border-left-color:var(--warn);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:.9rem 0;}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+.metric .n{font-size:1.6rem;font-weight:700;}
+.metric .l{color:var(--muted);font-size:.82rem;}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:.55rem 1rem;margin:.7rem 0;}
+summary{cursor:pointer;font-weight:600;color:var(--accent);}
+details[open] summary{margin-bottom:.4rem;}
+footer{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem;}
+.one-sentence{font-size:1.06rem;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:18px 20px;}
+.one-sentence mark{background:none;color:var(--accent2);font-weight:600;}
+.entrega{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:10px;padding:14px 18px;margin:1rem 0;}
+.entrega h3{margin-top:.2rem;}
+.muted{color:var(--muted);font-weight:400;font-size:.85rem;}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
+<header class="hero">
+<h1>Como a execução entregou os 4 pedidos — e o que aconteceu por trás</h1>
+<p class="sub">EXPLAINER didático da run <code>20260915-072001-496917</code> do projeto <code>study-method</code> · gerado somente a partir de <code>fatos.md</code> · pt-BR</p>
+<div class="pills">
+  <span class="pill">Orquestração: <b>2 ondas + subwaves de teste</b></span>
+  <span class="pill">Worktrees: <b>7 nomeadas</b></span>
+  <span class="pill">Gate final: <b>4657 testes · 4655 pass · 0 fail</b></span>
+  <span class="pill">Leitor: <b>misto</b> — novato lê em ordem; quem já sabe dobra o andaime no fim</span>
+</div>
+</header>
 
-  <p class="eyebrow">Explainer · Study Method · run 20260912-225920</p>
-  <h1>O que mudou na tela de aula</h1>
-  <p class="subtitle">5 pedidos de UX · 2 ondas · 6 worktrees · 5 commits squash</p>
-  <p class="validade">Este documento vale contra os commits <code>33eaad9</code>…<code>b896f2e</code> na <code>main</code> (estado de 12/09/2026). Tudo o que está aqui veio dos fatos registrados da execução e do código mesclado — nada foi inventado.</p>
+<h2 id="resposta">Resposta em uma frase</h2>
+<p class="one-sentence">Em uma orquestração de <mark>2 ondas em worktrees isoladas</mark>, com revisão adversarial e squash-merge atrás de gate verdes, os 4 pedidos do dono saíram: o <mark>card do desafio</mark> agora aparece logo no começo da aula (abaixo da bolha inicial, navegando direto sem o gate do quiz), o item <mark>Desafio saiu do rail</mark> esquerdo (continuando acessível como “painel fantasma”), a <mark>falha antes da aula</mark> agora oferece “Ver a aula” e retoma o mesmo desafio (novo desafio só na 2ª falha), e o menu de <mark>Settings abriu 4–5× mais rápido</mark> por cache stale-while-revalidate — com <mark>4655 de 4657 testes passando e 0 falhas</mark>.</p>
+<h2 id="buzzwords">Buzzwords fechadas (definidas uma vez, usadas daqui em diante)</h2>
+<table>
+<thead><tr><th>Termo</th><th>O que significa nesta execução</th><th>Onde apareceu</th></tr></thead>
+<tbody>
+<tr><td><code>squash-merge</code></td><td>Junta todo o trabalho de uma onda num único commit limpo ao integrar em <code>main</code> — a história final fica com 1 commit por entrega, sem os degraus intermediários.</td><td>História final: <code>515a777</code>, <code>739c83f</code>, <code>2d47208</code>, <code>fe8db70</code>, etc.</td></tr>
+<tr><td><code>worktree</code></td><td>Cópia de trabalho do mesmo repositório em pasta própria e isolada. Cada entrega trabalhou na sua (ex.: <code>onda1-settings-perf</code>) sem pisar nas outras.</td><td>7 worktrees nomeadas: 3 features + 3 de teste na Onda 1, e a da Onda 2.</td></tr>
+<tr><td><code>gate</code></td><td>Portão de qualidade: build + lint + testes rodam em snapshot após cada squash-merge; se não fica VERDE, a onda não avança.</td><td>Gates por squash todos VERDES; gate final <code>GATE_BUILD=0 · GATE_LINT=0 · TEST=0</code>.</td></tr>
+<tr><td><code>guard de fonte</code></td><td>Teste que “conta” os usos de um símbolo no código e falha se o número muda sem justificativa — trava regressão silenciosa.</td><td>Guarda do card (<code>lessonChallengeCardStatus</code>) atualizada de 1 para 3 usos quando a Onda 2 mexeu no símbolo.</td></tr>
+<tr><td><code>SWR</code></td><td><i>Stale-while-revalidate</i>: responde na hora com o dado do cache (um pouco “velho”) e revalida em segundo plano. Abrir Settings deixou de reler tudo do zero.</td><td>Abertura morna 88–104 ms → <b>21 ms (~4–5×)</b>; fria inalterada; zero mudança de dados.</td></tr>
+<tr><td><code>painel fantasma</code></td><td>Painel que saiu do menu visível, mas continua existindo por trás para a navegação não quebrar (<code>PanelKey = NavKey|'challenge'</code>).</td><td>Item Desafio removido do rail; <code>navigateToChallenge</code> intacto.</td></tr>
+<tr><td><code>flag de contexto</code></td><td>Booleano que guarda o contexto de um evento para decisões futuras: <code>attemptedBeforeLesson</code> lembra que o aluno já tentou o desafio antes da aula.</td><td>Onda 2.1: decide o que a bolha de erro oferece (“Ver a aula”).</td></tr>
+<tr><td><code>stash</code></td><td>Guarda-chuva temporário do git: mudanças não commitadas ficam guardadas (<code>stash@{0}</code>) para serem recuperadas depois.</td><td>Reformat não-autorizado de <code>e2e-desafio-retomar.spec.ts</code> preservado em <code>stash@{0}</code> antes do merge da Onda 2.</td></tr>
+</tbody>
+</table>
+<h2 id="figuras">As 4 figuras</h2>
 
-  <!-- ================= RESPOSTA EM UMA FRASE ================= -->
-  <div class="ve-card ve-card--hero" role="note">
-    <span class="hero-tag">Resposta em uma frase</span>
-    <p>A tela de aula trocou o cabeçalho de cima por uma <strong>coluna lateral arrastável estilo VSCode</strong>, ganhou uma <strong>pílula global de ocupação</strong> que diz em 7 palavras o que o app está fazendo (e o <strong>travamento</strong> do quiz tinha uma causa real: os pedidos do quiz morriam no <strong>prazo de 70s</strong> esperando a vez atrás do turno do tutor — agora o ciclo do quiz espera o app ficar livre), o <strong>veredito</strong> do quiz — o resultado, acerto ou erro — fica visível por <strong>1,6s</strong> antes de o card sumir, e o <strong>pin de Desafios</strong> só aparece quando o desafio de fato libera.</p>
-  </div>
+<h3>Figura 1 — A aula com o card do desafio (Onda 1.1)</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+    A["Aluno abre a aula"] --> B["Tela inicial: bolha inicial do chat"]
+    B --> C["Card do desafio logo abaixo<br/>(só no estado inicial do chat)"]
+    C -->|"quer pular a teoria"| D["Navegação DIRETA ao desafio<br/>sem gate do quiz<br/>(exceção aprovada pelo dono)"]
+    C -->|"quer a teoria"| E["Fluxo normal da aula<br/>gating do quiz intacto"]
+</pre></div>
+<figcaption><b>Afirmação:</b> o card aparece apenas no estado inicial do chat, abaixo da bolha inicial, e aponta para o primeiro pendente na ordem editorial; ele navega direto ao desafio mesmo com quiz pendente — a exceção de gate pedida pelo dono — enquanto o restante do fluxo da aula continua com o gating normal intacto.</figcaption>
+</figure>
 
-  <div class="kpi-strip" aria-label="Números da execução">
-    <div class="kpi-card"><div class="kpi-num">5</div><div class="kpi-label">pedidos de UX atendidos</div></div>
-    <div class="kpi-card"><div class="kpi-num">2</div><div class="kpi-label">ondas de trabalho</div></div>
-    <div class="kpi-card"><div class="kpi-num">6</div><div class="kpi-label">worktrees isoladas</div></div>
-    <div class="kpi-card"><div class="kpi-num">5</div><div class="kpi-label">commits squash na main</div></div>
-    <div class="kpi-card"><div class="kpi-num">122</div><div class="kpi-label">testes novos</div></div>
-    <div class="kpi-card"><div class="kpi-num">4444/0</div><div class="kpi-label">testes finais: passam/falham</div></div>
-  </div>
-
-  <div class="ve-card" style="padding: 16px 22px;">
-    <p style="margin-bottom:0; font-size:14px;"><strong>Quem escreveu para quem:</strong> leitor <strong>misto</strong> (nível desconhecido). Por isso este texto trata você como <strong>novato</strong> — cada termo técnico é definido onde aparece pela primeira vez — e dobra a parte profunda em <code>&lt;details&gt;</code>, para quem já conhece o projeto pular direto ao mecanismo. <a href="#andaime">Ir direto à dobradura para o experiente</a>.</p>
-  </div>
-
-  <!-- ================= BUZZWORDS ================= -->
-  <section class="bloco" id="buzzwords">
-    <h2>Buzzwords (glossário fechado)</h2>
-    <p>Todos os termos técnicos usados no documento, definidos uma única vez. No texto, a primeira aparição de cada um traz a definição ao lado (em parênteses ou entre colchetes).</p>
-    <div class="tabela-scroll">
-    <table>
-      <thead><tr><th>Termo</th><th>Definição (≤ 20 palavras)</th></tr></thead>
-      <tbody>
-        <tr><td><code>Electron</code></td><td>Tecnologia que constrói apps de desktop com web: uma janela com dois "lados" de processo (o <code>main</code> e o <code>renderer</code>).</td></tr>
-        <tr><td><code>main</code></td><td>O processo principal do Electron: quem fala com o sistema (disco, janela, rede pesada).</td></tr>
-        <tr><td><code>renderer</code></td><td>O processo da interface: desenha a tela e responde a cliques e digitação.</td></tr>
-        <tr><td><code>LLM</code></td><td>Modelo de linguagem local que responde o tutor e o quiz da aula.</td></tr>
-        <tr><td>fila FIFO</td><td>Fila "primeiro a entrar, primeiro a sair": cada pedido espera os anteriores terminarem.</td></tr>
-        <tr><td><code>timeout</code></td><td>Prazo máximo de espera; estourou, o pedido morre com erro.</td></tr>
-        <tr><td><code>busy</code></td><td>Sinal de "há trabalho do tutor em voo neste momento".</td></tr>
-        <tr><td>veredito</td><td>O resultado do quiz: acerto ou erro, mostrado ao responder.</td></tr>
-        <tr><td>loader</td><td>Indicador visual de ocupação; aqui, uma pílula fixa com um texto.</td></tr>
-        <tr><td><code>rail</code></td><td>Faixa estreita de ícones fixos, fora da área arrastável, como no VSCode.</td></tr>
-        <tr><td>razão de split</td><td>Fração 0–1 da largura entre sidebar e conteúdo (persistida em vez de pixels).</td></tr>
-        <tr><td><code>APG</code></td><td>Padrões de Autoria do ARIA: receita oficial de teclado para controles acessíveis.</td></tr>
-        <tr><td><code>i18n</code></td><td>Internacionalização: texto por chave, com tradução pt-BR e inglês em paridade.</td></tr>
-        <tr><td><code>reduced-motion</code></td><td>Preferência do sistema de reduzir animações; o app deve respeitá-la.</td></tr>
-        <tr><td>função pura</td><td>Função sem efeitos colaterais: mesma entrada dá sempre a mesma saída, testável sem tela.</td></tr>
-        <tr><td>snapshot</td><td>Instantâneo do estado da sessão, publicado e lido por quem desenha a tela.</td></tr>
-        <tr><td><code>streaming</code></td><td>Resposta do LLM chegando pedaço a pedaco, como digitação ao vivo.</td></tr>
-        <tr><td>gate</td><td>Etapa obrigatória (build + lint + testes) que só libera o merge quando fica verde.</td></tr>
-        <tr><td>worktree</td><td>Cópia de trabalho do git isolada, para uma linha de trabalho não mexer na outra.</td></tr>
-        <tr><td>squash merge</td><td>Juntar uma branch inteira em um único commit na <code>main</code>.</td></tr>
-        <tr><td><code>role="status"</code></td><td>Marcação ARIA que anuncia o texto automaticamente para leitores de tela.</td></tr>
-        <tr><td><code>pointer-events: none</code></td><td>CSS que torna um elemento invisível para o mouse: cliques passam direto.</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </section>
-
-  <!-- ================= SEGMENTO 1: PANORAMA ================= -->
-  <section class="bloco" id="panorama">
-    <h2>O panorama: cinco pedidos, uma tela</h2>
-    <p>O dono pediu cinco coisas para a <strong>tela de aula</strong> (a view em que a teoria é lida, o tutor responde e o quiz acontece). A tabela de baixo mapeia cada pedido na entrega que entrou na <code>main</code>.</p>
-    <div class="tabela-scroll">
-    <table>
-      <thead><tr><th>Pedido do dono</th><th>O que virou</th><th>Commit squash</th></tr></thead>
-      <tbody>
-        <tr><td>Ver acerto/erro do quiz antes de o card sumir, com efeito</td><td>Janela de <strong>veredito</strong> de 1,6s (<code>QUIZ_VERDICT_MS</code>): overlay e publicação congelados, veredito visível, depois o card minimiza</td><td><code>a1ac788</code></td></tr>
-        <tr><td>Loader global fácil de ver/entender + aula "travava" ao responder quiz durante pergunta livre</td><td>Pílula global com 7 razões de ocupação + conserto da causa: o ciclo do quiz agora espera <code>busy</code>=false em vez de morrer na fila</td><td><code>a1ac788</code> + <code>b896f2e</code></td></tr>
-        <tr><td>Área arrastável para o tamanho horizontal do texto</td><td><strong>Divisória arrastável</strong> entre sidebar e conteúdo; a razão do split é persistida entre sessões</td><td><code>33eaad9</code></td></tr>
-        <tr><td>Pin de "Desafios" só quando o desafio libera</td><td>Contador <code>challengeBadgeCount</code> (função pura): fica 0 até a teoria estar concluída e os quizzes acertados</td><td><code>a1ac788</code></td></tr>
-        <tr><td>Header virar coluna lateral estilo VSCode</td><td><code>rail</code> fixo de ícones + sidebar arrastável + divisória com teclado completo (APG)</td><td><code>33eaad9</code></td></tr>
-      </tbody>
-    </table>
-    </div>
-  </section>
-
-  <!-- ================= FIGURA 1 + SEGMENTO 2: SIDEBAR ================= -->
-  <section class="bloco" id="sidebar">
-    <h2>1 · O header virou coluna lateral (estilo VSCode)</h2>
-    <p>O cabeçalho horizontal que ocupava o <strong>topo</strong> da janela saiu. A navegação da aula agora é uma <strong>coluna à esquerda</strong>, no formato de editor de código: uma faixa fina de ícones (<code>rail</code> — faixa de ícones fixos, fora da área arrastável), a sidebar com o conteúdo da aula, e uma <strong>divisória arrastável</strong> que controla quanta largura o texto principal recebe — o pedido 3 do dono nasce junto com o pedido 5.</p>
-
-    <figure>
-      <div class="ve-card" style="padding: 14px;">
-        <div class="mock-grid">
-          <div class="mock-window">
-            <div class="mock-title">ANTES</div>
-            <div class="mock-body mock-antes">
-              <div class="mock-header-bar">
-                <span class="mock-chip wide"></span>
-                <span class="mock-chip"></span>
-                <span class="mock-chip"></span>
-              </div>
-              <span class="mock-tag" style="margin:10px 0 0 10px;">cabeçalho horizontal: título + ações espalhados no topo</span>
-              <div class="mock-content"></div>
-            </div>
-          </div>
-          <div class="mock-window">
-            <div class="mock-title">DEPOIS</div>
-            <div class="mock-body mock-depois">
-              <div class="mock-rail"><i class="on"></i><i></i><i></i><i></i></div>
-              <div class="mock-sidebar">
-                <span class="mock-line"></span><span class="mock-line short"></span>
-                <span class="mock-line"></span><span class="mock-line short"></span>
-                <span class="mock-line"></span>
-              </div>
-              <div class="mock-divider" title="divisória arrastável"><span></span></div>
-              <div class="mock-main"></div>
-            </div>
-            <div class="mock-tags-row">
-              <span class="mock-tag">rail fixo</span><span class="mock-tag">sidebar</span><span class="mock-tag">divisória</span><span class="mock-tag">texto</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <figcaption><strong>Afirmar:</strong> o header horizontal do topo virou uma coluna lateral à esquerda com divisória arrastável — e o tamanho que você escolhe persiste entre sessões (guardamos a <em>razão</em> do split, a fração da largura, não pixels).</figcaption>
-    </figure>
-
-    <div class="callout critico"><strong>Por que persistir a razão e não os pixels:</strong> a janela muda de tamanho. Se você guarda "a sidebar tem 240px", em uma tela menor essa medida pode não caber — os pisos de 180px por painel garantem que nenhum lado suma. A fração escala sozinha com a janela.</div>
-    <p>Dois detalhes de acabamento que vieram junto: a divisória tem <code>aria-label</code> próprio (chave <code>shell.sidebar.splitAria</code> — o fim de um texto TEMPORÁRIO que existia antes) e <strong>teclado completo no padrão APG</strong> (Padrões de Autoria do ARIA — a receita oficial de teclado: dá para arrastar o tamanho só com o teclado).</p>
-  </section>
-
-  <!-- ================= FIGURA 2 + SEGMENTO 3: TRAVAMENTO ================= -->
-  <section class="bloco" id="travamento">
-    <h2>2 · O travamento: não era lentidão, era fila</h2>
-    <p>A queixa: "a aula <strong>travava</strong> quando eu respondia o quiz durante uma pergunta livre". O diagnóstico encontrado na execução:</p>
-    <ol style="margin: 0 0 16px 22px; max-width: 65ch;">
-      <li>Um LLM local (o modelo de linguagem local que responde o tutor e o quiz) só serve <strong>um pedido por vez</strong>: o processo <code>main</code> os coloca numa <strong>fila FIFO</strong> (primeiro a entrar, primeiro a sair) pelo serviço <code>LlmProxyService</code>.</li>
-      <li>Quando você responde o quiz no meio de uma pergunta livre, a <strong>explicação/remediação do quiz entra na fila atrás do turno do tutor</strong> — que é longo.</li>
-      <li>Cada pedido espera no máximo <strong>70 segundos</strong> (<code>timeout</code> — o prazo; estourou, o pedido morre). O do quiz estoura antes de chegar a vez.</li>
-      <li>O renderer então mostra <code>quiz-indisponivel</code>: a aula parece travada.</li>
-    </ol>
-
-    <figure>
-      <div class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para mover · duplo clique para ajustar</p>
-        <div class="mermaid-wrap" role="img" aria-label="Linha do tempo do travamento: antes, o pedido do quiz morre no timeout de 70s na fila FIFO atrás do turno do tutor; depois, o ciclo do quiz espera busy false e responde a tempo">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
-            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
+<h3>Figura 2 — Falha no desafio ANTES da aula (Onda 2.1)</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
 sequenceDiagram
-    participant U as Você
-    participant Q as Quiz (renderer)
-    participant F as Fila FIFO do LLM (main)
-    participant T as Tutor (turno do LLM)
-    alt Antes (bug)
-        U->>T: pergunta livre em andamento
-        U->>Q: responde o quiz
-        Q->>F: explicação/remediação entra na fila
-        Note over F,T: primeiro a entrar, primeiro a sair
-        T-->>F: turno do tutor termina
-        F--xQ: expira antes da vez (prazo de 70s)
-        Q-->>U: quiz indisponivel
-    else Depois (conserto)
-        U->>T: pergunta livre em andamento
-        U->>Q: responde o quiz
-        Note over Q: o ciclo espera busy=false
-        T-->>Q: fila esvazia (busy=false)
-        Q->>F: explicação/remediação na fila, já na vez
-        F-->>Q: resposta chega a tempo
-        Q-->>U: veredito visível 1,6s
+    participant A as Aluno
+    participant D as Desafio
+    participant B as Bolha de erro no chat
+    participant C as Card na aula
+    A->>D: Tenta o desafio antes da aula
+    D->>D: 1ª falha: flag attemptedBeforeLesson = true
+    D->>B: Bolha oferece Ver a aula (nunca Proximo/Continuar)
+    B->>B: Ao usar: limpa o chat
+    B->>C: Card reaparece com CTA Tentar o mesmo desafio de novo
+    A->>D: Retoma o MESMO desafio (rascunho preservado)
+    Note over A,D: Relogio zerado so se a tentativa nasceu estourada
+    A->>D: 2ª falha (failedCount maior ou igual a 2)
+    D->>B: Agora a bolha oferece Gerar novo desafio
+</pre></div>
+<figcaption><b>Afirmação:</b> na 1ª falha o sistema manda o aluno VER A AULA — nunca “Próximo/Continuar” — e, ao usá-la, limpa o chat; o card volta com CTA “Tentar o mesmo desafio de novo”, retomando o MESMO rascunho (relógio zerado só se a tentativa nasceu estourada). Só na 2ª falha (<code>failedCount ≥ 2</code>) a bolha passa a oferecer “Gerar novo desafio”.</figcaption>
+</figure>
+<h3>Figura 3 — O pipeline: ondas, revisão adversarial e gate</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    P["Plano<br/>(FASE 2: 2 ondas)"] --> O1["Onda 1 em paralelo<br/>card · rail · settings"]
+    O1 --> R1["Revisão adversarial<br/>1 fix: revert de cache na falha"]
+    R1 --> G1["Squash-merge um a um<br/>+ gate: build/lint/test VERDE"]
+    G1 --> T["Subwaves de teste da Onda 1<br/>18 + 22 + 34 testes novos"]
+    T --> O2["Onda 2<br/>falha challenge-first"]
+    O2 --> R2["Revisão adversarial<br/>APPROVE (8/8 confirmados)"]
+    R2 --> M["Merges de teste<br/>3 add/add resolvidos + 2 fixes"]
+    M --> G2["Gate final no BASE_DIR<br/>4657 testes · 0 fail"]
+    G2 --> F["COMMIT-FINAL"]
+</pre></div>
+<figcaption><b>Afirmação:</b> cada entrega nasce isolada em worktree, é revisada de forma adversarial antes de integrar e só entra em <code>main</code> via squash-merge com gate verdes; os testes novos foram gerados em subwaves paralelas e o validador assíncrono (<code>val-onda1-gate</code>) deu PASS em todas as etapas.</figcaption>
+</figure>
+
+<h3>Figura 4 — Antes e depois de abrir o menu de Settings (Onda 1.3)</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    subgraph ANT["Antes"]
+        A1["Aluno abre Settings"] --> A2["Reler TUDO do zero<br/>88 a 104 ms (morna)"]
     end
-        </script>
-      </div>
-      <figcaption><strong>Afirmar:</strong> o travamento não era o quiz lento — a explicação e a remediação do quiz <strong>morriam no prazo de 70s esperando a vez</strong> na fila FIFO atrás do turno do tutor; o conserto foi o ciclo do quiz <strong>esperar o app ficar livre (busy=false)</strong> em vez de entrar na fila às cegas.</figcaption>
-    </figure>
+    subgraph DEP["Depois"]
+        B1["Aluno abre Settings"] --> B2["Responde do cache da sessão<br/>21 ms (~4 a 5x)"]
+        B2 --> B3["Revalida em segundo plano<br/>(stale-while-revalidate)"]
+    end
+    ANT -.->|"panelCache.ts por sessão"| DEP
+</pre></div>
+<figcaption><b>Afirmação:</b> um cache SWR por sessão (<code>panelCache.ts</code>, novo) fez a abertura morna cair de 88–104 ms para 21 ms (~4–5×); a abertura fria ficou inalterada e nenhum dado mudou — inclusive na falha de <code>settings.set</code> o cache é revertido (fix aplicado pela revisão 1.3).</figcaption>
+</figure>
+<h2 id="entregas">As entregas, pedido por pedido</h2>
 
-    <div class="callout critico"><strong>O caminho crítico é o bloco "Depois (conserto)" da figura:</strong> o Quiz (renderer) não despacha mais o pedido do quiz sem saber quem está na fila — ele consulta o sinal de ocupação e <strong>só envia quando <code>busy</code>=false</strong>. O <code>main</code> (a fila em si) ficou intocado.</div>
-  </section>
-
-  <!-- ================= FIGURA 3 + SEGMENTO 4: VEREDITO ================= -->
-  <section class="bloco" id="veredito">
-    <h2>3 · O veredito do quiz: 1,6s para ver que acertou</h2>
-    <p>O pedido: "quero ver se acertei <strong>antes</strong> de o card sumir". A entrega: uma <strong>janela de veredito de 1600ms</strong> (a constante <code>QUIZ_VERDICT_MS</code>) em que o overlay e a publicação ficam <strong>congelados</strong> — nada avança —, o resultado aparece <strong>com efeito</strong>, e só então o card do quiz minimiza.</p>
-
-    <figure>
-      <div class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para mover · duplo clique para ajustar</p>
-        <div class="mermaid-wrap" role="img" aria-label="Fluxo do veredito: responder, veredito visível 1,6s com efeito, depois card minimiza; com reduced-motion, sem animação e veredito sempre visível">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
-            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-flowchart TD
-    R["Você responde o quiz"] --> V["Veredito calculado:<br/>acerto ou erro"]
-    V --> J{"reduced-motion<br/>está ativo?"}
-    J -->|não| A["Overlay e publicação congelados:<br/>veredito visível por 1,6s<br/>QUIZ_VERDICT_MS"]
-    J -->|sim| B["Sem animação:<br/>veredito sempre visível"]
-    A --> M["Card do quiz minimiza"]
-    B --> M
-        </script>
-      </div>
-      <figcaption><strong>Afirmar:</strong> depois de responder, o veredito fica visível por 1,6s — com efeito — antes de o card minimizar; com <code>reduced-motion</code> (a preferência do sistema de reduzir animações), não há animação e o veredito fica sempre visível.</figcaption>
-    </figure>
-
-    <p>Quando o quiz fica na fila atrás de um turno do tutor (a causa do travamento, acima), o que você vê antes da resposta chegar é a chave nova <code>lesson.quizChatQueued</code> — "em fila", dito em pt-BR e em inglês com paridade garantida.</p>
-  </section>
-
-  <!-- ================= FIGURA 4 + SEGMENTO 5: LOADER ================= -->
-  <section class="bloco" id="loader">
-    <h2>4 · O loader global: 7 razões, uma verdade do momento</h2>
-    <p>O pedido: um loader (indicador de ocupação) <strong>fácil de ver e fácil de entender</strong>. A entrega é uma <strong>pílula fixa</strong> no shell — o quadro externo da janela — que diz o que o app está fazendo agora, em texto. A parte que interessa está debaixo da pílula: <strong>tudo converge para uma única função pura</strong> (sem efeitos: mesma entrada dá a mesma saída, testável sem tela), <code>lessonBusyReasonFor</code>, que transforma o estado que a <code>LessonView</code> já sabe em <strong>uma de 7 razões</strong> — ou nada.</p>
-
-    <figure>
-      <div class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para mover · duplo clique para ajustar</p>
-        <div class="mermaid-wrap" role="img" aria-label="Canal de ocupação: quatro estados de entrada entram com prioridade em lessonBusyReasonFor, que publica uma de sete razões no SessionBusySignal, desenhado na pílula global">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
-            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-flowchart TD
-    Q["quizStatus em cena:<br/>aguardando-vez, explicando ou gerando"] -->|"prioridade 1: é a verdade do momento"| D
-    B["Turno do tutor em voo:<br/>answer (responder) ou next (próxima seção)"] -->|"prioridade 2"| D
-    RG["Regeneração de desafio em voo"] -->|"prioridade 3, só sem turno do tutor"| D
-    ST["Bolha digitando (streaming)"] -->|"prioridade 4: só exibição"| D
-    D["lessonBusyReasonFor:<br/>função pura, estado → 1 razão ou null"]
-    D -->|"razão não nula"| S["SessionBusySignal<br/>publicado no snapshot da sessão"]
-    S --> P["Pílula global fixa:<br/>só texto, role=status,<br/>pointer-events: none"]
-    D -->|"null: nada em voo"| H["Pílula some"]
-    S -.->|"fora do canal (slot único)"| X["ChallengeGenerateModal:<br/>progresso no modal próprio"]
-        </script>
-      </div>
-      <figcaption><strong>Afirmar:</strong> todo estado de "o que o app está fazendo agora" converge para uma única função pura que publica <strong>uma de 7 razões</strong> — e a pílula global mostra a verdade do momento, resolvendo os conflitos por prioridade (o quiz esperando a vez vence o turno do tutor em exibição).</figcaption>
-    </figure>
-
-    <p>As 7 razões (o vocabulário do canal, do código mesclado em <code>app/src/lib/sessionState.ts</code>):</p>
-    <div class="tabela-scroll">
-    <table>
-      <thead><tr><th>Razão</th><th>Quando é essa a verdade</th><th>Prioridade</th></tr></thead>
-      <tbody>
-        <tr><td><code>aguardandoVez</code></td><td>O ciclo do quiz está esperando a vez na fila do LLM — a causa raiz do travamento sentido pelo dono</td><td>1</td></tr>
-        <tr><td><code>explicando</code></td><td>Pedido de explicação do quiz em voo</td><td>2</td></tr>
-        <tr><td><code>gerando</code></td><td>Remediação do quiz <em>ou</em> regeneração de desafio em voo</td><td>2–3</td></tr>
-        <tr><td><code>responder</code></td><td>Turno do tutor do tipo <code>answer</code> (LLM, pode demorar)</td><td>3</td></tr>
-        <tr><td><code>proximaSecao</code></td><td>Turno do tutor do tipo <code>next</code> (determinístico, rápido)</td><td>3</td></tr>
-        <tr><td><code>concluindo</code></td><td>"Concluir aula" gravando (ocupado sem ação pendente e sem regeneração)</td><td>4</td></tr>
-        <tr><td><code>digitando</code></td><td>Bolha em <code>streaming</code> (resposta chegando pedaço a pedaco) — só exibição, perde para trabalho de verdade</td><td>5</td></tr>
-      </tbody>
-    </table>
-    </div>
-
-    <div class="callout"><strong>Nada em voo? A pílula some:</strong> quando a função devolve <code>null</code>, o sinal é <code>null</code> e o indicador global desaparece — ocupação nunca é um estado permanente. Duas garantias de acabamento: a pílula tem <code>role="status"</code> (anuncia o texto para leitores de tela), altura própria <code>z-index</code> 1400 (empilhada acima de quase tudo), <code>pointer-events: none</code> (cliques passam direto) e respeita <code>reduced-motion</code>; e a ocupação <strong>não carimba</strong> <code>lastActivityAt</code> (a marca de atividade do usuário não é inflada por trabalho interno).</div>
-
-    <div class="callout"><strong>Uma exceção assumida:</strong> o modal de gerar desafios (<code>ChallengeGenerateModal</code>) ficou <strong>fora</strong> do canal — o canal só carrega uma razão por vez (conflito de slot único, registrado na execução), e o progresso da geração de desafios já é mostrado no modal próprio.</div>
-  </section>
-
-  <!-- ================= SEGMENTO 6: BADGE ================= -->
-  <section class="bloco" id="badge">
-    <h2>5 · O pin de "Desafios" só quando libera</h2>
-    <p>O pin (o badge de contagem) da seção <strong>Desafios</strong> agora nasce de uma função pura, <code>challengeBadgeCount</code>: enquanto a <strong>teoria não está concluída e os quizzes não estão acertados</strong>, o contador é <strong>0</strong> — ou seja, o pin só aparece quando o desafio de fato libera. O <strong>gating de abertura</strong> (a regra que decide se dá para abrir os desafios) ficou intocado — só o rótulo visual mudou de comportamento.</p>
-  </section>
-
-  <!-- ================= SEGMENTO 7: COMO FOI CONSTRUÍDO ================= -->
-  <section class="bloco" id="construcao">
-    <h2>Como foi construído: ondas, worktrees e gates</h2>
-    <p>O trabalho rodou em duas ondas de agentes paralelos, cada linha de trabalho numa <code>worktree</code> (cópia isolada do git), revisado por um revisor adversarial e integrado por <code>squash merge</code> (um único commit na <code>main</code>) depois de passar o <code>gate</code> (build + lint + testes). Antes do merge, cada branch inteira vira um commit: o histórico final da <code>main</code> tem 5 commits.</p>
-    <div class="tabela-scroll">
-    <table>
-      <thead><tr><th>Onda</th><th>Worktree</th><th>Entrega</th><th>Commits</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr><td rowspan="5">1</td><td><code>onda1-sidebar-vscode</code></td><td>Coluna lateral + divisória arrastável + razão persistida</td><td><code>33eaad9</code></td><td>mesclado, gate 4280/0, APPROVE</td></tr>
-        <tr><td><code>onda1-quiz-verdict-ciclo</code></td><td>Veredito 1,6s + ciclo espera busy=false + badge de Desafios</td><td><code>a1ac788</code></td><td>mesclado, gate 4293/0, APPROVE</td></tr>
-        <tr><td><code>test-onda1-shell-coverage</code></td><td>83 testes do split (matemática/SSR/guardas)</td><td><code>ac1f9b9</code></td><td>mesclado, gate 4376/0, APPROVE</td></tr>
-        <tr><td><code>test-onda1-quiz-ciclo-coverage</code></td><td>39 testes da janela de veredito e do ciclo sob carga</td><td><code>e274686</code></td><td>mesclado, gate 4415/0, APPROVE</td></tr>
-        <tr><td><code>val-onda1-gate</code></td><td>Gate do estado integrado: 4/4 PASS + revisão APPROVE</td><td>—</td><td>concluída</td></tr>
-        <tr><td>2</td><td><code>onda2-loader-global</code></td><td>Loader global (canal de 7 razões + pílula) + aria-label da divisória</td><td><code>b896f2e</code></td><td>mesclado, gate 4444/0</td></tr>
-      </tbody>
-    </table>
-    </div>
-    <p><strong>A revisão adversarial pegou de verdade:</strong> na onda 2, a primeira revisão foi <code>BLOCK</code> com dois achados materiais — (F1) a regeneração de desafios aparecia como "Concluindo a aula" no loader (mentira que duraria minutos) e (F2) a pílula interceptava o botão de enviar durante a digitação. Ambos consertados no <code>23b3f37</code>, com re-gate verde. As outras linhas de trabalho saíram <code>APPROVE</code> sem achados materiais.</p>
-    <p><strong>Gate final</strong> (no repositório base): build ✓ · lint ✓ · <code>tsc</code> ×2 ✓ · testes <strong>4444 passam / 0 falham</strong>.</p>
-  </section>
-
-  <!-- ================= ANDAIME ================= -->
-  <section class="bloco" id="andaime">
-    <h2>Andaime dobrado</h2>
-
-    <details>
-      <summary>Para o novato: como ler os diagramas desta página</summary>
-      <div class="det-corpo">
-        <p><strong>Diagrama de sequência</strong> (o do travamento): é uma conversa com o tempo descendo — cada linha é uma mensagem de um participante para outro, na ordem em que acontece. O bloco <code>alt … else … end</code> separa duas versões da mesma história: o ramo <em>Antes (bug)</em> e o ramo <em>Depois (conserto)</em>. A seta tracejada com o × (<code>--x</code>) é uma mensagem que <strong>não chega</strong>: o pedido expira.</p>
-        <p><strong>Diagrama de fluxo</strong> (o do veredito e o do loader): caixas são estados ou passos; losango é uma decisão; cada seta tem um rótulo que diz <strong>o que é preciso para seguir por ela</strong>. O losango do veredito pergunta se o sistema está em modo <code>reduced-motion</code>; as duas respostas seguem por caminhos diferentes e se encontram de novo no "card minimiza".</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Para o experiente: o mecanismo por dentro (arquivos, constantes, decisão de projeto)</summary>
-      <div class="det-corpo">
-        <h3>Split / sidebar</h3>
-        <ul>
-          <li><code>SplitDivider.tsx</code> é componente novo em <code>app/src/components/shell/</code>; <code>app/src/lib/splitRatio.ts</code> estendido (matemática da razão, guardas SSR).</li>
-          <li>Persistência em <code>study-method-shell-split-v1</code> — a <strong>razão 0–1</strong>, não pixels; pisos de <strong>180px por painel</strong>; <code>rail</code> fixo fora do split.</li>
-          <li>Teclado <strong>APG completo</strong> na divisória; <code>aria-label</code> próprio (<code>shell.sidebar.splitAria</code>) — fim do texto TEMPORÁRIO de i18n.</li>
-          <li>83 testes em <code>app/tests/shellSplitMath.test.ts</code> e <code>app/tests/shellSplitUi.test.ts</code>.</li>
-        </ul>
-        <h3>Quiz: veredito e ciclo</h3>
-        <ul>
-          <li><code>QUIZ_VERDICT_MS = 1600</code>: janela em que overlay + publicação ficam congelados; <code>reduced-motion</code> → sem animação, veredito sempre visível.</li>
-          <li>O conserto do ciclo vive no <strong>renderer</strong> (esperar <code>busy</code>=false); o <code>main</code> (<code>LlmProxyService</code>, fila FIFO + timeout 70s) ficou intocado — decisão de não tocar o serviço de fila.</li>
-          <li>Chave nova: <code>lesson.quizChatQueued</code> (pt-BR/en em paridade).</li>
-          <li>39 testes em <code>app/tests/quizVerdictCycle.test.ts</code> (janela de veredito + ciclo sob carga).</li>
-        </ul>
-        <h3>Canal de ocupação (a fonte real, mesclada)</h3>
-        <div class="code-block"><span class="cm">// app/src/lib/sessionState.ts — o contrato do canal</span><br><span class="kw">export type</span> SessionBusyReason =<br>&nbsp;&nbsp;| <span class="kw">'responder'</span> | <span class="kw">'proximaSecao'</span> | <span class="kw">'digitando'</span> | <span class="kw">'explicando'</span><br>&nbsp;&nbsp;| <span class="kw">'gerando'</span> | <span class="kw">'aguardandoVez'</span> | <span class="kw">'concluindo'</span>;<br><br><span class="cm">// a prioridade É a verdade do momento (lessonBusyReasonFor):</span><br><span class="cm">// 1. quiz aguardando-vez/explicando/gerando vencem tudo;</span><br><span class="cm">// 2. turno do tutor: 'answer' → responder, 'next' → proximaSecao,</span><br><span class="cm">//    busy sem ação: regeneração → 'gerando', senão 'concluindo';</span><br><span class="cm">// 3. streaming (digitando) só exibição; 4. nada → null (oculto).</span></div>
-        <ul>
-          <li>Sinal publicado no <code>snapshot</code> da sessão: <code>SessionBusySignal</code> — só a razão, de propósito.</li>
-          <li>Rótulos por chave: <code>lesson.busy.&lt;razão&gt;</code> (o camelCase da razão é o sufixo da chave — o consumidor nunca traduz na mão).</li>
-          <li>Pílula: <code>GlobalBusyIndicator.tsx</code> (novo, mesmo diretório <code>shell/</code>), <code>role="status"</code>, <code>z-index</code> 1400, <code>pointer-events: none</code>, <code>reduced-motion</code>.</li>
-          <li><code>challengeBadgeCount</code> é <strong>gating de badge, nunca sinal de ocupação</strong> — proibição explícita no código (risco 2 do revisor).</li>
-          <li>Ocupação <strong>não carimba</strong> <code>lastActivityAt</code>.</li>
-        </ul>
-        <h3>Revisão adversarial (onda 2)</h3>
-        <ul>
-          <li><strong>F1:</strong> regeneração de desafio rotulada "Concluindo a aula" durante minutos → conserto: entrada nova <code>regenerating</code> na função, devolve <code>'gerando'</code>.</li>
-          <li><strong>F2:</strong> pílula interceptava o botão enviar durante digitação → conserto: <code>pointer-events: none</code>.</li>
-          <li>Fix mesclado em <code>23b3f37</code>; re-gate verde. Demais revisores: APPROVE sem achados materiais.</li>
-        </ul>
-        <h3>Validação e cobertura</h3>
-        <ul>
-          <li>Snapshots verdes: onda 1 <code>4376/0</code>, quiz-ciclo <code>4415/0</code>, onda 2 <code>4444/0</code>. Gate final em base: build ✓ lint ✓ tsc ×2 ✓ testes 4444/0.</li>
-          <li>Falha de ambiente recorrente em worktrees: binário do Electron — resolvida com <code>ELECTRON_SKIP_BINARY_DOWNLOAD=1</code> + copiar <code>dist</code>/<code>path.txt</code> (gotcha APFS P-20260827-001).</li>
-          <li>Cobertura da <code>LessonView</code>: 100% das funções e 95,4% dos ramos — o corpo de ~2000 linhas sem jsdom é <strong>arquitetura de teste deliberada da base</strong>: a lógica testável foi extraída em funções puras.</li>
-        </ul>
-        <h3>Linha do tempo da execução</h3>
-        <ul>
-          <li>FASE 0 às 22:59 · onda 1 criada 23:09 · sidebar mesclada 23:51 · quiz mesclado 04:05 · subwaves de teste/validação 04:00–05:10 · onda 2 mesclada 05:35 · gate final 05:40 · commit final em curso.</li>
-        </ul>
-      </div>
-    </details>
-
-    <details>
-      <summary>Onde conferir (caminhos reais no repositório)</summary>
-      <div class="det-corpo">
-        <ul>
-          <li><code>app/src/components/shell/SplitDivider.tsx</code> · <code>app/src/components/shell/GlobalBusyIndicator.tsx</code> (novos)</li>
-          <li><code>app/src/lib/splitRatio.ts</code> · <code>app/src/lib/sessionState.ts</code> (estendidos)</li>
-          <li><code>app/tests/shellSplitMath.test.ts</code> · <code>app/tests/shellSplitUi.test.ts</code> · <code>app/tests/quizVerdictCycle.test.ts</code> (novos)</li>
-          <li>Commits: <code>33eaad9</code>, <code>a1ac788</code>, <code>ac1f9b9</code>, <code>e274686</code>, <code>b896f2e</code> (+ <code>23b3f37</code> na worktree da onda 2)</li>
-          <li>Fatos da execução: <code>.deep-orchestrator/run-20260912-225920-71610/explainer/fatos.md</code></li>
-        </ul>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= LIMITES ================= -->
-  <section class="bloco" id="limites">
-    <h2>Limites honestos</h2>
-    <p>Três coisas que este explainer <strong>não</strong> afirma, porque os fatos não afirmam:</p>
-    <ul style="margin: 0 0 14px 22px; max-width: 65ch;">
-      <li><strong>Nenhum ganho pedagógico.</strong> A base científica para material auto-ritmado mediu ganho médio pequeno (g ≈ 0,27); este documento explica o que foi feito, não promete que você aprende mais rápido lendo-o.</li>
-      <li><strong>O modal de desafios fora do canal não é bug:</strong> é conflito de slot único registrado — o canal carrega uma razão por vez, e o modal já mostra o próprio progresso.</li>
-      <li><strong>O travamento foi consertado no lado do renderer:</strong> a fila do <code>main</code> continua FIFO com prazo de 70s; se um pedido entrar na fila sem esperar <code>busy</code>, continua sujeito ao expira — foi exatamente por isso que o ciclo do quiz agora espera.</li>
-    </ul>
-  </section>
-
-  <footer>
-    <p><strong>Fonte:</strong> <code>.deep-orchestrator/run-20260912-225920-71610/explainer/fatos.md</code> + código mesclado (<code>sessionState.ts</code>, <code>SplitDivider.tsx</code>, <code>GlobalBusyIndicator.tsx</code>). Gerado pela skill <code>html-explainer-agent-skill</code> v2.0.0 com render <code>visual-explainer</code> + tokens de tema do Plannotator. Diagramas em Mermaid 11, fontes validadas por parser antes de entregar. Acompanha o commit final da execução.</p>
-  </footer>
-
+<div class="entrega">
+<h3>1 · Card do desafio no início da aula <span class="muted">(Onda 1.1 · squash <code>515a777</code> · revisão APPROVE)</span></h3>
+<p><b>Pedido:</b> desafio mostrado logo no começo da aula, abaixo da tela inicial, para quem quer pular a teoria.</p>
+<ul>
+<li>Card inserido abaixo da bolha inicial do chat, apenas no estado inicial; aponta para o primeiro pendente na ordem editorial.</li>
+<li>Navegação direta ao desafio sem o gate do quiz — exceção aprovada pelo dono; o gating do fluxo normal da aula ficou intacto.</li>
+<li>Arquivos: <code>LessonView.tsx</code>, <code>lessonChallengeCard.ts</code> (novo), i18n pt-BR/en (5 chaves novas).</li>
+</ul>
 </div>
 
+<div class="entrega">
+<h3>2 · Botão de Desafio fora do rail esquerdo <span class="muted">(Onda 1.2 · squash <code>739c83f</code> · revisão APPROVE)</span></h3>
+<p><b>Pedido:</b> remover o botão de Desafio da barra de navegação esquerda.</p>
+<ul>
+<li>Item “Desafio” removido do <code>NavigationRail</code>; a navegação continua possível por trás (<code>navigateToChallenge</code> intacto) via painel fantasma (<code>PanelKey = NavKey|'challenge'</code>).</li>
+<li>Premissa registrada: era o item do rail que saía — o botão “Desafios” do cabeçalho do sidebar da aula permaneceu.</li>
+<li>Arquivos: <code>shellNav.ts</code>, <code>NavigationRail.tsx</code>, <code>App.tsx</code>, <code>onboarding/*</code>.</li>
+</ul>
+</div>
+
+<div class="entrega">
+<h3>3 · Falha antes da aula manda “Ver a aula” <span class="muted">(Onda 2.1 · squash <code>fe8db70</code> · revisão APPROVE 8/8)</span></h3>
+<p><b>Pedido:</b> na falha do desafio tentado ANTES da aula, oferecer “Ver a aula” (nunca “Próximo/Continuar”); o MESMO desafio fica retomável; novo desafio só na 2ª falha.</p>
+<ul>
+<li>Flag de contexto <code>attemptedBeforeLesson</code>; a bolha de erro oferece “Ver a aula” na 1ª falha e limpa o chat; o card reaparece com CTA “Tentar o mesmo desafio de novo”.</li>
+<li>“Gerar novo desafio” só na 2ª falha (<code>failedCount &gt;= 2</code>; <code>markAttempt</code> conta <code>failed|timeout</code>).</li>
+<li>Rascunho retomado com relógio zerado só se a tentativa nasceu estourada; timeout do desafio flaggado volta SEM bolha de erro (decisão conservadora — retry pelo card).</li>
+<li>i18n da Onda 1.2, que tinha ficado defasada, foi reescrita.</li>
+<li>Arquivos: <code>challengeNav.ts</code>, <code>ipc-contract.ts</code>, <code>lessonChallengeCard.ts</code>, <code>trackLessonState.ts</code>, <code>TrackChallengePanel.tsx</code>, <code>ChatBubble.tsx</code>, <code>LessonView.tsx</code>, i18n.</li>
+</ul>
+</div>
+
+<div class="entrega">
+<h3>4 · Settings abre rápido <span class="muted">(Onda 1.3 · squash <code>2d47208</code> · revisão WARNING → fix aplicado)</span></h3>
+<p><b>Pedido:</b> o menu de Settings demora a carregar — corrigir.</p>
+<ul>
+<li>Cache stale-while-revalidate por sessão: abertura morna 88–104 ms → <b>21 ms (~4–5×)</b>; abertura fria inalterada; zero mudança de dados.</li>
+<li>Fix da revisão adversarial: na falha de <code>settings.set</code> o cache é revertido (<code>LocalAiPanel.tsx</code>).</li>
+<li>Arquivos: <code>panelCache.ts</code> (novo), <code>KeysPanel</code>, <code>LocalAiPanel</code>, <code>OrphanTracksPanel</code>.</li>
+</ul>
+</div>
+<h2 id="incidentes">Incidentes da auditoria (e como foram contidos)</h2>
+<div class="callout warn"><b>Shell do harness descartava variáveis locais contendo “/”.</b> Mitigado com paths inline nos comandos.</div>
+<div class="callout warn"><b>Gate órfão rodou <code>npm ci/build/lint</code> em <code>$BASE_DIR/app</code>.</b> <code>node_modules</code> foi reinstalado — ignorado por ser pré-existente no baseline; nenhum arquivo tracked foi tocado.</div>
+<div class="callout warn"><b>Reformat mecânico não-autorizado</b> de <code>e2e-desafio-retomar.spec.ts</code> apareceu em <code>main</code> durante a execução — preservado em <code>stash@{0}</code> antes do merge da Onda 2.</div>
+<div class="callout warn"><b>Merge morto a meio</b> (squash estagiado sem commit) — índice restaurado e merge re-executado.</div>
+
+<h2 id="vereditos">Vereditos</h2>
+<div class="grid">
+<div class="metric"><div class="n">4657</div><div class="l">testes no gate final</div></div>
+<div class="metric"><div class="n" style="color:var(--accent2)">4655</div><div class="l">pass</div></div>
+<div class="metric"><div class="n" style="color:var(--accent2)">0</div><div class="l">fail</div></div>
+<div class="metric"><div class="n">2</div><div class="l">skipped (pré-existentes)</div></div>
+</div>
+<ul>
+<li><b>Gates:</b> <code>GATE_BUILD=0</code>, <code>GATE_LINT=0</code>, <code>BUILD=0</code>, <code>LINT=0</code>, <code>TEST=0</code> no estado final em <code>$BASE_DIR</code>; gates de integração por squash todos VERDES.</li>
+<li><b>Validador assíncrono</b> (<code>val-onda1-gate</code>): PASS em todas as etapas.</li>
+<li><b>Revisões adversariais:</b> 1.1 APPROVE · 1.2 APPROVE · 1.3 WARNING→fix aplicado · integração da Onda 1 APPROVE · Onda 2 APPROVE (8/8 confirmados) · revisores de teste APPROVE (nav, card, settings).</li>
+<li><b>Cobertura:</b> 74 testes novos na Onda 1 (18 card + 22 nav + 34 settings, todos integrados) + 10 puros na Onda 2 (<code>challengeFirstFailFlow</code>) + caso 4 no e2e <code>desafio-retomar</code> (ciclo completo na GUI). Nenhum arquivo ficou sem cobertura declarada.</li>
+</ul>
+<h2 id="andaime">Andaime (para quem quer descer um nível)</h2>
+<details><summary>Premissas e decisões autônomas</summary>
+<ul>
+<li>“Botão de desafio do left bar” = item Desafio do <code>NavigationRail</code>; o botão “Desafios” do cabeçalho do sidebar da aula permaneceu.</li>
+<li>Card só no estado inicial do chat; primeiro pendente na ordem editorial.</li>
+<li>Exceção de gate: o card navega ao desafio mesmo com quiz pendente (pedido explícito de pular a teoria).</li>
+<li>Retry do desafio falho retoma o rascunho (código preservado; relógio zerado só se a tentativa nasceu estourada).</li>
+<li><code>failedCount &gt;= 2</code> define “2ª falha” (<code>markAttempt</code> conta <code>failed|timeout</code>).</li>
+<li>Timeout do desafio flaggado volta SEM bolha de erro (conservador; retry pelo card).</li>
+</ul>
+</details>
+
+<details><summary>Bugs encontrados e corrigidos durante a execução</summary>
+<ul>
+<li>Cache de Settings não revertido na falha de <code>settings.set</code> (revisor 1.3) — fix em <code>LocalAiPanel.tsx</code>.</li>
+<li><code>TS6142</code>/<code>TS2352</code> no <code>shellNavPanel.test.ts</code> (gate) — fix com tipo local padrão da casa + casts <code>unknown</code>.</li>
+<li><code>TS6307</code> no <code>panelCacheSwr.test.ts</code> (gate) — fix com import dinâmico por URL.</li>
+<li>Guarda do card desatualizada pela Onda 2 (1 ≠ 3 usos de <code>lessonChallengeCardStatus</code>) — guarda atualizada para 3 com justificativa.</li>
+</ul>
+</details>
+
+<details><summary>Commits squash na história final de main</summary>
+<ul>
+<li><code>515a777</code> — onda1-card-desafio-inicial: card do desafio no início da aula</li>
+<li><code>739c83f</code> — onda1-remove-desafio-rail: remove o item Desafio do rail (painel fantasma)</li>
+<li><code>2d47208</code> — onda1-settings-perf: cache SWR nas Settings + fix de revert de cache</li>
+<li><code>97618b4</code> + <code>3b1cc61</code> — test-onda1-nav-shell: 22 testes + fix lint</li>
+<li><code>e344e72</code> + <code>137d8bb</code> — test-onda1-lesson-card: 18 testes + guarda atualizada p/ onda 2</li>
+<li><code>87dde2e</code> + <code>b05a93e</code> — test-onda1-settings: 34 testes + fix lint</li>
+<li><code>fe8db70</code> — onda2-falha-ver-aula: fluxo de falha challenge-first</li>
+</ul>
+</details>
+
+<details><summary>Timeline da run</summary>
+<ol>
+<li>FASE 0 — fronteira + surf gate 0.</li>
+<li>FASE 1 — análise de <code>LessonView</code>/<code>ChallengeView</code>/<code>SettingsView</code>/rail.</li>
+<li>FASE 2 — plano com 2 ondas.</li>
+<li>Onda 1 — 3 features paralelas; revisão; 1 fix; merges + gates verdes; limpeza.</li>
+<li>Subwaves da Onda 1 — validador VERDE, revisor integrado APPROVE, 3 agentes de teste.</li>
+<li>Onda 2 — 1 feature; revisão APPROVE; convergência.</li>
+<li>Merges de teste — 3 add/add resolvidos nas filhas; 2 fixes de lint/contrato; gate final VERDE.</li>
+<li>COMMIT-FINAL.</li>
+</ol>
+</details>
+
+<details><summary>Gap de cobertura documentado</summary>
+<p>Fluxo assíncrono pós-mount das Settings exigiria jsdom — fora do escopo desta run. Nenhum outro arquivo ficou sem cobertura declarada.</p>
+</details>
+
+<footer>Gerado exclusivamente a partir de <code>.deep-orchestrator/run-20260915-072001-496917/explainer/fatos.md</code>. Zero conteúdo inventado — tudo que não estava nos fatos ficou de fora.</footer>
+</div>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-
-  const config = {
-    fitPadding: 28,
-    minHeight: 360,
-    maxHeightPx: 960,
-    maxHeightVh: 0.84,
-    maxInitialZoom: 1.8,
-    minZoom: 0.08,
-    maxZoom: 6.5,
-    zoomStep: 0.14,
-    readabilityFloor: 0.58
-  };
-
-  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-  let activeDrag = null;
-
-  addEventListener('mousemove', (e) => activeDrag && activeDrag.onMove(e));
-  addEventListener('mouseup', () => {
-    if (activeDrag) activeDrag.onEnd();
-    activeDrag = null;
-  });
-
-  const darkVars = {
-    darkMode: true,
-    primaryColor: '#1e242e',
-    primaryTextColor: '#dadee5',
-    primaryBorderColor: '#343b45',
-    lineColor: '#9da5b2',
-    secondaryColor: '#1e242e',
-    secondaryTextColor: '#dadee5',
-    tertiaryColor: '#1e242e',
-    tertiaryTextColor: '#dadee5',
-    background: '#070b14'
-  };
-  const lightVars = {
-    primaryColor: '#5537eb',
-    primaryTextColor: '#ffffff',
-    primaryBorderColor: '#d4d8de',
-    lineColor: '#414853',
-    secondaryColor: '#e1e5eb',
-    secondaryTextColor: '#414853',
-    tertiaryColor: '#e1e5eb',
-    tertiaryTextColor: '#414853',
-    background: '#f3f5f9'
-  };
-
-  function isDarkNow() {
-    const cs = getComputedStyle(document.documentElement).colorScheme;
-    return cs === 'dark'
-      || (cs === 'normal' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  }
-
-  function applyMermaidTheme() {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      look: 'classic',
-      themeVariables: {
-        ...(isDarkNow() ? darkVars : lightVars),
-        fontFamily: "'Inter', system-ui, sans-serif",
-        fontSize: '14px'
-      }
-    });
-  }
-  applyMermaidTheme();
-
-  const rerenderers = [];
-
-  function initDiagram(shell) {
-    const wrap = shell.querySelector('.mermaid-wrap');
-    const viewport = shell.querySelector('.mermaid-viewport');
-    const canvas = shell.querySelector('.mermaid-canvas');
-    const source = shell.querySelector('.diagram-source');
-    const label = shell.querySelector('.zoom-label');
-
-    if (!wrap || !viewport || !canvas || !source || !label) return;
-
-    let zoom = 1;
-    let fitMode = 'contain';
-    let panX = 0;
-    let panY = 0;
-    let svgW = 0;
-    let svgH = 0;
-    let sx = 0, sy = 0, spx = 0, spy = 0;
-    let touchDist = 0, touchCx = 0, touchCy = 0;
-
-    function constrainPan() {
-      const vpW = viewport.clientWidth;
-      const vpH = viewport.clientHeight;
-      const rW = svgW * zoom;
-      const rH = svgH * zoom;
-      const pad = config.fitPadding;
-      panX = (rW + pad * 2 <= vpW) ? (vpW - rW) / 2 : clamp(panX, vpW - rW - pad, pad);
-      panY = (rH + pad * 2 <= vpH) ? (vpH - rH) / 2 : clamp(panY, vpH - rH - pad, pad);
-    }
-
-    function applyTransform() {
-      const svg = canvas.querySelector('svg');
-      if (!svg || !svgW) return;
-      constrainPan();
-      svg.style.width = (svgW * zoom) + 'px';
-      svg.style.height = (svgH * zoom) + 'px';
-      canvas.style.transform = 'translate(' + panX + 'px, ' + panY + 'px)';
-      label.textContent = Math.round(zoom * 100) + '% — ' + fitMode;
-    }
-
-    function canPan() {
-      return svgW * zoom + config.fitPadding * 2 > viewport.clientWidth
-          || svgH * zoom + config.fitPadding * 2 > viewport.clientHeight;
-    }
-
-    function computeSmartFit() {
-      const vpW = viewport.clientWidth;
-      const vpH = viewport.clientHeight;
-      const aW = Math.max(80, vpW - config.fitPadding * 2);
-      const aH = Math.max(80, vpH - config.fitPadding * 2);
-      const contain = Math.min(aW / svgW, aH / svgH);
-      let z = contain;
-      let mode = 'contain';
-      if (contain < config.readabilityFloor) {
-        const chartR = svgH / svgW;
-        const vpR = vpH / Math.max(vpW, 1);
-        if (chartR >= vpR) { z = aW / svgW; mode = 'width-priority'; }
-        else { z = aH / svgH; mode = 'height-priority'; }
-      }
-      return { zoom: clamp(z, config.minZoom, config.maxInitialZoom), mode };
-    }
-
-    function fitDiagram() {
-      if (!svgW) return;
-      const fit = computeSmartFit();
-      zoom = fit.zoom;
-      fitMode = fit.mode;
-      panX = (viewport.clientWidth - svgW * zoom) / 2;
-      panY = (viewport.clientHeight - svgH * zoom) / 2;
-      applyTransform();
-    }
-
-    function setOneToOne() {
-      zoom = clamp(1, config.minZoom, config.maxZoom);
-      fitMode = '1:1';
-      panX = (viewport.clientWidth - svgW * zoom) / 2;
-      panY = (viewport.clientHeight - svgH * zoom) / 2;
-      applyTransform();
-    }
-
-    function zoomAround(factor, cx, cy) {
-      const next = clamp(zoom * factor, config.minZoom, config.maxZoom);
-      const ratio = next / zoom;
-      panX = cx - ratio * (cx - panX);
-      panY = cy - ratio * (cy - panY);
-      zoom = next;
-      fitMode = 'custom';
-      applyTransform();
-    }
-
-    function readSvgNaturalSize(svg) {
-      let w = 0, h = 0;
-      if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width > 0) {
-        w = svg.viewBox.baseVal.width;
-        h = svg.viewBox.baseVal.height;
-      }
-      if (!w) {
-        w = parseFloat(svg.getAttribute('width')) || 0;
-        h = parseFloat(svg.getAttribute('height')) || 0;
-      }
-      if (!w) {
-        const b = svg.getBBox();
-        w = b.width; h = b.height;
-      }
-      if (!w) {
-        const r = svg.getBoundingClientRect();
-        w = r.width || 1000; h = r.height || 700;
-      }
-      if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-      return { w, h };
-    }
-
-    function setAdaptiveHeight() {
-      if (!svgW) return;
-      const usableW = Math.max(280, wrap.getBoundingClientRect().width - 2);
-      const idealH = (svgH / svgW) * usableW + config.fitPadding * 2;
-      const maxVp = Math.floor(innerHeight * config.maxHeightVh);
-      const hardMax = Math.min(config.maxHeightPx, Math.max(config.minHeight + 40, maxVp));
-      wrap.style.height = Math.round(clamp(idealH, config.minHeight, hardMax)) + 'px';
-    }
-
-    function openInNewTab() {
-      const svg = canvas.querySelector('svg');
-      if (!svg) return;
-      const clone = svg.cloneNode(true);
-      clone.style.width = '';
-      clone.style.height = '';
-      const bg = isDarkNow() ? '#070b14' : '#f3f5f9';
-      const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Diagrama</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:' + bg + ';padding:40px;box-sizing:border-box}svg{max-width:100%;max-height:90vh;height:auto}</style></head><body>' + clone.outerHTML + '</body></html>';
-      open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
-    }
-
-    async function render() {
-      try {
-        const code = source.textContent.trim();
-        if (!code) { label.textContent = 'Erro: fonte vazia'; return; }
-        const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
-        const svgText = await mermaid.render(id, code);
-        const parsed = new DOMParser().parseFromString(svgText.svg, 'text/html');
-        const parsedSvg = parsed.body.querySelector('svg');
-        if (!parsedSvg) { label.textContent = 'Erro: SVG vazio'; return; }
-        canvas.replaceChildren(document.adoptNode(parsedSvg));
-        const svgNode = canvas.querySelector('svg');
-        if (!svgNode) { label.textContent = 'Erro: SVG vazio'; return; }
-        const size = readSvgNaturalSize(svgNode);
-        svgW = size.w;
-        svgH = size.h;
-        svgNode.removeAttribute('width');
-        svgNode.removeAttribute('height');
-        svgNode.style.maxWidth = 'none';
-        svgNode.style.display = 'block';
-        setAdaptiveHeight();
-        fitDiagram();
-      } catch (err) {
-        label.textContent = 'Erro: ' + (err.message || 'render falhou');
-      }
-    }
-
-    const actions = {
-      'zoom-in': () => zoomAround(1 + config.zoomStep, viewport.clientWidth / 2, viewport.clientHeight / 2),
-      'zoom-out': () => zoomAround(1 / (1 + config.zoomStep), viewport.clientWidth / 2, viewport.clientHeight / 2),
-      'zoom-fit': fitDiagram,
-      'zoom-one': setOneToOne,
-      'zoom-expand': openInNewTab
-    };
-    Object.entries(actions).forEach(([action, handler]) => {
-      const btn = wrap.querySelector('[data-action="' + action + '"]');
-      if (btn) btn.addEventListener('click', handler);
-    });
-
-    viewport.addEventListener('dblclick', fitDiagram);
-
-    viewport.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const rect = viewport.getBoundingClientRect();
-        const factor = e.deltaY < 0 ? 1 + config.zoomStep : 1 / (1 + config.zoomStep);
-        zoomAround(factor, e.clientX - rect.left, e.clientY - rect.top);
-        return;
-      }
-      if (canPan()) {
-        e.preventDefault();
-        panX -= e.deltaX;
-        panY -= e.deltaY;
-        applyTransform();
-      }
-    }, { passive: false });
-
-    viewport.addEventListener('mousedown', (e) => {
-      if (e.target.closest('.zoom-controls') || !canPan()) return;
-      wrap.classList.add('is-panning');
-      sx = e.clientX; sy = e.clientY; spx = panX; spy = panY;
-      e.preventDefault();
-      activeDrag = {
-        onMove: (ev) => {
-          panX = spx + (ev.clientX - sx);
-          panY = spy + (ev.clientY - sy);
-          applyTransform();
-        },
-        onEnd: () => wrap.classList.remove('is-panning')
-      };
-    });
-
-    viewport.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY;
-      } else if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        touchDist = Math.sqrt(dx * dx + dy * dy);
-        const r = viewport.getBoundingClientRect();
-        touchCx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
-        touchCy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
-      }
-    }, { passive: true });
-
-    viewport.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 1 && canPan()) {
-        if (touchDist > 0) {
-          sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY;
-          touchDist = 0;
-        }
-        e.preventDefault();
-        panX = spx + (e.touches[0].clientX - sx);
-        panY = spy + (e.touches[0].clientY - sy);
-        applyTransform();
-      } else if (e.touches.length === 2 && touchDist > 0) {
-        e.preventDefault();
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        zoomAround(d / touchDist, touchCx, touchCy);
-        touchDist = d;
-      }
-    }, { passive: false });
-
-    new ResizeObserver(() => {
-      if (svgW) { setAdaptiveHeight(); fitDiagram(); }
-    }).observe(wrap);
-
-    rerenderers.push(render);
-    render();
-  }
-
-  document.querySelectorAll('.diagram-shell').forEach(initDiagram);
-
-  window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
-
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', () => {
-    applyMermaidTheme();
-    if (window.rerenderDiagrams) window.rerenderDiagrams();
-  });
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
 </script>
-
 </body>
 </html>
