@@ -194,6 +194,9 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  CardActions,
+  CardContent,
   Chip,
   Dialog,
   DialogContent,
@@ -233,6 +236,12 @@ import {
   useSessionState,
 } from '../../lib/sessionState';
 import { useChallengeNav } from '../../lib/challengeNav';
+// ONDA1-CARD-DESAFIO-INICIAL: a decisão do card do desafio na abertura da
+// aula é PURA (lessonChallengeCard) — a view só traduz o resultado.
+import {
+  lessonChallengeCard,
+  lessonChallengeCardStatus,
+} from '../../lib/lessonChallengeCard';
 import { useMicSTT } from '../../hooks/useMicSTT';
 import {
   applyTutorReply,
@@ -1478,6 +1487,21 @@ export function LessonView(props: ViewProps): ReactElement {
   const finishBlock = lesson ? lessonFinishBlock(lesson.challenges, quizPendingAll.length) : null;
   const finishBlocked = finishBlock !== null;
 
+  /**
+   * ONDA1-CARD-DESAFIO-INICIAL: o card do desafio que aparece ABAIXO da bolha
+   * inicial, na abertura da aula. A decisão é do módulo PURO
+   * `lessonChallengeCard` (sem desafios → sem card; primeiro pendente →
+   * destaque) — a view só traduz. Recalcula com o payload `track.lesson`, que
+   * é re-buscado na abertura da aula (o `lastVerdict` volta fresco da
+   * ChallengeView). Exposto como useMemo para o próximo agente da onda2
+   * (falha-ver-aula): `cardDecision.challenge` é O desafio que o card marcou
+   * como "tentável antes da aula", com `lastVerdict`/`failedCount` de graça.
+   */
+  const cardDecision = useMemo(
+    () => lessonChallengeCard({ challenges: lesson?.challenges ?? [] }),
+    [lesson],
+  );
+
   // ONDA2 (error-flow, A5): mic no input do chat — o aluno pode responder à
   // pergunta do erro por VOZ (ou tirar qualquer dúvida falando). DECISÃO:
   // useMicSTT DIRETO (hook NÃO modificado — ele já expõe transcribing/
@@ -1967,6 +1991,33 @@ export function LessonView(props: ViewProps): ReactElement {
       nav.navigateToChallenge();
     },
     [trackLesson, nav, finishBlock],
+  );
+
+  /**
+   * ONDA1-CARD-DESAFIO-INICIAL — "Tentar o desafio agora" no CARD de abertura
+   * da aula. MESMO mecanismo de navegação do `openChallenge` acima
+   * (selectTrackChallenge + navigateToChallenge — nenhum fluxo novo), com UMA
+   * diferença deliberada: SEM o gate `challengeOpenBlockedByQuiz`.
+   *
+   * PORQUÊ (exceção pedida pelo dono, verbatim: o desafio "deve ser mostrado
+   * logo no começo da aula... para o aluno que quiser pular"): quem clica no
+   * card está pulando a teoria — a prova de entendimento (quiz) junto com
+   * ela. Gatear o card seria anular o pedido; o gate do FLUXO NORMAL
+   * (popover "Desafios", linha de ação de baixo) fica INTACTO.
+   */
+  const openChallengeFromCard = useCallback(
+    (ch: TrackChallengeSummaryDto): void => {
+      if (!trackLesson) return;
+      nav.selectTrackChallenge({
+        trackSlug: trackLesson.trackSlug,
+        target: 'lesson',
+        lessonId: trackLesson.lessonId,
+        challengeId: ch.slug,
+        title: ch.title,
+      });
+      nav.navigateToChallenge();
+    },
+    [trackLesson, nav],
   );
 
   /** ONDA2 (error-flow, A4): "Gerar novo desafio" NA BOLHA de erro — a LLM vê
@@ -2970,6 +3021,87 @@ export function LessonView(props: ViewProps): ReactElement {
                   {t('translation:lesson.startButton')}
                 </Button>
               </motion.span>
+              {/* ONDA1-CARD-DESAFIO-INICIAL — o CARD DO DESAFIO ABAIXO DA
+                  BOLHA INICIAL (pedido do dono: "o desafio deve ser mostrado
+                  logo no começo da aula, abaixo da inicial, falando o que é
+                  o desafio, para o aluno que quiser pular"). A decisão
+                  (aparece? qual desafio? qual estado?) é do módulo PURO
+                  lessonChallengeCard; sem desafios pendentes, o card não
+                  nasce. A navegação vai DIRETO à ChallengeView pelo MESMO
+                  caminho do fluxo track (openChallengeFromCard — exceção do
+                  dono, sem o gate pós-teoria; ver o comentário de lá). */}
+              {cardDecision.show && cardDecision.challenge ? (
+                <Card
+                  variant="outlined"
+                  role="group"
+                  aria-label={tI('lesson.challengeIntroCardAria', {
+                    title: cardDecision.challenge.title,
+                  })}
+                  sx={{
+                    mt: 2,
+                    textAlign: 'left',
+                    bgcolor: theme.vars.palette.surface.level1,
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                      {t('translation:lesson.challengeIntroCardTitle')}
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {cardDecision.challenge.title}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {cardDecision.challenge.concept}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={tI('lesson.difficulty', { n: cardDecision.challenge.difficulty })}
+                      />
+                      {cardDecision.challenge.failedCount > 0 ? (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          label={tI('lesson.challengeFailedCount', {
+                            n: cardDecision.challenge.failedCount,
+                          })}
+                        />
+                      ) : lessonChallengeCardStatus(cardDecision.challenge) === 'untried' ? (
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={t('translation:lesson.challengeUntried')}
+                        />
+                      ) : null}
+                    </Stack>
+                    <Typography variant="caption" component="p" sx={{ mt: 1, color: 'text.secondary' }}>
+                      {t('translation:lesson.challengeIntroCardHint')}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    {/* ONDA2-CHAT-NINTENDO: o MESMO press feedback dos botões
+                        do chat — pedido do dono. tabIndex=-1: casca animada
+                        nunca é parada de tab (padrão desta view). */}
+                    <motion.span
+                      whileTap={{ scale: 0.98 }}
+                      transition={springs.snappy}
+                      tabIndex={-1}
+                      style={{ display: 'inline-block' }}
+                    >
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => openChallengeFromCard(cardDecision.challenge!)}
+                        startIcon={<EmojiEventsIcon />}
+                      >
+                        {t('translation:lesson.challengeIntroCardTry')}
+                      </Button>
+                    </motion.span>
+                  </CardActions>
+                </Card>
+              ) : null}
             </Box>
           ) : (
             <>
