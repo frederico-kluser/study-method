@@ -174,10 +174,16 @@ describe('BLOCO 2 — fiação do módulo puro na view', () => {
   });
 
   it('o estado do desafio destacado vem de lessonChallengeCardStatus — sem régua paralela', () => {
+    // A view consulta o módulo PURO em exatamente 3 pontos: 1 do card
+    // original da onda 1 + 2 da onda 2 (CTA "Tentar o mesmo desafio de
+    // novo" no estado failed e o chip de status do desafio-tentado-antes-
+    // da-aula). A regra pura continua sendo a ÚNICA FONTE da decisão —
+    // a anti-regressão aqui é ZERO lógica de status que NÃO venha de
+    // `lessonChallengeCardStatus` (nenhuma regex/manual/paralela na view).
     assert.equal(
       count(VIEW, 'lessonChallengeCardStatus('),
-      1,
-      'o status do card deve ler o módulo puro, uma vez só',
+      3,
+      'o status deve vir do módulo puro lessonChallengeCardStatus, e de nenhum outro lugar (esperado: 1 card + 2 da onda 2)',
     );
   });
 
