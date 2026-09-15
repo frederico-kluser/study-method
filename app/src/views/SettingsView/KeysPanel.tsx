@@ -44,6 +44,7 @@ import { getApi } from '../../lib/apiBridge';
 import { ACTION_TIMEOUTS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { isNonEmpty } from '../../lib/validate';
 import { validationAlert } from '../../lib/validationAlert';
+import { readCached, writeCached } from './panelCache';
 
 type Provider = 'openrouter' | 'brave';
 
@@ -106,7 +107,12 @@ export function KeysPanel(): ReactElement {
     openrouter: idleState(),
     brave: idleState(),
   });
-  const [initialStatus, setInitialStatus] = useState<KeysStatus | null>(null);
+  // SWR: nasce com o último status conhecido (se houver) — o IPC abaixo
+  // revalida em toda montagem e só muda a UI se o valor real divergiu. Sem
+  // cache (1ª abertura da sessão), começa null como antes.
+  const [initialStatus, setInitialStatus] = useState<KeysStatus | null>(
+    () => readCached<KeysStatus>('keys.status') ?? null,
+  );
 
   // ACHADO-5: chaves ALREADY configuradas no store (status/gate do KeysPanel) —
   // exposto como sinal DOM p/ o onboarding considerar o passo `settings-keys-filled`
@@ -120,7 +126,10 @@ export function KeysPanel(): ReactElement {
     getApi()
       .keys.getStatus()
       .then((status) => {
-        if (!cancelled) setInitialStatus(status);
+        if (!cancelled) {
+          setInitialStatus(status);
+          writeCached('keys.status', status);
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -168,6 +177,15 @@ export function KeysPanel(): ReactElement {
         uiState: 'valid',
         message: t('translation:keys.saved'),
       }));
+      // Cache acompanha a escrita real: a próxima visita não mostra o chip
+      // "não configurada" por um instante antes da revalidação.
+      const prev = readCached<KeysStatus>('keys.status');
+      if (prev) {
+        writeCached('keys.status', {
+          ...prev,
+          [provider === 'openrouter' ? 'llmConfigured' : 'braveConfigured']: true,
+        });
+      }
     } catch (err) {
       void err;
       patch(provider, (s) => ({
@@ -224,6 +242,15 @@ export function KeysPanel(): ReactElement {
       uiState: alert.severity === 'success' ? 'valid' : 'invalid',
       message: t(alert.i18nKey),
     }));
+    // Cache acompanha o veredito de validação (mesmo raciocínio do salvar).
+    const prev = readCached<KeysStatus>('keys.status');
+    if (prev) {
+      writeCached('keys.status', {
+        ...prev,
+        [provider === 'openrouter' ? 'llmValidated' : 'braveValidated']:
+          result.isValid === true,
+      });
+    }
   };
 
   const renderProvider = (provider: Provider): ReactElement => {

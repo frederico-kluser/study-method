@@ -36,6 +36,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import type { TrackOrphanEntry } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
 import { IPC_TIMEOUT_MS, isTimeoutError, resolveChannelError, withTimeout } from '../../lib/ipcTimeout';
+import { readCached, writeCached } from './panelCache';
 
 type Feedback = { kind: 'done' } | { kind: 'error'; message: string } | null;
 
@@ -81,7 +82,12 @@ export function OrphanTracksPanel(): ReactElement {
   const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
 
   // null = ainda verificando; [] = nada órfão (estado bom e comum).
-  const [orphans, setOrphans] = useState<TrackOrphanEntry[] | null>(null);
+  // SWR: nasce com a última reconciliação conhecida — a load() abaixo revalida
+  // em toda montagem (o main recolcula do banco+disco de verdade; o cache é
+  // só o primeiro paint).
+  const [orphans, setOrphans] = useState<TrackOrphanEntry[] | null>(
+    () => readCached<TrackOrphanEntry[]>('track.orphans') ?? null,
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -100,6 +106,7 @@ export function OrphanTracksPanel(): ReactElement {
           return;
         }
         setOrphans(res.orphans);
+        writeCached('track.orphans', res.orphans);
       })
       .catch((err: unknown) => {
         setLoadError(

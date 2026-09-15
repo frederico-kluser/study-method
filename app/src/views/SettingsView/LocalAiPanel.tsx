@@ -38,6 +38,7 @@ import type {
 } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
 import { formatBytes, formatModelLabel, formatPercent, formatSpeedBps } from '../../lib/format';
+import { readCached, writeCached } from './panelCache';
 
 type DownloadTick = Pick<DownloadProgress, 'modelId' | 'percent' | 'speedBps' | 'done' | 'error'>;
 
@@ -84,14 +85,23 @@ function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
 export function LocalAiPanel(): ReactElement {
   const { t } = useTranslation();
   const [hardware, setHardware] = useState<HardwareInfo | null>(null);
-  const [models, setModels] = useState<LocalModelInfo[]>([]);
+  // SWR: nasce com a última lista conhecida — o IPC abaixo revalida em toda
+  // montagem. O spinner só roda na 1ª abertura (sem cache); nas seguintes a
+  // lista conhecida já pinta no primeiro commit.
+  const [models, setModels] = useState<LocalModelInfo[]>(
+    () => readCached<LocalModelInfo[]>('localAi.models') ?? [],
+  );
   const [detecting, setDetecting] = useState(false);
-  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(
+    () => readCached('localAi.models') === undefined,
+  );
   const [error, setError] = useState<string>('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadTicks, setDownloadTicks] = useState<Record<string, DownloadTick>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [feedbackProvider, setFeedbackProvider] = useState<FeedbackProvider>('openrouter');
+  const [feedbackProvider, setFeedbackProvider] = useState<FeedbackProvider>(
+    () => readCached<FeedbackProvider>('settings.feedbackProvider') ?? 'openrouter',
+  );
 
   // Lê o provedor salvo na montagem (settings:get).
   useEffect(() => {
@@ -105,6 +115,7 @@ export function LocalAiPanel(): ReactElement {
           settings?.defaultModelProvider === 'openrouter'
         ) {
           setFeedbackProvider(settings.defaultModelProvider);
+          writeCached('settings.feedbackProvider', settings.defaultModelProvider);
         }
       })
       .catch(() => {
@@ -119,10 +130,14 @@ export function LocalAiPanel(): ReactElement {
   const handleFeedbackProviderChange = async (next: FeedbackProvider): Promise<void> => {
     const prev = feedbackProvider;
     setFeedbackProvider(next);
+    writeCached('settings.feedbackProvider', next);
     try {
       await getApi().settings.set({ defaultModelProvider: next });
     } catch (err) {
       setFeedbackProvider(prev);
+      // Reverte também o cache — senão a próxima visita pinta o valor novo
+      // (que nunca chegou ao disco) até a revalidação corrigir.
+      writeCached('settings.feedbackProvider', prev);
       setError(`${t('translation:localAi.errorSaveFeedback')} ${String(err)}`);
     }
   };
@@ -133,7 +148,10 @@ export function LocalAiPanel(): ReactElement {
     getApi()
       .localAi.list()
       .then((list) => {
-        if (!cancelled) setModels(list);
+        if (!cancelled) {
+          setModels(list);
+          writeCached('localAi.models', list);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(`${t('translation:localAi.errorList')} ${String(err)}`);
@@ -165,6 +183,12 @@ export function LocalAiPanel(): ReactElement {
       unsubscribe();
     };
   }, []);
+
+  // O cache acompanha QUALQUER mudança local na lista (setActive/delete/loop
+  // de download) — um único efeito sincroniza estado → cache.
+  useEffect(() => {
+    writeCached('localAi.models', models);
+  }, [models]);
 
   const handleDetect = async (): Promise<void> => {
     setDetecting(true);
