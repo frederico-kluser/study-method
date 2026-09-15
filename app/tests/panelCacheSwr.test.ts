@@ -65,7 +65,6 @@ import { initReactI18next } from 'react-i18next';
 import { theme } from '../src/theme';
 import ptBR from '../src/i18n/locales/pt-BR/translation.json';
 import en from '../src/i18n/locales/en/translation.json';
-import { readCached, writeCached } from '../src/views/SettingsView/panelCache';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PANELS_DIR = resolve(HERE, '../src/views/SettingsView');
@@ -81,6 +80,16 @@ const SETTINGSVIEW_PATH = resolve(PANELS_DIR, 'SettingsView.tsx');
 const KEYSPANEL_MODULE = new URL('../src/views/SettingsView/KeysPanel.tsx', import.meta.url).href;
 const LOCALAIPANEL_MODULE = new URL('../src/views/SettingsView/LocalAiPanel.tsx', import.meta.url).href;
 const ORPHANPANEL_MODULE = new URL('../src/views/SettingsView/OrphanTracksPanel.tsx', import.meta.url).href;
+const PANELCACHE_MODULE = new URL('../src/views/SettingsView/panelCache.ts', import.meta.url).href;
+
+/** Tipos espelhados localmente (o painel está fora do include do tsconfig.node).
+ *  Interface de panelCache: 2 funções genéricas sobre o Map de módulo. */
+type PanelCache = {
+  readCached<T>(key: string): T | undefined;
+  writeCached<T>(key: string, value: T): void;
+};
+let readCached: PanelCache['readCached'];
+let writeCached: PanelCache['writeCached'];
 
 /** Fonte sem comentários — só o código que realmente roda (padrão da casa). */
 function codeOf(text: string): string {
@@ -503,4 +512,7 @@ before(async () => {
   LocalAiPanel = localAi.LocalAiPanel;
   const orphans = (await import(ORPHANPANEL_MODULE)) as { OrphanTracksPanel: typeof OrphanTracksPanel };
   OrphanTracksPanel = orphans.OrphanTracksPanel;
+  const panelCache = (await import(PANELCACHE_MODULE)) as PanelCache;
+  readCached = panelCache.readCached;
+  writeCached = panelCache.writeCached;
 });
