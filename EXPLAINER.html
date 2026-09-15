@@ -3,277 +3,310 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EXPLAINER — study-method · run 20260915-072001-496917</title>
+<title>EXPLAINER — Skills APENAS locais (study-method, run 20260915-140058-2396879)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
-:root{
-  --bg:#0f1115; --panel:#171a21; --panel2:#1e2330; --ink:#e8eaf0; --muted:#9aa3b2;
-  --accent:#5b9dff; --accent2:#2dd4a7; --warn:#f0b429; --line:#2a3040;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:16px/1.65 -apple-system,"Segoe UI",Roboto,Inter,Ubuntu,"Noto Sans",sans-serif;}
-.wrap{max-width:980px;margin:0 auto;padding:28px 20px 90px;}
-.hero{background:linear-gradient(135deg,#141826,#10131c);border:1px solid var(--line);
-  border-radius:16px;padding:28px 26px;margin-bottom:8px;}
-.hero h1{margin:0 0 .4rem;font-size:1.85rem;letter-spacing:-.02em;line-height:1.3;}
-.hero .sub{color:var(--muted);margin:.2rem 0 1rem;font-size:.95rem;}
-.pills{display:flex;flex-wrap:wrap;gap:8px;}
-.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;
-  padding:.22rem .75rem;font-size:.8rem;color:var(--muted);}
-.pill b{color:var(--ink);font-weight:600;}
-h2{font-size:1.28rem;margin:2.4rem 0 .7rem;padding-bottom:.35rem;
-  border-bottom:1px solid var(--line);color:var(--accent);}
-h3{font-size:1.05rem;margin:1.6rem 0 .4rem;color:var(--ink);}
-p{margin:.55rem 0;}
-ul,ol{margin:.5rem 0 .8rem;padding-left:1.4rem;}
-li{margin:.28rem 0;}
-code{background:#232a3a;border:1px solid var(--line);border-radius:6px;
-  padding:.06em .38em;font-size:.87em;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
-table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.93rem;}
-th,td{padding:.5rem .7rem;border:1px solid var(--line);text-align:left;vertical-align:top;}
-th{background:var(--panel2);}
-tbody tr:nth-child(odd){background:rgba(255,255,255,.02);}
-figure{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:18px 18px 12px;margin:1.3rem 0;}
-figure .diagram{display:flex;justify-content:center;overflow-x:auto;}
-figcaption{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;
-  color:var(--muted);font-size:.92rem;}
-figcaption b{color:var(--accent2);}
-.callout{border-left:3px solid var(--accent);background:var(--panel);
-  padding:.7rem 1rem;border-radius:0 10px 10px 0;margin:.9rem 0;}
-.callout.warn{border-left-color:var(--warn);}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:.9rem 0;}
-.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
-.metric .n{font-size:1.6rem;font-weight:700;}
-.metric .l{color:var(--muted);font-size:.82rem;}
-details{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:.55rem 1rem;margin:.7rem 0;}
-summary{cursor:pointer;font-weight:600;color:var(--accent);}
-details[open] summary{margin-bottom:.4rem;}
-footer{margin-top:3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem;}
-.one-sentence{font-size:1.06rem;background:var(--panel);border:1px solid var(--line);
-  border-radius:12px;padding:18px 20px;}
-.one-sentence mark{background:none;color:var(--accent2);font-weight:600;}
-.entrega{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
-  border-radius:10px;padding:14px 18px;margin:1rem 0;}
-.entrega h3{margin-top:.2rem;}
-.muted{color:var(--muted);font-weight:400;font-size:.85rem;}
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --panel2: #212a33; --border: #2e3944;
+    --text: #d7dde3; --muted: #8b98a5; --accent: #4cc2ff; --accent2: #7ee787;
+    --warn: #ffa657; --danger: #ff7b72; --code-bg: #161b22;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65; font-size: 16px; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+  header.run { border-left: 4px solid var(--accent); background: var(--panel);
+    padding: 18px 22px; border-radius: 8px; margin-bottom: 28px; }
+  header.run h1 { margin: 0 0 6px; font-size: 1.5em; color: var(--accent); }
+  header.run .meta { color: var(--muted); font-size: 0.9em; }
+  h2 { color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px;
+    margin-top: 48px; font-size: 1.25em; }
+  h3 { color: var(--accent2); margin-top: 28px; font-size: 1.05em; }
+  .callout { background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+  .callout.ok { border-left: 4px solid var(--accent2); }
+  .callout.warn { border-left: 4px solid var(--warn); }
+  .callout.info { border-left: 4px solid var(--accent); }
+  .onephrase { font-size: 1.15em; background: var(--panel2); border-radius: 8px;
+    padding: 20px 24px; border: 1px solid var(--border); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.93em; }
+  th, td { border: 1px solid var(--border); padding: 9px 12px; text-align: left;
+    vertical-align: top; }
+  th { background: var(--panel2); color: var(--accent); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "JetBrains Mono", "Fira Code", monospace; font-size: 0.88em;
+    color: #a5d6ff; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  .mermaid { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px; margin: 12px 0; text-align: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  figcaption { color: var(--muted); font-size: 0.9em; padding: 10px 14px;
+    border-left: 3px solid var(--accent); background: var(--panel2);
+    border-radius: 0 8px 8px 0; margin: 8px 0 0; }
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 18px; margin: 14px 0; }
+  details summary { cursor: pointer; color: var(--warn); font-weight: 600; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 0.8em; font-weight: 600; }
+  .pill.ok { background: rgba(126,231,135,0.15); color: var(--accent2); }
+  .pill.warn { background: rgba(255,166,87,0.15); color: var(--warn); }
+  .pill.info { background: rgba(76,194,255,0.15); color: var(--accent); }
+  footer { margin-top: 60px; color: var(--muted); font-size: 0.85em;
+    border-top: 1px solid var(--border); padding-top: 14px; }
+  .kw { color: var(--accent2); font-weight: 600; }
 </style>
 </head>
 <body>
 <div class="wrap">
-<header class="hero">
-<h1>Como a execução entregou os 4 pedidos — e o que aconteceu por trás</h1>
-<p class="sub">EXPLAINER didático da run <code>20260915-072001-496917</code> do projeto <code>study-method</code> · gerado somente a partir de <code>fatos.md</code> · pt-BR</p>
-<div class="pills">
-  <span class="pill">Orquestração: <b>2 ondas + subwaves de teste</b></span>
-  <span class="pill">Worktrees: <b>7 nomeadas</b></span>
-  <span class="pill">Gate final: <b>4657 testes · 4655 pass · 0 fail</b></span>
-  <span class="pill">Leitor: <b>misto</b> — novato lê em ordem; quem já sabe dobra o andaime no fim</span>
-</div>
+<header class="run">
+  <h1>Skills de projeto agora vivem APENAS no repositório</h1>
+  <div class="meta">
+    Projeto: <code>study-method</code> &middot; Run: <code>20260915-140058-2396879</code> &middot;
+    Squash: <code>7e4e417</code> &middot; Worktree: <code>onda1-skills-locais</code><br>
+    Status do gate: <span class="pill ok">BUILD 0</span> <span class="pill ok">LINT 0</span>
+    <span class="pill ok">TEST 0</span> (4657 pass / 0 fail / 2 skipped) &middot;
+    Revisão adversarial: <span class="pill ok">APPROVE</span>
+  </div>
 </header>
 
-<h2 id="resposta">Resposta em uma frase</h2>
-<p class="one-sentence">Em uma orquestração de <mark>2 ondas em worktrees isoladas</mark>, com revisão adversarial e squash-merge atrás de gate verdes, os 4 pedidos do dono saíram: o <mark>card do desafio</mark> agora aparece logo no começo da aula (abaixo da bolha inicial, navegando direto sem o gate do quiz), o item <mark>Desafio saiu do rail</mark> esquerdo (continuando acessível como “painel fantasma”), a <mark>falha antes da aula</mark> agora oferece “Ver a aula” e retoma o mesmo desafio (novo desafio só na 2ª falha), e o menu de <mark>Settings abriu 4–5× mais rápido</mark> por cache stale-while-revalidate — com <mark>4655 de 4657 testes passando e 0 falhas</mark>.</p>
-<h2 id="buzzwords">Buzzwords fechadas (definidas uma vez, usadas daqui em diante)</h2>
+<h2>Resposta em uma frase</h2>
+<div class="onephrase">
+  A partir de agora, <code>install.sh</code> instala as skills do projeto <strong>somente dentro
+  do repositório</strong> (em <code>&lt;repo&gt;/.claude/skills/</code>), as skills globais que
+  já estão em <code>~/.claude/skills/</code> <strong>continuam intocadas</strong>, e o
+  <code>run.sh</code> <strong>só sobe o app</strong> — ele nunca mais instala skill nenhuma.
+</div>
+
+<h2>Mapa de buzzwords</h2>
+<p>Toda palavra técnica usada neste documento está fechada aqui. Leia uma vez e siga em frente.</p>
 <table>
-<thead><tr><th>Termo</th><th>O que significa nesta execução</th><th>Onde apareceu</th></tr></thead>
-<tbody>
-<tr><td><code>squash-merge</code></td><td>Junta todo o trabalho de uma onda num único commit limpo ao integrar em <code>main</code> — a história final fica com 1 commit por entrega, sem os degraus intermediários.</td><td>História final: <code>515a777</code>, <code>739c83f</code>, <code>2d47208</code>, <code>fe8db70</code>, etc.</td></tr>
-<tr><td><code>worktree</code></td><td>Cópia de trabalho do mesmo repositório em pasta própria e isolada. Cada entrega trabalhou na sua (ex.: <code>onda1-settings-perf</code>) sem pisar nas outras.</td><td>7 worktrees nomeadas: 3 features + 3 de teste na Onda 1, e a da Onda 2.</td></tr>
-<tr><td><code>gate</code></td><td>Portão de qualidade: build + lint + testes rodam em snapshot após cada squash-merge; se não fica VERDE, a onda não avança.</td><td>Gates por squash todos VERDES; gate final <code>GATE_BUILD=0 · GATE_LINT=0 · TEST=0</code>.</td></tr>
-<tr><td><code>guard de fonte</code></td><td>Teste que “conta” os usos de um símbolo no código e falha se o número muda sem justificativa — trava regressão silenciosa.</td><td>Guarda do card (<code>lessonChallengeCardStatus</code>) atualizada de 1 para 3 usos quando a Onda 2 mexeu no símbolo.</td></tr>
-<tr><td><code>SWR</code></td><td><i>Stale-while-revalidate</i>: responde na hora com o dado do cache (um pouco “velho”) e revalida em segundo plano. Abrir Settings deixou de reler tudo do zero.</td><td>Abertura morna 88–104 ms → <b>21 ms (~4–5×)</b>; fria inalterada; zero mudança de dados.</td></tr>
-<tr><td><code>painel fantasma</code></td><td>Painel que saiu do menu visível, mas continua existindo por trás para a navegação não quebrar (<code>PanelKey = NavKey|'challenge'</code>).</td><td>Item Desafio removido do rail; <code>navigateToChallenge</code> intacto.</td></tr>
-<tr><td><code>flag de contexto</code></td><td>Booleano que guarda o contexto de um evento para decisões futuras: <code>attemptedBeforeLesson</code> lembra que o aluno já tentou o desafio antes da aula.</td><td>Onda 2.1: decide o que a bolha de erro oferece (“Ver a aula”).</td></tr>
-<tr><td><code>stash</code></td><td>Guarda-chuva temporário do git: mudanças não commitadas ficam guardadas (<code>stash@{0}</code>) para serem recuperadas depois.</td><td>Reformat não-autorizado de <code>e2e-desafio-retomar.spec.ts</code> preservado em <code>stash@{0}</code> antes do merge da Onda 2.</td></tr>
-</tbody>
+  <tr><th>Termo</th><th>Definição no contexto desta execução</th></tr>
+  <tr><td><span class="kw">Skill de projeto</span></td>
+      <td>Skill instalada em <code>&lt;repo&gt;/.claude/skills/</code> — existe só para
+      este repositório e viaja com ele (o novo destino padrão).</td></tr>
+  <tr><td><span class="kw">Skill global</span></td>
+      <td>Skill instalada em <code>~/.claude/skills/</code> — vale para todos os projetos.
+      As que já existiam <strong>não foram removidas nem alteradas</strong>.</td></tr>
+  <tr><td><span class="kw">SKILLS_DIR</span></td>
+      <td>Variável do <code>install.sh</code> que define o destino de instalação das skills.
+      Novo default: <code>&lt;repo&gt;/.claude/skills/</code>.</td></tr>
+  <tr><td><span class="kw">Bootstrap direto</span></td>
+      <td>O <code>run.sh</code> agora sobe o app por si só (checa node/npm, cria
+      <code>.env.local</code>, roda <code>npm ci</code> se preciso, executa
+      <code>app/run-dev.sh</code>) <em>sem</em> chamar o <code>install.sh</code>.</td></tr>
+  <tr><td><span class="kw">Idempotência</span></td>
+      <td>Reexecutar o <code>install.sh</code> quantas vezes quiser sem quebrar nada:
+      se a skill já está instalada e atualizada, nada é reescrito. Lógica preservada intacta.</td></tr>
+  <tr><td><span class="kw">Marcador .install-ok</span></td>
+      <td>Arquivo escrito pelo <code>run.sh</code> dentro do <code>app/</code> para lembrar
+      que <code>npm ci</code> já foi concluído — só é reescrito se
+      <code>node_modules</code> estiver incompleto.</td></tr>
+  <tr><td><span class="kw">Override CLAUDE_SKILLS_DIR</span></td>
+      <td>Se você exportar <code>CLAUDE_SKILLS_DIR</code>, o <code>install.sh</code>
+      respeita esse destino em vez do default. É assim que o CI testa o isolamento sem
+      tocar na HOME real.</td></tr>
+  <tr><td><span class="kw">Guarda de fonte</span></td>
+      <td>Teste estático que varre o <code>run.sh</code> e <strong>falha o build</strong> se
+      qualquer linha executável mencionar <code>install.sh</code>, <code>SKILLS_DIR</code>
+      ou <code>.claude</code> — travando a regressão "voltar a instalar skills no run".</td></tr>
+  <tr><td><span class="kw">HOME falso</span></td>
+      <td>Técnica de teste: rodar o <code>install.sh</code> com <code>HOME</code>
+      apontando para um diretório temporário. Se nada aparecer nesse falso HOME, prova-se
+      que nenhuma escrita escapa do repositório.</td></tr>
+  <tr><td><span class="kw">chmod 700 removido</span></td>
+      <td>O <code>install.sh</code> aplicava permissão restrita ao diretório de destino;
+      isso fez sentido quando o destino era global, e foi removido porque agora o destino
+      fica dentro do próprio repo.</td></tr>
+  <tr><td><span class="kw">HUSKY=0</span></td>
+      <td>Variável passada ao <code>npm ci</code> do <code>run.sh</code> para impedir
+      hooks de git de serem instalados como efeito colateral (defesa; o projeto hoje não
+      usa husky).</td></tr>
 </table>
-<h2 id="figuras">As 4 figuras</h2>
+<h2>Figuras</h2>
 
-<h3>Figura 1 — A aula com o card do desafio (Onda 1.1)</h3>
-<figure>
-<div class="diagram"><pre class="mermaid">
+<h3>Figura 1 — Antes / depois do destino das skills</h3>
+<div class="mermaid">
+flowchart LR
+  subgraph ANTES["ANTES"]
+    A1["install.sh"] -->|copia skills| G1["~/.claude/skills/<br>(GLOBAL)"]
+    A1 -.-> G2["~/.claude/skills/<br>(GLOBAL também)"]
+  end
+  subgraph DEPOIS["DEPOIS"]
+    A2["install.sh"] -->|"copia skills (default)"| L2["&lt;repo&gt;/.claude/skills/<br>(LOCAL — novo destino)"]
+    A2 -.->|"override CLAUDE_SKILLS_DIR"| O2["destino custom"]
+  end
+  G1 == "intocadas: nada removido, nada alterado" ==> X1["~/.claude/skills/ existentes<br>ficam como estão"]
+  style G1 fill:#3a2a1a,stroke:#ffa657,color:#ffa657
+  style L2 fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+  style X1 fill:#2a2a3a,stroke:#4cc2ff,color:#4cc2ff
+</div>
+<figcaption><strong>Afirmação:</strong> a mudança só afeta para onde as skills de
+projeto são instaladas a partir de agora. As globais já existentes não são alvo de
+nenhuma operação — comprovado por testes com HOME falso, que mostraram zero escrita
+fora do repositório.</figcaption>
+
+<h3>Figura 2 — Novo fluxo do run.sh (bootstrap direto)</h3>
+<div class="mermaid">
 flowchart TD
-    A["Aluno abre a aula"] --> B["Tela inicial: bolha inicial do chat"]
-    B --> C["Card do desafio logo abaixo<br/>(só no estado inicial do chat)"]
-    C -->|"quer pular a teoria"| D["Navegação DIRETA ao desafio<br/>sem gate do quiz<br/>(exceção aprovada pelo dono)"]
-    C -->|"quer a teoria"| E["Fluxo normal da aula<br/>gating do quiz intacto"]
-</pre></div>
-<figcaption><b>Afirmação:</b> o card aparece apenas no estado inicial do chat, abaixo da bolha inicial, e aponta para o primeiro pendente na ordem editorial; ele navega direto ao desafio mesmo com quiz pendente — a exceção de gate pedida pelo dono — enquanto o restante do fluxo da aula continua com o gating normal intacto.</figcaption>
-</figure>
-
-<h3>Figura 2 — Falha no desafio ANTES da aula (Onda 2.1)</h3>
-<figure>
-<div class="diagram"><pre class="mermaid">
-sequenceDiagram
-    participant A as Aluno
-    participant D as Desafio
-    participant B as Bolha de erro no chat
-    participant C as Card na aula
-    A->>D: Tenta o desafio antes da aula
-    D->>D: 1ª falha: flag attemptedBeforeLesson = true
-    D->>B: Bolha oferece Ver a aula (nunca Proximo/Continuar)
-    B->>B: Ao usar: limpa o chat
-    B->>C: Card reaparece com CTA Tentar o mesmo desafio de novo
-    A->>D: Retoma o MESMO desafio (rascunho preservado)
-    Note over A,D: Relogio zerado so se a tentativa nasceu estourada
-    A->>D: 2ª falha (failedCount maior ou igual a 2)
-    D->>B: Agora a bolha oferece Gerar novo desafio
-</pre></div>
-<figcaption><b>Afirmação:</b> na 1ª falha o sistema manda o aluno VER A AULA — nunca “Próximo/Continuar” — e, ao usá-la, limpa o chat; o card volta com CTA “Tentar o mesmo desafio de novo”, retomando o MESMO rascunho (relógio zerado só se a tentativa nasceu estourada). Só na 2ª falha (<code>failedCount ≥ 2</code>) a bolha passa a oferecer “Gerar novo desafio”.</figcaption>
-</figure>
-<h3>Figura 3 — O pipeline: ondas, revisão adversarial e gate</h3>
-<figure>
-<div class="diagram"><pre class="mermaid">
+  R["run.sh"] --> N{"node/npm >= 22.13?"}
+  N -->|nao| E["erro claro e para"]
+  N -->|sim| ENV["cria app/.env.local se faltar"]
+  ENV --> M{"node_modules completo?<br>(marcador app/.install-ok)"}
+  M -->|incompleto| CI["HUSKY=0 npm --prefix app ci<br>e escreve .install-ok"]
+  M -->|completo| PULA["pula o npm ci"]
+  CI --> DEV
+  PULA --> DEV["exec app/run-dev.sh"]
+  DEV --> APP["app sobe"]
+  R -.->|"NUNCA mais"| NS["install.sh / SKILLS_DIR / .claude<br>(bloqueado pela guarda de fonte)"]
+  style NS fill:#3a1a1a,stroke:#ff7b72,color:#ff7b72
+  style APP fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+</div>
+<figcaption><strong>Afirmação:</strong> o <code>run.sh</code> agora é um bootstrap do app
+e apenas do app. A ordem foi preservada (<code>.env.local</code> vem ANTES do
+<code>npm ci</code>), e a guarda de fonte falha o build se qualquer linha executável do
+script voltar a mencionar instalação de skills.</figcaption>
+<h3>Figura 3 — O que muda para você (comandos)</h3>
+<div class="mermaid">
 flowchart LR
-    P["Plano<br/>(FASE 2: 2 ondas)"] --> O1["Onda 1 em paralelo<br/>card · rail · settings"]
-    O1 --> R1["Revisão adversarial<br/>1 fix: revert de cache na falha"]
-    R1 --> G1["Squash-merge um a um<br/>+ gate: build/lint/test VERDE"]
-    G1 --> T["Subwaves de teste da Onda 1<br/>18 + 22 + 34 testes novos"]
-    T --> O2["Onda 2<br/>falha challenge-first"]
-    O2 --> R2["Revisão adversarial<br/>APPROVE (8/8 confirmados)"]
-    R2 --> M["Merges de teste<br/>3 add/add resolvidos + 2 fixes"]
-    M --> G2["Gate final no BASE_DIR<br/>4657 testes · 0 fail"]
-    G2 --> F["COMMIT-FINAL"]
-</pre></div>
-<figcaption><b>Afirmação:</b> cada entrega nasce isolada em worktree, é revisada de forma adversarial antes de integrar e só entra em <code>main</code> via squash-merge com gate verdes; os testes novos foram gerados em subwaves paralelas e o validador assíncrono (<code>val-onda1-gate</code>) deu PASS em todas as etapas.</figcaption>
-</figure>
+  subgraph COMANDOS["O que VOCÊ digita — nada muda"]
+    C1["./install.sh"] --> D1["instala tudo<br>skills agora APENAS em<br>&lt;repo&gt;/.claude/skills/"]
+    C2["./run.sh"] --> D2["sobe o app<br>zero skill instalada"]
+  end
+  D1 -.->|"precedência:<br>pessoal &gt; projeto"| EFEITO["Claude Code vê<br>as duas camadas"]
+  D2 -.-> EFEITO
+  EFEITO --> G["globais existentes<br>continuam valendo"]
+  style G fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+  style D1 fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+  style D2 fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+</div>
+<figcaption><strong>Afirmação:</strong> seus comandos não mudam — muda o efeito deles.
+<code>install.sh</code> continua instalando tudo (incluindo skills), mas agora só dentro
+do repositório. <code>run.sh</code> continua subindo o app, mas sem instalar skill nenhuma.
+Se você já tinha skills globais, elas continuam valendo; a precedência documentada é
+pessoal &gt; projeto.</figcaption>
 
-<h3>Figura 4 — Antes e depois de abrir o menu de Settings (Onda 1.3)</h3>
-<figure>
-<div class="diagram"><pre class="mermaid">
-flowchart LR
-    subgraph ANT["Antes"]
-        A1["Aluno abre Settings"] --> A2["Reler TUDO do zero<br/>88 a 104 ms (morna)"]
-    end
-    subgraph DEP["Depois"]
-        B1["Aluno abre Settings"] --> B2["Responde do cache da sessão<br/>21 ms (~4 a 5x)"]
-        B2 --> B3["Revalida em segundo plano<br/>(stale-while-revalidate)"]
-    end
-    ANT -.->|"panelCache.ts por sessão"| DEP
-</pre></div>
-<figcaption><b>Afirmação:</b> um cache SWR por sessão (<code>panelCache.ts</code>, novo) fez a abertura morna cair de 88–104 ms para 21 ms (~4–5×); a abertura fria ficou inalterada e nenhum dado mudou — inclusive na falha de <code>settings.set</code> o cache é revertido (fix aplicado pela revisão 1.3).</figcaption>
-</figure>
-<h2 id="entregas">As entregas, pedido por pedido</h2>
+<h3>Figura 4 — Provas: testes e CI</h3>
+<div class="mermaid">
+flowchart TD
+  subgraph TESTES["runsh-bootstrap.test.ts"]
+    T1["Guarda de fonte:<br>run.sh sem install.sh /<br>SKILLS_DIR / .claude"] --> R1{"build falha se<br>alguém reverter"}
+    T2["Execução com stubs:<br>run.sh não deixa skill em<br>CLAUDE_SKILLS_DIR,<br>&lt;repo&gt;/.claude ou ~/.claude"]
+    T3["Default local do install.sh<br>com HOME falso:<br>zero escrita fora do repo"]
+  end
+  subgraph CI["gate.yml — job install"]
+    C1["override CLAUDE_SKILLS_DIR"] --> C2["provas de isolamento"]
+    C2 --> C3["passo provando o<br>default LOCAL"]
+  end
+  subgraph GATE["Gate de snapshot + final"]
+    G1["BUILD 0 · LINT 0 · TEST 0"] --> G2["4657 pass / 0 fail /<br>2 skipped (intocadas)"]
+  end
+  TESTES --> CI --> GATE --> OK["Revisão adversarial: APPROVE<br>(zero escrita em $HOME)"]
+  style OK fill:#1a3a2a,stroke:#7ee787,color:#7ee787
+  style R1 fill:#3a2a1a,stroke:#ffa657,color:#ffa657
+</div>
+<figcaption><strong>Afirmação:</strong> a mudança não é apenas intenção — é travada em
+três camadas: testes que executam os scripts com stubs e HOME falso, um job de CI que
+repete as provas de isolamento a cada push, e um gate completo de 4657 testes aprovando
+o snapshot e a versão final. A guarda de fonte impede a regressão no futuro.</figcaption>
+<h2>O que foi entregue, segmento por segmento</h2>
 
-<div class="entrega">
-<h3>1 · Card do desafio no início da aula <span class="muted">(Onda 1.1 · squash <code>515a777</code> · revisão APPROVE)</span></h3>
-<p><b>Pedido:</b> desafio mostrado logo no começo da aula, abaixo da tela inicial, para quem quer pular a teoria.</p>
-<ul>
-<li>Card inserido abaixo da bolha inicial do chat, apenas no estado inicial; aponta para o primeiro pendente na ordem editorial.</li>
-<li>Navegação direta ao desafio sem o gate do quiz — exceção aprovada pelo dono; o gating do fluxo normal da aula ficou intacto.</li>
-<li>Arquivos: <code>LessonView.tsx</code>, <code>lessonChallengeCard.ts</code> (novo), i18n pt-BR/en (5 chaves novas).</li>
-</ul>
+<div class="callout info">
+  <h3>1. <code>install.sh</code> — destino local</h3>
+  <code>SKILLS_DIR</code> passou a ter default <code>&lt;repo&gt;/.claude/skills/</code>
+  (skills de projeto do Claude Code). O override <code>CLAUDE_SKILLS_DIR</code> continua
+  funcionando igual. A lógica idempotente e as guardas existentes foram preservadas
+  intactas. O <code>chmod 700</code> foi removido porque o destino agora é local ao repo.
+  Resultado líquido: <strong>nenhuma escrita fora do repositório</strong>.
 </div>
 
-<div class="entrega">
-<h3>2 · Botão de Desafio fora do rail esquerdo <span class="muted">(Onda 1.2 · squash <code>739c83f</code> · revisão APPROVE)</span></h3>
-<p><b>Pedido:</b> remover o botão de Desafio da barra de navegação esquerda.</p>
-<ul>
-<li>Item “Desafio” removido do <code>NavigationRail</code>; a navegação continua possível por trás (<code>navigateToChallenge</code> intacto) via painel fantasma (<code>PanelKey = NavKey|'challenge'</code>).</li>
-<li>Premissa registrada: era o item do rail que saía — o botão “Desafios” do cabeçalho do sidebar da aula permaneceu.</li>
-<li>Arquivos: <code>shellNav.ts</code>, <code>NavigationRail.tsx</code>, <code>App.tsx</code>, <code>onboarding/*</code>.</li>
-</ul>
+<div class="callout info">
+  <h3>2. <code>run.sh</code> — bootstrap direto do app</h3>
+  Parou de chamar o <code>install.sh</code>. Nova sequência: valida
+  <code>node/npm &ge; 22.13</code> &rarr; cria <code>app/.env.local</code> se faltar &rarr;
+  roda <code>HUSKY=0 npm --prefix app ci</code> apenas se <code>node_modules</code>
+  estiver incompleto (e aí escreve o marcador <code>.install-ok</code>) &rarr;
+  <code>exec app/run-dev.sh</code>. A ordem <code>.env.local</code> antes de
+  <code>npm ci</code> foi explicitamente preservada e verificada na revisão adversarial.
+  <strong>Nunca instala skills</strong>, em nenhuma circunstância.
 </div>
 
-<div class="entrega">
-<h3>3 · Falha antes da aula manda “Ver a aula” <span class="muted">(Onda 2.1 · squash <code>fe8db70</code> · revisão APPROVE 8/8)</span></h3>
-<p><b>Pedido:</b> na falha do desafio tentado ANTES da aula, oferecer “Ver a aula” (nunca “Próximo/Continuar”); o MESMO desafio fica retomável; novo desafio só na 2ª falha.</p>
-<ul>
-<li>Flag de contexto <code>attemptedBeforeLesson</code>; a bolha de erro oferece “Ver a aula” na 1ª falha e limpa o chat; o card reaparece com CTA “Tentar o mesmo desafio de novo”.</li>
-<li>“Gerar novo desafio” só na 2ª falha (<code>failedCount &gt;= 2</code>; <code>markAttempt</code> conta <code>failed|timeout</code>).</li>
-<li>Rascunho retomado com relógio zerado só se a tentativa nasceu estourada; timeout do desafio flaggado volta SEM bolha de erro (decisão conservadora — retry pelo card).</li>
-<li>i18n da Onda 1.2, que tinha ficado defasada, foi reescrita.</li>
-<li>Arquivos: <code>challengeNav.ts</code>, <code>ipc-contract.ts</code>, <code>lessonChallengeCard.ts</code>, <code>trackLessonState.ts</code>, <code>TrackChallengePanel.tsx</code>, <code>ChatBubble.tsx</code>, <code>LessonView.tsx</code>, i18n.</li>
-</ul>
+<div class="callout info">
+  <h3>3. Skills globais existentes — intocadas</h3>
+  Nada em <code>~/.claude/skills/</code> é removido, movido ou modificado. A propriedade
+  está comprovada pelos testes executando os scripts com <strong>HOME falso</strong>: se
+  o script tentasse escrever fora do repo, o teste veria a escrita no falso HOME e falharia.
 </div>
 
-<div class="entrega">
-<h3>4 · Settings abre rápido <span class="muted">(Onda 1.3 · squash <code>2d47208</code> · revisão WARNING → fix aplicado)</span></h3>
-<p><b>Pedido:</b> o menu de Settings demora a carregar — corrigir.</p>
-<ul>
-<li>Cache stale-while-revalidate por sessão: abertura morna 88–104 ms → <b>21 ms (~4–5×)</b>; abertura fria inalterada; zero mudança de dados.</li>
-<li>Fix da revisão adversarial: na falha de <code>settings.set</code> o cache é revertido (<code>LocalAiPanel.tsx</code>).</li>
-<li>Arquivos: <code>panelCache.ts</code> (novo), <code>KeysPanel</code>, <code>LocalAiPanel</code>, <code>OrphanTracksPanel</code>.</li>
-</ul>
+<div class="callout info">
+  <h3>4. Documentação atualizada</h3>
+  README (instalação local, seção "À mão" local, precedência pessoal &gt; projeto, nota de
+  que globais existentes ficam), <code>docs/01-arquitetura.md</code>,
+  <code>docs/app-gui.md</code> &sect;2.17, <code>docs/11-seguranca-privacidade.md</code>,
+  <code>docs/00-contratos.md</code>, <code>docs/build-spec/20-skill-md.md</code> + blocks
+  00/07/08 e <code>BUILD_SPEC.md</code> — todos alinhados ao novo comportamento.
 </div>
-<h2 id="incidentes">Incidentes da auditoria (e como foram contidos)</h2>
-<div class="callout warn"><b>Shell do harness descartava variáveis locais contendo “/”.</b> Mitigado com paths inline nos comandos.</div>
-<div class="callout warn"><b>Gate órfão rodou <code>npm ci/build/lint</code> em <code>$BASE_DIR/app</code>.</b> <code>node_modules</code> foi reinstalado — ignorado por ser pré-existente no baseline; nenhum arquivo tracked foi tocado.</div>
-<div class="callout warn"><b>Reformat mecânico não-autorizado</b> de <code>e2e-desafio-retomar.spec.ts</code> apareceu em <code>main</code> durante a execução — preservado em <code>stash@{0}</code> antes do merge da Onda 2.</div>
-<div class="callout warn"><b>Merge morto a meio</b> (squash estagiado sem commit) — índice restaurado e merge re-executado.</div>
 
-<h2 id="vereditos">Vereditos</h2>
-<div class="grid">
-<div class="metric"><div class="n">4657</div><div class="l">testes no gate final</div></div>
-<div class="metric"><div class="n" style="color:var(--accent2)">4655</div><div class="l">pass</div></div>
-<div class="metric"><div class="n" style="color:var(--accent2)">0</div><div class="l">fail</div></div>
-<div class="metric"><div class="n">2</div><div class="l">skipped (pré-existentes)</div></div>
+<div class="callout info">
+  <h3>5. CI e testes</h3>
+  O job <code>install</code> do <code>.github/workflows/gate.yml</code> foi adaptado para
+  usar override <code>CLAUDE_SKILLS_DIR</code>, rodar provas de isolamento e incluir um
+  passo que demonstra o default local. Novo arquivo de teste
+  <code>runsh-bootstrap.test.ts</code> cobre a guarda de fonte e a execução com stubs
+  (prova tripla: nada em <code>CLAUDE_SKILLS_DIR</code>, nada em
+  <code>&lt;repo&gt;/.claude</code> vindo do run, nada em <code>$HOME/.claude</code>).
 </div>
-<ul>
-<li><b>Gates:</b> <code>GATE_BUILD=0</code>, <code>GATE_LINT=0</code>, <code>BUILD=0</code>, <code>LINT=0</code>, <code>TEST=0</code> no estado final em <code>$BASE_DIR</code>; gates de integração por squash todos VERDES.</li>
-<li><b>Validador assíncrono</b> (<code>val-onda1-gate</code>): PASS em todas as etapas.</li>
-<li><b>Revisões adversariais:</b> 1.1 APPROVE · 1.2 APPROVE · 1.3 WARNING→fix aplicado · integração da Onda 1 APPROVE · Onda 2 APPROVE (8/8 confirmados) · revisores de teste APPROVE (nav, card, settings).</li>
-<li><b>Cobertura:</b> 74 testes novos na Onda 1 (18 card + 22 nav + 34 settings, todos integrados) + 10 puros na Onda 2 (<code>challengeFirstFailFlow</code>) + caso 4 no e2e <code>desafio-retomar</code> (ciclo completo na GUI). Nenhum arquivo ficou sem cobertura declarada.</li>
-</ul>
-<h2 id="andaime">Andaime (para quem quer descer um nível)</h2>
-<details><summary>Premissas e decisões autônomas</summary>
-<ul>
-<li>“Botão de desafio do left bar” = item Desafio do <code>NavigationRail</code>; o botão “Desafios” do cabeçalho do sidebar da aula permaneceu.</li>
-<li>Card só no estado inicial do chat; primeiro pendente na ordem editorial.</li>
-<li>Exceção de gate: o card navega ao desafio mesmo com quiz pendente (pedido explícito de pular a teoria).</li>
-<li>Retry do desafio falho retoma o rascunho (código preservado; relógio zerado só se a tentativa nasceu estourada).</li>
-<li><code>failedCount &gt;= 2</code> define “2ª falha” (<code>markAttempt</code> conta <code>failed|timeout</code>).</li>
-<li>Timeout do desafio flaggado volta SEM bolha de erro (conservador; retry pelo card).</li>
-</ul>
+
+<h2>Nits, premissas e incidentes</h2>
+<details>
+  <summary>Nits registrados na revisão (não-bloqueantes)</summary>
+  <ul>
+    <li><code>docs/app-gui.md:587</code> — contagem de casos ficou obsoleta; resumo
+    da seção pede revisão futura.</li>
+    <li>Comentário do <code>find</code> no <code>gate.yml</code> está impreciso
+    (o código está certo, o comentário é que descreve mal).</li>
+    <li>Checagem de mtime de <code>package-lock</code> (registro
+    <code>P-20260828-002</code>) segue não implementada — lacuna pré-existente, sem
+    regressão nesta execução.</li>
+  </ul>
 </details>
 
-<details><summary>Bugs encontrados e corrigidos durante a execução</summary>
-<ul>
-<li>Cache de Settings não revertido na falha de <code>settings.set</code> (revisor 1.3) — fix em <code>LocalAiPanel.tsx</code>.</li>
-<li><code>TS6142</code>/<code>TS2352</code> no <code>shellNavPanel.test.ts</code> (gate) — fix com tipo local padrão da casa + casts <code>unknown</code>.</li>
-<li><code>TS6307</code> no <code>panelCacheSwr.test.ts</code> (gate) — fix com import dinâmico por URL.</li>
-<li>Guarda do card desatualizada pela Onda 2 (1 ≠ 3 usos de <code>lessonChallengeCardStatus</code>) — guarda atualizada para 3 com justificativa.</li>
-</ul>
+<details>
+  <summary>Premissas autônomas assumidas</summary>
+  <ul>
+    <li>Destino local escolhido: <code>&lt;repo&gt;/.claude/skills/</code> — convenção
+    de skills de projeto do Claude Code.</li>
+    <li>Divisão de papéis: <code>run.sh</code> só sobe o app; quem quer skills roda
+    <code>install.sh</code> manualmente (agora com destino local).</li>
+    <li><code>HUSKY=0</code> adicionado ao <code>npm ci</code> do <code>run.sh</code>
+    como defesa — o projeto hoje não tem husky, então é seguro por princípio.</li>
+  </ul>
 </details>
 
-<details><summary>Commits squash na história final de main</summary>
-<ul>
-<li><code>515a777</code> — onda1-card-desafio-inicial: card do desafio no início da aula</li>
-<li><code>739c83f</code> — onda1-remove-desafio-rail: remove o item Desafio do rail (painel fantasma)</li>
-<li><code>2d47208</code> — onda1-settings-perf: cache SWR nas Settings + fix de revert de cache</li>
-<li><code>97618b4</code> + <code>3b1cc61</code> — test-onda1-nav-shell: 22 testes + fix lint</li>
-<li><code>e344e72</code> + <code>137d8bb</code> — test-onda1-lesson-card: 18 testes + guarda atualizada p/ onda 2</li>
-<li><code>87dde2e</code> + <code>b05a93e</code> — test-onda1-settings: 34 testes + fix lint</li>
-<li><code>fe8db70</code> — onda2-falha-ver-aula: fluxo de falha challenge-first</li>
-</ul>
+<details>
+  <summary>Incidentes da execução (resolvidos, sem impacto no resultado)</summary>
+  <ul>
+    <li>O <code>nohup</code> do gate em background morreu nesta sessão &rarr; gate
+    re-executado em primeiro plano com sucesso.</li>
+    <li>O primeiro redirect do log do gate falhou por diretório ausente (corrigido com
+    <code>mkdir -p</code>). O <code>TEST=1</code> inicial era artefato do redirect, não
+    de código — confirmado no re-run: <code>TEST=0</code>.</li>
+    <li>O <code>EXPLAINER.html</code> já estava modificado no working tree ANTES da
+    FASE 0 (dirt preexistente, de execução anterior desta mesma skill — não estagiado;
+    sobrescrever aqui é o comportamento documentado).</li>
+  </ul>
 </details>
 
-<details><summary>Timeline da run</summary>
-<ol>
-<li>FASE 0 — fronteira + surf gate 0.</li>
-<li>FASE 1 — análise de <code>LessonView</code>/<code>ChallengeView</code>/<code>SettingsView</code>/rail.</li>
-<li>FASE 2 — plano com 2 ondas.</li>
-<li>Onda 1 — 3 features paralelas; revisão; 1 fix; merges + gates verdes; limpeza.</li>
-<li>Subwaves da Onda 1 — validador VERDE, revisor integrado APPROVE, 3 agentes de teste.</li>
-<li>Onda 2 — 1 feature; revisão APPROVE; convergência.</li>
-<li>Merges de teste — 3 add/add resolvidos nas filhas; 2 fixes de lint/contrato; gate final VERDE.</li>
-<li>COMMIT-FINAL.</li>
-</ol>
-</details>
-
-<details><summary>Gap de cobertura documentado</summary>
-<p>Fluxo assíncrono pós-mount das Settings exigiria jsdom — fora do escopo desta run. Nenhum outro arquivo ficou sem cobertura declarada.</p>
-</details>
-
-<footer>Gerado exclusivamente a partir de <code>.deep-orchestrator/run-20260915-072001-496917/explainer/fatos.md</code>. Zero conteúdo inventado — tudo que não estava nos fatos ficou de fora.</footer>
+<footer>
+  Gerado pela skill de explainer do run <code>20260915-140058-2396879</code> do projeto
+  <code>study-method</code>. Fonte única dos fatos:
+  <code>.deep-orchestrator/run-20260915-140058-2396879/explainer/fatos.md</code>.
+  Artefato somente-leitura de documentação — este arquivo não altera código.
+</footer>
 </div>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
-</script>
+<script>mermaid.initialize({ startOnLoad: true, theme: "dark" });</script>
 </body>
 </html>
