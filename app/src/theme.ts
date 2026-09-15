@@ -961,7 +961,8 @@ export const theme = createTheme({
             transform: 'scale(0.96)',
           },
           // ── DESABILITADO QUE CARREGA INFORMAÇÃO (ONDA 12) ─────────────
-          // Prova visual do dono: o "Próximo →" bloqueado pelo quiz ficava
+          // Prova visual do dono: o "Avançar" (o botão de avanço da aula,
+          // antes "Próximo →") bloqueado pelo quiz ficava
           // cinza sobre cinza no escuro, praticamente invisível — e ele é o
           // estado NORMAL enquanto a aula não foi respondida, ou seja, o que o
           // aluno mais vê. O default do MUI pinta `action.disabled`, que no

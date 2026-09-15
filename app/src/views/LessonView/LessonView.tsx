@@ -477,11 +477,19 @@ const TOUCH_TARGET_PX = 44;
 /**
  * ONDA11 — a BARRA DE ENTRADA no molde da referência de chat que o dono
  * mandou: botão CIRCULAR de ícone FORA do campo, à esquerda (o microfone);
- * campo PÍLULA ocupando toda a largura restante, com o convite no PLACEHOLDER
- * (o label flutuante saiu); ícone de enviar DENTRO, na borda direita. O
- * "Próximo"/"Concluir aula" saíram desta linha — eles viraram a AÇÃO
- * centralizada logo acima (o CTA da referência) e não roubam mais largura do
- * campo.
+ * campo PÍLULA com o convite no PLACEHOLDER (o label flutuante saiu); ícone
+ * de enviar DENTRO, na borda direita. O "Concluir aula" continuou na AÇÃO
+ * centralizada logo acima (o CTA da referência).
+ *
+ * ONDA-AVANCAR-COMPOSER — o botão de avanço VOLTOU para esta linha, no FIM,
+ * à direita do campo: [mic] [campo que encolhe] [Avançar]. Ele deixou de ser
+ * "Próximo →" (agora é `lesson.advanceButton` = "Avançar") e de morar na
+ * linha de ação — mas é o MESMO botão: o clique segue passando pelo
+ * `nextClickAction` da view (revelar → mostra tudo; proximo → avança;
+ * quiz-secao → nada), e o gate de existência é o passo 'nao-comecou'
+ * (`showAdvance` falso → NENHUM botão renderizado). Por isso o campo deixou
+ * de ser `fullWidth`: ele é item flexível da linha (piso de 240px) e o avanço
+ * tem a largura de que precisa.
  *
  * Componente de APRESENTAÇÃO exportado DE PROPÓSITO: sem jsdom nesta base, um
  * pedaço de tela só é testável se puder ser montado sozinho. É ele que
@@ -505,6 +513,24 @@ export interface LessonComposerProps {
   micTranscribing: boolean;
   /** Aula ocupada: trava mic, campo e enviar (nada de pergunta em voo dupla). */
   disabled: boolean;
+  /**
+   * ONDA-AVANCAR-COMPOSER — existe avanço nesta aula AGORA? Falso no passo
+   * 'nao-comecou' (o avanço não existe antes da aula começar) e nos passos de
+   * fim de aula (o CTA de lá é o desta linha de ação). Nos passos da teoria
+   * ('revelar'/'quiz-secao'/'proximo') o botão entra no fim da linha.
+   */
+  showAdvance: boolean;
+  /** passo 'quiz-secao': o avanço nasce TRAVADO (outlined + cadeado + morto) —
+   *  MESMA semântica que o botão tinha na linha de ação. */
+  advanceLocked: boolean;
+  /** turno em voo (IPC): trava o clique do avanço. */
+  advanceDisabled: boolean;
+  /** o clique no avanço. QUEM decide o que ele faz é `nextClickAction`
+   *  (puro), na view: no passo 'revelar' este mesmo clique COMPLETA a
+   *  digitação em vez de avançar. Uma decisão só, num lugar só. */
+  onAdvance: () => void;
+  /** tooltip do avanço ('' quando não há — o passo 'proximo' não pede dica). */
+  advanceTooltip: string;
 }
 
 export function LessonComposer({
@@ -514,6 +540,11 @@ export function LessonComposer({
   onMicToggle,
   micTranscribing,
   disabled,
+  showAdvance,
+  advanceLocked,
+  advanceDisabled,
+  onAdvance,
+  advanceTooltip,
 }: LessonComposerProps): ReactElement {
   const { t } = useTranslation();
   const tI = useMemo(
@@ -566,7 +597,11 @@ export function LessonComposer({
         </span>
       </Tooltip>
       <TextField
-        fullWidth
+        // ONDA-AVANCAR-COMPOSER: o campo deixou de ser `fullWidth` — a linha
+        // é [mic] [campo que encolhe] [Avançar], então ele vira item flexível
+        // (`flex: 1 1 auto`) com PISO de 240px: o abraço do flex nunca o
+        // apaga de vez com o botão de avanço em cena.
+        sx={{ flex: '1 1 auto', minWidth: 240 }}
         size="small"
         data-onboarding-target="lesson-chat-input"
         placeholder={askLabel}
@@ -615,6 +650,48 @@ export function LessonComposer({
           },
         }}
       />
+      {showAdvance ? (
+        /* ONDA-AVANCAR-COMPOSER — o avanço NO FIM DA LINHA, à direita do
+           campo: [mic] [campo] [Avançar]. É o MESMO botão que morava na linha
+           de ação (renomeado de "Próximo →" para "Avançar" e realocado): quem
+           decide o que o clique faz segue sendo `nextClickAction`, na view —
+           nada de lógica duplicada aqui. */
+        <Tooltip
+          /* ONDA11-INTEGRAÇÃO — `disableInteractive`: o popper do Tooltip do
+             MUI nasce INTERATIVO e, nesta posição, abre para CIMA sobre a
+             última bolha do chat — o e2e mediu cliques sendo engolidos por
+             ele ("subtree intercepts pointer events"). Um tooltip é DICA:
+             não pode capturar o clique do conteúdo atrás dele. */
+          disableInteractive
+          title={advanceTooltip}
+        >
+          <span>
+            <motion.span
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              // Casca animada: nunca parada de tab (o porquê está no microfone).
+              tabIndex={-1}
+              style={{ display: 'inline-block' }}
+            >
+              <Button
+                /* ONDA11: com o quiz esperando, o avanço recua para
+                   secundário (outlined + cadeado) em vez de continuar
+                   competindo, preenchido e morto, ao lado — MESMA semântica
+                   que ele tinha na linha de ação. O "→" que MORAVA no rótulo
+                   ("Próximo →") virou o startIcon (ArrowForwardIcon): o rótulo
+                   novo é limpo ("Avançar") e o ícone guarda a direção. */
+                variant={advanceLocked ? 'outlined' : 'contained'}
+                onClick={onAdvance}
+                disabled={advanceDisabled || advanceLocked}
+                startIcon={advanceLocked ? <LockIcon /> : <ArrowForwardIcon />}
+                sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+              >
+                {t('translation:lesson.advanceButton')}
+              </Button>
+            </motion.span>
+          </span>
+        </Tooltip>
+      ) : null}
     </Stack>
   );
 }
@@ -660,20 +737,51 @@ export function LessonComposer({
  *
  * ─── E A MENSAGEM role="status" CONTINUA DIZENDO A VERDADE ────────────────
  * `lessonActionStatusKey` amarra cada passo à frase correspondente: durante a
- * escrita ela diz que o "Próximo" mostra tudo (e não pede um quiz que ainda
+ * escrita ela diz que o "Avançar" mostra tudo (e não pede um quiz que ainda
  * não está na tela — a mentira que a onda 13 já tinha consertado); com o card
  * em cena ela pede a resposta; na conclusão ela conta quantos quizzes faltam;
  * e com o desafio pendente ela diz que é ELE que falta — nunca um botão morto
  * e mudo.
+ *
+ * ─── ONDA-AVANCAR-COMPOSER: O AVANÇO NEM SEMPRE EXISTE — E ELE MORA NO COMPOSER ─
+ * Mais dois pedidos do dono sobre o MESMO pedaço de tela:
+ *
+ *   1. *"o botão de avanço só pode aparecer quando a aula tiver começado"*.
+ *      Antes, com o chat vazio (a bolha inicial + o card "Começar aula" na
+ *      conversa), a linha de ação JÁ renderizava o botão de avanço — um
+ *      convite a avançar uma aula que ainda não começou. O passo novo
+ *      'nao-comecou' tem PRECEDÊNCIA MÁXIMA em `lessonActionStep`
+ *      (`started = chat.history.length > 0`, cobrado antes até de
+ *      `doneMarked`) e a linha de ação renderiza NADA para ele: sem frase,
+ *      sem botão — o convite para começar já está na conversa.
+ *
+ *   2. o botão de avanço SAIU da linha de ação e ENTROU na barra de entrada
+ *      (`LessonComposer`), no FIM da linha, à direita do campo — que deixou
+ *      de ser `fullWidth` e passou a encolher: [mic] [campo] [Avançar]. É o
+ *      MESMO botão de antes, apenas renomeado de "Próximo →" para "Avançar"
+ *      (`lesson.advanceButton`) e realocado: o clique continua sendo decidido
+ *      pelo `nextClickAction` da view (revelar → mostra tudo; proximo →
+ *      avança; quiz-secao → nada). A linha de ação conserva a frase
+ *      role="status" de 'revelar'/'quiz-secao' e os CTAs de
+ *      desafio/concluir/próxima aula, INTACTOS.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/** O passo que a linha de ação oferece AGORA (um só, sempre). */
+/**
+ * O passo que a linha de ação oferece AGORA (um só, sempre).
+ *
+ * ONDA-AVANCAR-COMPOSER: 'nao-comecou' entrou NO TOPO da união — o dono
+ * decidiu que o botão de avanço NÃO EXISTE antes de a aula começar. Com o
+ * chat vazio (a bolha inicial + o card "Começar aula" na conversa) nem a
+ * linha de ação nem o composer renderizam avanço nenhum.
+ */
 export type LessonActionStep =
+  /** o chat está vazio — a aula não começou: NENHUM avanço em cena. */
+  | 'nao-comecou'
   /** a seção está sendo escrita — o clique MOSTRA TUDO (não avança). */
   | 'revelar'
-  /** o quiz da seção ainda não foi acertado — "Próximo" travado. */
+  /** o quiz da seção ainda não foi acertado — "Avançar" travado. */
   | 'quiz-secao'
-  /** teoria em curso, nada travando — "Próximo" avança. */
+  /** teoria em curso, nada travando — "Avançar" avança. */
   | 'proximo'
   /** teoria acabou, mas há quiz sem acerto — "Concluir aula" travado. */
   | 'quiz-aula'
@@ -685,6 +793,13 @@ export type LessonActionStep =
   | 'proxima-aula';
 
 export interface LessonActionStepInput {
+  /**
+   * `chat.history.length > 0` — a aula JÁ COMEÇOU (existe conversa). ONDA-
+   * AVANCAR-COMPOSER: é o gate de EXISTÊNCIA do avanço. Com o chat vazio o
+   * passo é 'nao-comecou' (precedência máxima) e nada de avanço é renderizado
+   * — o dono: o avanço não existe antes da aula começar.
+   */
+  started: boolean;
   /** `chat.theoryDone` — não há mais seção a apresentar. */
   theoryDone: boolean;
   /** `track:lesson-done` já voltou ok nesta sessão. */
@@ -710,7 +825,13 @@ export interface LessonActionStepInput {
  * O PRÓXIMO PASSO da aula, do estado inteiro. PURA.
  *
  * A ORDEM das cláusulas é a decisão de produto, e cada uma tem motivo:
- *   - `doneMarked` primeiro: concluída é concluída, nada mais bloqueia;
+ *   - `!started` PRIMEIRO DE TUDO (ONDA-AVANCAR-COMPOSER): o avanço não
+ *     existe antes da aula começar — precedência MÁXIMA, acima até de
+ *     `doneMarked`. Um remonte que devolvesse a aula concluída com o chat
+ *     vazio ainda não tem o que avançar: o que existe em cena é o convite
+ *     ("Começar aula") e, com o passo 'nao-comecou', NENHUM botão de avanço
+ *     é renderizado (nem na linha de ação, nem no composer);
+ *   - `doneMarked` depois: concluída é concluída, nada mais bloqueia;
  *   - 'revelar' ANTES de 'quiz-secao': é o que destrava o pedido do dono — com
  *     a seção em escrita o botão fica vivo para MOSTRAR TUDO. O gate não some,
  *     ele volta no render seguinte (a bolha termina → o card do quiz nasce →
@@ -720,6 +841,8 @@ export interface LessonActionStepInput {
  *     barato que abrir o painel do desafio).
  */
 export function lessonActionStep(input: LessonActionStepInput): LessonActionStep {
+  // ONDA-AVANCAR-COMPOSER — precedência máxima, ver a ordem documentada acima.
+  if (!input.started) return 'nao-comecou';
   if (input.doneMarked) return 'proxima-aula';
   if (!input.theoryDone) {
     if (input.typingTheory) return 'revelar';
@@ -759,7 +882,7 @@ export function lessonActionStep(input: LessonActionStepInput): LessonActionStep
  * *"continue em cima"*. Ele continua (desde a ONDA-AULA-NO-SIDEBAR, no alto do
  * sidebar do shell, com o resto do cabeçalho da aula), a lista continua
  * abrindo, e o que o bloqueio faz é DIZER o motivo (nada de botão morto e
- * mudo) — a mesma decisão que o "Próximo" travado já segue.
+ * mudo) — a mesma decisão que o "Avançar" travado já segue.
  */
 export function challengeOpenBlockedByQuiz(finishBlock: LessonFinishBlockReason | null): boolean {
   return finishBlock === 'quiz';
@@ -819,6 +942,13 @@ export function nextClickAction(step: LessonActionStep): 'revelar' | 'avancar' |
  * tela a frase PEDE a resposta; sem ele (a bolha terminou mas o card ainda não
  * entrou em cena) ela explica que o quiz aparece na conversa — a distinção que
  * a onda 13 mediu e consertou, preservada aqui.
+ *
+ * ONDA-AVANCAR-COMPOSER: 'proximo' continua sem frase (o botão de avanço —
+ * hoje "Avançar", no fim da linha do composer — não pede desculpa), e
+ * 'nao-comecou' TAMBÉM não tem: a aula nem começou, o card "Começar aula" na
+ * conversa já é o convite, e a linha de ação para este passo renderiza NADA.
+ * O switch é EXAUSTIVO de propósito — um passo novo tem de dizer qual frase
+ * (ou nenhuma) diz.
  */
 export function lessonActionStatusKey(
   step: LessonActionStep,
@@ -833,7 +963,10 @@ export function lessonActionStatusKey(
       return 'lesson.quizGateFinish';
     case 'desafio':
       return 'lesson.challengeGateFinish';
-    default:
+    case 'nao-comecou':
+    case 'proximo':
+    case 'concluir':
+    case 'proxima-aula':
       return null;
   }
 }
@@ -850,10 +983,6 @@ export interface LessonActionRowProps {
   pendingQuizCount: number;
   /** desafios que não passaram (nome acessível do CTA de desafio). */
   pendingChallengeCount: number;
-  /** o clique no botão de avanço. QUEM decide o que ele faz é
-   *  `nextClickAction` (puro), na view: no passo 'revelar' este mesmo clique
-   *  COMPLETA a digitação em vez de avançar. Uma decisão só, num lugar só. */
-  onNext: () => void;
   /** conclui a aula (destrava a próxima). */
   onFinish: () => void;
   /** MESMO destino do botão do cabeçalho: recebe o próprio botão como âncora
@@ -864,7 +993,14 @@ export interface LessonActionRowProps {
 }
 
 /**
- * A LINHA DE AÇÃO — anúncio centralizado + o botão do passo atual.
+ * A LINHA DE AÇÃO — o anúncio centralizado + os CTAs de fim de aula.
+ *
+ * ONDA-AVANCAR-COMPOSER: o botão de avanço ("Avançar", antes "Próximo →")
+ * NÃO mora mais aqui — ele entrou na barra de entrada (`LessonComposer`), à
+ * direita do campo, e SÓ EXISTE com a aula começada (o passo 'nao-comecou'
+ * renderiza NADA nesta linha: sem frase, sem botão). O que restou aqui é a
+ * frase `role="status"` dos passos 'revelar'/'quiz-secao' e os CTAs de
+ * desafio/concluir/próxima aula, intactos.
  *
  * Componente de APRESENTAÇÃO exportado DE PROPÓSITO, pelo mesmo motivo do
  * `LessonComposer`: sem jsdom nesta base, um pedaço de tela só é testável se
@@ -878,7 +1014,6 @@ export function LessonActionRow(props: LessonActionRowProps): ReactElement {
   const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
   const { step, busy } = props;
   const statusKey = lessonActionStatusKey(step, props.quizCardOnScreen);
-  const showNext = step === 'revelar' || step === 'quiz-secao' || step === 'proximo';
   const showFinish = step === 'quiz-aula' || step === 'desafio' || step === 'concluir';
   const finishBlocked = step === 'quiz-aula' || step === 'desafio';
 
@@ -949,59 +1084,17 @@ export function LessonActionRow(props: LessonActionRowProps): ReactElement {
           </motion.span>
         ) : null}
 
-        {showNext ? (
-          /* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98) no "Próximo".
-             ONDA10 (bug 2): o avanço da teoria trava enquanto o quiz da seção
-             ATUAL não for acertado. O <span> é obrigatório: Button
-             DESABILITADO não dispara os eventos que o Tooltip escuta.
-             ONDA14: com a seção AINDA SENDO ESCRITA o botão fica VIVO e o
-             clique MOSTRA TUDO (`onReveal`) — nunca avança. */
-          <Tooltip
-            /* ONDA11-INTEGRAÇÃO — `disableInteractive`: o popper do Tooltip do
-               MUI nasce INTERATIVO (captura o ponteiro para o usuário poder
-               selecionar o texto da dica) e, nesta posição, ele abre para CIMA
-               sobre a última bolha do chat: o e2e mediu o "Responder" do card
-               do quiz ficando 13 tentativas sem receber o clique ("subtree
-               intercepts pointer events"). Um tooltip é DICA: não pode engolir
-               o clique do conteúdo atrás dele. Nada se perde — o motivo do
-               bloqueio está escrito, visível e em role="status", logo acima. */
-            disableInteractive
-            title={
-              step === 'quiz-secao'
-                ? t('translation:lesson.quizGateNext')
-                : step === 'revelar'
-                  ? t('translation:lesson.revealTypingTooltip')
-                  : ''
-            }
-          >
-            <span>
-              <motion.span
-                whileTap={{ scale: 0.98 }}
-                transition={springs.snappy}
-                // Casca animada: nunca parada de tab (o porquê está no microfone).
-                tabIndex={-1}
-                style={{ display: 'inline-block' }}
-              >
-                <Button
-                  /* ONDA11: com o quiz esperando, o CTA primário é RESPONDER —
-                     o "Próximo" recua para secundário em vez de continuar
-                     competindo, preenchido e morto, ao lado. */
-                  variant={step === 'quiz-secao' ? 'outlined' : 'contained'}
-                  onClick={props.onNext}
-                  disabled={busy || step === 'quiz-secao'}
-                  startIcon={step === 'quiz-secao' ? <LockIcon /> : undefined}
-                  sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
-                >
-                  {t('translation:lesson.nextButton')}
-                </Button>
-              </motion.span>
-            </span>
-          </Tooltip>
-        ) : null}
+        {/* ONDA-AVANCAR-COMPOSER — O BOTÃO DE AVANÇO SAIU DESTA LINHA. Ele
+            mora agora no FIM da barra de entrada (`LessonComposer`), à direita
+            do campo, renomeado para "Avançar" — e SÓ existe com a aula
+            começada (o passo 'nao-comecou' não renderiza nada aqui). O que
+            restou nesta linha é a frase role="status" dos passos de gate
+            ('revelar' e 'quiz-secao') e os CTAs de fim de aula, abaixo. */}
 
         {showFinish ? (
           <Tooltip
-            /* `disableInteractive` pelo mesmo motivo do tooltip do "Próximo". */
+            /* `disableInteractive` pelo mesmo motivo do tooltip do "Avançar"
+               (que mora no fim da linha do composer). */
             disableInteractive
             /* ONDA10: o motivo do bloqueio vem de `lessonFinishBlock` — 'quiz'
                (responda os quizzes) tem PRECEDÊNCIA sobre 'challenges' porque
@@ -2846,26 +2939,38 @@ export function LessonView(props: ViewProps): ReactElement {
   }, [trackLesson, nextLesson, navigate, loadLesson, publishSession]);
 
   // ─── ONDA14: O PRÓXIMO PASSO, e o que o clique faz ────────────────────────
-  // Todo o estado que a linha de ação precisa desemboca numa função PURA
-  // (`lessonActionStep`, cabeçalho da seção lá em cima). Nada de ternário
-  // aninhado no JSX: o passo é UM valor, testável sozinho, e o JSX só desenha.
+  // Todo o estado que a linha de ação e o botão de avanço precisam desemboca
+  // numa função PURA (`lessonActionStep`, cabeçalho da seção lá em cima).
+  // Nada de ternário aninhado no JSX: o passo é UM valor, testável sozinho, e
+  // o JSX só desenha. ONDA-AVANCAR-COMPOSER: o gate de existência do avanço
+  // (`started`) entra pelo MESMO caminho — chat vazio = passo 'nao-comecou' =
+  // nenhum botão de avanço renderizado.
   const actionStep = lessonActionStep({
+    started: chat.history.length > 0,
     theoryDone: chat.theoryDone,
     doneMarked,
     typingTheory,
     nextBlockedByQuiz,
     finishBlock,
   });
+  // ONDA-AVANCAR-COMPOSER: o avanço existe EXATAMENTE nos três passos da
+  // teoria — os mesmos que antes acendiam o "Próximo" na linha de ação. No
+  // 'nao-comecou' (chat vazio) e nos passos de fim de aula ele NÃO existe:
+  // 'nao-comecou' porque o dono decidiu que o avanço não nasce antes da aula
+  // começar; nos outros porque ali o CTA é o da linha de ação.
+  const advanceVisible =
+    actionStep === 'revelar' || actionStep === 'quiz-secao' || actionStep === 'proximo';
   /**
    * O clique no botão de avanço — pedido do dono: *"quando clico em proximo já
    * tem que mostrar tudo da digitação anterior"*.
    *
-   * A decisão é do `nextClickAction` (pura): com a seção sendo escrita o
-   * clique COMPLETA a digitação (`requestSkipTyping`) e NÃO avança; só o passo
-   * 'proximo' chama `sendNext`. O gate do quiz não é afrouxado em lugar
-   * nenhum — 'quiz-secao' devolve 'nada', e o próprio `sendNext` mantém o
-   * guard `if (nextBlockedByQuiz) return` para a corrida em que a bolha termina
-   * de ser escrita entre o mousedown e o clique.
+   * ONDA-AVANCAR-COMPOSER: o botão mora no fim da linha do composer, mas a
+   * decisão continua sendo do `nextClickAction` (puro): com a seção sendo
+   * escrita o clique COMPLETA a digitação (`requestSkipTyping`) e NÃO avança;
+   * só o passo 'proximo' chama `sendNext`. O gate do quiz não é afrouxado em
+   * lugar nenhum — 'quiz-secao' devolve 'nada', e o próprio `sendNext` mantém
+   * o guard `if (nextBlockedByQuiz) return` para a corrida em que a bolha
+   * termina de ser escrita entre o mousedown e o clique.
    */
   const handleNextClick = useCallback((): void => {
     const action = nextClickAction(actionStep);
@@ -3444,16 +3549,19 @@ export function LessonView(props: ViewProps): ReactElement {
         {/* ONDA11 — a LINHA DE AÇÃO, no molde da referência de chat: o
             anúncio CENTRALIZADO seguido do botão CTA. Ela saiu de dentro da
             barra de entrada por dois motivos: (a) na referência a entrada é só
-            mic + campo + enviar, e (b) "Próximo"/"Concluir aula" roubavam
-            largura do campo, que era metade da queixa do dono.
+            mic + campo + enviar, e (b) "Concluir aula" roubava largura do
+            campo, que era metade da queixa do dono.
 
             ONDA14: o corpo dela virou `LessonActionRow` — componente de
             APRESENTAÇÃO exportado, dirigido pelo passo PURO `lessonActionStep`
             (o porquê está no cabeçalho daquela seção). O que a VIEW decide
-            aqui é só o que depende de estado e de IPC: revelar a digitação,
-            avançar a teoria, concluir, ir ao desafio (MESMO destino do botão
-            "Desafios" do cabeçalho da aula, no sidebar) e seguir para a
-            próxima aula. */}
+            aqui é só o que depende de estado e de IPC: concluir, ir ao
+            desafio (MESMO destino do botão "Desafios" do cabeçalho da aula,
+            no sidebar) e seguir para a próxima aula.
+
+            ONDA-AVANCAR-COMPOSER: o botão de avanço ("Avançar") NÃO mora mais
+            aqui — mudou para o fim da linha do composer, abaixo, e no passo
+            'nao-comecou' esta linha não renderiza nada. */}
         <LessonActionRow
           step={actionStep}
           busy={busy}
@@ -3461,7 +3569,6 @@ export function LessonView(props: ViewProps): ReactElement {
           quizCardOnScreen={pendingQuizCards.length > 0}
           pendingQuizCount={quizPendingAll.length}
           pendingChallengeCount={pendingChallengeCount}
-          onNext={handleNextClick}
           onFinish={() => void finishLesson()}
           onChallenge={handleChallengeStep}
           onNextLesson={() => void handleGoToNextLesson()}
@@ -3469,10 +3576,17 @@ export function LessonView(props: ViewProps): ReactElement {
         />
 
         {/* ONDA11 — a BARRA DE ENTRADA no molde da referência: mic FORA à
-            esquerda, campo pílula ocupando o resto da linha, enviar DENTRO na
-            borda direita. Ela é o último filho da coluna e a preenche inteira:
-            o eixo de ESCRITA é, agora, literalmente o mesmo objeto de estilo
-            do eixo de LEITURA (o container). */}
+            esquerda, campo pílula, enviar DENTRO na borda direita. Ela é o
+            último filho da coluna e a preenche inteira: o eixo de ESCRITA é,
+            agora, literalmente o mesmo objeto de estilo do eixo de LEITURA (o
+            container).
+
+            ONDA-AVANCAR-COMPOSER: o botão de avanço entrou no FIM desta linha
+            ("Avançar", antes "Próximo →" na linha de ação) — o campo deixou
+            de ser fullWidth para sobrar lugar para ele. O clique é o MESMO
+            handleNextClick de sempre (nextClickAction decide), e
+            `showAdvance` é o gate de existência: falso no 'nao-comecou'
+            (o avanço não existe antes da aula começar). */}
         <LessonComposer
           draft={draft}
           onDraftChange={setDraft}
@@ -3480,6 +3594,17 @@ export function LessonView(props: ViewProps): ReactElement {
           onMicToggle={() => void handleMicToggle()}
           micTranscribing={mic.transcribing}
           disabled={busy}
+          showAdvance={advanceVisible}
+          advanceLocked={actionStep === 'quiz-secao'}
+          advanceDisabled={busy}
+          onAdvance={handleNextClick}
+          advanceTooltip={
+            actionStep === 'quiz-secao'
+              ? t('translation:lesson.quizGateNext')
+              : actionStep === 'revelar'
+                ? t('translation:lesson.revealTypingTooltip')
+                : ''
+          }
         />
       </Stack>
 

@@ -126,8 +126,8 @@ export const READING_SURFACE_LEVELS = [0, 1] as const;
  *   [medido] INK_LIGHT.secondary x SURFACE_LIGHT.level4 = 5,64:1
  *
  * A TINTA SECUNDÁRIA É O RÓTULO DE BOTÃO DESABILITADO (ver MuiButton em
- * src/theme.ts): as quatro medidas acima são o que garante que um "Próximo →"
- * bloqueado pelo quiz continue LEGÍVEL em cima de qualquer nível da rampa, nos
+ * src/theme.ts): as quatro medidas acima são o que garante que um "Avançar" (o botão de
+ * avanço da aula, antes "Próximo →") bloqueado pelo quiz continue LEGÍVEL em cima de qualquer nível da rampa, nos
  * dois esquemas — o pior dos dez pares é a medida de `INK_DARK.secondary`
  * no nível 4, listada acima, e ela ainda fica sobre o piso AA.
  */

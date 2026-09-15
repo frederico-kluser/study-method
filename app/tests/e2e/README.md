@@ -85,7 +85,7 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
   reservando o lugar na conversa; a RESPOSTA NÃO VAZA (as 4 alternativas
   comparadas entre si em classe do MUI e CSS computado); Esc e clique no backdrop
   MINIMIZAM (nunca fecham) e o card reabre; errar → explicação na conversa → quiz
-  NOVO → acertar fecha o ciclo; os gates do "Próximo" e do "Concluir aula"
+  NOVO → acertar fecha o ciclo; os gates do "Avançar" (o botão de avanço da linha do composer) e do "Concluir aula"
   (errar NÃO destrava; dominar destrava); e o FAIL-CLOSED com `E2E_QUIZ_AI=off`.
   A aula COM `assertions` que o ciclo exige é escrita pelo próprio teste
   (`tests/e2e/quizFixture.ts`) em `<E2E_WORKSPACE_ROOT>/fixture-tracks/quiz-e2e/`,

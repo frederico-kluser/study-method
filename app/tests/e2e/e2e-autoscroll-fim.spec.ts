@@ -38,7 +38,8 @@
  *   4. rola o painel para o TOPO (`scrollTop = 0`) e confere que ele FICOU no
  *      topo, longe do fim (senão o passo 6 mediria um estado que nunca saiu do
  *      lugar);
- *   5. provoca CONTEÚDO NOVO: clica "Próximo →" — a 2ª seção entra e é
+ *   5. provoca CONTEÚDO NOVO: clica "Avançar" (o botão de avanço, que era
+ *      "Próximo →" e mora no fim da linha do composer) — a 2ª seção entra e é
  *      digitada (o gatilho do auto-scroll é conteúdo novo, nunca um listener de
  *      `scroll`);
  *   6. assere que o painel VOLTOU AO FIM
@@ -540,9 +541,9 @@ test('e2e-autoscroll-fim: painel da aula volta ao FIM com o aluno no TOPO, longe
       'Se ela for pequena, "voltar ao fim" não prova nada.',
   ).toBeGreaterThan(MIN_OVERFLOW_PX);
 
-  // ─── 5) CONTEÚDO NOVO: "Próximo →" apresenta a 2ª seção (que é digitada) ─
+  // ─── 5) CONTEÚDO NOVO: "Avançar" apresenta a 2ª seção (que é digitada) ──
   const bubblesBefore = atTop.bubbles;
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitTypewriterCycle(page);
 
   // O conteúdo novo CHEGOU (prova de que a asserção abaixo mede um estado

@@ -5,7 +5,7 @@
  * que entendeu") tinha cobertura e2e ZERO: `grep -rn "quiz" tests/e2e/*.spec.ts`
  * voltava vazio depois de DUAS ondas de trabalho sobre o quiz. A suíte de
  * unidade é pura e não vê a tela — e já passou por ela um bug em que
- * "Próximo"/"Concluir aula" travariam PARA SEMPRE em toda aula com quiz. Esta
+ * "Avançar"/"Concluir aula" travariam PARA SEMPRE em toda aula com quiz. Esta
  * spec é a rede que faltava: ela roda o Electron de release, com o renderer de
  * produção, e olha o que o aluno olha.
  *
@@ -63,7 +63,7 @@
  *     tinha saída: com `E2E_QUIZ_AI=off`, o aluno que ERRAVA ficava com a
  *     afirmação em 'explicando'/'novo-quiz-pendente' PARA SEMPRE — sem quiz
  *     remediador não há o que responder, e o gate só abre com ACERTO. O teste
- *     5 terminava afirmando `Próximo` desabilitado como comportamento
+ *     5 terminava afirmando `Avançar` (o botão de avanço) desabilitado como comportamento
  *     OBSERVADO (nunca como aprovação), e o handoff pedia o caminho ao
  *     produto. O produto respondeu com `reopenStalledQuiz`: travado o ciclo,
  *     o aluno REABRE a mesma pergunta numa geração nova e responde de novo.
@@ -377,7 +377,7 @@ test('e2e-quiz: o quiz ESPERA na conversa, sobe pelo BOTÃO, e NÃO entrega a re
   expect(primeira?.trim()).toBe(ASSERTION_ONE.options[esperada[0]]);
 
   // (4) O GATE está de pé desde já: a seção atual tem quiz sem acerto.
-  const next = page.getByRole('button', { name: 'Próximo →' });
+  const next = page.getByRole('button', { name: 'Avançar', exact: true });
   await expect(next).toBeDisabled();
   await expect(
     page.getByText('O quiz desta seção ainda espera a resposta certa', { exact: false }).first(),
@@ -390,7 +390,7 @@ test('e2e-quiz: Esc e clique no backdrop MINIMIZAM (nunca fecham) — e o card d
   const page = launched.page;
   const dialog = await openQuizLessonAndStart(page);
   const log = chatLog(page);
-  const next = page.getByRole('button', { name: 'Próximo →' });
+  const next = page.getByRole('button', { name: 'Avançar', exact: true });
   const reopen = answerCta(page);
 
   // ─── Esc ───────────────────────────────────────────────────────────────
@@ -494,7 +494,7 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   const page = launched.page;
   const dialog = await openQuizLessonAndStart(page);
   const log = chatLog(page);
-  const next = page.getByRole('button', { name: 'Próximo →' });
+  const next = page.getByRole('button', { name: 'Avançar', exact: true });
 
   // ERRA de propósito (a alternativa marcada é a que a explicação vai nomear).
   const erradaIdx = wrongOptionIndex(ASSERTION_ONE);
@@ -569,7 +569,7 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   await dialog.getByRole('button', { name: optionName(remedialOptions, 1) }).click();
 
   // O ACERTO É O ÚNICO FIM DO CICLO: o overlay FECHA, o card cheio fica na
-  // conversa com o veredito, e o "Próximo" destrava.
+  // conversa com o veredito, e o "Avançar" destrava.
   // ONDA16-VEREDITO: o ACERTO também é mostrado na janela antes do overlay
   // sair — o verde com o CheckCircle aparece antes do minimize/fechamento.
   await expect(dialog.getByText('É isso que a seção mostra.', { exact: true })).toBeVisible();
@@ -587,9 +587,9 @@ test('e2e-quiz: "Concluir aula" trava com quiz pendente e destrava ao dominar (a
   app = launched.app;
   const page = launched.page;
   const dialog = await openQuizLessonAndStart(page);
-  const next = page.getByRole('button', { name: 'Próximo →' });
+  const next = page.getByRole('button', { name: 'Avançar', exact: true });
 
-  // Domina a afirmação da seção 1 de primeira → "Próximo" abre.
+  // Domina a afirmação da seção 1 de primeira → "Avançar" abre.
   await dialog
     .getByRole('button', { name: optionName(ASSERTION_ONE.options, ASSERTION_ONE.answerIndex) })
     .click();
@@ -697,7 +697,7 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   // IA fora, NENHUM clique da tela mudava a situação do aluno. Era um fato
   // observado, não uma aprovação, e o handoff da spec pedia o caminho ao
   // produto. O caminho existe agora, e o teste percorre os dois lados dele.
-  const next = page.getByRole('button', { name: 'Próximo →' });
+  const next = page.getByRole('button', { name: 'Avançar', exact: true });
   await expect(next).toBeDisabled();
 
   // (a) A SAÍDA EXISTE, e ela NÃO depende da IA que está fora. O botão vive no
@@ -723,7 +723,7 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   await expect(dialog.getByText(ASSERTION_ONE.question)).toBeVisible();
 
   // (b) O GATE **NÃO** FOI DISPENSADO. Reabrir devolve a chance de responder,
-  // nunca a aprovação: enquanto não houver ACERTO, "Próximo" segue fechado.
+  // nunca a aprovação: enquanto não houver ACERTO, "Avançar" segue fechado.
   await expect(next).toBeDisabled();
 
   // E a geração REABERTA também não entrega a resposta — o invariante da

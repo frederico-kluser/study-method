@@ -8,7 +8,8 @@
  *   - a Trilha abre com módulos/aulas pré-carregados (item já existe, sem
  *     geração) e o teste de proficiência disponível;
  *   - a aula abre como CHAT: "Começar aula" → mensagem do tutor (stub
- *     determinístico) → "Próximo" → segunda seção → "Concluir aula";
+ *     determinístico) → "Avançar" (ONDA-AVANCAR-COMPOSER: era "Próximo →",
+ *     no fim da linha do composer) → segunda seção → "Concluir aula";
  *   - as FONTES ficam atrás do botão "Fontes" (nunca no fluxo);
  *   - os DESAFIOS da aula ficam atrás do botão "Desafios" do cabeçalho da
  *     aula — que mora no SIDEBAR do shell desde a ONDA-AULA-NO-SIDEBAR
@@ -181,6 +182,15 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
 
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
   //
+  // ONDA-AVANCAR-COMPOSER — O GATE DE INÍCIO, PROVADO NO DOM: antes de a
+  // aula começar o botão de avanço NÃO EXISTE (nem na linha de ação, nem no
+  // composer — o dono: o avanço não existe antes da aula começar). O convite
+  // que está em cena é o card "Começar aula" na conversa.
+  // `exact: true` é OBRIGATÓRIO em TODOS os locators do avanço: sem ele o
+  // locator casaria também "Avançar para a próxima aula" (o botão de próxima
+  // aula convive com o composer no passo 'proxima-aula').
+  await expect(page.getByRole('button', { name: 'Avançar', exact: true })).toHaveCount(0);
+
   // ONDA10-FENCE (fix da corrida): `waitFullTypewriter` PRECISA ser chamado
   // ANTES de qualquer assert que precise resolver/reter contra o backend (a
   // visibilidade do texto, a contagem de bolhas, o CSS computado) — cada um
@@ -208,9 +218,19 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(bubbles).toHaveCount(1);
   await expect(bubbles.first()).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
-  // Próximo → segunda seção da teoria (progressiva, uma por vez). Mesma
-  // ordem ONDA10-FENCE: o wait vem logo após o clique.
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  // ONDA-AVANCAR-COMPOSER: com a aula COMEÇADA e a 1ª seção inteira na tela,
+  // o avanço EXISTE e está VIVO (passo 'proximo' — contido e habilitado). É
+  // o espelho exato do `toHaveCount(0)` de cima: o botão nasce com a aula,
+  // não antes dela.
+  const avancar = page.getByRole('button', { name: 'Avançar', exact: true });
+  await expect(avancar).toBeVisible();
+  await expect(avancar).toBeEnabled();
+
+  // ONDA-AVANCAR-COMPOSER (o botão renomeado de "Próximo →" para "Avançar" e
+  // movido para o FIM da linha do composer, à direita do campo): segunda
+  // seção da teoria (progressiva, uma por vez). Mesma ordem ONDA10-FENCE: o
+  // wait vem logo após o clique.
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitFullTypewriter(page);
   await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
 

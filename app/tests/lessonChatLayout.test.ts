@@ -92,9 +92,12 @@
  *     componente de APRESENTAÇÃO exportado pela própria view (a view o usa;
  *     não é uma cópia para teste), então aqui não há texto nenhum: monta-se o
  *     componente REAL com o tema REAL e mede-se o HTML e o CSS aplicados —
- *     microfone FORA do campo, campo pílula ocupando o resto da linha, enviar
- *     DENTRO na borda direita, alvos de toque ≥ 44px, o `disabled` medido NO
- *     ELEMENTO e as paradas de tab que o framer inventa.
+ *     microfone FORA do campo, campo pílula que ENCOLHE (item flexível da
+ *     linha, piso de 240px), enviar DENTRO na borda direita, o botão de
+ *     avanço ("Avançar") NO FIM da linha, à direita do campo, alvos de toque
+ *     ≥ 44px, o `disabled` medido NO ELEMENTO e as paradas de tab que o
+ *     framer inventa. ONDA-AVANCAR-COMPOSER: os estados do avanço (gate de
+ *     início, cadeado do quiz, turno em voo) são medidos AQUI.
  *
  *   BLOCO 4 — A CONVERSA SEM CAIXA, RENDERIZADA. O estilo do painel saiu do
  *     JSX e virou `lessonLogSx(theme)`, exportada: dá para montá-la num `Box`
@@ -519,6 +522,11 @@ interface ComposerProps {
   onMicToggle: () => void;
   micTranscribing: boolean;
   disabled: boolean;
+  showAdvance: boolean;
+  advanceLocked: boolean;
+  advanceDisabled: boolean;
+  onAdvance: () => void;
+  advanceTooltip: string;
 }
 
 let LessonComposer: ComponentType<ComposerProps>;
@@ -531,6 +539,15 @@ const BASE: ComposerProps = {
   onMicToggle: () => {},
   micTranscribing: false,
   disabled: false,
+  // ONDA-AVANCAR-COMPOSER: os renders deste bloco descrevem a aula EM CURSO
+  // (passo 'proximo') — o avanço está em cena, vivo e sem dica. Os estados
+  // especiais (gate de início, cadeado do quiz, turno em voo) têm teste
+  // próprio, logo abaixo.
+  showAdvance: true,
+  advanceLocked: false,
+  advanceDisabled: false,
+  onAdvance: () => {},
+  advanceTooltip: '',
 };
 
 function renderComposer(props: Partial<ComposerProps> = {}): string {
@@ -546,6 +563,32 @@ function renderComposer(props: Partial<ComposerProps> = {}): string {
 const MIC = `aria-label="${ptBR.lesson.micStart}"`;
 const SEND = `aria-label="${ptBR.lesson.sendMessage}"`;
 const CAMPO = `placeholder="${ptBR.lesson.askInput}"`;
+// ONDA-AVANCAR-COMPOSER: o rótulo do botão de avanço. O fechamento `</button>`
+// entra no marcador de ORDEM/EXISTÊNCIA porque "Avançar" também é PREFIXO de
+// "Avançar para a próxima aula" (o botão de próxima aula) — o mesmo motivo de
+// o e2e casar com `exact: true`.
+const AVANCAR = ptBR.lesson.advanceButton;
+const AVANCAR_BTN = `>${AVANCAR}</button>`;
+const AVANCAR_TXT = `${AVANCAR}</button>`;
+
+/**
+ * A TAG DE ABERTURA do <button> que contém `marker` — variante para o botão
+ * de avanço do composer (que pode ter startIcon: o rótulo vem DEPOIS do span
+ * do ícone, então o `<` mais próximo é um `</span>`, não o botão).
+ */
+function advanceButtonTag(html: string): string {
+  const at = html.indexOf(AVANCAR_TXT);
+  assert.notEqual(at, -1, 'o botão "Avançar" deveria estar renderizado');
+  const open = html.lastIndexOf('<button', at);
+  assert.notEqual(open, -1, 'nenhum <button> contém o rótulo do avanço');
+  return html.slice(open, html.indexOf('>', open) + 1);
+}
+
+/** A classe do emotion do botão "Avançar" (com ou sem o span do startIcon). */
+function classOfAdvance(html: string): string {
+  const cls = /class="([^"]*)"/.exec(advanceButtonTag(html));
+  return (cls?.[1].split(/\s+/).find((c) => c.startsWith('css-')) ?? '') as string;
+}
 
 before(async () => {
   process.env.I18NEXT_NO_SUPPORT_NOTICE = '1';
@@ -582,14 +625,92 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     assert.ok(mic < campo, 'o mic vem ANTES do campo na ordem do documento (e do foco)');
   });
 
-  it('o campo é uma PÍLULA que ocupa a largura restante, com placeholder no lugar do label', () => {
+  it('ONDA-AVANCAR-COMPOSER: a ordem no DOM é mic < campo < Avançar (o avanço no FIM da linha)', () => {
+    const html = renderComposer({ draft: 'oi' });
+    const mic = html.indexOf(MIC);
+    const campo = html.indexOf('MuiInputBase-root');
+    const avancar = html.indexOf(AVANCAR_BTN);
+    assert.notEqual(avancar, -1, 'o botão de avanço existe (aula começada, passo da teoria)');
+    assert.ok(
+      mic < campo && campo < avancar,
+      'a linha é [mic] [campo que encolhe] [Avançar] — o avanço entra à DIREITA do campo, fora dele',
+    );
+  });
+
+  it('ONDA-AVANCAR-COMPOSER: o rótulo é "Avançar" (era "Próximo →"), e a view o alimenta pela chave', () => {
+    const html = renderComposer({ draft: 'oi' });
+    assert.ok(
+      html.includes(AVANCAR_BTN),
+      `o rótulo visível é o de lesson.advanceButton ("${AVANCAR}")`,
+    );
+    assert.ok(!html.includes('Próximo'), 'nenhum "Próximo →" sobrou na linha de entrada');
+  });
+
+  it('ONDA-AVANCAR-COMPOSER: o gate de início — showAdvance=false não renderiza avanço nenhum', () => {
+    // O composer é a SEGUNDA porta do gate (a primeira é a linha de ação, que
+    // nem renderiza): antes da aula começar o botão NÃO EXISTE no DOM — nem
+    // desabilitado, que seria um convite morto.
+    const html = renderComposer({ showAdvance: false });
+    assert.ok(!html.includes(AVANCAR), 'sem aula começada, o avanço não existe');
+    assert.ok(!html.includes('data-testid="LockIcon"'), 'nem a versão travada dele');
+  });
+
+  it('ONDA-AVANCAR-COMPOSER: passo quiz-secao — o avanço nasce outlined, com cadeado e MORTO', () => {
+    // MESMA semântica que o botão tinha na linha de ação (ONDA11): secundário
+    // ao card do quiz, explicando por que está morto.
+    const html = renderComposer({
+      advanceLocked: true,
+      advanceTooltip: ptBR.lesson.quizGateNext,
+    });
+    assert.ok(html.includes('MuiButton-outlined'), 'variante secundária (outlined)');
+    assert.ok(html.includes('data-testid="LockIcon"'), 'o cadeado diz o que trava');
+    assert.ok(
+      isDisabled(advanceButtonTag(html)),
+      'o gate do quiz continua fechado — o clique não existe',
+    );
+    assert.ok(
+      html.includes(`aria-label="${ptBR.lesson.quizGateNext}"`),
+      'o tooltip carrega o MESMO texto do gate (a dica explica o botão morto)',
+    );
+  });
+
+  it('ONDA-AVANCAR-COMPOSER: o turno em voo trava o clique do avanço — e a aula livre não', () => {
+    const ocupado = renderComposer({ draft: 'oi', advanceDisabled: true });
+    const livre = renderComposer({ draft: 'oi' });
+    assert.ok(
+      isDisabled(advanceButtonTag(ocupado)),
+      'turno em voo (IPC) trava o avanço, como travava na linha de ação',
+    );
+    assert.ok(
+      !isDisabled(advanceButtonTag(livre)),
+      'aula livre: o avanço é o CTA VIVO da linha (sem este par, um composer ' +
+        'permanentemente morto passaria verde)',
+    );
+  });
+
+  it('o campo deixou de ser fullWidth — ele ENCOLHE (item flexível da linha, piso de 240px)', () => {
     const html = renderComposer();
-    assert.ok(html.includes('MuiFormControl-fullWidth'), 'o campo cresce até o fim da linha');
+    assert.ok(
+      !html.includes('MuiFormControl-fullWidth'),
+      'o campo não ocupa mais a linha inteira: o fim dela agora é o botão de avanço',
+    );
     assert.ok(
       !html.includes('MuiInputLabel'),
       'sem label flutuante — a referência põe o texto DENTRO do campo',
     );
     assert.ok(html.includes(CAMPO), 'o convite vive no placeholder');
+    // O `sx` do TextField desce no root do FormControl (é ele o item da linha).
+    const css = cssOfClass(html, classOfElementWith(html, 'MuiFormControl-root'));
+    assert.match(css, /flex:\s*1 1 auto/, 'o campo é item flexível da linha');
+    assert.match(
+      css,
+      /min-width:\s*240px/,
+      'e tem PISO de 240px — o abraço do flex nunca o apaga de vez com o avanço em cena',
+    );
+    assert.ok(
+      css.lastIndexOf('min-width:240px') > css.indexOf('min-width:0'),
+      'o piso vence o min-width:0 do FormControl (declaração posterior no MESMO corpo de regra)',
+    );
     const campo = classOfElementWith(html, 'MuiInputBase-root');
     assert.match(cssOfClass(html, campo), /border-radius:\s*999px/, 'raio total (stadium)');
   });
@@ -602,7 +723,7 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     assert.ok(fim !== -1 && enviar > fim, 'o botão de enviar está dentro do adorno de fim');
   });
 
-  it('os alvos de toque têm 44px (mic e enviar)', () => {
+  it('os alvos de toque têm 44px (mic, enviar e Avançar)', () => {
     const html = renderComposer({ draft: 'oi' });
     for (const [nome, marker] of [
       ['mic', MIC],
@@ -612,6 +733,13 @@ describe('3. a barra de entrada segue a referência de chat', () => {
       assert.match(css, /(min-)?width:\s*44px/, `${nome}: largura mínima de alvo`);
       assert.match(css, /(min-)?height:\s*44px/, `${nome}: altura mínima de alvo`);
     }
+    // O avanço declara o alvo pela ALTURA (é um Button, não um IconButton
+    // quadrado): minHeight: TOUCH_TARGET_PX no `sx` dele.
+    assert.match(
+      cssOfClass(html, classOfAdvance(html)),
+      /min-height:\s*44px/,
+      'Avançar: alvo de toque de 44px',
+    );
   });
 
   it('a acessibilidade que já existia continua de pé', () => {
@@ -668,7 +796,6 @@ describe('3. a barra de entrada segue a referência de chat', () => {
       );
     }
   });
-
   it('a casca animada do framer não vira PARADA DE TAB', () => {
     // O `motion` marca `tabIndex=0` em TODO elemento com gesto quando o autor
     // não declara um (framer-motion, render/html/use-props.mjs). A sonda de
@@ -686,8 +813,9 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     );
     assert.equal(
       (html.match(/<span tabindex="-1"/g) ?? []).length,
-      2,
-      'as DUAS cascas desta linha (mic e enviar) precisam estar explicitamente fora do tab',
+      3,
+      'as TRÊS cascas desta linha (mic, enviar e Avançar) precisam estar explicitamente ' +
+        'fora do tab (ONDA-AVANCAR-COMPOSER: o avanço entrou na linha)',
     );
   });
 });

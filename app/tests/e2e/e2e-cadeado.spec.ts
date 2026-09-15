@@ -137,7 +137,7 @@ test('e2e-cadeado: concluir a aula 1 destrava a aula 2 na Trilha — e a tela di
   await expect(page.getByRole('heading', { name: LESSON_ONE_TITLE })).toBeVisible();
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await waitFullTypewriter(page);
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitFullTypewriter(page);
 
   // ── 3. CONCLUIR ────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ test('e2e-cadeado: "Avançar para a próxima aula" abre MESMO a aula seguinte', 
   await tileDaAula(page, LESSON_ONE_TITLE).click();
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await waitFullTypewriter(page);
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitFullTypewriter(page);
   await page.getByRole('button', { name: 'Concluir aula' }).click();
 

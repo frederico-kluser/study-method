@@ -533,7 +533,7 @@ test('e2e-sidebar-aula-spacing: a aula COM desafio (badge) no piso de 180px sob 
   // escala 0 — a varredura nem o veria). ONDA10-FENCE: o wait logo após o clique.
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await waitFullTypewriter(page);
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitFullTypewriter(page);
   await expect(sidebar.locator('.MuiBadge-badge:not(.MuiBadge-invisible)')).toHaveCount(1);
 
@@ -590,7 +590,7 @@ test('e2e-sidebar-aula-spacing: a aula COM chip de pré-requisito no piso de 180
   await expect(page.getByRole('heading', { name: LESSON_ONE_TITLE })).toBeVisible();
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await waitFullTypewriter(page);
-  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await page.getByRole('button', { name: 'Avançar', exact: true }).click();
   await waitFullTypewriter(page);
   await page.getByRole('button', { name: 'Concluir aula' }).click();
   await page.getByRole('button', { name: 'Avançar para a próxima aula' }).click();

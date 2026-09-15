@@ -37,6 +37,30 @@
  * 'desafio'.
  *
  * ══════════════════════════════════════════════════════════════════════════
+ * ONDA-AVANCAR-COMPOSER — O AVANÇO NEM SEMPRE EXISTE, E ELE MORA NO COMPOSER
+ * ══════════════════════════════════════════════════════════════════════════
+ * Mais dois pedidos do dono, atualizados NESTE arquivo (os testes são o
+ * contrato — reescritos para o comportamento NOVO):
+ *
+ * 3. *"o botão de avanço só pode aparecer quando a aula tiver começado"*.
+ *    O que o código fazia: com o chat vazio (a bolha inicial + o card "Começar
+ *    aula" na conversa) a linha de ação JÁ renderizava o botão de avanço. O
+ *    conserto é o passo novo 'nao-comecou' (`started = chat.history.length >
+ *    0`), com PRECEDÊNCIA MÁXIMA na `lessonActionStep` — acima até de
+ *    `doneMarked` — e a linha de ação renderiza NADA para ele (sem frase, sem
+ *    botão): o convite para começar já está na conversa.
+ *
+ * 4. o botão de avanço SAIU da linha de ação e ENTROU no fim da linha do
+ *    composer (`LessonComposer`), à direita do campo — que deixou de ser
+ *    `fullWidth` para abrir lugar. Renomeado de "Próximo →" para "Avançar"
+ *    (`lesson.advanceButton`). É o MESMO botão: o clique continua sendo
+ *    decidido pelo `nextClickAction` da view. A linha de ação conserva a
+ *    frase role="status" de 'revelar'/'quiz-secao' e os CTAs de
+ *    desafio/concluir/próxima aula — e o comportamento do botão de avanço
+ *    (ordem no DOM, 44px, estados travado/vivo) é medido no composer, em
+ *    tests/lessonChatLayout.test.ts (bloco 3).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
  * COMO SE PROVA ISSO SEM jsdom
  * ══════════════════════════════════════════════════════════════════════════
  * Esta base não tem jsdom (a técnica dela é `react-dom/server` — precedentes
@@ -45,15 +69,20 @@
  *
  *   BLOCO 1 — A DECISÃO, PURA. `lessonActionStep` / `nextClickAction` /
  *     `lessonActionStatusKey` são funções: a tabela inteira de estados é
- *     percorrida por asserção, inclusive as ordens de precedência.
+ *     percorrida por asserção, inclusive as ordens de precedência (a do passo
+ *     novo 'nao-comecou' inclusive SOBRE `doneMarked`).
  *   BLOCO 2 — A TELA, RENDERIZADA. `LessonActionRow` é exportado pela própria
  *     view (a view usa ESTE componente — não há cópia para teste): monta-se com
- *     o tema e o i18n REAIS e mede-se nome do botão, `disabled` NO ELEMENTO,
- *     alvo de toque, nome acessível do CTA de desafio e a frase role="status".
+ *     o tema e o i18n REAIS e mede-se a frase role="status" de cada passo e os
+ *     CTAs que ainda moram na linha (desafio/concluir/próxima aula) — nome,
+ *     `disabled` NO ELEMENTO, alvo de toque. O botão de avanço NÃO ESTÁ mais
+ *     aqui: os passos 'revelar'/'quiz-secao' renderizam SÓ a frase — e
+ *     'nao-comecou' e 'proximo' não renderizam nada.
  *   BLOCO 3 — A FIAÇÃO, ANCORADA NA FONTE. O que só um clique provaria (o
  *     handler que o botão chama) é cobrado como texto, ancorado no recorte da
- *     função — e o gate do `sendNext` é cobrado junto, para que "revelar" nunca
- *     vire uma porta lateral de avanço.
+ *     função — agora com o botão de avanço NO COMPOSER (`onAdvance=`) — e o
+ *     gate do `sendNext` é cobrado junto, para que "revelar" nunca vire uma
+ *     porta lateral de avanço.
  *
  * Reprodução: `bash tools/t.sh tests/lessonActionRow.test.ts`
  */
@@ -92,6 +121,7 @@ const VIEW = codeOf(VIEW_SRC);
 const HEADER = codeOf(HEADER_SRC);
 
 type Step =
+  | 'nao-comecou'
   | 'revelar'
   | 'quiz-secao'
   | 'proximo'
@@ -101,6 +131,8 @@ type Step =
   | 'proxima-aula';
 
 interface StepInput {
+  /** ONDA-AVANCAR-COMPOSER: `chat.history.length > 0` — a aula começou. */
+  started: boolean;
   theoryDone: boolean;
   doneMarked: boolean;
   typingTheory: boolean;
@@ -115,7 +147,6 @@ interface RowProps {
   quizCardOnScreen: boolean;
   pendingQuizCount: number;
   pendingChallengeCount: number;
-  onNext: () => void;
   onFinish: () => void;
   onChallenge: (anchor: unknown) => void;
   onNextLesson: () => void;
@@ -134,6 +165,9 @@ let challengeBadgeCount: (input: {
 let LessonActionRow: ComponentType<RowProps>;
 
 const BASE: StepInput = {
+  // ONDA-AVANCAR-COMPOSER: os casos existentes descrevem a aula EM CURSO —
+  // o caso do chat vazio (started: false) é coberto por teste próprio.
+  started: true,
   theoryDone: false,
   doneMarked: false,
   typingTheory: false,
@@ -148,7 +182,6 @@ const BASE_ROW: RowProps = {
   quizCardOnScreen: false,
   pendingQuizCount: 0,
   pendingChallengeCount: 0,
-  onNext: () => {},
   onFinish: () => {},
   onChallenge: () => {},
   onNextLesson: () => {},
@@ -200,9 +233,9 @@ function render(props: Partial<RowProps> = {}): string {
  * abre o controle, que é o elemento cujo estado se quer medir.
  */
 function tagOfElementWith(html: string, marker: string): string {
-  // Percorre TODAS as ocorrências: o rótulo do botão também aparece DENTRO da
-  // frase role="status" (ela cita “Próximo →” pelo nome), e essa ocorrência
-  // não mora em botão nenhum.
+  // Percorre TODAS as ocorrências: um rótulo também pode aparecer DENTRO de
+  // uma frase role="status" (a frase da revelação cita “Avançar” pelo nome),
+  // e essa ocorrência não mora em botão nenhum.
   let at = html.indexOf(marker);
   while (at !== -1) {
     const open = html.lastIndexOf('<button', at);
@@ -246,7 +279,28 @@ function cssOfClass(html: string, cls: string): string {
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 describe('1. lessonActionStep — o próximo passo, e nada além dele', () => {
-  it('teoria em curso, nada travando → "Próximo" avança', () => {
+  it('ONDA-AVANCAR-COMPOSER: chat vazio → o passo é "nao-comecou", com PRECEDÊNCIA MÁXIMA', () => {
+    // O pedido do dono: o botão de avanço só pode APARECER quando a aula
+    // tiver começado. Com o chat vazio (a bolha inicial + o card "Começar
+    // aula" na conversa) NENHUM estado concede avanço — a cláusula fica
+    // ANTES até de `doneMarked`, para um remonte híbrido (aula marcada como
+    // concluída, conversa ainda vazia) não oferecer avanço nenhum.
+    assert.equal(lessonActionStep({ ...BASE, started: false }), 'nao-comecou');
+    assert.equal(
+      lessonActionStep({
+        started: false,
+        theoryDone: true,
+        doneMarked: true,
+        typingTheory: true,
+        nextBlockedByQuiz: true,
+        finishBlock: 'challenges',
+      }),
+      'nao-comecou',
+      'nem aula concluída, nem digitação, nem gate: chat vazio = nada de avanço',
+    );
+  });
+
+  it('teoria em curso, nada travando → "Avançar" avança', () => {
     assert.equal(lessonActionStep(BASE), 'proximo');
   });
 
@@ -283,6 +337,7 @@ describe('1. lessonActionStep — o próximo passo, e nada além dele', () => {
   it('aula já concluída → próxima aula, e nada mais bloqueia', () => {
     assert.equal(
       lessonActionStep({
+        started: true,
         theoryDone: true,
         doneMarked: true,
         typingTheory: true,
@@ -344,10 +399,14 @@ describe('3. lessonActionStatusKey — a frase diz a verdade do momento', () => 
     assert.equal(lessonActionStatusKey('desafio', false), 'lesson.challengeGateFinish');
   });
 
-  it('passo livre não inventa aviso', () => {
+  it('passo livre não inventa aviso — e a aula não começada também não', () => {
     assert.equal(lessonActionStatusKey('proximo', false), null);
     assert.equal(lessonActionStatusKey('concluir', false), null);
     assert.equal(lessonActionStatusKey('proxima-aula', false), null);
+    // ONDA-AVANCAR-COMPOSER: o card "Começar aula" na conversa já é o convite
+    // — a linha de ação para o passo 'nao-comecou' não diz nada (e nem
+    // renderiza).
+    assert.equal(lessonActionStatusKey('nao-comecou', false), null);
   });
 
   it('toda chave citada existe, NÃO VAZIA, nos dois idiomas', () => {
@@ -360,6 +419,8 @@ describe('3. lessonActionStatusKey — a frase diz a verdade do momento', () => 
       'quizGateNext',
       'quizGateTyping',
       'quizGateFinish',
+      // ONDA-AVANCAR-COMPOSER: o rótulo do botão de avanço (era lesson.nextButton).
+      'advanceButton',
     ];
     for (const k of chaves) {
       const pt = (ptBR.lesson as unknown as Record<string, string>)[k];
@@ -382,32 +443,50 @@ describe('3. lessonActionStatusKey — a frase diz a verdade do momento', () => 
  * BLOCO 2 — a TELA, renderizada de verdade (tema e i18n reais)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-const PROXIMO = ptBR.lesson.nextButton;
+const AVANCAR = ptBR.lesson.advanceButton;
 const CONCLUIR = ptBR.lesson.finishButton;
 const DESAFIO = ptBR.lesson.challengeStepButton;
 
 describe('4. a linha de ação renderizada — um lugar, o passo atual', () => {
-  it('DIGITANDO: o "Próximo" está VIVO (é ele que revela) e a frase diz isso', () => {
+  it('DIGITANDO: a linha SÓ anuncia (o avanço morou no composer) e a frase diz o que faz', () => {
     const html = render({ step: 'revelar' });
-    assert.ok(html.includes(PROXIMO), 'o rótulo continua "Próximo →" (o botão não muda de nome)');
     assert.ok(
-      !isDisabled(tagOfElementWith(html, PROXIMO)),
-      'com a seção sendo escrita o botão PRECISA estar clicável — sem isso o clique do ' +
-        'dono não existe e nada é revelado',
+      !html.includes('<button'),
+      'ONDA-AVANCAR-COMPOSER: a linha de ação NÃO tem mais botão de avanço nenhum — ' +
+        'ele entrou no fim da linha do composer (tests/lessonChatLayout.test.ts, bloco 3)',
     );
     assert.ok(html.includes('role="status"'), 'a linha anuncia o estado');
     assert.ok(html.includes(ptBR.lesson.revealGateTyping), 'e a frase é a da revelação');
+    assert.ok(
+      (ptBR.lesson.revealGateTyping as string).includes(AVANCAR),
+      'a frase cita o botão PELO NOME NOVO ("Avançar") — nunca um rótulo que não existe',
+    );
   });
 
-  it('QUIZ DA SEÇÃO: o "Próximo" está travado e o motivo está ESCRITO (não só no tooltip)', () => {
+  it('QUIZ DA SEÇÃO: a linha não tem botão, e o motivo do gate segue ESCRITO em role=status', () => {
     const html = render({ step: 'quiz-secao', quizCardOnScreen: true });
-    assert.ok(isDisabled(tagOfElementWith(html, PROXIMO)), 'o gate do quiz continua fechado');
-    assert.ok(html.includes(ptBR.lesson.quizGateNext), 'o motivo aparece visível, em role=status');
+    assert.ok(!html.includes('<button'), 'o avanço (travado ou não) não mora mais nesta linha');
+    assert.ok(
+      html.includes(ptBR.lesson.quizGateNext),
+      'o motivo aparece visível, em role=status (a frase do gate é medida AQUI)',
+    );
   });
 
-  it('TURNO EM VOO trava o avanço mesmo no passo de revelar', () => {
-    assert.ok(isDisabled(tagOfElementWith(render({ step: 'revelar', busy: true }), PROXIMO)));
-    assert.ok(isDisabled(tagOfElementWith(render({ step: 'proximo', busy: true }), PROXIMO)));
+  it('PROXIMO: a linha fica vazia — sem frase, sem botão (o avanço vive no composer)', () => {
+    const html = render({ step: 'proximo' });
+    assert.ok(!html.includes('<button'), 'nada de botão de avanço na linha de ação');
+    assert.ok(!html.includes('role="status"'), 'passo livre não anuncia bloqueio nenhum');
+  });
+
+  it('NAO-COMECOU: a linha renderiza NADA — sem frase, sem botão (o convite é o card da conversa)', () => {
+    // ONDA-AVANCAR-COMPOSER: antes da aula começar o avanço NÃO EXISTE no DOM.
+    // O card "Começar aula" já está na conversa; a linha não acrescenta frase
+    // nem botão — nem a versão desabilitada, que seria um convite morto.
+    const html = render({ step: 'nao-comecou' });
+    assert.ok(!html.includes('<button'), 'nenhum botão de avanço antes da aula começar');
+    assert.ok(!html.includes('role="status"'), 'nenhuma frase: nada a explicar');
+    assert.ok(!html.includes(AVANCAR), 'o rótulo do avanço nem aparece');
+    assert.ok(!html.includes(CONCLUIR), 'nem CTA de conclusão (a aula nem começou)');
   });
 
   it('DESAFIO: o CTA do desafio aparece EMBAIXO, e o "Concluir aula" fica travado ao lado', () => {
@@ -435,8 +514,9 @@ describe('4. a linha de ação renderizada — um lugar, o passo atual', () => {
   });
 
   it('os alvos de toque do passo têm 44px', () => {
+    // O botão de avanço (renomeado "Avançar") saiu desta linha: o alvo de
+    // toque dele é medido no composer (tests/lessonChatLayout.test.ts).
     for (const [step, marker] of [
-      ['revelar', PROXIMO],
       ['desafio', DESAFIO],
       ['concluir', CONCLUIR],
     ] as const) {
@@ -461,11 +541,20 @@ describe('4. a linha de ação renderizada — um lugar, o passo atual', () => {
     );
   });
 
-  it('CONCLUÍDA: próxima aula + gerar novo desafio, e nenhum "Próximo"/"Concluir"', () => {
+  it('CONCLUÍDA: próxima aula + gerar novo desafio, e nenhum "Avançar"/"Concluir"', () => {
     const html = render({ step: 'proxima-aula' });
     assert.ok(html.includes(ptBR.lesson.nextLessonButton));
     assert.ok(html.includes(ptBR.lesson.generateNewChallenge));
-    assert.ok(!html.includes(PROXIMO), 'a teoria acabou: nada de "Próximo"');
+    // EXATAMENTE DOIS botões: "Avançar para a próxima aula" e "Gerar novo
+    // desafio". A contagem é o que prova a ausência do avanço de teoria sem
+    // cair na armadilha da substring: "Avançar" é PREFIXO de "Avançar para a
+    // próxima aula" (o mesmo motivo de o e2e casar o botão novo com
+    // `exact: true`).
+    assert.equal(
+      (html.match(/<button/g) ?? []).length,
+      2,
+      'a linha concluída tem SÓ os dois CTAs do passo — nenhum botão de avanço de teoria',
+    );
     assert.ok(!html.includes(CONCLUIR), 'nada de "Concluir aula" depois de concluída');
   });
 
@@ -493,9 +582,49 @@ describe('5. a view liga o passo à ação — e o gate não ganhou porta latera
     assert.match(VIEW, /<LessonActionRow/, 'a view usa ESTE componente (não uma cópia)');
     assert.match(VIEW, /const actionStep = lessonActionStep\(\{/, 'o passo vem da função pura');
     assert.match(VIEW, /step=\{actionStep\}/, 'e é ELE que a linha recebe');
+    assert.match(
+      VIEW,
+      /started: chat\.history\.length > 0/,
+      'ONDA-AVANCAR-COMPOSER: o gate de existência do avanço é o chat vazio — ' +
+        'sem conversa o passo é "nao-comecou" e nenhum avanço é renderizado',
+    );
   });
 
-  it('o clique do "Próximo" passa por nextClickAction — revelar chama requestSkipTyping', () => {
+  it('ONDA-AVANCAR-COMPOSER: o avanço mora no COMPOSER (fim da linha) — a linha de ação não o tem', () => {
+    const rowAt = VIEW.indexOf('<LessonActionRow');
+    assert.ok(rowAt > 0, 'a linha de ação existe');
+    const row = VIEW.slice(rowAt, VIEW.indexOf('/>', rowAt));
+    assert.ok(
+      !row.includes('onNext='),
+      'a linha de ação não recebe clique de avanço nenhum (cuidado: onNextLesson= EXISTE e continua)',
+    );
+    assert.ok(!VIEW.includes('showNext'), 'nenhum vestígio do showNext antigo sobrou');
+    const composerAt = VIEW.indexOf('<LessonComposer');
+    assert.ok(composerAt > rowAt, 'o composer vem depois da linha de ação (é outro componente)');
+    const composer = VIEW.slice(composerAt, VIEW.indexOf('/>', composerAt));
+    assert.match(composer, /showAdvance=\{advanceVisible\}/, 'o gate de existência entra aí');
+    assert.match(composer, /advanceLocked=\{actionStep === 'quiz-secao'\}/, 'o gate do quiz entra aí');
+    assert.match(composer, /advanceDisabled=\{busy\}/, 'o turno em voo trava o clique');
+    assert.match(
+      composer,
+      /onAdvance=\{handleNextClick\}/,
+      'o MESMO handler (nextClickAction decide) — nada de lógica duplicada',
+    );
+    assert.match(
+      composer,
+      /t\('translation:lesson\.quizGateNext'\)/,
+      'passo quiz-secao: tooltip = o motivo do gate (como na linha de ação)',
+    );
+    assert.match(
+      composer,
+      /t\('translation:lesson\.revealTypingTooltip'\)/,
+      'passo revelar: tooltip = mostrar tudo (não avança)',
+    );
+    assert.match(VIEW, /lesson\.advanceButton/, 'o rótulo vem da chave i18n nova ("Avançar")');
+    assert.ok(!VIEW.includes('lesson.nextButton'), 'a chave velha "Próximo →" não sobrou na view');
+  });
+
+  it('o clique do avanço passa por nextClickAction — revelar chama requestSkipTyping', () => {
     const at = VIEW.indexOf('const handleNextClick');
     assert.ok(at > 0, 'o handler existe');
     const corpo = VIEW.slice(at, VIEW.indexOf('}, [', at));
@@ -506,7 +635,11 @@ describe('5. a view liga o passo à ação — e o gate não ganhou porta latera
       corpo.indexOf('requestSkipTyping()') < corpo.indexOf('sendNext()'),
       'revelar vem ANTES — nunca se avança para depois revelar',
     );
-    assert.match(VIEW, /onNext=\{handleNextClick\}/, 'o botão chama o handler, não o sendNext cru');
+    assert.match(
+      VIEW,
+      /onAdvance=\{handleNextClick\}/,
+      'o botão (no composer) chama o handler, não o sendNext cru',
+    );
   });
 
   it('CERCA DE REGRESSÃO: o avanço não volta a ser travado SÓ por `nextBlockedByQuiz`', () => {
@@ -696,7 +829,13 @@ describe('a régua do desafio é UMA só', () => {
     // O ponto do teste: amarrar as duas rotas UMA À OUTRA. Se alguém mexer só
     // num dos lados, elas divergem de novo e ninguém percebe — foi exatamente
     // assim que a rota do cabeçalho ficou sem guard.
-    const base = { theoryDone: true, doneMarked: false, typingTheory: false, nextBlockedByQuiz: false };
+    const base = {
+      started: true,
+      theoryDone: true,
+      doneMarked: false,
+      typingTheory: false,
+      nextBlockedByQuiz: false,
+    };
     const comQuiz = lessonActionStep({ ...base, finishBlock: 'quiz' });
     const comDesafio = lessonActionStep({ ...base, finishBlock: 'challenges' });
     assert.strictEqual(comQuiz, 'quiz-aula', 'com quiz pendente a linha de ação cobra o quiz');

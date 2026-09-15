@@ -1818,7 +1818,8 @@ describe('ONDA 12 — botão DESABILITADO que carrega informação continua leg�
   }
 
   it('o rótulo desabilitado é a TINTA SECUNDÁRIA, não o cinza translúcido do MUI', () => {
-    // Prova visual do dono: o "Próximo →" bloqueado pelo quiz ficava cinza sobre
+    // Prova visual do dono: o "Avançar" (o botão de avanço, antes "Próximo →")
+    // bloqueado pelo quiz ficava cinza sobre
     // cinza no escuro — e ele é o estado NORMAL enquanto a aula não foi
     // respondida. O default do MUI é `action.disabled` (branco a 30%), que
     // composto sobre o nível 0 vira #565656 e mede 2,63:1.
@@ -1843,7 +1844,8 @@ describe('ONDA 12 — botão DESABILITADO que carrega informação continua leg�
   });
 
   it('o desabilitado ainda DESENHA a moldura (a borda vai para o divisor)', () => {
-    // O "Próximo →" bloqueado é `variant="outlined"`, e a borda default do
+    // O "Avançar" (o botão de avanço) bloqueado é `variant="outlined"`, e a
+    // borda default do
     // desabilitado é `action.disabledBackground` — branco a 12% no escuro, que
     // sobre o nível 0 some. Sem moldura o botão vira texto solto no meio da
     // tela; um controle desabilitado é dispensado do piso de 3:1, mas não de
