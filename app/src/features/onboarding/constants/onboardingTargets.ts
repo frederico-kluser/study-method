@@ -17,7 +17,7 @@
  * no JSX (grep do marcador) — `onboardingTargets.test.ts` guarda isso.
  */
 
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 import type { OnboardingChapterDefinition } from '../types/onboarding.types';
 
 export interface OnboardingTargetMeta {
@@ -26,7 +26,7 @@ export interface OnboardingTargetMeta {
   /** Aba do shell em que o elemento aparece (VERDADE para sempre-visíveis). */
   everywhere?: boolean;
   /** Aba onde o alvo é montado (quando não é everywhere). */
-  view?: NavKey;
+  view?: PanelKey;
 }
 
 /**
@@ -50,8 +50,11 @@ export const ONBOARDING_TARGET_CATALOG: Record<string, OnboardingTargetMeta> = {
   // O id continua 'nav-tabs' de propósito (13 specs e2e e os steps do tutorial
   // apontam para ele), mas desde a onda 2 do redesign o alvo é o NAVIGATION
   // RAIL vertical à esquerda — não mais uma fileira de abas no topo.
+  // ONDA-SEM-DESAFIO-NO-RAIL: o rail NÃO tem mais o destino Desafio (pedido do
+  // dono); o painel Desafio continua existindo, mas só por navegação via
+  // Aula/Trilha (challengeNav).
   'nav-tabs': {
-    description: 'Rail de navegação à esquerda do shell (Início/Settings/Aula/Desafio).',
+    description: 'Rail de navegação à esquerda do shell (Início/Settings/Aula/Trilha).',
     everywhere: true,
   },
 

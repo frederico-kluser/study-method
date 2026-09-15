@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import type { OnboardingStatus } from '../types/onboarding.types';
 import { onboardingStorageService } from '../services/onboardingStorage.service';
 import { shouldOfferFirstRunTutorial } from './firstRunTutorial.rule';
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 
 interface UseFirstRunTutorialPromptParams {
   /** Mesma elegibilidade do onboarding: só para sessões passadas do gate. */
@@ -32,7 +32,7 @@ interface UseFirstRunTutorialPromptParams {
   /** O status do tutorial (`progress.status`). */
   onboardingStatus: OnboardingStatus;
   /** Aba ativa do shell — a oferta só abre na home. */
-  activeView: NavKey;
+  activeView: PanelKey;
   /** Abre o `TutorialSelectionModal`. */
   openTutorialSelection: () => void;
 }

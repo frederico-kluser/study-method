@@ -89,7 +89,7 @@ import {
   SHELL_SPLIT_DIVIDER_ID,
   writeShellSplitRatio,
 } from './lib/splitRatio';
-import { navPanelId, navTabId, type NavKey } from './lib/shellNav';
+import { navPanelId, navTabId, type PanelKey } from './lib/shellNav';
 import { OnboardingHost } from './features/onboarding/OnboardingHost';
 import { useStartup } from './gate/AppGate';
 // ONDA3 (generate-flow): modal GLOBAL de etapas do "Gerar novo desafio" —
@@ -109,11 +109,14 @@ import { QuizOverlayHost } from './components/quiz/QuizOverlayHost';
 // (src/lib/sessionState.ts, campo `busy`), publicado pela LessonView.
 import GlobalBusyIndicator from './components/shell/GlobalBusyIndicator';
 
-const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
+const VIEWS: Record<PanelKey, ComponentType<ViewProps>> = {
   home: HomeView,
   settings: SettingsView,
   lesson: LessonView,
   roadmap: RoadmapView,
+  // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio CONTINUA montável no shell —
+  // só perdeu a tab no rail. Lesson/Roadmap chegam nele via
+  // useChallengeNav().navigateToChallenge() (ChallengeNavProvider abaixo).
   challenge: ChallengeView,
 };
 
@@ -131,8 +134,8 @@ function Shell({
   active,
   setActive,
 }: {
-  active: NavKey;
-  setActive: (k: NavKey) => void;
+  active: PanelKey;
+  setActive: (k: PanelKey) => void;
 }): ReactElement {
   const { t } = useTranslation();
   const View = VIEWS[active];
@@ -235,7 +238,12 @@ function Shell({
             component="main"
             role="tabpanel"
             id={navPanelId(active)}
-            aria-labelledby={navTabId(active)}
+            // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio não tem tab no rail,
+            // então quando ELE é o painel ativo o vínculo aria-labelledby não
+            // tem par (o id apontaria para um tab inexistente — referência
+            // ARIA pendente). Nesses casos o painel fica sem rótulo
+            // referenciado em vez de apontar para o vazio.
+            aria-labelledby={active === 'challenge' ? undefined : navTabId(active)}
             sx={{
               // ONDA 1 (layout+a11y): o main vira flex COLUMN para a LessonView
               // poder ocupar 100% da altura: chat com scroll interno e entrada
@@ -265,7 +273,9 @@ function Shell({
 }
 
 export default function App(): ReactElement {
-  const [active, setActive] = useState<NavKey>('home');
+  // PanelKey (não NavKey) de propósito: o painel Desafio é alcançado por
+  // navegação programática (challengeNav) e não tem tab no rail.
+  const [active, setActive] = useState<PanelKey>('home');
   // O App roda DENTRO do StartupCtx.Provider (ver AppGate). Só liberamos o
   // onboarding quando o gate está 'ready' (app destravado, não 'offline').
   const startup = useStartup();

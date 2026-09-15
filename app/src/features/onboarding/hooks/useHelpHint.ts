@@ -15,14 +15,14 @@
 import { useEffect, useRef } from 'react';
 import type { OnboardingStatus } from '../types/onboarding.types';
 import { onboardingStorageService } from '../services/onboardingStorage.service';
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 import { shouldShowHelpHint } from './helpHint.rule';
 
 interface UseHelpHintParams {
   /** Sessão passada do startup-gate. */
   enabled: boolean;
   /** Aba ativa do shell. */
-  activeView: NavKey;
+  activeView: PanelKey;
   /** O status do tutorial (`progress.status`). */
   onboardingStatus: OnboardingStatus;
   /** Inicia o hint in-memory (1 passo) no `useOnboarding`. */

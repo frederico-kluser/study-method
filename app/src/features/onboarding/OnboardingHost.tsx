@@ -7,13 +7,13 @@
  *
  * AUTO-SUSTENTADO: monta a lógica + oferta first-run + overlay. Recebe do App:
  *  - `isReady` (startup-gate liberado) — o onboarding nunca abre antes disso;
- *  - `activeView` (NavKey da aba ativa) — guia steps e dica de navegação;
+ *  - `activeView` (PanelKey da aba ativa) — guia steps e dica de navegação;
  *  - `onNavigateView` — para o CTA "Configurar chaves" navegar à aba Settings
  *    (o host não possui o estado de navegação do shell).
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactElement } from 'react';
-import type { NavKey } from '../../lib/shellNav';
+import type { PanelKey } from '../../lib/shellNav';
 import { getApi } from '../../lib/apiBridge';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useFirstRunTutorialPrompt } from './hooks/useFirstRunTutorialPrompt';
@@ -27,9 +27,9 @@ export interface OnboardingHostProps {
   /** App liberado (startup-gate). O onboarding NUNCA abre antes disso. */
   isReady: boolean;
   /** Aba ativa do shell (usada pela dica de navegação). */
-  activeView?: NavKey;
+  activeView?: PanelKey;
   /** Navega o shell para uma aba (CTA "Configurar chaves" → settings). */
-  onNavigateView?: (view: NavKey) => void;
+  onNavigateView?: (view: PanelKey) => void;
 }
 
 interface OnboardingControllerValue {

@@ -271,7 +271,9 @@ describe('App.tsx: fiação da divisória no shell (guardas de fonte)', () => {
     assert.match(src, /component="main"/);
     assert.match(src, /role="tabpanel"/);
     assert.match(src, /id=\{navPanelId\(active\)\}/);
-    assert.match(src, /aria-labelledby=\{navTabId\(active\)\}/);
+    // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio não tem tab — o vínculo
+    // aria-labelledby só existe quando o painel ativo É um destino do rail.
+    assert.match(src, /aria-labelledby=\{active === 'challenge' \? undefined : navTabId\(active\)\}/);
   });
 
   it('FQ6 — a divisória controla a sidebar E o painel da aba ativa', () => {

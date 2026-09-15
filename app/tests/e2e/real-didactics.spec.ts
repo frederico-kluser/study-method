@@ -79,7 +79,15 @@ test('real-didactics: resposta CORRETA → PASSOU + feedback do LLM; resposta ER
   }>;
   expect(challenges.length).toBeGreaterThan(0);
   const wsDir = challenges[0].workspaceDir;
-  await page.getByRole('tab', { name: 'Desafio' }).click();
+  // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" saiu do rail (pedido do dono) —
+  // a entrada no painel é pelo MESMO caminho do aluno: popover "Desafios" do
+  // cabeçalho da aula gerada → primeiro card da lista.
+  await page.getByRole('button', { name: 'Desafios' }).click();
+  await page
+    .getByRole('list', { name: 'Lista de desafios desta aula' })
+    .getByRole('button')
+    .first()
+    .click();
   const picker = page.locator('#challenge-picker');
   await expect(picker).toBeEnabled({ timeout: 60_000 });
   await picker.click();

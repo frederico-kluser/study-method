@@ -11,10 +11,28 @@
  * sendo a mesma lista ordenada, e a invariante de PERMUTAÇÃO CONTÍGUA continua
  * valendo porque o `value` do MUI Tabs continua sendo o índice.
  *
+ * ONDA-SEM-DESAFIO-NO-RAIL (pedido do dono, verbatim: "temos que tirar o botão
+ * de desafio do left bar"): 'challenge' SAIU de NAV_ITEMS — não renderiza tab
+ * no rail. MAS o painel Desafio CONTINUA EXISTINDO no shell: a LessonView e a
+ * RoadmapView navegam para ele via `useChallengeNav().navigateToChallenge()`
+ * (contexto ChallengeNavProvider → setActive). Por isso os DOIS tipos:
+ *
+ *   - `NavKey`   — os destinos do RAIL (o que tem tab);
+ *   - `PanelKey` — os PAINÉIS do shell (rail + Desafio, que é "painel fantasma":
+ *     monta no main, tem `sm-panel-challenge`, mas não tem tab nem ícone).
+ *
  * Este módulo permanece SEM React e SEM JSX de propósito — o ícone de cada
  * destino mora no componente do rail, não aqui.
  */
-export type NavKey = 'home' | 'settings' | 'lesson' | 'roadmap' | 'challenge';
+
+/** Destinos do RAIL (itens que renderizam tab no `NavigationRail`). */
+export type NavKey = 'home' | 'settings' | 'lesson' | 'roadmap';
+
+/**
+ * Painéis do shell: os destinos do rail + o Desafio (fora do rail — painel
+ * acessível só por navegação programática via challengeNav).
+ */
+export type PanelKey = NavKey | 'challenge';
 
 /**
  * Chaves i18n dos rótulos das abas. Usam o namespace explícito `translation:`
@@ -26,8 +44,7 @@ export type NavI18nKey =
   | 'translation:nav.home'
   | 'translation:nav.settings'
   | 'translation:nav.lesson'
-  | 'translation:nav.roadmap'
-  | 'translation:nav.challenge';
+  | 'translation:nav.roadmap';
 
 export interface NavItem {
   key: NavKey;
@@ -35,17 +52,21 @@ export interface NavItem {
   i18nKey: NavI18nKey;
 }
 
-/** Ordem canônica das abas do shell (Início → Settings → Aula → Trilha → Desafio). */
+/** Ordem canônica das abas do rail (Início → Settings → Aula → Trilha). */
 export const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { key: 'home', i18nKey: 'translation:nav.home' },
   { key: 'settings', i18nKey: 'translation:nav.settings' },
   { key: 'lesson', i18nKey: 'translation:nav.lesson' },
   { key: 'roadmap', i18nKey: 'translation:nav.roadmap' },
-  { key: 'challenge', i18nKey: 'translation:nav.challenge' },
 ];
 
-/** Índice de um NavKey na ordem canônica (para o Tabs value). */
-export function navIndexOf(key: NavKey): number {
+/**
+ * Índice de um painel na ordem canônica do rail (para o Tabs value). Painéis
+ * FORA do rail (ex.: 'challenge') devolvem -1 — com o MUI Tabs isso significa
+ * "nenhuma tab selecionada", que é exatamente o estado visual correto quando o
+ * painel ativo foi alcançado por navegação programática.
+ */
+export function navIndexOf(key: PanelKey): number {
   return NAV_ITEMS.findIndex((n) => n.key === key);
 }
 
@@ -64,13 +85,14 @@ export function navIsContiguous(): boolean {
  * porque o VÍNCULO de a11y tem dois lados que moram em arquivos diferentes: o
  * rail escreve `id` no tab, e o shell escreve `aria-labelledby` no painel. Com
  * a fórmula em dois lugares, um renomear silencioso quebraria o vínculo sem
- * quebrar nenhum teste.
+ * quebrar nenhum teste. Só destinos do RAIL têm tab — o painel Desafio não
+ * (ver PanelKey acima).
  */
 export function navTabId(key: NavKey): string {
   return `sm-tab-${key}`;
 }
 
-/** id do `role="tabpanel"` de um destino (o outro lado do mesmo vínculo). */
-export function navPanelId(key: NavKey): string {
+/** id do `role="tabpanel"` de um painel (o outro lado do mesmo vínculo). */
+export function navPanelId(key: PanelKey): string {
   return `sm-panel-${key}`;
 }

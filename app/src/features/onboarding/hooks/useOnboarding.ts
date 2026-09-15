@@ -50,7 +50,7 @@ import type {
   OnboardingStepSnapshot,
   OnboardingTutorialId,
 } from '../types/onboarding.types';
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 
 /** Delay do auto-avanço após a ação ser satisfeita (ms), igual ao ondokai. */
 const AUTO_ADVANCE_MS = 220;
@@ -67,7 +67,7 @@ function createDefaultProgress(): OnboardingProgress {
 
 interface UseOnboardingParams {
   /** Aba ativa do shell (builda o contexto de runtime + guia os steps). */
-  activeView: NavKey;
+  activeView: PanelKey;
 }
 
 export interface UseOnboardingResult {

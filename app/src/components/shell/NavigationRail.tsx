@@ -2,11 +2,14 @@
  * src/components/shell/NavigationRail.tsx — o rail de navegação à ESQUERDA.
  *
  * ─── POR QUE RAIL, E NÃO ABAS ──────────────────────────────────────────────
- * O `NavigationSuiteScaffold` do Material 3 documenta o mapeamento: *"Navigation
+ * O `NavigationSuiteScaffold` do Material 3 * documenta o mapeamento: *"Navigation
  * bar if the width or height is compact… Navigation rail for everything else"*.
  * Com os breakpoints oficiais (compact < 600dp), uma janela Electron de desktop
  * é sempre "everything else" → rail. E a doc do componente prescreve *"three to
- * no more than seven app destinations"* — temos quatro (docs/ux-redesign.md §7.2).
+ * no more than seven app destinations"* — temos quatro (docs/ux-redesign.md
+ * §7.2). ONDA-SEM-DESAFIO-NO-RAIL: o Desafio saiu do rail (pedido do dono —
+ * "temos que tirar o botão de desafio do left bar"); o painel continua
+ * acessível por Lesson/Roadmap via challengeNav, mas não tem tab aqui.
  *
  * ─── DECISÃO DE PROJETO: O RAIL É UM `<Tabs orientation="vertical">` ───────
  * Isto NÃO é economia de esforço — é o papel ARIA correto. Este app troca de
@@ -37,17 +40,16 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
-import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import { useTranslation } from 'react-i18next';
 
 import { SHAPE } from '../../lib/designTokens';
-import { NAV_ITEMS, navIndexOf, navPanelId, navTabId, type NavKey } from '../../lib/shellNav';
+import { NAV_ITEMS, navIndexOf, navPanelId, navTabId, type NavKey, type PanelKey } from '../../lib/shellNav';
 import { effectsTransition, FOCUS_RING, focusRingStyles, spatialTransition } from '../../theme';
 
 /**
  * Largura do rail. O M3 usa 80dp para o rail estreito; aqui vamos a 104px
  * porque o rótulo é palavra inteira em pt-BR ("Configurações" não, mas
- * "Desafio"/"Settings" sim) e porque o SC 1.4.12 exige sobreviver a
+ * "Início"/"Trilha" sim) e porque o SC 1.4.12 exige sobreviver a
  * `letter-spacing: 0.12em` SEM truncar — daí `whiteSpace: 'normal'` no rótulo e
  * folga horizontal de sobra, em vez de `overflow: hidden` (que é a causa nº 1
  * listada pela falha F104).
@@ -80,19 +82,25 @@ const INDICATOR_WIDTH = 4;
  * Ícone por destino. Fica AQUI, e não em `src/lib/shellNav.ts`, porque
  * `shellNav` é módulo puro compilado pelo `tsconfig.node.json` (sem JSX e sem
  * DOM). O `Record` completo é a trava: um `NavKey` novo não compila sem ícone.
+ * O painel Desafio (PanelKey) NÃO está aqui de propósito: sem tab no rail,
+ * não há ícone a renderizar.
  */
 const NAV_ICON: Record<NavKey, ReactElement> = {
   home: <HomeRoundedIcon />,
   settings: <TuneRoundedIcon />,
   lesson: <MenuBookRoundedIcon />,
   roadmap: <RouteRoundedIcon />,
-  challenge: <TerminalRoundedIcon />,
 };
 
 export interface NavigationRailProps {
-  /** Destino ativo. */
-  active: NavKey;
-  /** Troca de destino (o shell guarda o estado). */
+  /**
+   * Painel ativo. É um PanelKey (não NavKey) porque o painel Desafio — sem
+   * tab no rail — também ativa o shell: com ele ativo, `navIndexOf` devolve -1
+   * e NENHUMA tab fica selecionada (estado visual correto para um painel
+   * "fantasma" alcançado por navegação programática).
+   */
+  active: PanelKey;
+  /** Troca de destino (o shell guarda o estado). Só destinos do rail. */
   onChange: (key: NavKey) => void;
 }
 

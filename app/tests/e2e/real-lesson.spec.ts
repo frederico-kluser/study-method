@@ -101,9 +101,16 @@ test('real-lesson: aula real gerada (pesquisa+autoria+validação); desafios LIS
     expect(typeof c.challengeId).toBe('string');
   }
 
-  // Navega para a aba Desafio (sem clique em card): a ChallengeView lista com o
+  // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" saiu do rail (pedido do dono) —
+  // a entrada no painel é pelo MESMO caminho do aluno: popover "Desafios" do
+  // cabeçalho da aula → primeiro card. A ChallengeView continua listando com o
   // `setupRoot` emitido na materialização — NÃO pode mostrar o erro B1.
-  await page.getByRole('tab', { name: 'Desafio' }).click();
+  await page.getByRole('button', { name: 'Desafios' }).click();
+  await page
+    .getByRole('list', { name: 'Lista de desafios desta aula' })
+    .getByRole('button')
+    .first()
+    .click();
   await expect(page.getByText(/requer setupRoot/i)).toHaveCount(0, { timeout: 20_000 });
 
   // Abre um desafio real pelo seletor da ba Desafio e confere que o workspace

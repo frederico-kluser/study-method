@@ -15,11 +15,11 @@ import {
   navTabId,
 } from '../src/lib/shellNav';
 
-describe('NAV_ITEMS — ordem canônica do shell', () => {
-  it('tem exatamente 5 abas na ordem Início→Settings→Aula→Trilha→Desafio', () => {
+describe('NAV_ITEMS — ordem canônica do rail', () => {
+  it('tem exatamente 4 abas na ordem Início→Settings→Aula→Trilha (Desafio SAIU do rail)', () => {
     assert.deepEqual(
       NAV_ITEMS.map((n) => n.key),
-      ['home', 'settings', 'lesson', 'roadmap', 'challenge'],
+      ['home', 'settings', 'lesson', 'roadmap'],
     );
   });
 
@@ -31,7 +31,6 @@ describe('NAV_ITEMS — ordem canônica do shell', () => {
         'translation:nav.settings',
         'translation:nav.lesson',
         'translation:nav.roadmap',
-        'translation:nav.challenge',
       ],
     );
   });
@@ -45,8 +44,10 @@ describe('NAV_ITEMS — ordem canônica do shell', () => {
     }
   });
 
-  it('navIndexOf devolve -1 para chave desconhecida', () => {
-    assert.equal(navIndexOf('challenge'), 4);
+  it('navIndexOf devolve -1 para chave desconhecida E para painel fora do rail', () => {
+    // ONDA-SEM-DESAFIO-NO-RAIL: o Desafio continua sendo PAINEL do shell
+    // (PanelKey), mas não tem tab — logo não tem índice no rail.
+    assert.equal(navIndexOf('challenge'), -1);
     assert.equal(navIndexOf('roadmap'), 3);
     // @ts-expect-error chave inválida de propósito
     assert.equal(navIndexOf('bogus'), -1);
@@ -63,12 +64,14 @@ describe('navTabId / navPanelId — o vínculo tab ↔ tabpanel', () => {
   it('gera ids estáveis e distintos por destino', () => {
     assert.equal(navTabId('home'), 'sm-tab-home');
     assert.equal(navPanelId('home'), 'sm-panel-home');
-    assert.equal(navTabId('challenge'), 'sm-tab-challenge');
+    // O painel Desafio não tem tab no rail (PanelKey), mas o id do PANEL
+    // continua existindo — o main do shell o usa quando ele é o painel ativo.
     assert.equal(navPanelId('challenge'), 'sm-panel-challenge');
   });
 
-  it('nenhum id colide entre destinos nem entre os dois papéis', () => {
+  it('nenhum id colide entre destinos nem entre os dois papéis (inclui o painel Desafio)', () => {
     const ids = NAV_ITEMS.flatMap((n) => [navTabId(n.key), navPanelId(n.key)]);
+    ids.push(navPanelId('challenge'));
     assert.equal(new Set(ids).size, ids.length, `ids duplicados em ${ids.join(', ')}`);
   });
 });

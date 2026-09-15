@@ -319,8 +319,12 @@ async function loseOneStarByWindowBlur(page: Page): Promise<void> {
  * Troca de aba pelo rail de navegação e CONFERE que a troca aconteceu (o
  * `aria-selected` do `role="tab"` é a prova — sem ela, um clique que não pegou
  * faria o teste medir a tela errada).
+ *
+ * ONDA-SEM-DESAFIO-NO-RAIL: só aceita destinos que AINDA têm tab no rail
+ * (Início/Settings/Aula/Trilha) — a volta ao painel Desafio é pelo caminho do
+ * ALUNO (popover "Desafios" da aula / card do módulo na Trilha), não pelo rail.
  */
-async function switchTab(page: Page, name: 'Aula' | 'Desafio'): Promise<void> {
+async function switchTab(page: Page, name: 'Aula' | 'Trilha'): Promise<void> {
   const tab = page.getByRole('tab', { name, exact: true });
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
@@ -571,7 +575,11 @@ test('e2e-desafio-retomar: sair da aba Desafio e voltar RETOMA a tentativa (cód
   ).toHaveCount(0);
   await expect(page.locator('.cm-content')).toHaveCount(0);
   await page.waitForTimeout(AWAY_MS);
-  await switchTab(page, 'Desafio');
+  // ONDA-SEM-DESAFIO-NO-RAIL: sem aba "Desafio" no rail, a volta é pelo MESMO
+  // caminho do aluno — o popover "Desafios" do cabeçalho da aula (o card
+  // reabre o painel do desafio).
+  await page.getByRole('button', { name: 'Desafios' }).click();
+  await page.getByRole('button', { name: /O dobro do número/ }).first().click();
 
   // A volta é ASSÍNCRONA: o painel remonta e o `track:challenge` responde de
   // novo. O guarda de warm-up cobre SÓ a carga (o enunciado, que aparece
@@ -728,7 +736,10 @@ test('e2e-desafio-retomar: desafio de MÓDULO reprovado volta RETOMÁVEL (códig
     'o painel do desafio NÃO desmontou ao trocar de aba — sem desmontagem não há rascunho a retomar',
   ).toHaveCount(0);
   await expect(page.locator('.cm-content')).toHaveCount(0);
-  await switchTab(page, 'Desafio');
+  // ONDA-SEM-DESAFIO-NO-RAIL: a volta ao desafio do MÓDULO é pelo MESMO
+  // caminho do aluno — a Trilha (tab que continua no rail) e o card do módulo.
+  await switchTab(page, 'Trilha');
+  await page.getByRole('button', { name: /Desafio do módulo/ }).first().click();
   await waitForUiOrRetry(page, page.getByRole('heading', { name: 'Desafio do módulo' }));
 
   // ─── 6) (b) A SAÍDA DO ERRO CONTINUA VISÍVEL ────────────────────────────

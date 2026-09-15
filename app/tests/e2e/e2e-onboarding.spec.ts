@@ -95,7 +95,10 @@ test('e2e-onboarding: Quick Start atinge qs-challenge-test-answer sem desafio at
   await page.getByRole('tab', { name: 'Aula' }).click();
   // Auto-avança após satisfeito (~220ms) → passo 4 (`qs-open-challenge`).
   await expect(page.getByText('Passo 4 / 6', { exact: false })).toBeVisible();
-  await page.getByRole('tab', { name: 'Desafio' }).click();
+  // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" não existe mais no rail (pedido
+  // do dono) — o passo `qs-open-challenge` virou INFORMATIVO ("Continuar"):
+  // ninguém consegue satisfazê-lo clicando numa tab que não existe.
+  await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Passo 5 (`qs-challenge-test-answer`) em userData sem desafio: alvo ausente.
   // O passo mostra o fallback de "Continuar" (não trava por falta do botão).

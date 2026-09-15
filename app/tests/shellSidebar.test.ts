@@ -177,7 +177,9 @@ describe('1. guardas de fonte — o contrato de papéis que os e2e consomem', ()
     const app = codeOf(readFileSync(APP_PATH, 'utf8'));
     assert.match(app, /role="tabpanel"/);
     assert.match(app, /id=\{navPanelId\(active\)\}/);
-    assert.match(app, /aria-labelledby=\{navTabId\(active\)\}/);
+    // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio não tem tab — o vínculo
+    // aria-labelledby só existe quando o painel ativo É um destino do rail.
+    assert.match(app, /aria-labelledby=\{active === 'challenge' \? undefined : navTabId\(active\)\}/);
   });
 
   it('SessionFrame preserva os alvos do onboarding e o quadro de estado (SC 4.1.3)', () => {

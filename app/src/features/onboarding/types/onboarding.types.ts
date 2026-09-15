@@ -10,12 +10,12 @@
  *     auto-avanço ~220ms — sem expectedAction o user avança com "Continuar";
  *   - contexto de runtime + snapshot (navegação, digitação de assunto, geração
  *     de aula, editor, teste de resposta, chaves) lidos de forma confiável;
- *   - a "rota" do Ondokai vira o `view` (NavKey do shell — home|settings|lesson|challenge).
+ *   - a "rota" do Ondokai vira o `view` (PanelKey do shell — home|settings|lesson|challenge).
  *
  * NTRO é o mesmo espírito do ondokai, adaptado a uma GUI de 4 abas.
  */
 
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 import type { OnboardingI18nKey } from '../constants/onboardingI18n';
 
 /** Situação do tutorial (persistida). */
@@ -75,7 +75,7 @@ export type OnboardingStepId =
  */
 export interface OnboardingRuntimeContext {
   /** Aba ativa do shell. */
-  activeView: NavKey;
+  activeView: PanelKey;
   /** Campo de assunto da Lesson non-vazio (texto digitado). */
   lessonSubjectNonEmpty: boolean;
   /** Geração de aula em andamento ou concluída (idle → running/done). */
@@ -90,7 +90,7 @@ export interface OnboardingRuntimeContext {
 
 /** Snapshot do contexto no início do passo (para delta-base). */
 export interface OnboardingStepSnapshot {
-  activeView: NavKey;
+  activeView: PanelKey;
   lessonSubjectNonEmpty: boolean;
   lessonRunningOrDone: boolean;
   studioCodeNonEmpty: boolean;
@@ -125,7 +125,7 @@ export interface OnboardingStepDefinition {
    * o alvo é sempre visível (AppBar/abas). Usado pelo overlay para a dica
    * "vá para a aba X" e para decidir quando o spotlight pode pousar.
    */
-  view?: NavKey;
+  view?: PanelKey;
   /** Ação esperada (auto-avanço por snapshot). Omissa ⇒ "Continuar" manual. */
   expectedAction?: OnboardingExpectedAction;
   /** Oculta o botão "Continuar" (steps de auto-avanço por input/navegação). */

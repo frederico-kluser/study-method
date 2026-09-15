@@ -11,7 +11,7 @@
  *  - `activeView`     — o usuário chegou à aba Aula (onde o campo de assunto vive).
  */
 
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 import type { OnboardingStatus } from '../types/onboarding.types';
 
 export interface HelpHintRuleInput {
@@ -19,7 +19,7 @@ export interface HelpHintRuleInput {
   /** `onboardingStorageService.wasHelpHintShown()`. */
   alreadyShown: boolean;
   onboardingStatus: OnboardingStatus;
-  activeView: NavKey;
+  activeView: PanelKey;
 }
 
 export function shouldShowHelpHint({

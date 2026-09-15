@@ -109,7 +109,9 @@ test('more-flows: onboarding first-run — modal aparece e o Quick Start COMPLET
   await expect(page.getByText('Passo 3 / 6', { exact: false })).toBeVisible();
   await page.getByRole('tab', { name: 'Aula' }).click();
   await expect(page.getByText('Passo 4 / 6', { exact: false })).toBeVisible();
-  await page.getByRole('tab', { name: 'Desafio' }).click();
+  // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" não existe mais no rail (pedido
+  // do dono) — o passo `qs-open-challenge` virou INFORMATIVO ("Continuar").
+  await page.getByRole('button', { name: 'Continuar' }).click();
 
   // Passo 5 (qs-challenge-test-answer): sem desafio ativo → fallback "Continuar"
   // do fix16d (não trava por falta do alvo).

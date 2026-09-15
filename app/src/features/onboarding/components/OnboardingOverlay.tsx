@@ -28,7 +28,7 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { NavKey } from '../../../lib/shellNav';
+import type { PanelKey } from '../../../lib/shellNav';
 import { ONBOARDING_CHAPTERS } from '../constants/onboardingSteps';
 import type { OnboardingStepDefinition } from '../types/onboarding.types';
 import {
@@ -70,7 +70,7 @@ export interface OnboardingOverlayProps {
   canAdvance: boolean;
   isStepTransitioning: boolean;
   /** Aba ativa do shell (dica "vá para a aba X"). */
-  activeView?: NavKey;
+  activeView?: PanelKey;
   /** Narração está mudo? */
   isAudioMuted?: boolean;
   /** Alterna mute da narração. */
@@ -83,7 +83,7 @@ export interface OnboardingOverlayProps {
 const SPOTLIGHT_PADDING = 10;
 const SPOTLIGHT_RADIUS = 12;
 
-const NAV_TAB_KEY: Record<NavKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.challenge'> = {
+const NAV_TAB_KEY: Record<PanelKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.challenge'> = {
   home: 'translation:nav.home',
   settings: 'translation:nav.settings',
   lesson: 'translation:nav.lesson',
