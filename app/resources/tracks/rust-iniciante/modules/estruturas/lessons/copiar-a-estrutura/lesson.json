@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "slug": "copiar-a-estrutura",
+  "title": "Copiar a estrutura",
+  "summary": "Clone e Copy: as estampas que fazem a struct pequena copiar em vez de mover.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:derive.Clone",
+  "concepts": [
+    "derive_clone_copy"
+  ],
+  "prerequisites": [
+    "comparar-estruturas",
+    "copiar-em-vez-de-mover"
+  ],
+  "introduces": {
+    "productive": [
+      "api:derive.Clone",
+      "api:derive.Copy",
+      "node:Attribute",
+      "node:AttributeItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-derive-copia-o-por-valor",
+      "title": "O derive que copia",
+      "markdown": "A struct é dona dos campos dela: `let copia = p;` MOVE a peça — a menos que ela saiba copiar:\n\n```rust\n#[derive(Debug, PartialEq, Clone, Copy)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\n`Clone` + `Copy` na lista do derive: a peça pequena (dois números) copia em vez de mover."
+    },
+    {
+      "id": "o-ponto-que-sobrevive",
+      "title": "O ponto que sobrevive",
+      "markdown": "Com o Copy, a peça continua viva depois da cópia:\n\n```rust\npub fn dobra_e_devolve(p: Ponto) -> i32 {\n    let copia = p;\n    p.x + copia.x\n}\n```\n\nSem o Copy, `p.x` depois de `let copia = p;` é o E0382 — o `p` morreu no movimento. Com o Copy, devolve `4` para `ponto_de(2, 3)`."
+    },
+    {
+      "id": "clone-contracopia",
+      "title": "Clone contra Copy",
+      "markdown": "Os dois derivam de vez, e servem de jeitos diferentes:\n\n```rust\nlet copia = p.clone(); // Clone: o pedido explícito de cópia\nlet peça = p;          // Copy: a cópia automática\n```\n\nO `Copy` deixa a atribuição copiar sozinha; o `Clone` é o pedido com nome — o que você usa quando quer deixar claro que copiou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-copy-na-lista-do-derive",
+      "sectionId": "o-derive-copia-o-por-valor",
+      "statement": "Clone e Copy entram juntos na lista do derive, acima do molde.",
+      "question": "O que falta no molde para `let copia = p;` copiar em vez de mover?",
+      "options": [
+        "#[derive(Debug, PartialEq, Clone, Copy)] acima da struct",
+        "Uma linha let copia = p.clone(); dentro da struct",
+        "O parâmetro mut no ponto",
+        "Nada — structs sempre copiam"
+      ],
+      "answerIndex": 0,
+      "feedback": "Por padrão a struct MOVE: são as estampas `Clone` e `Copy` que fazem ela copiar.",
+      "optionRationales": [
+        "Os dois traits derivados mudam a atribuição para cópia.",
+        "O clone() é o pedido EXPLÍCITO — a atribuição copiar é o Copy.",
+        "O mut é de mudança, não de cópia.",
+        "Sem as estampas, a atribuição move — como com a String."
+      ]
+    },
+    {
+      "id": "o-e0382-do-sem-copy",
+      "sectionId": "o-ponto-que-sobrevive",
+      "statement": "Sem Copy, a peça morre no movimento; o p.x depois da cópia é o E0382.",
+      "question": "Sem `Copy` no molde, o que acontece com `let copia = p; p.x + copia.x;`?",
+      "options": [
+        "Erro de compilação: o p foi movido para copia (E0382)",
+        "Devolve 2 * p.x — a cópia também copia sem Copy",
+        "Devolve p.x — o p continua vivo",
+        "Compila com um aviso e ignora a cópia"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem `Copy`, `let copia = p;` MOVE a peça — usar `p` depois é o E0382, o erro que já leu no M4.",
+      "optionRationales": [
+        "A atribuição move; o p morre e o compilador recusa o uso depois.",
+        "Sem Copy não há cópia na atribuição — o que houve foi movimento.",
+        "O p NÃO continua vivo: ele foi movido para copia.",
+        "Compilar não acontece: é erro E0382, não aviso."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "std::clone::Clone — a referência oficial do trait",
+      "url": "https://doc.rust-lang.org/std/clone/trait.Clone.html",
+      "description": "A referência do Clone: a cópia explícita que o derive gera."
+    },
+    {
+      "title": "std::marker::Copy — a referência oficial do trait",
+      "url": "https://doc.rust-lang.org/std/marker/trait.Copy.html",
+      "description": "A referência do Copy: a cópia implícita que o derive libera."
+    }
+  ],
+  "challenges": [
+    "o-ponto-que-sobrevive"
+  ]
+}

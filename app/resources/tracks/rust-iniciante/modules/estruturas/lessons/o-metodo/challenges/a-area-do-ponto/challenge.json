@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-area-do-ponto",
+  "title": "A área do ponto",
+  "concept": "metodo_impl",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A área do ponto\n\nPensando o ponto como um retângulo de canto, a ÁREA dele é o `x` vezes o `y` — e essa conta é DO molde: ela mora no `impl`.\n\nO esqueleto do método já está no impl, com o `&self` no parâmetro. Escreva o corpo: devolva a área — o `x` da peça vezes o `y` dela:\n\n- `ponto_de(2, 3).area()` devolve `6`;\n- `ponto_de(4, 5).area()` devolve `20`.\n\nDentro do método, os campos da peça que chamou se leem com `self.x` e `self.y`.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\nimpl Ponto {\n    pub fn area(&self) -> i32 {\n        todo!()\n    }\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\nimpl Ponto {\n    pub fn area(&self) -> i32 {\n        self.x * self.y\n    }\n}\n",
+  "testsCode": "use desafio::ponto_de;\n\n#[test]\nfn testa_a_area_do_ponto_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).area(), 6);\n}\n\n#[test]\nfn testa_a_area_do_ponto_quatro_por_cinco() {\n    assert_eq!(ponto_de(4, 5).area(), 20);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O método area no impl Ponto devolve self.x * self.y: 6 para o ponto (2, 3).",
+      "teste": "testa_a_area_do_ponto_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O método area no impl Ponto devolve self.x * self.y: 20 para o ponto (4, 5).",
+      "teste": "testa_a_area_do_ponto_quatro_por_cinco"
+    }
+  ],
+  "expectedTestCount": 2
+}

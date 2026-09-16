@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-construtor",
+  "title": "O construtor",
+  "summary": "A forma nova do impl: a função associada sem self — Ponto::new monta a peça.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:ImplItem",
+  "concepts": [
+    "construtor_associado"
+  ],
+  "prerequisites": [
+    "o-metodo",
+    "criar-a-partir-do-molde"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ImplItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-funcao-sem-self",
+      "title": "A função sem self",
+      "markdown": "Nem toda função do impl pede peça — a que não pede é a FUNÇÃO ASSOCIADA (sem `self`):\n\n```rust\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        Ponto { x: x, y: y }\n    }\n}\n```\n\nSem `self`, a função não tem receptor: ela é chamada pelo nome do MOLDE, com `::`."
+    },
+    {
+      "id": "o-construtor-do-molde",
+      "title": "O construtor do molde",
+      "markdown": "A função associada que monta a peça é o CONSTRUTOR do molde:\n\n```rust\npub fn origem() -> Ponto {\n    Ponto::new(0, 0)\n}\n```\n\n`Ponto::new(0, 0)` lê-se: o `new` DO molde `Ponto`. O caminho `Molde::funcao` é o mesmo de `String::from` — agora para a struct do aluno."
+    },
+    {
+      "id": "os-dois-moradores-do-impl",
+      "title": "Os dois moradores do impl",
+      "markdown": "Os dois moram no impl e se distinguem pelo receptor:\n\n```rust\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        Ponto { x: x, y: y }\n    }\n\n    pub fn area(&self) -> i32 {\n        self.x * self.y\n    }\n}\n```\n\n`Ponto::new(2, 3)` monta a peça; `Ponto::new(2, 3).area()` monta E pergunta à peça."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "sem-self-sem-receptor",
+      "sectionId": "a-funcao-sem-self",
+      "statement": "A função associada não tem self: ela é chamada pelo nome do molde, com ::.",
+      "question": "Como a função `new` do impl `Ponto` é chamada?",
+      "options": [
+        "Ponto::new(2, 3)",
+        "ponto(2, 3).new()",
+        "new Ponto(2, 3)",
+        "Ponto.new(2, 3)"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem receptor, a função vem do caminho do molde: `Ponto::new(2, 3)`.",
+      "optionRationales": [
+        "O :: é o caminho da função associada — o molde a empresta.",
+        "new não é método da peça: ele é quem MONTA a peça.",
+        "Não há new solto: a função mora no impl do molde.",
+        "O ponto é de método — com receptor; o construtor não tem receptor."
+      ]
+    },
+    {
+      "id": "o-caminho-do-molde",
+      "sectionId": "o-construtor-do-molde",
+      "statement": "O construtor monta a peça: o caminho Molde::funcao devolve o valor pronto.",
+      "question": "O que `Ponto::new(2, 3)` devolve?",
+      "options": [
+        "Uma peça do molde Ponto com x = 2 e y = 3",
+        "A área do ponto",
+        "O número 2",
+        "O caminho até o campo x"
+      ],
+      "answerIndex": 0,
+      "feedback": "O construtor É a peça: ele monta e devolve o valor do molde.",
+      "optionRationales": [
+        "O new recebe os valores, enche os campos e devolve a peça.",
+        "A área é conta do método — o new monta.",
+        "O new devolve o VALOR inteiro, não um campo.",
+        "O caminho foi consumido na chamada: o que volta é a peça."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Method Syntax — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-03-method-syntax.html",
+      "description": "O capítulo oficial da função associada sem self e do caminho Molde::new."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "As structs e as funções do impl."
+    }
+  ],
+  "challenges": [
+    "o-construtor-do-ponto"
+  ]
+}

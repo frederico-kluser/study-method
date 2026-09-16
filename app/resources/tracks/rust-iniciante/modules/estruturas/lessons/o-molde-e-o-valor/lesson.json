@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-molde-e-o-valor",
+  "title": "O molde e o valor",
+  "summary": "A struct é o MOLDE: ela declara os campos; a peça é o valor montado nela.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:StructItem",
+  "concepts": [
+    "molde_struct"
+  ],
+  "prerequisites": [
+    "emprestar-o-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:StructItem",
+      "node:FieldDeclarationList",
+      "node:FieldDeclaration",
+      "node:FieldIdentifier"
+    ],
+    "receptive": [
+      "node:StructExpression",
+      "node:FieldInitializerList",
+      "node:FieldInitializer"
+    ]
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-molde-declara-os-campos",
+      "title": "O molde declara os campos",
+      "markdown": "A `struct` é o MOLDE: ela declara os campos que TODO valor dela vai ter — e não guarda valor nenhum:\n\n```rust\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\nCada linha do molde é um CAMPO: nome e tipo. `x: i32` diz que todo ponto tem um `x`, e que esse `x` é um número inteiro. O molde é a forma; a peça vem depois."
+    },
+    {
+      "id": "o-valor-e-a-peca",
+      "title": "O valor é a peça do molde",
+      "markdown": "Montar um valor do molde é dizer campo por campo o que entra:\n\n```rust\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n```\n\n`Ponto { x: x, y: y }` é a PEÇA: o `Ponto` diz o molde, e cada `campo: valor` enche um campo. O molde é escrito uma vez; os valores mudam a cada chamada — `ponto_de(2, 3)` e `ponto_de(-1, 0)` são peças diferentes do MESMO molde."
+    },
+    {
+      "id": "campo-novo-molde-novo",
+      "title": "Campo novo, moldes novos",
+      "markdown": "Um campo a mais no molde é uma linha a mais — e a peça precisa encher ele também:\n\n```rust\npub struct Recibo {\n    pub quem: String,\n    pub total: i32,\n}\n\npub fn recibo_de(quem: String, total: i32) -> Recibo {\n    Recibo { quem: quem, total: total }\n}\n```\n\nFaltou campo na peça, o compilador cobra: `missing fields`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-molde-nao-guarda-valor",
+      "sectionId": "o-molde-declara-os-campos",
+      "statement": "A struct declara QUAIS campos todo valor dela tem; ela mesma não guarda valor nenhum.",
+      "question": "O que `pub struct Ponto { pub x: i32, pub y: i32 }` guarda?",
+      "options": [
+        "A declaração dos campos que todo Ponto tem",
+        "Um valor de x e um valor de y",
+        "Uma função que monta pontos",
+        "A conta de quantos pontos existem"
+      ],
+      "answerIndex": 0,
+      "feedback": "O molde declara os campos — o VALOR é a peça montada nele, com `Ponto { … }`.",
+      "optionRationales": [
+        "Estrutura: o molde diz o formato; o valor é montado à parte.",
+        "Os valores ficam nas PEÇAS — cada `Ponto { … }` traz os seus.",
+        "Função é outro item; o molde declara campos.",
+        "O molde não conta nada: ele desenha a forma de todo ponto."
+      ]
+    },
+    {
+      "id": "a-peca-enche-o-molde",
+      "sectionId": "o-valor-e-a-peca",
+      "statement": "A peça diz o molde e enche campo por campo: Molde { campo: valor }.",
+      "question": "Como se monta um valor do molde `Ponto` com x = 2 e y = 3?",
+      "options": [
+        "Ponto { x: 2, y: 3 }",
+        "struct Ponto(2, 3)",
+        "Ponto(2, 3)",
+        "new Ponto(2, 3)"
+      ],
+      "answerIndex": 0,
+      "feedback": "A peça é `Ponto { x: 2, y: 3 }`: o nome do molde, e cada campo recebendo o seu valor.",
+      "optionRationales": [
+        "O nome do molde abre as chaves, e campo por campo recebe o valor.",
+        "struct é a PALAVRA da declaração do molde — a peça usa só o nome.",
+        "Sem chaves a peça não cita os campos: o compilador não sabe o que é.",
+        "Não há `new` solto em Rust: a peça é o nome do molde com chaves."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "O capítulo oficial do molde: struct, campos e a peça montada com os valores."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "Os exemplos oficiais de struct: declaração e criação."
+    }
+  ],
+  "challenges": [
+    "o-campo-que-faltava"
+  ]
+}

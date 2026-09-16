@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "montar-o-ponto",
+  "title": "Montar o ponto",
+  "concept": "struct_expression",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# Montar o ponto\n\nO molde do `Ponto` já está na fábrica — falta a PEÇA: a função que monta um valor dele com o que chega.\n\nEscreva o corpo de `ponto_de`: monte o valor do molde `Ponto` com o `x` e o `y` recebidos:\n\n- `ponto_de(2, 3)` devolve a peça com `x` = `2` e `y` = `3`;\n- `ponto_de(5, 7)` devolve a peça com `x` = `5` e `y` = `7`.\n\nA peça é `Ponto { campo: valor }` — campo por campo, sem sobra e sem falta.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    todo!()\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n",
+  "testsCode": "use desafio::ponto_de;\n\n#[test]\nfn testa_o_x_do_ponto_montado_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).x, 2);\n}\n\n#[test]\nfn testa_o_y_do_ponto_montado_cinco_por_sete() {\n    assert_eq!(ponto_de(5, 7).y, 7);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "ponto_de(2, 3) monta a peça do molde Ponto com o campo x valendo 2.",
+      "teste": "testa_o_x_do_ponto_montado_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "ponto_de(5, 7) monta a peça do molde Ponto com o campo y valendo 7.",
+      "teste": "testa_o_y_do_ponto_montado_cinco_por_sete"
+    }
+  ],
+  "expectedTestCount": 2
+}

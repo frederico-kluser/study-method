@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-inventario",
+  "title": "O inventário",
+  "summary": "O relatório compõe tudo: molde, construtor, método e format! numa peça só.",
+  "difficulty": 5,
+  "role": "integration",
+  "targetAtom": "node:StructExpression",
+  "concepts": [
+    "relatorio_estruturado"
+  ],
+  "prerequisites": [
+    "o-construtor",
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "node:StructExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-forma-nova-da-peca",
+      "title": "A forma nova da peça",
+      "markdown": "A peça pode nascer e ir DIRETO ao método — montar e perguntar, sem nome no meio:\n\n```rust\npub fn carimbar(letra: String, vezes: i32) -> String {\n    Carimbo { letra, vezes }.carimbo()\n}\n```\n\n`Carimbo { … }` é a peça; `.carimbo()` é a pergunta. Numa linha: a struct Expression como RECEPTORA do método — a forma nova da aula."
+    },
+    {
+      "id": "o-carimbo-completo",
+      "title": "O carimbo completo",
+      "markdown": "O carimbo une molde, método e texto:\n\n```rust\nimpl Carimbo {\n    pub fn marca(&self) -> String {\n        format!(\"{} × {}\", self.letra, self.vezes)\n    }\n}\n\npub fn carimbar(letra: String, vezes: i32) -> String {\n    Carimbo { letra, vezes }.marca()\n}\n```\n\n`carimbar(String::from(\"ok\"), 3)` devolve `ok × 3`."
+    },
+    {
+      "id": "o-inventario-na-peca",
+      "title": "O inventário na peça",
+      "markdown": "O relatório do módulo usa tudo em fila: o construtor monta, o método responde, o format! escreve:\n\n```rust\nlet linha_do_item = item_do(String::from(\"parafuso\"), 30).linha();\n```\n\n`item_do` monta a peça; `.linha()` pergunta a ela; o `format!` lá dentro escreve. A forma nova da aula é a peça NASCENDO já receptora — `Item { … }.linha()`, sem nome no meio."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-peca-sem-nome-no-meio",
+      "sectionId": "a-forma-nova-da-peca",
+      "statement": "A peça pode nascer direto como receptora do método, sem variável no meio.",
+      "question": "O que `Item { nome, quantidade }.linha()` faz?",
+      "options": [
+        "Monta a peça e chama o método linha NELA, na mesma expressão",
+        "Declara o método linha dentro do molde",
+        "Guarda a peça numa variável e depois chama",
+        "Compara a peça com o resultado do método"
+      ],
+      "answerIndex": 0,
+      "feedback": "Montar e perguntar na mesma linha: a peça nasce receptora.",
+      "optionRationales": [
+        "A peça nasce e vai direto ao método — sem nome no meio.",
+        "O método já está declarado no impl; aqui ele é CHAMADO.",
+        "Sem let: a peça não é guardada, ela é consumida na chamada.",
+        "Não há comparação: a expressão monta e chama."
+      ]
+    },
+    {
+      "id": "a-composicao-do-relatorio",
+      "sectionId": "o-carimbo-completo",
+      "statement": "O relatório compõe construtor, método e format! na mesma função.",
+      "question": "Em `carimbar`, o que a linha `Carimbo { letra, vezes }.marca()` produz?",
+      "options": [
+        "O texto do carimbo, montado e formatado na mesma expressão",
+        "Um Carimbo novo, sem texto",
+        "O número de vezes formatado",
+        "Um erro: o let é obrigatório antes do método"
+      ],
+      "answerIndex": 0,
+      "feedback": "A peça nasce, o método responde, o format! escreve — tudo numa expressão só.",
+      "optionRationales": [
+        "Montar + método + format!: a cadeia completa em uma linha.",
+        "O marca devolve String — não a peça.",
+        "O self.vezes entra no texto; o resultado é a frase inteira.",
+        "Compila sem let: o receptor é a expressão."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Method Syntax — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-03-method-syntax.html",
+      "description": "O capítulo oficial do método chamado pela peça."
+    },
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "O capítulo oficial da peça montada com os campos."
+    }
+  ],
+  "challenges": [
+    "o-relatorio-do-item"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dobro-da-area",
+  "title": "O dobro da área",
+  "concept": "self_valor",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O dobro da área\n\nA função solta `dobro_da_area` faz a conta certa — mas ela NÃO pertence ao molde: recebe a peça como parâmetro, e qualquer um a chama pelo nome.\n\nMova a conta para DENTRO do molde: escreva o `impl Ponto` com o método `dobro_da_area` (sem parâmetro além do `&self`) e APAGUE a função solta:\n\n- `ponto_de(2, 3).dobro_da_area()` devolve `12`;\n- `ponto_de(1, 1).dobro_da_area()` devolve `2`;\n- `ponto_de(0, 5).dobro_da_area()` devolve `0`.\n\nDentro do método, a peça que chamou É o `self`: `self.x * self.y * 2`.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn dobro_da_area(p: Ponto) -> i32 {\n    p.x * p.y * 2\n}\n\nimpl Ponto {\n    // escreva o método aqui\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\nimpl Ponto {\n    pub fn dobro_da_area(&self) -> i32 {\n        self.x * self.y * 2\n    }\n}\n",
+  "testsCode": "use desafio::ponto_de;\n\n#[test]\nfn testa_o_dobro_da_area_do_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).dobro_da_area(), 12);\n}\n\n#[test]\nfn testa_o_dobro_da_area_do_um_por_um() {\n    assert_eq!(ponto_de(1, 1).dobro_da_area(), 2);\n}\n\n#[test]\nfn testa_o_dobro_da_area_do_zero_por_cinco() {\n    assert_eq!(ponto_de(0, 5).dobro_da_area(), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O método dobro_da_area no impl Ponto devolve self.x * self.y * 2: 12 para o ponto (2, 3).",
+      "teste": "testa_o_dobro_da_area_do_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O método dobro_da_area no impl Ponto devolve self.x * self.y * 2: 2 para o ponto (1, 1).",
+      "teste": "testa_o_dobro_da_area_do_um_por_um"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "O método dobro_da_area no impl Ponto devolve self.x * self.y * 2: 0 para o ponto (0, 5).",
+      "teste": "testa_o_dobro_da_area_do_zero_por_cinco"
+    }
+  ],
+  "expectedTestCount": 3
+}

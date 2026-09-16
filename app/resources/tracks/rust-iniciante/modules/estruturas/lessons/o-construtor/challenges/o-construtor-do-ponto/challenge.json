@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-construtor-do-ponto",
+  "title": "O construtor do ponto",
+  "concept": "construtor_associado",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O construtor do ponto\n\nO `ponto_de` solta monta pontos — mas o CONSTRUTOR é do molde: ele mora no impl, não pede `self`, e é chamado pelo caminho `Ponto::new`.\n\nO esqueleto já está no impl, sem `self` na assinatura. Escreva o corpo: monte a peça com o `x` e o `y` recebidos:\n\n- `desafio::Ponto::new(2, 3)` é a peça com `x` = `2` e `y` = `3`;\n- `desafio::Ponto::new(-1, 4)` é a peça com `x` = `-1` e `y` = `4`.\n\nO caminho do construtor é o mesmo de `String::from` — agora para a struct do aluno.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        todo!()\n    }\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        Ponto { x: x, y: y }\n    }\n}\n",
+  "testsCode": "use desafio::Ponto;\n\n#[test]\nfn testa_o_x_do_construtor_dois_por_tres() {\n    assert_eq!(Ponto::new(2, 3).x, 2);\n}\n\n#[test]\nfn testa_o_y_do_construtor_negativo_um_por_quatro() {\n    assert_eq!(Ponto::new(-1, 4).y, 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função associada Ponto::new monta a peça com o campo x valendo 2.",
+      "teste": "testa_o_x_do_construtor_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função associada Ponto::new monta a peça com o campo y valendo 4.",
+      "teste": "testa_o_y_do_construtor_negativo_um_por_quatro"
+    }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-self-e-o-valor",
+  "title": "O self e o valor",
+  "summary": "Dentro do método, self é a peça que chamou: os campos dela são self.x, self.y.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:Self",
+  "concepts": [
+    "self_valor"
+  ],
+  "prerequisites": [
+    "o-metodo",
+    "ler-o-campo"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Self"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-self-e-a-peca-que-chamou",
+      "title": "O self é a peça que chamou",
+      "markdown": "Dentro do método, `self` É o valor que pediu a chamada — não é um parâmetro a mais, é a própria peça:\n\n```rust\nimpl Ponto {\n    pub fn area(&self) -> i32 {\n        self.x * self.y\n    }\n}\n```\n\n`self.x` lê o campo `x` DA PEÇA que chamou: `ponto_de(2, 3).area()` usa o `x` = `2` desse ponto."
+    },
+    {
+      "id": "a-funcao-solta-vira-metodo",
+      "title": "A função solta vira método",
+      "markdown": "A mesma conta escrita solta recebe a peça como parâmetro e lê os campos dela:\n\n```rust\npub fn dobro_da_area(p: Ponto) -> i32 {\n    p.x * p.y * 2\n}\n```\n\nComo método, o parâmetro some — o `self` o substitui:\n\n```rust\nimpl Ponto {\n    pub fn dobro_da_area(&self) -> i32 {\n        self.x * self.y * 2\n    }\n}\n```\n\n`ponto_de(2, 3).dobro_da_area()` devolve `12`."
+    },
+    {
+      "id": "quem-tem-o-self",
+      "title": "Quem tem o self",
+      "markdown": "Só o método TEM o self — a função solta não tem peça nenhuma para chamar:\n\n```rust\npub fn origem() -> Ponto {\n    Ponto { x: 0, y: 0 }\n}\n```\n\n`origem()` não sabe quem é `self`: ela não pertence a molde nenhum. O método pertence ao molde — e por isso recebe a peça."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "self-e-a-peca",
+      "sectionId": "o-self-e-a-peca-que-chamou",
+      "statement": "Dentro do método, self é o próprio valor que pediu a chamada.",
+      "question": "Em `ponto_de(2, 3).area()`, o que é o `self` dentro de `area`?",
+      "options": [
+        "A peça com x = 2 e y = 3 — a que pediu a chamada",
+        "Um novo Ponto vazio",
+        "O molde Ponto",
+        "Um parâmetro que a função recebe separado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `self` É a peça da chamada: os campos lidos nele são os dela.",
+      "optionRationales": [
+        "Quem chama entrega a si mesmo: self é o valor receptor.",
+        "O self não cria nada novo: ele é quem chamou.",
+        "O molde é a forma; o self é o valor da chamada.",
+        "O self não entra na lista de parâmetros: é o receptor implícito."
+      ]
+    },
+    {
+      "id": "a-leitura-e-do-self",
+      "sectionId": "a-funcao-solta-vira-metodo",
+      "statement": "A leitura dos campos passa para self quando a função solta vira método.",
+      "question": "A função solta lê `p.x`. No método, como o `x` é lido?",
+      "options": [
+        "self.x",
+        "p.x mesmo, com o p herdado",
+        "Ponto.x",
+        "self->p.x"
+      ],
+      "answerIndex": 0,
+      "feedback": "O parâmetro virou receptor: a leitura é `self.x`.",
+      "optionRationales": [
+        "O self substitui o parâmetro: o campo é lido nele.",
+        "O p morreu com a função solta: quem está no método é o self.",
+        "Ponto é o molde — o valor da chamada é o self.",
+        "Não existe self->p: o self é direto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Method Syntax — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-03-method-syntax.html",
+      "description": "O capítulo oficial do self como receptor e da leitura de campos pelo método."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "As structs que recebem os métodos."
+    }
+  ],
+  "challenges": [
+    "o-dobro-da-area"
+  ]
+}
