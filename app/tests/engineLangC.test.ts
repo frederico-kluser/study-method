@@ -429,7 +429,7 @@ describe('c — (7)(8)(9) layout, caminho seguro e comando de teste', () => {
     assert.equal(script?.content, SM_RUNNER_SCRIPT);
   });
 
-  it('layout MULTI-ARQUIVO preserva os arquivos do desafio (.c e .h) na lista de fontes', () => {
+  it('layout MULTI-ARQUIVO preserva os arquivos do desafio (.c e .h) no disco, mas SÓ .c na lista de fontes', () => {
     const layout = c.layout({
       code: 'ignorado',
       files: [
@@ -438,8 +438,12 @@ describe('c — (7)(8)(9) layout, caminho seguro e comando de teste', () => {
       ],
       testsCode: TESTS,
     });
+    // o .h fica em disco (o teste e o util.c o incluem) mas NÃO entra na
+    // lista: `cc -c util.h` produz PRECOMPILED HEADER ("data"), não objeto,
+    // e a ligação reprova com `ld: unknown file type in '…/alunoN.o'`.
     const fontes = layout.files.find((f) => f.path === 'sm_fontes.txt');
-    assert.equal(fontes?.content, 'util.h\nutil.c\n', 'só os fontes do ALUNO vão para o script compilar');
+    assert.equal(fontes?.content, 'util.c\n', 'só os .c vão para o script compilar — cabeçalho entra via #include');
+    assert.ok(layout.files.some((f) => f.path === 'util.h'), 'o cabeçalho continua ESCRITO em disco');
     const teste = layout.files.find((f) => f.path === C_TEST_PATH);
     assert.ok(teste?.content.includes('#include "sm_harness.h"'));
     assert.ok(!layout.files.some((f) => f.path === C_ENTRY_PATH), 'com `files`, o solucao.c implícito não é escrito');
@@ -728,6 +732,101 @@ describe('c — as quatro provas de execução REAL (challenge language: "c")', 
         { name: 'dobro_de_menos_1', passed: false },
       ], 'um check por CENÁRIO — o protocolo não esconde os cenários seguintes');
       assert.match(saida, /FALHOU \[dobro_de_2\]/, 'a mensagem didática do §3.9.3 chega ao aluno');
+    } finally {
+      await limpar();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8b. REGRESSÃO: desafio MULTI-ARQUIVO .c + .h compila e roda de verdade
+// ---------------------------------------------------------------------------
+
+/**
+ * O desafio multi-arquivo é o formato que o `filePathPattern` aceita
+ * (`^[a-zA-Z0-9_\-/]+\.(c|h)$`) e o §3.2 do `languages.md` documenta
+ * ("stub.c · stub.h — header ou protótipo!"). O bug: o `run.sh` alimentava
+ * CADA linha de `sm_fontes.txt` ao `cc -c`, INCLUINDO o `.h` — e
+ * `cc -c util.h` produz PRECOMPILED HEADER ("data"), não objeto, reprovan do
+ * na LIGAÇÃO com `ld: unknown file type in '…/aluno1.o'`. Com o fix, o
+ * `.h` sai da lista de TUs (entra via `#include`) e as QUATRO provas de
+ * execução real passam no formato.
+ */
+describe('c — regressão: challenge multi-arquivo .c + .h compila e roda (as quatro provas reais)', () => {
+  const UTIL_H = [
+    '#ifndef UTIL_H',
+    '#define UTIL_H',
+    'int soma(int a, int b);',
+    '#endif /* UTIL_H */',
+    '',
+  ].join('\n');
+  const SOLUTION_FILES = [
+    { path: 'util.h', code: UTIL_H },
+    { path: 'util.c', code: '#include "util.h"\nint soma(int a, int b) { return a + b; }\n' },
+  ];
+  const STARTER_FILES = [
+    { path: 'util.h', code: UTIL_H },
+    { path: 'util.c', code: '#include "util.h"\nint soma(int a, int b) { return 0; /* TODO */ }\n' },
+  ];
+  const MULTI_TESTS_CODE = [
+    // protótipo repetido no topo — a SEGUNDA forma documentada (languages.md
+    // §3.2: "header ou protótipo!"). O `countDeclared` parseia num TEMP sem
+    // os arquivos do desafio, então um `#include "../util.h"` no testsCode
+    // viraria PARSE_ERROR e declared 0 (limitação pré-existente, fora do
+    // escopo deste fix); o protótipo é a forma que as QUATRO provas aceitam.
+    'int soma(int a, int b);',
+    '',
+    'SM_TEST(soma_de_2_e_3) {',
+    '    checa_int("soma_de_2_e_3", soma(2, 3), 5, "2 + 3 e 5");',
+    '}',
+    'SM_TEST(soma_com_zero) {',
+    '    checa_int("soma_com_zero", soma(7, 0), 7, "7 + 0 e 7");',
+    '}',
+  ].join('\n');
+
+  it('as quatro provas de execução REAL passam no formato stub.c + stub.h', { skip: !TEM_C }, async () => {
+    const { env, limpar } = provadorReal();
+    try {
+      const v = await verifyChallengeProofs(
+        {
+          solutionCode: 'ignorado (multi-arquivo)',
+          starterCode: 'ignorado (multi-arquivo)',
+          solutionFiles: SOLUTION_FILES,
+          starterFiles: STARTER_FILES,
+          emptyStubFiles: [
+            { path: 'util.h', code: '/* stub vazio */\n' },
+            { path: 'util.c', code: '/* stub vazio: nenhuma função definida */\n' },
+          ],
+          testsCode: MULTI_TESTS_CODE,
+          expectedTestCount: 2,
+          language: 'c',
+          timeoutMs: 60_000,
+        },
+        env,
+      );
+      assert.deepEqual(v.failures, [], `provas reprovaram: ${JSON.stringify(v.failures, null, 2)}`);
+      assert.equal(v.valid, true);
+      assert.equal(v.declared, 2);
+      assert.equal(v.executed, 2);
+    } finally {
+      await limpar();
+    }
+  });
+
+  it('rodada da SOLUÇÃO: exit 0, contagem bate e os DOIS cenários saem ok (runner real)', { skip: !TEM_C }, async () => {
+    const { env, limpar } = provadorReal();
+    try {
+      const dir = await env.prepare({ code: 'ignorado (multi-arquivo)', files: SOLUTION_FILES, testsCode: MULTI_TESTS_CODE });
+      const res = await env.exec(dir, [...c.testCommand], { timeoutMs: 60_000 });
+      assert.equal(res.exitCode, 0, `saída:\n${execOutput(res)}`);
+      const counts = c.countRun(execOutput(res));
+      assert.deepEqual(counts, { testsRun: 2, pass: 2, fail: 0, skipped: 0 }, 'contagem com nonce REAL');
+      assert.equal(judgeSolutionPasses(res, 2, c).passed, true);
+      assert.equal(judgeCountMatches(2, 2, res, c).passed, true);
+      assert.deepEqual(c.parseChecks(execOutput(res)), [
+        { name: 'soma_de_2_e_3', passed: true },
+        { name: 'soma_com_zero', passed: true },
+      ]);
     } finally {
       await limpar();
     }

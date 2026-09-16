@@ -1207,7 +1207,12 @@ export function cLayout(challenge: ChallengeLayoutInput): ChallengeLayout {
   if (challenge.files && challenge.files.length > 0) {
     for (const f of challenge.files) {
       files.push({ path: f.path, content: f.code });
-      fontes.push(f.path);
+      // Só .c entra na lista de TUs: o `run.sh` alimenta cada linha da lista
+      // ao `cc -c`, e um .h compilado isolado produz PRECOMPILED HEADER
+      // ("data") em vez de objeto — a ligação reprova com
+      // `ld: unknown file type in '…/alunoN.o'`. O cabeçalho chega ao
+      // compilador via `#include` (o arquivo continua em disco no layout).
+      if (f.path.endsWith('.c')) fontes.push(f.path);
     }
   } else {
     files.push({ path: C_ENTRY_PATH, content: challenge.code });
