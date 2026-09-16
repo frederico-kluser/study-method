@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-mensagem-montada",
+  "title": "A mensagem montada",
+  "summary": "O `format!` monta um texto com buracos `{}` e DEVOLVE ele pronto — a mensagem é um valor.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "api:format!",
+  "concepts": [
+    "mensagem_montada"
+  ],
+  "prerequisites": [
+    "chamar-a-funcao",
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "api:format!",
+      "node:TypeIdentifier",
+      "node:StringLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-texto-com-buracos",
+      "title": "O texto com buracos",
+      "markdown": "Uma mensagem de verdade mistura texto fixo com valor. O `format!` abre buracos com `{` e `}` e encaixa os valores neles:\n\n```rust\npub fn rotulo(pontos: i32) -> String {\n    format!(\"voce tem {pontos} pontos\")\n}\n```\n\nChamada com `30`, ela monta o texto `voce tem 30 pontos`. Dentro das chaves vai o nome; no texto sai o valor que ele guarda."
+    },
+    {
+      "id": "o-que-a-funcao-devolve-agora",
+      "title": "O que a função devolve agora",
+      "markdown": "Olhe a assinatura: `-> String`. O `format!` devolve um `String` — o texto PRONTO, já com os valores encaixados.\n\n```rust\npub fn rotulo(pontos: i32) -> String {\n    format!(\"voce tem {pontos} pontos\")\n}\n```\n\nÉ por isso que a aula existe: a mensagem montada é um VALOR — ela pode ser devolvida, guardada e conferida por teste."
+    },
+    {
+      "id": "mais-de-um-buraco",
+      "title": "Mais de um buraco",
+      "markdown": "Um mesmo texto aceita quantos buracos você quiser:\n\n```rust\nformat!(\"{a} + {b}\")\n```\n\nCada par de chaves encaixa um valor, e o texto fixo sai do jeito que está escrito. O `format!` não mostra nada na tela: ele só MONTA e devolve."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "chaves-encaixam-o-valor",
+      "statement": "Dentro do texto do `format!`, o que está entre chaves vira o valor guardado no nome.",
+      "question": "Com `pontos = 30`, o que `format!(\"voce tem {pontos} pontos\")` monta?",
+      "options": [
+        "voce tem 30 pontos",
+        "voce tem {pontos} pontos",
+        "voce tem pontos pontos",
+        "30"
+      ],
+      "answerIndex": 0,
+      "feedback": "O buraco é preenchido com o valor do nome; o resto do texto sai como está.",
+      "sectionId": "o-texto-com-buracos"
+    },
+    {
+      "id": "format-devolve-valor",
+      "statement": "O `format!` devolve um `String` pronto — ele não mostra nada na tela.",
+      "question": "O que o `format!` faz com o texto que monta?",
+      "options": [
+        "Devolve ele como valor, para a função entregar.",
+        "Mostra ele na tela e some.",
+        "Guarda ele em um arquivo.",
+        "Nada: o texto se perde."
+      ],
+      "answerIndex": 0,
+      "feedback": "Montar e devolver: por isso a assinatura da função vira `-> String`.",
+      "sectionId": "o-que-a-funcao-devolve-agora"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Macro format! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A documentação oficial da macro que monta e devolve um String."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "description": "O capítulo oficial das funções, com o valor que a função devolve."
+    }
+  ],
+  "challenges": [
+    "a-etiqueta-do-pedido"
+  ]
+}

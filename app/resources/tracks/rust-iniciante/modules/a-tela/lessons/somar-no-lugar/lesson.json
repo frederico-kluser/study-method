@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar-no-lugar",
+  "title": "Somar no lugar",
+  "summary": "O `+=` soma e guarda numa linha só: é a forma curta de trocar o valor pelo resultado da soma.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:assign:+=",
+  "concepts": [
+    "somar_no_lugar"
+  ],
+  "prerequisites": [
+    "reatribuir"
+  ],
+  "introduces": {
+    "productive": [
+      "op:assign:+=",
+      "node:CompoundAssignmentExpr"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-forma-curta",
+      "title": "A forma curta",
+      "markdown": "Acrescentar a um total é tão comum que ganhou forma própria. O `+=` soma ao valor que já está no nome e guarda o resultado de volta:\n\n```rust\npub fn acumular() -> i32 {\n    let mut total = 2;\n    total += 3;\n    total\n}\n```\n\n`total += 3` é a forma curta de `total = total + 3` — e devolve o total em `5`."
+    },
+    {
+      "id": "as-duas-formas-lado-a-lado",
+      "title": "As duas formas, lado a lado",
+      "markdown": "As duas linhas abaixo deixam `total` com o MESMO valor:\n\n```rust\ntotal = total + 3;\ntotal += 3;\n```\n\nA primeira lê, soma e troca; a segunda faz as três coisas numa tacada só. Use a curta quando a intenção é ACRESCENTAR, e a longa quando a conta é mais elaborada."
+    },
+    {
+      "id": "o-acumulo-e-o-contrario-do-fixo",
+      "title": "O acúmulo é o oposto do fixo",
+      "markdown": "O `+=` só existe em nome criado com `let mut`: somar no lugar É trocar o valor.\n\n```rust\nlet mut total = 2;\ntotal += 3;\n```\n\nA promessa do `mut` da aula `mudar-o-valor` e a troca do `=` da aula `reatribuir`, juntas numa linha."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "mais-igual-acrescenta",
+      "statement": "O `+=` soma ao valor que já está no nome e guarda o resultado de volta.",
+      "question": "Com `let mut total = 2;`, o que `total += 3;` deixa em `total`?",
+      "options": [
+        "5",
+        "2",
+        "3",
+        "23"
+      ],
+      "answerIndex": 0,
+      "feedback": "Soma o que havia com o novo e guarda: `2 + 3`.",
+      "sectionId": "a-forma-curta"
+    },
+    {
+      "id": "curta-e-longa-iguais",
+      "statement": "`total += 3` e `total = total + 3` deixam o mesmo valor.",
+      "question": "As duas formas produzem resultados diferentes?",
+      "options": [
+        "Não: são a mesma conta escrita de dois jeitos.",
+        "Sim: a curta soma o dobro.",
+        "Sim: a longa não compila.",
+        "Sim: a curta cria outro nome."
+      ],
+      "answerIndex": 0,
+      "feedback": "A curta é atalho da longa — mesmo resultado, menos escrita.",
+      "sectionId": "as-duas-formas-lado-a-lado"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial da mutabilidade, onde o acúmulo acontece."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "description": "O capítulo oficial das funções, onde o acumulador vive."
+    }
+  ],
+  "challenges": [
+    "a-soma-no-lugar"
+  ]
+}

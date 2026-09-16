@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-recibo-completo",
+  "title": "O recibo completo",
+  "concept": "saida_completa",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O recibo completo\n\nEscreva uma função `recibo` que recebe o preço unitário e a quantidade, e fecha a venda inteira:\n\n1. RECEBE os dois números na assinatura;\n2. CALCULA o total (preço vezes quantidade) num nome `total`;\n3. MOSTRA na tela a linha `recibo calculado`;\n4. DEVOLVE o texto montado no formato `4 x 3 = 12` (quantidade, preço e total encaixados).\n\nCada etapa na sua linha — e a última sem `;`.",
+  "starterCode": "pub fn recibo(preco: i32, qtd: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn recibo(preco: i32, qtd: i32) -> String {\n    let total = preco * qtd;\n    println!(\"recibo calculado\");\n    format!(\"{qtd} x {preco} = {total}\")\n}\n",
+  "testsCode": "use desafio::recibo;\n\n#[test]\nfn testa_o_recibo_de_tres_por_quatro() {\n    assert_eq!(recibo(3, 4), \"4 x 3 = 12\");\n}\n\n#[test]\nfn testa_o_recibo_de_cinco_por_dois() {\n    assert_eq!(recibo(5, 2), \"2 x 5 = 10\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função recibo(3, 4) deve devolver o texto \"4 x 3 = 12\" (e mostrar a linha do recibo na tela).", "teste": "testa_o_recibo_de_tres_por_quatro" },
+    { "id": "REQ-2", "descricao": "A função recibo(5, 2) deve devolver o texto \"2 x 5 = 10\" (e mostrar a linha do recibo na tela).", "teste": "testa_o_recibo_de_cinco_por_dois" }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-preco-com-taxa",
+  "title": "O preço com taxa",
+  "concept": "dar_nome",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O preço com taxa\n\nEscreva uma função `preco_final` que recebe o preço de um produto e devolve o preço final: o preço recebido mais a taxa fixa de `7`.\n\nA taxa tem de ficar num nome próprio: use `let` para criar o nome `taxa` com o valor `7`, e faça a conta com o nome.",
+  "starterCode": "pub fn preco_final(preco: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn preco_final(preco: i32) -> i32 {\n    let taxa = 7;\n    preco + taxa\n}\n",
+  "testsCode": "use desafio::preco_final;\n\n#[test]\nfn testa_o_preco_de_cem_com_taxa() {\n    assert_eq!(preco_final(100), 107);\n}\n\n#[test]\nfn testa_o_preco_de_zero_com_taxa() {\n    assert_eq!(preco_final(0), 7);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função preco_final(100) deve devolver 107.", "teste": "testa_o_preco_de_cem_com_taxa" },
+    { "id": "REQ-2", "descricao": "A função preco_final(0) deve devolver 7.", "teste": "testa_o_preco_de_zero_com_taxa" }
+  ],
+  "expectedTestCount": 2
+}

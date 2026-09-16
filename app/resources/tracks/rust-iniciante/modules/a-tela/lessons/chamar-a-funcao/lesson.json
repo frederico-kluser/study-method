@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "slug": "chamar-a-funcao",
+  "title": "Chamar a função",
+  "summary": "Escrever o nome de uma função com parênteses a EXECUTA — e o resultado toma o lugar da chamada.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "node:CallExpression",
+  "concepts": [
+    "chamar_funcao"
+  ],
+  "prerequisites": [
+    "a-primeira-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:CallExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-nome-com-parenteses",
+      "title": "O nome com parênteses",
+      "markdown": "Você já escreveu funções; agora FAÇA uma funcionar. Escreva o nome dela e abra parênteses:\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n\npub fn dobro_de_quatro() -> i32 {\n    dobro(4)\n}\n```\n\n`dobro(4)` é uma CHAMADA: o Rust executa a função `dobro` com `4`, pega o que ela devolve e põe esse valor no lugar da chamada."
+    },
+    {
+      "id": "a-chamada-vira-o-valor",
+      "title": "A chamada vira o valor",
+      "markdown": "A chamada desaparece e o resultado entra no lugar dela. Por isso este corpo devolve `8`:\n\n```rust\ndobro(dobro(2))\n```\n\nO Rust lê de dentro para fora: primeiro `dobro(2)` vira `4`, depois `dobro(4)` vira `8`. Uma chamada é um valor como outro qualquer — ela pode entrar dentro de outra chamada."
+    },
+    {
+      "id": "os-parenteses-sao-obrigatorios",
+      "title": "Os parênteses são obrigatórios",
+      "markdown": "Sem parênteses não existe chamada: `dobro` sozinho é só o nome, e `dobro(4)` é a função EXECUTADA com `4`.\n\nDentro dos parênteses vão os valores que a função recebe, na ordem em que ela os pede — separados por vírgula quando há mais de um."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "chamada-executa-a-funcao",
+      "statement": "Escrever o nome da função com parênteses executa a função.",
+      "question": "O que `dobro(4)` faz, com o corpo `x * 2`?",
+      "options": [
+        "Executa a função com 4 e vira o valor 8.",
+        "Renomeia a função para 4.",
+        "Imprime 4 na tela.",
+        "Nada: falta a palavra chamar."
+      ],
+      "answerIndex": 0,
+      "feedback": "Nome + parênteses = chamada. O Rust executa e põe o resultado no lugar.",
+      "sectionId": "o-nome-com-parenteses"
+    },
+    {
+      "id": "chamada-de-chamada",
+      "statement": "O resultado de uma chamada pode entrar dentro de outra chamada.",
+      "question": "Quanto vale `dobro(dobro(2))`?",
+      "options": [
+        "8",
+        "4",
+        "2",
+        "16"
+      ],
+      "answerIndex": 0,
+      "feedback": "De dentro para fora: `dobro(2)` vira 4, e `dobro(4)` vira 8.",
+      "sectionId": "a-chamada-vira-o-valor"
+    }
+  ],
+  "sources": [
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "description": "O capítulo oficial das funções, com chamadas e valores de retorno."
+    },
+    {
+      "title": "Hello, World! — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
+      "description": "Os exemplos oficiais de primeira chamada em Rust."
+    }
+  ],
+  "challenges": [
+    "o-dobro-do-dobro"
+  ]
+}

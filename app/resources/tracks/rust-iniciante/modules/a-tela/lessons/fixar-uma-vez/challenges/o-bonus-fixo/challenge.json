@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-bonus-fixo",
+  "title": "O bônus fixo",
+  "concept": "fixar_const",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O bônus fixo\n\nTodo participante ganha um bônus fixo de `5` pontos — é regra do programa, não de uma chamada.\n\nEscreva a linha `const BONUS: i32 = 5;` no TOPO do arquivo (fora da função) e uma função `pontos_com_bonus` que recebe os pontos e devolve eles mais o `BONUS`.",
+  "starterCode": "pub fn pontos_com_bonus(pontos: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "const BONUS: i32 = 5;\n\npub fn pontos_com_bonus(pontos: i32) -> i32 {\n    pontos + BONUS\n}\n",
+  "testsCode": "use desafio::pontos_com_bonus;\n\n#[test]\nfn testa_os_pontos_de_noventa_e_cinco_com_bonus() {\n    assert_eq!(pontos_com_bonus(95), 100);\n}\n\n#[test]\nfn testa_os_pontos_de_zero_com_bonus() {\n    assert_eq!(pontos_com_bonus(0), 5);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função pontos_com_bonus(95) deve devolver 100.", "teste": "testa_os_pontos_de_noventa_e_cinco_com_bonus" },
+    { "id": "REQ-2", "descricao": "A função pontos_com_bonus(0) deve devolver 5 (o bônus fixo).", "teste": "testa_os_pontos_de_zero_com_bonus" }
+  ],
+  "expectedTestCount": 2
+}

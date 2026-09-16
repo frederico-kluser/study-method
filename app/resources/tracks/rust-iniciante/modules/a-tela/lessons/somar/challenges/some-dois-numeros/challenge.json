@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "some-dois-numeros",
+  "title": "Some dois números",
+  "concept": "soma",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# Some dois números\n\nEscreva uma função `soma` que recebe dois números e devolve a soma deles.\n\nEscreva a conta no corpo — quem tem de somar é a função, não você.",
+  "starterCode": "pub fn soma(a: i32, b: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma(a: i32, b: i32) -> i32 {\n    a + b\n}\n",
+  "testsCode": "use desafio::soma;\n\n#[test]\nfn testa_a_soma_de_dois_com_tres() {\n    assert_eq!(soma(2, 3), 5);\n}\n\n#[test]\nfn testa_a_soma_de_valores_grandes() {\n    assert_eq!(soma(1200, 45), 1245);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma deve devolver 5 quando chamada com 2 e 3.", "teste": "testa_a_soma_de_dois_com_tres" },
+    { "id": "REQ-2", "descricao": "A função soma deve devolver 1245 quando chamada com 1200 e 45.", "teste": "testa_a_soma_de_valores_grandes" }
+  ],
+  "expectedTestCount": 2
+}

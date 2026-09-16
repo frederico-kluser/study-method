@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-valor-novo",
+  "title": "O valor novo",
+  "concept": "reatribuir",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O valor novo\n\nEscreva uma função `valor_novo` que recebe um número de partida e:\n\n1. cria o nome mutável `pontos` com o valor recebido;\n2. TROCA o valor de `pontos` pelo resultado de `pontos + 15` — com o `=` sozinho, sem `let`;\n3. devolve `pontos`.\n\nCuidado: trocar não é criar de novo — a troca é o `=` sozinho, sobre um nome que já existe.",
+  "starterCode": "pub fn valor_novo(base: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn valor_novo(base: i32) -> i32 {\n    let mut pontos = base;\n    pontos = pontos + 15;\n    pontos\n}\n",
+  "testsCode": "use desafio::valor_novo;\n\n#[test]\nfn testa_o_valor_novo_de_dez() {\n    assert_eq!(valor_novo(10), 25);\n}\n\n#[test]\nfn testa_o_valor_novo_de_zero() {\n    assert_eq!(valor_novo(0), 15);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função valor_novo(10) deve devolver 25.", "teste": "testa_o_valor_novo_de_dez" },
+    { "id": "REQ-2", "descricao": "A função valor_novo(0) deve devolver 15.", "teste": "testa_o_valor_novo_de_zero" }
+  ],
+  "expectedTestCount": 2
+}

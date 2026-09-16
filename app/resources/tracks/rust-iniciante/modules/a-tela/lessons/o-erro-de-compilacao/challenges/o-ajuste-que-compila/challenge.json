@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ajuste-que-compila",
+  "title": "O ajuste que compila",
+  "concept": "erro_compilacao",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O ajuste que compila\n\nA teoria mostrou o código que o `rustc` recusa: a troca num nome fixo. Escreva a versão que compila — uma função `ajuste` sem parâmetros que:\n\n1. cria o nome `total` com o valor `10`;\n2. troca o valor de `total` para `15`;\n3. devolve `total`.\n\nSe o seu envio voltar com um erro de compilação, leia o código e a linha que o `rustc` aponta antes de editar.",
+  "starterCode": "pub fn ajuste() -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn ajuste() -> i32 {\n    let mut total = 10;\n    total = 15;\n    total\n}\n",
+  "testsCode": "use desafio::ajuste;\n\n#[test]\nfn testa_o_ajuste_e_quinze() {\n    assert_eq!(ajuste(), 15);\n}\n\n#[test]\nfn testa_o_ajuste_nao_e_o_inicial() {\n    assert_ne!(ajuste(), 10);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função ajuste() deve devolver 15.", "teste": "testa_o_ajuste_e_quinze" },
+    { "id": "REQ-2", "descricao": "A função ajuste() não deve devolver o valor inicial 10.", "teste": "testa_o_ajuste_nao_e_o_inicial" }
+  ],
+  "expectedTestCount": 2
+}

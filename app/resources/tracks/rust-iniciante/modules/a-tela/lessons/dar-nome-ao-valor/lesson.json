@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "dar-nome-ao-valor",
+  "title": "Dar nome ao valor",
+  "summary": "O `let` dentro da função guarda um valor num nome — e o nome entra nas contas no lugar do valor.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "decl:let",
+  "concepts": [
+    "dar_nome"
+  ],
+  "prerequisites": [
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let",
+      "node:LetDeclaration"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-nome-que-guarda",
+      "title": "O nome que guarda",
+      "markdown": "Você já leu `let` nos testes do harness — agora escreva o seu. O `let` guarda um valor num nome:\n\n```rust\npub fn total(preco: i32) -> i32 {\n    let acrescimo = 3;\n    preco + acrescimo\n}\n```\n\nA linha do `let` cria o nome `acrescimo` com o valor `3`; daí para baixo, escrever `acrescimo` é escrever `3`."
+    },
+    {
+      "id": "o-nome-na-conta",
+      "title": "O nome entra na conta",
+      "markdown": "Depois do `let`, o nome vale o valor guardado. Por isso `total(100)` devolve `103`:\n\n```rust\nlet acrescimo = 3;\npreco + acrescimo\n```\n\nO Rust troca o nome pelo valor na hora da conta. O nome existe só DENTRO da função: fora dela, ninguém o vê."
+    },
+    {
+      "id": "a-ordem-importa",
+      "title": "A ordem importa",
+      "markdown": "O `let` vem ANTES do uso: quem usa um nome que ainda não existe encontra um erro do compilador.\n\n```rust\nlet acrescimo = 3;\npreco + acrescimo\n```\n\nCrie o nome primeiro, use depois — de cima para baixo, como o Rust lê."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "let-guarda-valor",
+      "statement": "O `let` guarda um valor num nome que existe dentro da função.",
+      "question": "Com `let acrescimo = 3;` no corpo, quanto vale `acrescimo`?",
+      "options": [
+        "3",
+        "o nome do valor",
+        "nada: o let apaga o valor",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `let` cria o nome já com o valor guardado nele.",
+      "sectionId": "o-nome-que-guarda"
+    },
+    {
+      "id": "nome-vale-o-valor",
+      "question": "Com `let acrescimo = 3;`, o que `preco + acrescimo` calcula com `preco = 100`?",
+      "options": [
+        "103",
+        "100",
+        "3",
+        "um erro"
+      ],
+      "statement": "Depois do `let`, o nome entra na conta valendo o valor guardado.",
+      "answerIndex": 0,
+      "feedback": "O Rust troca o nome pelo valor: `100 + 3`.",
+      "sectionId": "o-nome-na-conta"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial das variáveis: o `let` e o nome que guarda um valor."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "description": "O capítulo oficial das funções, onde o `let` vive."
+    }
+  ],
+  "challenges": [
+    "o-preco-com-taxa"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-no-lugar",
+  "title": "A soma no lugar",
+  "concept": "somar_no_lugar",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A soma no lugar\n\nEscreva uma função `acumular` que recebe um número de partida e:\n\n1. guarda ele num nome mutável `total`;\n2. acrescenta `5` ao `total` com `+=`;\n3. devolve `total`.\n\nAcréscimo é a forma curta: uma linha de `+=`, sem reescrever a conta longa.",
+  "starterCode": "pub fn acumular(base: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn acumular(base: i32) -> i32 {\n    let mut total = base;\n    total += 5;\n    total\n}\n",
+  "testsCode": "use desafio::acumular;\n\n#[test]\nfn testa_o_acumulo_de_dez_mais_cinco() {\n    assert_eq!(acumular(10), 15);\n}\n\n#[test]\nfn testa_o_acumulo_de_zero_mais_cinco() {\n    assert_eq!(acumular(0), 5);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função acumular(10) deve devolver 15.", "teste": "testa_o_acumulo_de_dez_mais_cinco" },
+    { "id": "REQ-2", "descricao": "A função acumular(0) deve devolver 5.", "teste": "testa_o_acumulo_de_zero_mais_cinco" }
+  ],
+  "expectedTestCount": 2
+}

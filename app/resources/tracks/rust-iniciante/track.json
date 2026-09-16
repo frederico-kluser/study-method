@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "rust-iniciante",
+  "title": "Rust Iniciante: da primeira função ao júnior-Rust",
+  "description": "Curso 1 de 4 da trilha de Rust, feito para quem parte do zero absoluto. Cada aula ensina no máximo duas construções novas e termina num desafio conferido por teste automático com o cargo; ao final do curso, o aluno escreve um crate inteiro sozinho — funções, decisão, laços, structs, enums, coleções e o modelo de dono e empréstimo que é o centro da linguagem.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "rust",
+  "runtime": "cargo-1.98",
+  "harnessLanguage": "rust",
+  "entryCriteria": [
+    "zero absoluto — nunca programou"
+  ],
+  "modules": [
+    "a-tela",
+    "decisao"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-saida-completa",
+  "title": "A saída completa",
+  "summary": "A função completa do módulo: recebe, calcula com nome, mostra na tela e devolve o texto montado — tudo em um corpo só.",
+  "difficulty": 3,
+  "role": "integration",
+  "targetAtom": "api:format!",
+  "concepts": [
+    "saida_completa"
+  ],
+  "prerequisites": [
+    "a-tela",
+    "somar-no-lugar"
+  ],
+  "introduces": {
+    "productive": [
+      "api:format!"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "as-quatro-etapas",
+      "title": "As quatro etapas",
+      "markdown": "O módulo inteiro cabe num corpo só. As quatro etapas de uma função de tela:\n\n```rust\npub fn recibo(qtd: i32) -> String {\n    let total = qtd * 4;\n    println!(\"recibo calculado\");\n    format!(\"{qtd} itens custam {total}\")\n}\n```\n\nRECEBE (`qtd` na assinatura), CALCULA (o `let` com a conta), MOSTRA (o `println!`), DEVOLVE (a expressão do `format!`, sem `;`)."
+    },
+    {
+      "id": "cada-etapa-na-sua-linha",
+      "title": "Cada etapa na sua linha",
+      "markdown": "A ordem das linhas é a ordem do trabalho:\n\n```rust\nlet total = qtd * 4;\nprintln!(\"recibo calculado\");\nformat!(\"{qtd} itens custam {total}\")\n```\n\nO cálculo vem antes do uso; o `println!` é instrução com `;`; o `format!` fecha o corpo como expressão — é o valor que o teste confere."
+    },
+    {
+      "id": "o-que-o-teste-ve",
+      "title": "O que o teste vê",
+      "markdown": "O teste confere o `String` devolvido: a chamada vira o texto montado, com os buracos `{}` preenchidos.\n\n```rust\nformat!(\"{qtd} itens custam {total}\")\n```\n\nA linha da tela aparece para quem chama; o valor devolvido aparece para o teste. Duas saídas, cada uma com a sua plateia."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "as-quatro-etapas-na-ordem",
+      "statement": "A função completa recebe, calcula, mostra e devolve — nessa ordem de linhas.",
+      "question": "Qual linha fecha o corpo de uma função que devolve texto?",
+      "options": [
+        "A expressão do format!, sem ;",
+        "O println! com ;",
+        "O let da conta",
+        "A assinatura"
+      ],
+      "answerIndex": 0,
+      "feedback": "A última expressão sem `;` é a devolução — o texto montado.",
+      "sectionId": "as-quatro-etapas"
+    },
+    {
+      "id": "duas-saidas-duas-plateias",
+      "statement": "A linha da tela é para a pessoa; o valor devolvido é para o teste.",
+      "question": "O que o teste do desafio confere?",
+      "options": [
+        "O String devolvido pela função.",
+        "As linhas que o println! mostrou.",
+        "A conta do let.",
+        "Nada: o desafio não tem teste."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `println!` escreve para você; o `format!` entrega o valor que o teste compara.",
+      "sectionId": "o-que-o-teste-ve"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Macro format! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro que monta e devolve o texto final."
+    },
+    {
+      "title": "Macro println! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.println.html",
+      "description": "A macro que escreve a linha na tela."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "description": "O capítulo oficial das funções, o molde de tudo isto."
+    }
+  ],
+  "challenges": [
+    "o-recibo-completo"
+  ]
+}

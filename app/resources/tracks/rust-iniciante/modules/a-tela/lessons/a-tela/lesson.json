@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tela",
+  "title": "A tela",
+  "summary": "O `println!` mostra o texto na tela — e não devolve nada: o que aparece e o que a função devolve são coisas diferentes.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "api:println!",
+  "concepts": [
+    "tela"
+  ],
+  "prerequisites": [
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "api:println!"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-linha-que-aparece",
+      "title": "A linha que aparece",
+      "markdown": "O `println!` escreve uma linha na tela. A forma com `{` e `}` é a mesma do `format!`:\n\n```rust\npub fn anunciar(pontos: i32) -> String {\n    println!(\"placar: {pontos}\");\n    format!(\"placar: {pontos}\")\n}\n```\n\nChame essa função e a linha `placar: 30` aparece na tela — e a função ainda devolve o texto montado."
+    },
+    {
+      "id": "mostrar-nao-e-devolver",
+      "title": "Mostrar não é devolver",
+      "markdown": "Cuidado com a diferença: o `println!` MOSTRA e não devolve nada — o que ele escreveu se foi, para o teste não existe.\n\n```rust\nprintln!(\"placar: {pontos}\");\nformat!(\"placar: {pontos}\")\n```\n\nA primeira linha é para a pessoa ver; a segunda é o VALOR que a função entrega. O desafio desta aula confere o valor devolvido — o texto da tela é você quem vê."
+    },
+    {
+      "id": "o-ponto-e-virgula-da-linha",
+      "title": "O ponto e vírgula da linha",
+      "markdown": "O `println!` termina com `;` porque ele é uma INSTRUÇÃO: faz o trabalho dele e não vira valor. A última linha, sem `;`, é a expressão que a função devolve.\n\nMostrar e devolver, cada coisa na sua linha."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "println-mostra-na-tela",
+      "statement": "O `println!` escreve uma linha na tela, com os buracos `{}` preenchidos.",
+      "question": "Com `pontos = 30`, o que `println!(\"placar: {pontos}\")` mostra?",
+      "options": [
+        "placar: 30",
+        "placar: {pontos}",
+        "nada",
+        "placar:"
+      ],
+      "answerIndex": 0,
+      "feedback": "A mesma sintaxe de buracos do `format!`, agora escrita na tela.",
+      "sectionId": "a-linha-que-aparece"
+    },
+    {
+      "id": "mostrar-nao-e-devolver",
+      "statement": "O que o `println!` mostra não é o que a função devolve.",
+      "question": "O teste do desafio confere o que, quando a função usa `println!`?",
+      "options": [
+        "O valor que a função devolve.",
+        "As linhas que apareceram na tela.",
+        "O número de linhas impressas.",
+        "Nada: o teste lê a tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `println!` escreve para a pessoa; o teste confere o VALOR devolvido — por isso a solução mostra e também devolve.",
+      "sectionId": "mostrar-nao-e-devolver"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Macro println! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.println.html",
+      "description": "A documentação oficial da macro que escreve na tela."
+    },
+    {
+      "title": "Macro format! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro irmã: a mesma sintaxe de buracos, montando o valor."
+    }
+  ],
+  "challenges": [
+    "o-bilhete-na-tela"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobre-o-numero",
+  "title": "Dobre o número",
+  "concept": "funcao",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# Dobre o número\n\nEscreva uma função `dobro` que devolve o dobro do número recebido.",
+  "starterCode": "pub fn dobro(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n",
+  "testsCode": "use desafio::dobro;\n\n#[test]\nfn testa_dobro_positivo() {\n    assert_eq!(dobro(2), 4);\n}\n\n#[test]\nfn testa_dobro_de_dez() {\n    assert_eq!(dobro(10), 20);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função dobro deve devolver 4 quando chamada com 2.", "teste": "testa_dobro_positivo" },
+    { "id": "REQ-2", "descricao": "A função dobro deve devolver 20 quando chamada com 10.", "teste": "testa_dobro_de_dez" }
+  ],
+  "expectedTestCount": 2
+}

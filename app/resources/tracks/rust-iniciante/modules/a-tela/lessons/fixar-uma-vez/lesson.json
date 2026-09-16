@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "fixar-uma-vez",
+  "title": "Fixar uma vez",
+  "summary": "O `const` fixa um valor NO TOPO da crate, com nome em MAIÚSCULAS — vale para toda função e nunca muda.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "decl:const",
+  "concepts": [
+    "fixar_const"
+  ],
+  "prerequisites": [
+    "dar-nome-ao-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:const",
+      "node:ConstItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-valor-do-topo",
+      "title": "O valor do topo",
+      "markdown": "Alguns valores não pertencem a uma função — valem para todas. O `const` fixa esse valor FORA das funções, no topo do arquivo:\n\n```rust\nconst BONUS: i32 = 5;\n\npub fn pontos_com_bonus(pontos: i32) -> i32 {\n    pontos + BONUS\n}\n```\n\n`BONUS` nasce junto com o programa e está à vista de toda função do arquivo."
+    },
+    {
+      "id": "as-tres-regras-do-const",
+      "title": "As três regras do const",
+      "markdown": "O `const` é mais exigente que o `let` — e as exigências se vêem na linha:\n\n```rust\nconst BONUS: i32 = 5;\n```\n\nO nome é em MAIÚSCULAS com `_` separando palavras; o tipo (`i32`) é escrito na mão, obrigatório; e o valor é fixado UMA vez — não existe `mut` para const."
+    },
+    {
+      "id": "const-ou-let",
+      "title": "const ou let?",
+      "markdown": "Use `let` para o valor que pertence a UMA chamada de função, e `const` para o valor que vale SEMPRE, de fora:\n\n```rust\nconst BONUS: i32 = 5;\n\npub fn pontos_com_bonus(pontos: i32) -> i32 {\n    pontos + BONUS\n}\n```\n\nSe o número muda a cada chamada, é `let`; se ele é regra do programa, é `const`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "const-fica-no-topo",
+      "statement": "O `const` é escrito fora das funções, no topo do arquivo.",
+      "question": "Onde a linha `const BONUS: i32 = 5;` fica no arquivo?",
+      "options": [
+        "No topo, fora de qualquer função.",
+        "Dentro da função que usa o BONUS.",
+        "No arquivo de testes.",
+        "Onde o erro do compilador mandar."
+      ],
+      "answerIndex": 0,
+      "feedback": "O const é do arquivo inteiro: nasce no topo e vale para todas as funções.",
+      "sectionId": "o-valor-do-topo"
+    },
+    {
+      "id": "nome-do-const-e-maiusculo",
+      "statement": "O nome de um `const` é escrito em MAIÚSCULAS com `_` separando as palavras.",
+      "question": "Qual é o nome de const certo para o valor de um bônus?",
+      "options": [
+        "BONUS_TOTAL",
+        "bonusTotal",
+        "bonus_total",
+        "BonusTotal"
+      ],
+      "answerIndex": 0,
+      "feedback": "MAIÚSCULAS_COM_UNDERSCORES é a convenção do const em Rust.",
+      "sectionId": "as-tres-regras-do-const"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial que apresenta as constantes ao lado das variáveis."
+    },
+    {
+      "title": "Project layout — The Cargo Guide",
+      "url": "https://doc.rust-lang.org/cargo/guide/project-layout.html",
+      "description": "O layout oficial do projeto cargo, onde o topo da crate fica."
+    }
+  ],
+  "challenges": [
+    "o-bonus-fixo"
+  ]
+}

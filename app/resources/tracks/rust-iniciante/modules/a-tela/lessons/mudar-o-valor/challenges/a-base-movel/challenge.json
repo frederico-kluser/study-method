@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-base-movel",
+  "title": "A base móvel",
+  "concept": "mudar_valor",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A base móvel\n\nEscreva uma função `base_movel` que recebe um número e:\n\n1. guarda o valor recebido MAIS 2 num nome MÓVEL `base` — a soma entra no próprio `let mut`;\n2. devolve `base`.\n\nAinda não vamos TROCAR o valor do nome — isso vem na aula seguinte. O treino de hoje é escrever a forma que PROMETE a mudança.",
+  "starterCode": "pub fn base_movel(valor: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn base_movel(valor: i32) -> i32 {\n    let mut base = valor + 2;\n    base\n}\n",
+  "testsCode": "use desafio::base_movel;\n\n#[test]\nfn testa_a_base_de_dez_mais_dois() {\n    assert_eq!(base_movel(10), 12);\n}\n\n#[test]\nfn testa_a_base_de_quarenta_mais_dois() {\n    assert_eq!(base_movel(40), 42);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função base_movel(10) deve devolver 12.", "teste": "testa_a_base_de_dez_mais_dois" },
+    { "id": "REQ-2", "descricao": "A função base_movel(40) deve devolver 42.", "teste": "testa_a_base_de_quarenta_mais_dois" }
+  ],
+  "expectedTestCount": 2
+}

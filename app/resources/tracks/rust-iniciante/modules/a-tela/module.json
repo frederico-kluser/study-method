@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tela",
+  "title": "A tela",
+  "order": 1,
+  "lessons": [
+    "a-primeira-funcao",
+    "somar",
+    "chamar-a-funcao",
+    "a-mensagem-montada",
+    "a-tela",
+    "dar-nome-ao-valor",
+    "mudar-o-valor",
+    "reatribuir",
+    "somar-no-lugar",
+    "fixar-uma-vez",
+    "o-corpo-e-uma-expressao",
+    "o-erro-de-compilacao",
+    "a-saida-completa"
+  ]
+}
