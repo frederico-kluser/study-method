@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-logica-invertida",
+  "title": "A lógica invertida",
+  "summary": "O ! na frente de uma condição lê o contrário — e o ! colado no número é o erro que o compilador cobra.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "op:unary:!",
+  "concepts": [
+    "a_logica_invertida"
+  ],
+  "prerequisites": [
+    "negar",
+    "e-e"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:!"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "negar-a-comparacao",
+      "title": "Negar a comparação",
+      "markdown": "A negação da aula `negar` agora recai sobre COMPARAÇÕES — o contrário de *são iguais* é *são diferentes*:\n\n```rust\npub fn sao_diferentes(a: i32, b: i32) -> bool {\n    let iguais = a == b;\n    !iguais\n}\n```\n\n`sao_diferentes(2, 3)` é `true`; `sao_diferentes(2, 2)` é `false`."
+    },
+    {
+      "id": "o-que-o-compilador-recusa",
+      "title": "O que o compilador recusa",
+      "markdown": "Cuidado com o lugar do `!`: ele cola no NOME da resposta, nunca na frente do número. Um `!` colado no número é recusado pelo compilador:\n\n```text\nerror[E0369]: cannot apply unary operator `!` to type `i32`\n --> src/lib.rs:2:13\n  |\n2 |     let x = !a == b;\n  |             ^ -- a\n  |             |\n  |             cannot apply unary operator `!` to type `i32`\n```\n\nO `!a` tenta negar um número — e número não é resposta de verdade. Negue a resposta com nome: `let iguais = a == b; !iguais`."
+    },
+    {
+      "id": "o-ou-que-fica-para-depois",
+      "title": "O ou que fica para depois",
+      "markdown": "Nem toda lógica cabe no `&&`: a pergunta *um OU outro* tem sinal próprio — e nesta trilha ele ainda não tem aula, o `||` fica para o vocabulário da trilha crescer. Enquanto isso, o `!` com o `&&` cobre o caso mais comum — o contrário de *a e b*:\n\n```rust\npub fn nao_os_dois_zerados(a: i32, b: i32) -> bool {\n    let os_dois_zerados = a == 0 && b == 0;\n    !os_dois_zerados\n}\n```\n\nO contrário de *os dois zerados* é *pelo menos um não é zero*."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "diferente-e-o-contrario-de-igual",
+      "statement": "São diferentes é o contrário de são iguais: true quando a == b dá false.",
+      "question": "O que `sao_diferentes(2, 3)` devolve?",
+      "options": [
+        "true",
+        "false",
+        "3",
+        "-1"
+      ],
+      "answerIndex": 0,
+      "feedback": "2 e 3 são diferentes — a pergunta *são iguais?* é false, e o contrário dela é true.",
+      "sectionId": "negar-a-comparacao",
+      "optionRationales": [
+        "2 e 3 não são iguais: a resposta negada da comparação é true.",
+        "false seria a resposta de sao_diferentes(2, 2) — números iguais.",
+        "3 é um dos números comparados; quem sai é a resposta, true.",
+        "A negação de valor de verdade não produz número — sai true."
+      ]
+    },
+    {
+      "id": "o-marcador-nao-nega-numero",
+      "statement": "O ! cola na resposta de verdade (ou no nome dela), nunca na frente de um número — o compilador recusa !a com a numérico.",
+      "question": "O que o compilador diz de `!a == b`, com `a` valendo um número?",
+      "options": [
+        "que não pode aplicar o ! a um número (i32)",
+        "que falta ponto e vírgula",
+        "que b não existe",
+        "nada — compila normal"
+      ],
+      "answerIndex": 0,
+      "feedback": "É o E0369: cannot apply unary operator `!` to type `i32` — número não se nega.",
+      "sectionId": "o-que-o-compilador-recusa",
+      "optionRationales": [
+        "Exatamente o erro E0369 da seção: ! exige resposta de verdade, não número.",
+        "O problema não é de ; — é o ! tentando negar um número.",
+        "O b não tem problema nenhum — o reclamado é o !a.",
+        "Compila normal não compila: o compilador recusa ! sobre i32."
+      ]
+    },
+    {
+      "id": "o-contrario-de-a-e-b",
+      "statement": "O contrário de (a e b) se escreve com o ! na frente da pergunta inteira, com nome — o || ainda não tem aula nesta trilha.",
+      "question": "Qual é o contrário de *os dois zerados*?",
+      "options": [
+        "pelo menos um não é zero",
+        "os dois são zero",
+        "os dois são negativos",
+        "nenhum dos dois é zero"
+      ],
+      "answerIndex": 0,
+      "feedback": "Negar *a e b* abre o caso de qualquer um falhar: basta um não ser zero.",
+      "sectionId": "o-ou-que-fica-para-depois",
+      "optionRationales": [
+        "Basta UM não ser zero para o contrário valer true — o ! inverte a dupla pergunta.",
+        "Esse é o caso original, não o contrário dele.",
+        "Os dois negativos são UM caso do contrário, mas não o contrário inteiro.",
+        "Nenhum dos dois é zero é mais restrito: -3 e 0 não são os dois zerados, e já cai no contrário."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "The Rust Reference — Operator expressions",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores de comparação, lógicos e unários."
+    }
+  ],
+  "challenges": [
+    "sao-diferentes"
+  ]
+}

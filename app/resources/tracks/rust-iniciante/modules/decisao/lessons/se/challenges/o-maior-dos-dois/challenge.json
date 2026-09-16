@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-maior-dos-dois",
+  "title": "O maior dos dois",
+  "concept": "se",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O maior dos dois\n\nA função `o_maior` recebe dois números e devolve o maior deles. Quando os dois são iguais, devolve o primeiro — o `if` não precisa fazer nada.\n\nComece guardando o primeiro número num `let mut` e use um `if` para trocar quando o segundo for maior.\n\nO corpo tem três passos: guardar, decidir, devolver.",
+  "starterCode": "pub fn o_maior(a: i32, b: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_maior(a: i32, b: i32) -> i32 {\n    let mut maior = a;\n    if b > a {\n        maior = b;\n    }\n    maior\n}\n",
+  "testsCode": "use desafio::o_maior;\n\n#[test]\nfn testa_o_maior_de_tres_e_dois() {\n    assert_eq!(o_maior(3, 2), 3);\n}\n\n#[test]\nfn testa_o_maior_de_dois_e_tres() {\n    assert_eq!(o_maior(2, 3), 3);\n}\n\n#[test]\nfn testa_quando_sao_iguais_fica_o_primeiro() {\n    assert_eq!(o_maior(4, 4), 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função o_maior deve devolver 3 quando chamada com 3 e 2.",
+      "teste": "testa_o_maior_de_tres_e_dois"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função o_maior deve devolver 3 quando chamada com 2 e 3.",
+      "teste": "testa_o_maior_de_dois_e_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Com 4 e 4 (iguais), a função deve devolver 4 — o valor guardado de início.",
+      "teste": "testa_quando_sao_iguais_fica_o_primeiro"
+    }
+  ],
+  "expectedTestCount": 3
+}

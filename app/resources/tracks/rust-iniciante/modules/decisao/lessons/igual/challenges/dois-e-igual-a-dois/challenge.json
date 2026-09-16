@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "dois-e-igual-a-dois",
+  "title": "Dois é igual a dois",
+  "concept": "igual",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# Dois é igual a dois\n\nA função `sao_iguais` recebe dois números e devolve `true` quando os dois são IGUAIS — e `false` quando são diferentes.\n\nUse `==` (dois sinais de igual). Não escreva `true` nem `false` no corpo: quem responde é a comparação.\n\nOs testes perguntam por números iguais e por números diferentes.",
+  "starterCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    a == b\n}\n",
+  "testsCode": "use desafio::sao_iguais;\n\n#[test]\nfn testa_dois_e_igual_a_dois() {\n    assert_eq!(sao_iguais(2, 2), true);\n}\n\n#[test]\nfn testa_dois_e_tres_nao_sao_iguais() {\n    assert_eq!(sao_iguais(2, 3), false);\n}\n\n#[test]\nfn testa_sete_e_igual_a_sete() {\n    assert_eq!(sao_iguais(7, 7), true);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função sao_iguais deve devolver true quando chamada com 2 e 2.",
+      "teste": "testa_dois_e_igual_a_dois"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função sao_iguais deve devolver false quando chamada com 2 e 3.",
+      "teste": "testa_dois_e_tres_nao_sao_iguais"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função sao_iguais deve devolver true quando chamada com 7 e 7.",
+      "teste": "testa_sete_e_igual_a_sete"
+    }
+  ],
+  "expectedTestCount": 3
+}

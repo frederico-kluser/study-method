@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-absoluto",
+  "title": "O absoluto",
+  "concept": "se_senao",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O absoluto\n\nO valor absoluto de um número é a distância dele até o zero: o absoluto de 5 é 5, e o absoluto de -3 é 3.\n\nA função `o_absoluto` recebe um número e devolve o absoluto dele, com `if`/`else`:\n\n- se o número é maior que zero, ele mesmo;\n- senão, o oposto dele, com o `-` unário.\n\nGuarde a resposta num `let mut` e devolva o nome no fim. Os testes chamam com positivo, negativo e zero.",
+  "starterCode": "pub fn o_absoluto(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_absoluto(x: i32) -> i32 {\n    let mut resultado = 0;\n    if x > 0 {\n        resultado = x;\n    } else {\n        resultado = -x;\n    }\n    resultado\n}\n",
+  "testsCode": "use desafio::o_absoluto;\n\n#[test]\nfn testa_o_absoluto_de_cinco_e_cinco() {\n    assert_eq!(o_absoluto(5), 5);\n}\n\n#[test]\nfn testa_o_absoluto_de_menos_tres_e_tres() {\n    assert_eq!(o_absoluto(-3), 3);\n}\n\n#[test]\nfn testa_o_absoluto_de_zero_e_zero() {\n    assert_eq!(o_absoluto(0), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função o_absoluto deve devolver 5 quando chamada com 5.",
+      "teste": "testa_o_absoluto_de_cinco_e_cinco"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função o_absoluto deve devolver 3 quando chamada com -3.",
+      "teste": "testa_o_absoluto_de_menos_tres_e_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função o_absoluto deve devolver 0 quando chamada com 0 (o ramo do else).",
+      "teste": "testa_o_absoluto_de_zero_e_zero"
+    }
+  ],
+  "expectedTestCount": 3
+}

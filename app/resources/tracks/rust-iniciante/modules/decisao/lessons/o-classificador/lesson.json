@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-classificador",
+  "title": "O classificador",
+  "summary": "Três ramos + format!: a fila de perguntas que monta o texto da resposta.",
+  "difficulty": 4,
+  "role": "integration",
+  "targetAtom": "node:ElseIf",
+  "concepts": [
+    "o_classificador"
+  ],
+  "prerequisites": [
+    "se-senao-se",
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ElseIf"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "tres-ramos-um-rotulo",
+      "title": "Três ramos, um rótulo",
+      "markdown": "O classificador junta as duas matérias do módulo: a FILA de perguntas (`if`/`else if`/`else`) decide, e o `format!` monta o texto — cada ramo devolve o seu:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {} excelente\", nota)\n    } else if nota > 5 {\n        format!(\"nota {} boa\", nota)\n    } else {\n        format!(\"nota {} precisa estudar\", nota)\n    }\n}\n```\n\nA nota 9 cai no primeiro ramo; a 7 no segundo; a 3 no `else`."
+    },
+    {
+      "id": "cada-ramo-monta-o-seu-texto",
+      "title": "Cada ramo monta o seu texto",
+      "markdown": "O texto de cada ramo nasce no `format!` — a aula `a-mensagem-montada` — com o `{}` abrindo a vaga para o valor:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {} excelente\", nota)\n    } else if nota > 5 {\n        format!(\"nota {} boa\", nota)\n    } else {\n        format!(\"nota {} precisa estudar\", nota)\n    }\n}\n```\n\nO `nota` que vem depois do texto ocupa a vaga do `{}` — e o `format!` devolve o texto pronto."
+    },
+    {
+      "id": "o-fecho-do-modulo",
+      "title": "O fecho do módulo",
+      "markdown": "Este é o desafio de fechamento do módulo: ele não ensina construção nova — ele COBRA a fila inteira de uma vez. Antes de abrir, confira o que você já tem: comparações, `&&`, a negação com `!`, o `if`/`else`/`else if` e o `format!`.\n\nO classificador é a soma deles — a mesma fila que o `o_caso_do_numero` ensinou, agora escrevendo texto."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-fila-decide-o-texto",
+      "statement": "A fila de if/else if/else decide QUAL ramo roda — e cada ramo devolve o seu texto.",
+      "question": "Para `o_rotulo_da_nota(7)`, qual ramo roda?",
+      "options": [
+        "o do else if — 7 > 8 falhou e 7 > 5 passou",
+        "o primeiro — 7 > 8",
+        "o else",
+        "nenhum dos três"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fila checa 7 > 8 (false), depois 7 > 5 (true) — o ramo do else if monta o texto da nota 7.",
+      "sectionId": "tres-ramos-um-rotulo",
+      "optionRationales": [
+        "A primeira condição falhou e a segunda passou: o rótulo sai do ramo do else if.",
+        "7 não é maior que 8 — a primeira condição é false e o ramo dela não roda.",
+        "O else só recebe o que sobrou — e a 7 já foi classificada antes.",
+        "Uma das três condições sempre responde — aqui foi a segunda."
+      ]
+    },
+    {
+      "id": "o-format-monta-em-cada-ramo",
+      "statement": "Cada ramo monta o próprio texto com format! — a fila decide qual, o format! monta como.",
+      "question": "O que abre a vaga para o valor no texto do `format!`?",
+      "options": [
+        "as chaves {} dentro do texto",
+        "o sinal >",
+        "o let mut",
+        "o ponto e vírgula"
+      ],
+      "answerIndex": 0,
+      "feedback": "O {} é a vaga no texto; o valor que vem depois da vírgula ocupa a vaga.",
+      "sectionId": "cada-ramo-monta-o-seu-texto",
+      "optionRationales": [
+        "O {} no meio do texto é a vaga onde o valor da nota entra.",
+        "O sinal > decide o ramo — a vaga no texto é papel do {}.",
+        "let mut liga nome a valor — a vaga no texto é trabalho do {}.",
+        "O ; fecha instruções — a montagem do texto é do {}."
+      ]
+    },
+    {
+      "id": "integracao-cobra-o-modulo",
+      "statement": "O desafio de fechamento não ensina construção nova: ele cobra comparações, fila de decisão e format! juntos.",
+      "question": "O que é NOVO no desafio `o-classificador`?",
+      "options": [
+        "nada — ele compõe o que o módulo ensinou",
+        "o else if",
+        "o format!",
+        "a comparação com >"
+      ],
+      "answerIndex": 0,
+      "feedback": "É o desafio de fechamento: a construção é a soma das aulas, não um conceito novo.",
+      "sectionId": "o-fecho-do-modulo",
+      "optionRationales": [
+        "Tudo no desafio já tem aula: a prova é compor a fila com o format!.",
+        "else if veio na aula se-senao-se — aqui é revisão em serviço.",
+        "format! é da aula a-mensagem-montada, do módulo 1.",
+        "A comparação com > vem lá da primeira aula do módulo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    },
+    {
+      "title": "std — a macro format!",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro oficial que monta um texto e o devolve como valor."
+    }
+  ],
+  "challenges": [
+    "o-classificador"
+  ]
+}

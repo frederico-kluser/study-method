@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-dois-positivos",
+  "title": "Os dois positivos",
+  "concept": "e_logico",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# Os dois positivos\n\nA função `os_dois_positivos` recebe dois números e devolve `true` quando os DOIS são maiores que zero — e `false` quando pelo menos um não é.\n\nUma linha no corpo: as duas perguntas de `>` juntas por um único `&&`.\n\nOs testes chamam com os dois positivos, com um deles sendo zero e com os dois zerados.",
+  "starterCode": "pub fn os_dois_positivos(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn os_dois_positivos(a: i32, b: i32) -> bool {\n    a > 0 && b > 0\n}\n",
+  "testsCode": "use desafio::os_dois_positivos;\n\n#[test]\nfn testa_tres_e_dois_sao_positivos() {\n    assert_eq!(os_dois_positivos(3, 2), true);\n}\n\n#[test]\nfn testa_tres_e_zero_nao_sao_os_dois() {\n    assert_eq!(os_dois_positivos(3, 0), false);\n}\n\n#[test]\nfn testa_dois_zeros_nao_sao_positivos() {\n    assert_eq!(os_dois_positivos(0, 0), false);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função os_dois_positivos deve devolver true quando chamada com 3 e 2.",
+      "teste": "testa_tres_e_dois_sao_positivos"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função os_dois_positivos deve devolver false quando um dos dois é 0 (3 e 0).",
+      "teste": "testa_tres_e_zero_nao_sao_os_dois"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função os_dois_positivos deve devolver false quando os dois são 0.",
+      "teste": "testa_dois_zeros_nao_sao_positivos"
+    }
+  ],
+  "expectedTestCount": 3
+}

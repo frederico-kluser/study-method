@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "se-senao-se",
+  "title": "Se senão se",
+  "summary": "O else if encadeia perguntas: cada ramo só checa a sua quando os anteriores falharam.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:ElseIf",
+  "concepts": [
+    "se_senao_se"
+  ],
+  "prerequisites": [
+    "se-senao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ElseIf"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "uma-fila-de-perguntas",
+      "title": "Uma fila de perguntas",
+      "markdown": "O `else if` encadeia uma segunda pergunta ao primeiro `if`: quando a primeira condição falha, a segunda é checada — na ordem, de cima para baixo:\n\n```rust\npub fn o_caso_do_numero(x: i32) -> i32 {\n    let mut caso = 1;\n    if x < 0 {\n        caso = -1;\n    } else if x == 0 {\n        caso = 0;\n    }\n    caso\n}\n```\n\nNegativo devolve `-1`, zero devolve `0`, e o que sobrou — o positivo — fica com o `1` do começo."
+    },
+    {
+      "id": "a-ordem-manda",
+      "title": "A ordem manda",
+      "markdown": "As condições são checadas NA ORDEM: a primeira que for `true` decide, e as de baixo nem são olhadas. Para `x` valendo `-7`, a primeira condição (`x < 0`) já responde e o `== 0` nunca é checado.\n\nPor isso o último ramo nem precisa perguntar: o que sobrou é dele. É o segredo do `o_caso_do_numero` — o positivo não tem ramo, porque começou valendo `1`."
+    },
+    {
+      "id": "a-fila-pode-continuar",
+      "title": "A fila pode continuar",
+      "markdown": "O encadeamento não para em dois: cada `else if` pode ter o seu próprio `else if`, e o `else` final recolhe o que sobrou:\n\n```text\nif       pergunta 1 -> ramo 1\nelse if  pergunta 2 -> ramo 2\nelse if  pergunta 3 -> ramo 3\nelse                 -> o que sobrou\n```\n\nA aula de fechamento do módulo usa três ramos que montam texto — a fila é a mesma."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "else-if-encadeia",
+      "statement": "A condição do else if só é checada quando a condição do if acima dela foi false.",
+      "question": "Quando a condição do `else if` é checada?",
+      "options": [
+        "só quando a condição do if acima dela foi false",
+        "sempre, junto com a do if",
+        "só quando a do if foi true",
+        "nunca"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fila só anda quando o ramo de cima falha: false no if abre a vez do else if.",
+      "sectionId": "uma-fila-de-perguntas",
+      "optionRationales": [
+        "O else if é a segunda pergunta da fila — só entra em cena quando a primeira é false.",
+        "As perguntas são checadas uma a uma, nunca todas de uma vez.",
+        "Se o if foi true, o else if nem é olhado.",
+        "Ela é checada exatamente quando chega a vez — depois de um false acima."
+      ]
+    },
+    {
+      "id": "a-primeira-true-decide",
+      "statement": "As condições são checadas na ordem; a primeira que responde true decide e as de baixo são puladas.",
+      "question": "No `o_caso_do_numero(-7)`, qual condição responde?",
+      "options": [
+        "x < 0, a primeira",
+        "x == 0, a segunda",
+        "nenhuma",
+        "as duas, na ordem"
+      ],
+      "answerIndex": 0,
+      "feedback": "-7 é menor que 0: a primeira condição já é true e a fila nem continua.",
+      "sectionId": "a-ordem-manda",
+      "optionRationales": [
+        "A ordem manda: -7 cai na primeira pergunta, x < 0, e o caso é -1.",
+        "x == 0 só seria checado se x < 0 fosse false — com -7 não chega lá.",
+        "Uma das condições da fila sempre responde — aqui é a primeira.",
+        "A fila para na primeira true: só UMA condição responde."
+      ]
+    },
+    {
+      "id": "sem-else-final-e-legal",
+      "statement": "A fila de if/else if não precisa de else final: o caso que sobra pode já estar guardado no valor inicial.",
+      "question": "No `o_caso_do_numero`, por que os positivos não precisam de ramo?",
+      "options": [
+        "o caso 1 já é o valor inicial do let mut",
+        "porque o else if cobre os positivos",
+        "porque positivos dão erro",
+        "porque o if roda duas vezes"
+      ],
+      "answerIndex": 0,
+      "feedback": "caso começa valendo 1; se nenhuma condição for true, o valor inicial sobrevive — e o positivo sai com 1.",
+      "sectionId": "uma-fila-de-perguntas",
+      "optionRationales": [
+        "O let mut começou em 1; sem ramo que troque, o 1 sobrevive até o fim.",
+        "O else if só responde a segunda pergunta — não cobre o positivo.",
+        "Positivos são o caso mais comum — nenhum erro aqui.",
+        "O if roda no máximo uma vez, e com positivo nem roda."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    }
+  ],
+  "challenges": [
+    "o-caso-do-numero"
+  ]
+}

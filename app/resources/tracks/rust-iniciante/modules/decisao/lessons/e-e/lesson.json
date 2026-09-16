@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-e",
+  "title": "E lógico",
+  "summary": "O && junta duas perguntas: a resposta só é true quando as DUAS são true.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:logical:&&",
+  "concepts": [
+    "e_logico"
+  ],
+  "prerequisites": [
+    "igual"
+  ],
+  "introduces": {
+    "productive": [
+      "op:logical:&&",
+      "node:BinaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "uma-decisao-que-exige-duas",
+      "title": "Uma decisão que exige duas",
+      "markdown": "Às vezes a decisão depende de DUAS perguntas: *o preço é menor que 10 E a quantidade é maior que zero?* O `&&` (lê-se *e*) junta as duas:\n\n```rust\npub fn pode_comprar(preco: i32, quantidade: i32) -> bool {\n    preco < 10 && quantidade > 0\n}\n```\n\nA resposta é `true` só quando as DUAS condições são `true`. Basta uma ser `false` para o `&&` responder `false`."
+    },
+    {
+      "id": "a-tabela-do-e",
+      "title": "A tabela do e",
+      "markdown": "O `&&` é exigente: só UMA combinação de respostas dá `true`:\n\n```text\ntrue  && true  -> true\ntrue  && false -> false\nfalse && true  -> false\nfalse && false -> false\n```\n\nAs duas pontas precisam concordar no `true`. Uma `false` sozinha já derruba a resposta inteira."
+    },
+    {
+      "id": "cada-lado-e-uma-pergunta-completa",
+      "title": "Cada lado é uma pergunta completa",
+      "markdown": "Cada lado do `&&` é uma comparação inteira, com o sinal dela:\n\n```rust\npub fn os_dois_positivos(a: i32, b: i32) -> bool {\n    a > 0 && b > 0\n}\n```\n\n`os_dois_positivos(3, 2)` é `true`; `os_dois_positivos(3, 0)` é `false` — 3 é positivo, mas 0 não é, e um `false` basta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "e-exigente",
+      "statement": "O && responde true só quando as duas condições são true; uma false basta para derrubar a resposta.",
+      "question": "O que `os_dois_positivos(3, 0)` devolve?",
+      "options": [
+        "false",
+        "true",
+        "0",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "3 é positivo, mas 0 não é — a segunda condição é false e o && responde false.",
+      "sectionId": "cada-lado-e-uma-pergunta-completa",
+      "optionRationales": [
+        "0 não é maior que 0: a segunda pergunta é false, e uma false basta para o && responder false.",
+        "true exigiria os DOIS positivos — e 0 não é maior que 0.",
+        "0 é o valor comparado; quem sai é a resposta da dupla pergunta, false.",
+        "3 é o valor do primeiro lado; a resposta sai do && entre as duas perguntas."
+      ]
+    },
+    {
+      "id": "cada-lado-comparacao",
+      "statement": "Cada lado do && é uma comparação completa, com o seu próprio sinal de pergunta.",
+      "question": "No `preco < 10 && quantidade > 0`, o que é `quantidade > 0`?",
+      "options": [
+        "a comparação completa do lado direito do &&",
+        "o valor de quantidade",
+        "o resultado de uma soma",
+        "um texto entre aspas"
+      ],
+      "answerIndex": 0,
+      "feedback": "É a segunda pergunta completa do &&: quantidade é maior que zero?",
+      "sectionId": "cada-lado-e-uma-pergunta-completa",
+      "optionRationales": [
+        "É uma comparação inteira — ela responde true ou false sozinha, do lado direito.",
+        "quantidade > 0 é a PERGUNTA sobre o valor; o valor sozinho não responde nada.",
+        "Não há soma nenhuma no lado direito — só a comparação de quantidade com 0.",
+        "Nada de aspas: é uma comparação de números, não um texto."
+      ]
+    },
+    {
+      "id": "uma-falsa-basta",
+      "statement": "Se a primeira condição do && é false, a resposta é false — não há combinação que salve.",
+      "question": "Se a primeira condição do `&&` é `false`, a resposta é...",
+      "options": [
+        "false, sem exceção",
+        "true, se a segunda for true",
+        "true sempre",
+        "um erro de compilação"
+      ],
+      "answerIndex": 0,
+      "feedback": "Uma ponta false já basta: o && responde false — é a linha da tabela que manda.",
+      "sectionId": "a-tabela-do-e",
+      "optionRationales": [
+        "false && qualquer coisa é false — a tabela do e não tem exceção.",
+        "A segunda ser true não salva: o && exige as duas.",
+        "true só sai com as duas pontas true — aqui a primeira já é false.",
+        "false é um valor de verdade perfeitamente legal — não há erro nenhum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "The Rust Reference — Operator expressions",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores de comparação, lógicos e unários."
+    }
+  ],
+  "challenges": [
+    "os-dois-positivos"
+  ]
+}

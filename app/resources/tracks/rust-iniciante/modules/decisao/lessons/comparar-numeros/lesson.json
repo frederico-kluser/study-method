@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "comparar-numeros",
+  "title": "Comparar números",
+  "summary": "Os sinais > e < fazem perguntas de maior e menor — e a resposta é true ou false.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:>",
+  "concepts": [
+    "comparar_numeros"
+  ],
+  "prerequisites": [
+    "a-primeira-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:>",
+      "op:compare:<",
+      "node:BinaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-pergunta-que-responde-sim-ou-nao",
+      "title": "A pergunta que responde sim ou não",
+      "markdown": "Rust guarda respostas de verdade em dois valores: `true` (verdadeiro) e `false` (falso). A pergunta **3 é maior que 2?** se escreve com o sinal `>`:\n\n```rust\npub fn maior_deles(a: i32, b: i32) -> bool {\n    a > b\n}\n```\n\nChamada com `maior_deles(3, 2)`, a função devolve `true` — porque 3 é mesmo maior que 2. O sinal `>` quer dizer *maior que*."
+    },
+    {
+      "id": "o-sinal-de-menor",
+      "title": "O sinal de menor",
+      "markdown": "O sinal `<` quer dizer *menor que* — a mesma pergunta, invertida:\n\n```rust\npub fn menor_deles(a: i32, b: i32) -> bool {\n    a < b\n}\n```\n\n`menor_deles(2, 3)` é `true`; `menor_deles(3, 2)` é `false`. Os dois sinais têm a boca aberta para o número maior: em `3 > 2`, para o 3.\n\nCom os dois lados iguais, os dois respondem `false`: 3 não é maior nem menor que 3. Quem responde por igualdade é o `==`, de uma aula própria."
+    },
+    {
+      "id": "a-resposta-e-um-valor-de-verdade",
+      "title": "A resposta é um valor de verdade",
+      "markdown": "A resposta de uma comparação é um valor de verdade — não é um texto e não é um número. Ela pode ser o resultado inteiro da função, sem `if` e sem nada no meio:\n\n```rust\npub fn passou(nota: i32) -> bool {\n    nota > 5\n}\n```\n\n`passou(6)` devolve a própria resposta da pergunta *6 é maior que 5?* — `true`. O `bool` na assinatura é o tipo dessas respostas."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-sinal-maior-que",
+      "statement": "O sinal > pergunta se um número é maior que outro, e a resposta é true ou false.",
+      "question": "O que a pergunta `3 > 2` responde?",
+      "options": [
+        "true",
+        "false",
+        "5",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "3 é maior que 2, então a pergunta tem resposta verdadeira — o valor true.",
+      "sectionId": "a-pergunta-que-responde-sim-ou-nao",
+      "optionRationales": [
+        "Como 3 é maior que 2, a comparação devolve o valor verdadeiro true.",
+        "false seria a resposta da pergunta invertida, 3 < 2 — ou de 2 > 3.",
+        "5 seria o resultado de somar 3 + 2; o sinal > não soma, ele pergunta.",
+        "3 é o número comparado; quem sai da comparação é a RESPOSTA, true."
+      ]
+    },
+    {
+      "id": "o-sinal-menor-que",
+      "statement": "O sinal < pergunta se um número é menor que outro — a boca aberta aponta para o maior.",
+      "question": "O que `menor_deles(3, 2)` devolve?",
+      "options": [
+        "false",
+        "true",
+        "2",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "3 não é menor que 2 — é maior. A pergunta é falsa e a resposta é false.",
+      "sectionId": "o-sinal-de-menor",
+      "optionRationales": [
+        "3 é maior que 2, então a pergunta \"3 é menor que 2?\" é falsa — sai false.",
+        "true sairia com os argumentos invertidos: menor_deles(2, 3).",
+        "2 é o segundo argumento; o que a função devolve é a resposta, não um dos números.",
+        "3 é o primeiro argumento; quem sai é a resposta da pergunta, false."
+      ]
+    },
+    {
+      "id": "iguais-nao-sao-maior-nem-menor",
+      "statement": "Com os dois lados iguais, os sinais > e < respondem false — quem responde por igualdade é o ==.",
+      "question": "O que `maior_deles(4, 4)` devolve?",
+      "options": [
+        "false",
+        "true",
+        "4",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "4 não é maior que 4 — é igual. A resposta é false; o == é quem responde por igualdade.",
+      "sectionId": "o-sinal-de-menor",
+      "optionRationales": [
+        "iguais não são maiores: a pergunta \"4 é maior que 4?\" é falsa, sai false.",
+        "true exigiria que o primeiro fosse maior — e 4 não é maior que 4.",
+        "4 é o valor comparado; a comparação devolve uma resposta de verdade.",
+        "A comparação não calcula diferença: ela só responde true ou false."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    }
+  ],
+  "challenges": [
+    "maior-e-menor"
+  ]
+}

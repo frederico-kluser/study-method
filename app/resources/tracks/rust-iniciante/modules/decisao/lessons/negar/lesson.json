@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "negar",
+  "title": "Negar",
+  "summary": "O ! inverte uma resposta de verdade: o que era true vira false.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:unary:!",
+  "concepts": [
+    "negar"
+  ],
+  "prerequisites": [
+    "e-e"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:!",
+      "node:UnaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-ponto-de-exclamacao-inverte",
+      "title": "O ponto de exclamação inverte",
+      "markdown": "O `!` (lê-se *não*) inverte um valor de verdade: o que era `true` vira `false`, e o que era `false` vira `true`:\n\n```rust\npub fn negado(valor: bool) -> bool {\n    !valor\n}\n```\n\n`negado(true)` é `false`; `negado(false)` é `true`. É o *não* da lógica, colado na resposta."
+    },
+    {
+      "id": "negar-uma-resposta-com-nome",
+      "title": "Negar uma resposta com nome",
+      "markdown": "Negar fica legível quando a pergunta tem nome — o `!` inverte o nome inteiro:\n\n```rust\npub fn nao_sao_os_dois_positivos(a: i32, b: i32) -> bool {\n    let os_dois_positivos = a > 0 && b > 0;\n    !os_dois_positivos\n}\n```\n\nA pergunta *os dois são positivos?* fica guardada num `let`; a função devolve o contrário dela."
+    },
+    {
+      "id": "quando-o-nao-e-a-resposta",
+      "title": "Quando o não é a resposta certa",
+      "markdown": "Muitas perguntas do dia a dia já nascem negativas: *não passou*, *não pode comprar*. Escreva a pergunta positiva com nome e devolva o contrário com `!`:\n\n```rust\npub fn nao_passou(nota: i32) -> bool {\n    let passou = nota > 5;\n    !passou\n}\n```\n\n`nao_passou(4)` é `true`; `nao_passou(7)` é `false`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-ponto-inverte",
+      "statement": "O ! inverte o valor de verdade: true vira false e false vira true.",
+      "question": "O que `negado(true)` devolve?",
+      "options": [
+        "false",
+        "true",
+        "nada",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O ! inverte: o que era true sai false.",
+      "sectionId": "o-ponto-de-exclamacao-inverte",
+      "optionRationales": [
+        "O ! é o não: ele inverte o true e devolve false.",
+        "true sairia sem o ! — ou com dois ! seguidos.",
+        "A negação sempre devolve uma resposta de verdade, nunca vazio.",
+        "! sobre um bool é perfeitamente legal — nenhum erro aqui."
+      ]
+    },
+    {
+      "id": "negar-o-nome-todo",
+      "statement": "O ! inverte o valor inteiro guardado no nome — a resposta da pergunta, não um pedaço dela.",
+      "question": "Em `let passou = nota > 5; !passou`, o que o `!` inverte?",
+      "options": [
+        "a resposta da pergunta nota > 5, guardada em passou",
+        "o valor de nota",
+        "o sinal de nota",
+        "o nome passou"
+      ],
+      "answerIndex": 0,
+      "feedback": "passou guarda a resposta da pergunta; o ! devolve o contrário dessa resposta.",
+      "sectionId": "negar-uma-resposta-com-nome",
+      "optionRationales": [
+        "O ! recai sobre a resposta guardada no nome — a pergunta inteira, não um pedaço.",
+        "nota não muda: quem é invertido é o valor de verdade de passou.",
+        "O ! não é o - unário: ele não mexe em sinal, só em true e false.",
+        "O nome continua o mesmo — o que inverte é o VALOR que ele guarda."
+      ]
+    },
+    {
+      "id": "duas-inversoes-voltam",
+      "statement": "Negar duas vezes volta ao valor de origem: !(!true) é true.",
+      "question": "O que `negado(negado(true))` devolve?",
+      "options": [
+        "true",
+        "false",
+        "nada",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "negado(true) é false, e negado(false) volta para true — duas inversões se cancelam.",
+      "sectionId": "o-ponto-de-exclamacao-inverte",
+      "optionRationales": [
+        "A primeira inversão dá false; a segunda desfaz — sai o true de origem.",
+        "false seria UMA inversão; aqui são duas, e elas se cancelam.",
+        "Cada chamada devolve um valor de verdade — a cadeia devolve true.",
+        "Negar bools compila sem erro nenhum — é o emprego normal do !."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "The Rust Reference — Operator expressions",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores de comparação, lógicos e unários."
+    },
+    {
+      "title": "std — o tipo bool",
+      "url": "https://doc.rust-lang.org/std/primitive.bool.html",
+      "description": "A página oficial do tipo das respostas de verdade (true e false)."
+    }
+  ],
+  "challenges": [
+    "nao-sao-os-dois-positivos"
+  ]
+}

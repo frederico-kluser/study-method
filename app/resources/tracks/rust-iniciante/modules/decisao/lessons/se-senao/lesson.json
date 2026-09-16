@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "se-senao",
+  "title": "Se senão",
+  "summary": "O else é o bloco que roda quando a condição do if é false — dois caminhos, e um sempre roda.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:ElseClause",
+  "concepts": [
+    "se_senao"
+  ],
+  "prerequisites": [
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ElseClause"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:ramo"
+  ],
+  "theory": [
+    {
+      "id": "o-outro-caminho",
+      "title": "O outro caminho",
+      "markdown": "O `if` sozinho só sabe um caminho. O `else` acrescenta o outro: quando a condição é `false`, o bloco do `else` roda — um dos dois blocos SEMPRE roda:\n\n```rust\npub fn o_absoluto(x: i32) -> i32 {\n    let mut resultado = 0;\n    if x > 0 {\n        resultado = x;\n    } else {\n        resultado = -x;\n    }\n    resultado\n}\n```\n\nCada bloco é um ramo da decisão: o `if` é o ramo do `true`, o `else` é o ramo do `false`."
+    },
+    {
+      "id": "o-else-nao-repete-a-pergunta",
+      "title": "O else não repete a pergunta",
+      "markdown": "O `else` não tem condição — ele é o *caso contrário*. Escrever a pergunta de novo dentro dele é erro de lógica, não de sintaxe:\n\n```rust\npub fn o_absoluto(x: i32) -> i32 {\n    let mut resultado = 0;\n    if x > 0 {\n        resultado = x;\n    } else {\n        resultado = -x;\n    }\n    resultado\n}\n```\n\n`o_absoluto(5)` vai pelo ramo do `if`; `o_absoluto(-3)` vai pelo do `else` — e `o_absoluto(0)` também vai pelo `else`, porque 0 não é maior que 0."
+    },
+    {
+      "id": "um-dos-dois-roda",
+      "title": "Um dos dois roda",
+      "markdown": "As duas pernas da decisão:\n\n```text\ncondição true  -> roda o bloco do if\ncondição false -> roda o bloco do else\n```\n\nNunca os dois, nunca nenhum. Por isso o `o_absoluto` nunca sai sem resposta: qualquer `x` cai em um ramo e sai com um valor."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "else-e-o-caso-contrario",
+      "statement": "O bloco do else roda quando a condição do if é false — ele é o caso contrário, sem condição própria.",
+      "question": "Quando o bloco do `else` roda?",
+      "options": [
+        "quando a condição do if é false",
+        "quando a condição do if é true",
+        "sempre, logo depois do if",
+        "nunca"
+      ],
+      "answerIndex": 0,
+      "feedback": "else é o caso contrário: a condição falhou, então o bloco dele roda.",
+      "sectionId": "o-else-nao-repete-a-pergunta",
+      "optionRationales": [
+        "false é exatamente o caso do else — o if só fica com o true.",
+        "Quando a condição é true quem roda é o bloco do if, não o do else.",
+        "Nunca os dois: exatamente um ramo roda.",
+        "Um dos dois sempre roda — o else é justamente o segundo caminho."
+      ]
+    },
+    {
+      "id": "um-ramo-sempre-roda",
+      "statement": "Com if/else, exatamente um dos dois ramos roda — nunca os dois, nunca nenhum.",
+      "question": "O que o `o_absoluto(0)` faz?",
+      "options": [
+        "vai pelo ramo do else e devolve 0",
+        "vai pelo ramo do if e devolve 0",
+        "roda os dois ramos",
+        "não devolve nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "0 não é maior que 0 — a condição é false e o else roda, guardando -0, que é 0.",
+      "sectionId": "o-else-nao-repete-a-pergunta",
+      "optionRationales": [
+        "0 não passa na pergunta x > 0, então o caminho é o do else — e -0 é 0.",
+        "O if exige x maior que 0; com 0 a condição é false.",
+        "Nunca os dois: a decisão escolhe um ramo e pula o outro.",
+        "Todo x cai em um ramo — a função sempre devolve um valor."
+      ]
+    },
+    {
+      "id": "else-sem-condicao",
+      "statement": "O else não escreve condição — ele é o recolhedor do caso contrário.",
+      "question": "O `else` escreve condição?",
+      "options": [
+        "não — ele é o caso contrário do if",
+        "sim, logo depois da palavra else",
+        "sim, entre parênteses",
+        "só quando o if tem duas perguntas"
+      ],
+      "answerIndex": 0,
+      "feedback": "O else não pergunta nada: ele pega tudo o que o if deixou passar.",
+      "sectionId": "o-else-nao-repete-a-pergunta",
+      "optionRationales": [
+        "else vem pelado, sem pergunta: é o caso contrário.",
+        "Reescrever a pergunta no else é erro de lógica — o else não tem condição.",
+        "Não há parênteses no else — ele não compara nada.",
+        "O número de perguntas do if não muda o else: ele continua sendo o caso contrário."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "std — a palavra-chave else",
+      "url": "https://doc.rust-lang.org/std/keyword.else.html",
+      "description": "A página oficial da palavra-chave else e dos ramos do if."
+    }
+  ],
+  "challenges": [
+    "o-absoluto"
+  ]
+}

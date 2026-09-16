@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-se-que-vira-valor",
+  "title": "O se que vira valor",
+  "concept": "o_se_que_devolve",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O se que vira valor\n\nRefaça a decisão do maior — mas agora SEM `let mut` e SEM reatribuição: o `if` em si é a expressão que vira o valor do `let`.\n\nA função `o_maior_dos_dois` recebe dois números e devolve o maior deles (qualquer um, quando iguais).\n\nUma ligação só, com o `if`/`else` no lugar do valor — e os ramos sem `;`.",
+  "starterCode": "pub fn o_maior_dos_dois(a: i32, b: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_maior_dos_dois(a: i32, b: i32) -> i32 {\n    let maior = if a > b {\n        a\n    } else {\n        b\n    };\n    maior\n}\n",
+  "testsCode": "use desafio::o_maior_dos_dois;\n\n#[test]\nfn testa_o_maior_de_oito_e_tres() {\n    assert_eq!(o_maior_dos_dois(8, 3), 8);\n}\n\n#[test]\nfn testa_o_maior_de_tres_e_oito() {\n    assert_eq!(o_maior_dos_dois(3, 8), 8);\n}\n\n#[test]\nfn testa_quando_sao_iguais_devolve_qualquer_um() {\n    assert_eq!(o_maior_dos_dois(4, 4), 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função o_maior_dos_dois deve devolver 8 quando chamada com 8 e 3.",
+      "teste": "testa_o_maior_de_oito_e_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função o_maior_dos_dois deve devolver 8 quando chamada com 3 e 8.",
+      "teste": "testa_o_maior_de_tres_e_oito"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Com 4 e 4, a função deve devolver 4 pelo ramo do else.",
+      "teste": "testa_quando_sao_iguais_devolve_qualquer_um"
+    }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "nao-sao-os-dois-positivos",
+  "title": "Não são os dois positivos",
+  "concept": "negar",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# Não são os dois positivos\n\nA função `nao_sao_os_dois_positivos` recebe dois números e devolve `true` quando NÃO é verdade que os dois são positivos.\n\nGuarde a pergunta positiva num `let` (os dois maiores que zero, com `&&`) e devolva o contrário com `!`.\n\nOs testes chamam com os dois positivos, com um zero e com os dois zerados.",
+  "starterCode": "pub fn nao_sao_os_dois_positivos(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn nao_sao_os_dois_positivos(a: i32, b: i32) -> bool {\n    let os_dois_positivos = a > 0 && b > 0;\n    !os_dois_positivos\n}\n",
+  "testsCode": "use desafio::nao_sao_os_dois_positivos;\n\n#[test]\nfn testa_tres_e_dois_sao_os_dois_positivos() {\n    assert_eq!(nao_sao_os_dois_positivos(3, 2), false);\n}\n\n#[test]\nfn testa_tres_e_zero_um_nao_e_positivo() {\n    assert_eq!(nao_sao_os_dois_positivos(3, 0), true);\n}\n\n#[test]\nfn testa_dois_zeros_nenhum_e_positivo() {\n    assert_eq!(nao_sao_os_dois_positivos(0, 0), true);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "Com 3 e 2 (os dois positivos), a função deve devolver false.",
+      "teste": "testa_tres_e_dois_sao_os_dois_positivos"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Com 3 e 0 (um não é positivo), a função deve devolver true.",
+      "teste": "testa_tres_e_zero_um_nao_e_positivo"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Com 0 e 0 (nenhum positivo), a função deve devolver true.",
+      "teste": "testa_dois_zeros_nenhum_e_positivo"
+    }
+  ],
+  "expectedTestCount": 3
+}

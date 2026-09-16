@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-e-menor",
+  "title": "Maior e menor",
+  "concept": "comparar_numeros",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# Maior e menor\n\nDuas funções de verdade — cada uma faz UMA pergunta e devolve a resposta.\n\n1. `maior` recebe dois números e devolve `true` quando o primeiro é **maior** que o segundo.\n2. `menor` recebe dois números e devolve `true` quando o primeiro é **menor** que o segundo.\n\nNão escreva `true` nem `false` no corpo: quem responde é a comparação, com `>` e `<`.\n\nOs testes chamam com números positivos e com dois números iguais.",
+  "starterCode": "pub fn maior(a: i32, b: i32) -> bool {\n    todo!()\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn maior(a: i32, b: i32) -> bool {\n    a > b\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    a < b\n}\n",
+  "testsCode": "use desafio::maior;\nuse desafio::menor;\n\n#[test]\nfn testa_tres_e_maior_que_dois() {\n    assert_eq!(maior(3, 2), true);\n}\n\n#[test]\nfn testa_dois_e_menor_que_tres() {\n    assert_eq!(menor(2, 3), true);\n}\n\n#[test]\nfn testa_iguais_nao_sao_maior_nem_menor() {\n    assert_eq!(maior(4, 4), false);\n    assert_eq!(menor(4, 4), false);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função maior deve devolver true quando chamada com 3 e 2.",
+      "teste": "testa_tres_e_maior_que_dois"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função menor deve devolver true quando chamada com 2 e 3.",
+      "teste": "testa_dois_e_menor_que_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Com 4 e 4, as duas funções devem devolver false — iguais não são maiores nem menores.",
+      "teste": "testa_iguais_nao_sao_maior_nem_menor"
+    }
+  ],
+  "expectedTestCount": 3
+}

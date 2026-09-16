@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-oposto-do-numero",
+  "title": "O oposto do número",
+  "concept": "o_negativo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O oposto do número\n\nA função `oposto` recebe um número e devolve o número com o sinal invertido: o oposto de 3 é -3, o oposto de -3 é 3, e o oposto de 0 é 0.\n\nUma linha no corpo: o `-` unário na frente do parâmetro.\n\nA partir desta aula os testes podem chamar suas funções com números negativos — e vão chamar.",
+  "starterCode": "pub fn oposto(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn oposto(x: i32) -> i32 {\n    -x\n}\n",
+  "testsCode": "use desafio::oposto;\n\n#[test]\nfn testa_oposto_de_tres_e_menos_tres() {\n    assert_eq!(oposto(3), -3);\n}\n\n#[test]\nfn testa_oposto_de_menos_tres_e_tres() {\n    assert_eq!(oposto(-3), 3);\n}\n\n#[test]\nfn testa_oposto_de_zero_e_zero() {\n    assert_eq!(oposto(0), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função oposto deve devolver -3 quando chamada com 3.",
+      "teste": "testa_oposto_de_tres_e_menos_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função oposto deve devolver 3 quando chamada com -3.",
+      "teste": "testa_oposto_de_menos_tres_e_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função oposto deve devolver 0 quando chamada com 0.",
+      "teste": "testa_oposto_de_zero_e_zero"
+    }
+  ],
+  "expectedTestCount": 3
+}

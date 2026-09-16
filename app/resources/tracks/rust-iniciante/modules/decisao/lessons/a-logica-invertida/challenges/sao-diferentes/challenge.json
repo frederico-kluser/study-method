@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "sao-diferentes",
+  "title": "São diferentes",
+  "concept": "a_logica_invertida",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# São diferentes\n\nDuas respostas para a mesma pergunta: `sao_iguais` diz se dois números são iguais; a prima `sao_diferentes` diz o contrário.\n\nA função `sao_diferentes` recebe dois números e devolve `true` quando eles NÃO são iguais.\n\nGuarde a pergunta *são iguais?* num `let` e devolva o contrário com `!` — sem escrever o contrário da comparação no corpo.\n\nOs testes chamam com pares diferentes e com pares iguais.",
+  "starterCode": "pub fn sao_diferentes(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn sao_diferentes(a: i32, b: i32) -> bool {\n    let iguais = a == b;\n    !iguais\n}\n",
+  "testsCode": "use desafio::sao_diferentes;\n\n#[test]\nfn testa_dois_e_tres_sao_diferentes() {\n    assert_eq!(sao_diferentes(2, 3), true);\n}\n\n#[test]\nfn testa_dois_e_dois_nao_sao_diferentes() {\n    assert_eq!(sao_diferentes(2, 2), false);\n}\n\n#[test]\nfn testa_sete_e_sete_nao_sao_diferentes() {\n    assert_eq!(sao_diferentes(7, 7), false);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função sao_diferentes deve devolver true quando chamada com 2 e 3.",
+      "teste": "testa_dois_e_tres_sao_diferentes"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função sao_diferentes deve devolver false quando chamada com 2 e 2.",
+      "teste": "testa_dois_e_dois_nao_sao_diferentes"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função sao_diferentes deve devolver false quando chamada com 7 e 7.",
+      "teste": "testa_sete_e_sete_nao_sao_diferentes"
+    }
+  ],
+  "expectedTestCount": 3
+}
