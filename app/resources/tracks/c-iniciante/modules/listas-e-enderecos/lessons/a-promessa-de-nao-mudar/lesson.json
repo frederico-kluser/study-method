@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-promessa-de-nao-mudar",
+  "title": "A promessa de não mudar",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "a-lista-como-parametro"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 18,
+    "ensina": "o qualificador const na promessa de leitura [pendente: sem nó no AST do clang — é qualificador de TIPO, invisível ao extrator; onda 3 decide a chave]",
+    "presume": "a-lista-como-parametro",
+    "quiz": "const int v[] diz \"esta função só lê\" — tentar mudar vira ERRO de compilação.",
+    "desafio": "soma-com-promessa — refaz somaLista com const int v[]; teste compara a soma (igual) e exige compilação limpa."
+  }
+}

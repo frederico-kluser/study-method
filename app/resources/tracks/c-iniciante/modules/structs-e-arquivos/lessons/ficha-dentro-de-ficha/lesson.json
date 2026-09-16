@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "ficha-dentro-de-ficha",
+  "title": "Ficha dentro de ficha",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "o-apelido-do-molde"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 7,
+    "ensina": "cons. — acesso a campo em forma nova (struct aninhada: pessoa.casa.x) [pendente: MemberExpr]",
+    "presume": "o-apelido-do-molde",
+    "quiz": "O campo pode ser outro struct: um ponto por nível de ponto.",
+    "desafio": "a-ficha-da-pessoa — Pessoa { nome, casa: Ponto }; imprime nome e casa; teste compara a linha."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "comparar-textos",
+  "title": "Comparar textos",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-comprimento"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 7,
+    "ensina": "api:strcmp",
+    "presume": "o-comprimento",
+    "quiz": "strcmp devolve 0 quando IGUAL — == compara ENDEREÇOS, nunca textos.",
+    "desafio": "a-porta-secreta — lê a palavra e compara com abrir; teste com abrir e fechar."
+  }
+}

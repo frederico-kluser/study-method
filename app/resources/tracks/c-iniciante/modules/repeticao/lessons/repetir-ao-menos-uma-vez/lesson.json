@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "repetir-ao-menos-uma-vez",
+  "title": "Repetir ao menos uma vez",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "enquanto"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "repeticao",
+    "moduloTitulo": "Repetição",
+    "aula": 7,
+    "ensina": "node:DoStmt",
+    "presume": "enquanto",
+    "quiz": "O do-while executa o corpo PRIMEIRO e testa depois — ao menos uma vez.",
+    "desafio": "menu-valido — repete até a opção ser 1–3; teste injeta \"9 0 2\" e espera a resposta da opção 2."
+  }
+}

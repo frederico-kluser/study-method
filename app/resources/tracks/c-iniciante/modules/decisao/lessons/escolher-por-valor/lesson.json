@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "escolher-por-valor",
+  "title": "O painel de botões",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "em-cascata"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "decisao",
+    "moduloTitulo": "Decisão",
+    "aula": 8,
+    "ensina": "node:BreakStmt + o switch [pendente: kind clang a confirmar no adaptador — SwitchStmt/CaseStmt hoje não emergem (os filhos sobem)]",
+    "presume": "em-cascata",
+    "quiz": "Sem o break, a execução CAI para o case de baixo (fallthrough).",
+    "desafio": "menu-do-dia — switch sobre o dia 1–7 com break; teste com 1 e 6."
+  }
+}

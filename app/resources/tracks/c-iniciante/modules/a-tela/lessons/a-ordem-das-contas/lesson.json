@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-ordem-das-contas",
+  "title": "A ordem das contas",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "somar-e-subtrair",
+    "multiplicar-e-dividir"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 14,
+    "ensina": "cons. — op:binary:* e op:binary:+ em forma nova (precedência; os parênteses não emitem chave — ParenExpr é transparente)",
+    "presume": "somar-e-subtrair, multiplicar-e-dividir",
+    "quiz": "2 + 3 * 4 é 14; (2 + 3) * 4 é 20.",
+    "desafio": "media-ponderada — média ponderada com parênteses corretos; teste compara o valor exato."
+  }
+}

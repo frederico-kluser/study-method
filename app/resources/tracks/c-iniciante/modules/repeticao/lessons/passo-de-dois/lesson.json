@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "passo-de-dois",
+  "title": "Passo de dois",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "para",
+    "somar-no-lugar"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "repeticao",
+    "moduloTitulo": "Repetição",
+    "aula": 5,
+    "ensina": "cons. — node:ForStmt em forma nova (passo i += 2; decrescente com i--)",
+    "presume": "para, somar-no-lugar",
+    "quiz": "O passo pode ser qualquer atribuição — inclusive andar para trás.",
+    "desafio": "pares-e-regressivos — imprime os pares 2..N e, numa segunda lista, os múltiplos de 5 de trás para frente; teste compara as duas listas."
+  }
+}

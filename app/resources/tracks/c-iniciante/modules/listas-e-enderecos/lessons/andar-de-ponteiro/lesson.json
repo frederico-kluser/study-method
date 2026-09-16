@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "andar-de-ponteiro",
+  "title": "Andar de ponteiro",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "ir-ate-a-casa",
+    "a-lista-como-parametro"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 20,
+    "ensina": "cons. — op:unary:* em forma nova (aritmética: *(p + i) é o mesmo que v[i])",
+    "presume": "ir-ate-a-casa, a-lista-como-parametro",
+    "quiz": "p + 1 avança UM ELEMENTO (4 bytes num int, medido) — não um byte.",
+    "desafio": "o-passeio — imprime o array usando só um ponteiro que anda; teste compara as n linhas."
+  }
+}

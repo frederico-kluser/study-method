@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "laco-dentro-de-laco",
+  "title": "Laço dentro de laço",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "para"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "repeticao",
+    "moduloTitulo": "Repetição",
+    "aula": 10,
+    "ensina": "cons. — node:ForStmt em forma nova (aninhado)",
+    "presume": "para",
+    "quiz": "3×4 são 12 iterações: para cada volta de fora, o de dentro roda inteiro.",
+    "desafio": "retangulo-de-hashtags — lê L e C e desenha L linhas com C #; teste compara o desenho."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "mudar-o-dado",
+  "title": "Mudar o dado",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "o-molde-e-o-dado",
+    "mudar-o-valor"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 2,
+    "ensina": "cons. — acesso a campo em forma nova (atribuir campo; atribuir o struct INTEIRO copia tudo) [pendente: MemberExpr]",
+    "presume": "o-molde-e-o-dado, mudar-o-valor",
+    "quiz": "p2 = p1 copia campo a campo — a foto, não o molde.",
+    "desafio": "o-clonador — copia um struct para outro e muda o original; teste prova que a cópia não mudou."
+  }
+}

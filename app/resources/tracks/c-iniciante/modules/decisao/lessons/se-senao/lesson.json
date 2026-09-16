@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "se-senao",
+  "title": "Um caminho ou outro",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "se"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "decisao",
+    "moduloTitulo": "Decisão",
+    "aula": 2,
+    "ensina": "cons. — node:IfStmt em forma nova (o caminho else; o if/else é UM nó no clang)",
+    "presume": "se",
+    "quiz": "Exatamente um dos dois blocos roda.",
+    "desafio": "par-ou-impar — lê um inteiro e diz par ou ímpar com %; teste com 7 e 8."
+  }
+}

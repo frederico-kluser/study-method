@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-string-e-o-zero",
+  "title": "O texto que acaba em zero",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-caixa-com-gavetas",
+    "uma-letra-e-um-numero"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 1,
+    "ensina": "cons. — decl:var em forma nova (o array de char; o terminador \\0 e o %s ficam em prosa — o literal node:StringLiteral já nasceu na aula 1)",
+    "presume": "a-caixa-com-gavetas, uma-letra-e-um-numero",
+    "quiz": "\"abc\" são 4 gavetas: a, b, c e o terminador \\0 que marca o fim.",
+    "desafio": "saudacao-nome — imprime a saudação com o nome fixo do código, via %s; teste compara a linha."
+  }
+}

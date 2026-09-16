@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-limite-do-int",
+  "title": "O maior número que cabe",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "comparacoes"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 21,
+    "ensina": "cons. — node:IncludeDirective em forma nova (o #include <limits.h>; INT_MAX/INT_MIN são macro e não emitem chave — §8)",
+    "presume": "comparacoes",
+    "quiz": "INT_MAX é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa.",
+    "desafio": "o-teto-e-o-piso — imprime INT_MAX e INT_MIN; teste compara os dois números."
+  }
+}

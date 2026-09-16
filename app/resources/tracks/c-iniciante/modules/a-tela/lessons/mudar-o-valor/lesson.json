@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "mudar-o-valor",
+  "title": "Mudar o valor",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "um-nome-para-um-valor"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 8,
+    "ensina": "op:assign:=",
+    "presume": "um-nome-para-um-valor",
+    "quiz": "O valor antigo é perdido no momento da atribuição.",
+    "desafio": "trocar-os-valores — troca os valores de duas variáveis usando uma terceira; teste imprime as duas depois da troca."
+  }
+}

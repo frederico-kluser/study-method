@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-esqueleto",
+  "title": "A porta do programa",
+  "summary": "Todo programa C começa a rodar pela função main — e é o programa de fora quem chama, pelo nome, a função que você escreve inteira.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "decl:func",
+  "concepts": [
+    "a_funcao"
+  ],
+  "prerequisites": [
+    "primeira-tela"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa ganha esqueleto: existe uma porta de entrada (main, que o aluno lê) e a função que o aluno escreve é um degrau que a porta chama pelo nome",
+  "theory": [
+    {
+      "id": "o-esqueleto-de-todo-programa",
+      "title": "Todo programa C tem uma porta de entrada",
+      "markdown": "Em C não existe linha solta: **nada roda fora de uma função**. Todo programa C começa a rodar pela função `main` — é a porta de entrada do programa.\n\nNo seu desafio, o `main` é do harness (o programa de fora): você o lê, nunca o edita. A sua parte é a função que a tela pede — e, desta vez, ela INTEIRA é sua, da assinatura ao corpo:\n\n```c\nvoid tela(void) {\n    printf(\"oi\\n\");\n}\n```\n\nUma função é um bloco com nome. Quem quiser executar o corpo dela chama pelo nome — e é exatamente isso que o `main` do harness faz com a sua."
+    },
+    {
+      "id": "a-assinatura-e-o-corpo",
+      "title": "A assinatura e o corpo",
+      "markdown": "Olhe a função por dentro, pedaço por pedaço:\n\n- O primeiro `void` diz o que a função **devolve** para quem chamou — e `void` quer dizer *nada*: esta função só imprime.\n- `tela` é o **nome** da função. É por ele que o programa de fora a chama.\n- O `(void)` entre parênteses diz o que ela **recebe** — também nada.\n- O `{ ... }` é o **corpo**: as ordens que rodam quando alguém chama a função.\n\nA assinatura (`void tela(void) {`) e o corpo são duas peças — e, no desafio, as duas são escritas por você."
+    },
+    {
+      "id": "quem-chama-a-sua-funcao",
+      "title": "Quem chama a sua função",
+      "markdown": "Definir uma função não a roda. Ela roda quando ALGUÉM a chama — escrevendo o nome dela seguido de parênteses:\n\n```c\ntela();\n```\n\nEssa ordem roda o corpo da função e volta para a linha de baixo. É assim que o `main` do harness usa a função que você escreveu: chama `tela`, captura o que ela imprimiu e confere.\n\nPor isso o nome é um **contrato**: o `main` do harness procura exatamente `tela`. Se a função se chamar outra coisa, o programa de fora não encontra ninguém para chamar e a compilação falha com um símbolo indefinido."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-programa-comeca-pelo-main",
+      "statement": "Todo programa C começa a rodar pela função `main` — e é ela quem chama a função que você escreve.",
+      "question": "O programa do desafio tem o `main` do harness (que você lê) e a função `tela` (que você escreve). Por onde ele começa a rodar?",
+      "options": [
+        "Pelo `main`: é ele quem chama a `tela`.",
+        "Pela `tela`: você a escreveu no arquivo.",
+        "Pelos dois ao mesmo tempo.",
+        "Pela primeira linha do arquivo: em C roda sempre de cima para baixo."
+      ],
+      "answerIndex": 0,
+      "feedback": "A porta de entrada de todo programa C é o `main`. A `tela` roda quando ele a chama.",
+      "sectionId": "o-esqueleto-de-todo-programa",
+      "optionRationales": [
+        "Todo programa C começa pela função `main`; é ela quem chama a `tela` pelo nome.",
+        "Escrever a função no arquivo não a roda: função só roda quando alguém a chama.",
+        "Não existe \"ao mesmo tempo\": o programa entra pelo `main` e, quando ele chama, então a `tela` roda.",
+        "Em C não existem ordens soltas no arquivo: tudo o que roda está dentro de uma função, e a entrada é o `main`."
+      ]
+    },
+    {
+      "id": "a-assinatura-diz-o-contrato",
+      "statement": "A linha `void tela(void) {` é a assinatura da função: o que ela devolve, o nome e o que recebe.",
+      "question": "Na assinatura `void tela(void)`, o que o `void` antes do nome diz?",
+      "options": [
+        "Que a função não devolve valor nenhum.",
+        "Que a função não recebe nada.",
+        "Que a função imprime na tela.",
+        "Que a função é a `main` do programa."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `void` da frente descreve o retorno: nada volta para quem chamou. O `(void)` de dentro é quem fala do que ela recebe.",
+      "sectionId": "a-assinatura-e-o-corpo",
+      "optionRationales": [
+        "O `void` da frente é o tipo de retorno: esta função não devolve valor nenhum.",
+        "O que ela recebe está entre os parênteses, depois do nome: o `(void)` de dentro.",
+        "Imprimir na tela é o trabalho do `printf` dentro do corpo — o `void` não fala de impressão.",
+        "A função do programa continua sendo a `main`; a sua é um degrau que o `main` chama."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function definition — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A página oficial da definição de função em C: assinatura, corpo e a chamada pelo nome."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens de C: em C, toda ordem vive dentro de uma função."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N3220)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3220.pdf",
+      "description": "O padrão do C por dentro: a seção 5.1.2 define o `main` como a entrada de todo programa hospedado."
+    }
+  ],
+  "challenges": [
+    "sua-primeira-janela"
+  ]
+}

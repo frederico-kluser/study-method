@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tela",
+  "title": "A tela",
+  "order": 1,
+  "lessons": [
+    "primeira-tela",
+    "o-esqueleto",
+    "devolver-zero",
+    "a-lista-de-ferramentas",
+    "o-que-o-compilador-ignora",
+    "buraco-na-frase",
+    "um-nome-para-um-valor",
+    "mudar-o-valor",
+    "somar-e-subtrair",
+    "multiplicar-e-dividir",
+    "o-resto",
+    "o-numero-com-virgula",
+    "a-divisao-real",
+    "a-ordem-das-contas",
+    "somar-no-lugar",
+    "um-de-cada-vez",
+    "comparacoes",
+    "perguntar-ao-usuario",
+    "dois-valores-de-uma-vez",
+    "uma-letra-e-um-numero",
+    "o-limite-do-int"
+  ]
+}

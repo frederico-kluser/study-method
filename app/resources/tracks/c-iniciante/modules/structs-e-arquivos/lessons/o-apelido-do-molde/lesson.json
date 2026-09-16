@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-apelido-do-molde",
+  "title": "O apelido do molde",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-molde-e-o-dado"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 3,
+    "ensina": "typedef — Ponto passa a ser um tipo seu, sem a palavra struct [pendente: kind clang a confirmar no adaptador — TypedefDecl hoje não emerge]",
+    "presume": "o-molde-e-o-dado",
+    "quiz": "typedef struct { ... } Ponto; — Ponto passa a ser um tipo seu, sem a palavra struct.",
+    "desafio": "o-retangulo — typedef de Retangulo com 4 campos e impressão; teste compara a linha."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ponteiro-que-nao-aponta",
+  "title": "O papel sem endereço",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-papel-com-o-endereco"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 19,
+    "ensina": "NULL, o endereço \"nenhum\" [pendente: macro do <stddef.h> — não emite ApiRef nem nó; hoje invisível ao extrator; onda 3 decide]",
+    "presume": "o-papel-com-o-endereco",
+    "quiz": "NULL é o endereço \"nenhum\"; usá-lo como casa desaba o programa — por isso se testa antes.",
+    "desafio": "o-gate-do-nulo — maiorDe(v, n) devolve ponteiro para o maior, ou NULL se n == 0; o main testa != NULL; teste com n=0 e n>0."
+  }
+}

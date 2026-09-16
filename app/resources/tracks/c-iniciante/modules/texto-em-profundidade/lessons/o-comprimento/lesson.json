@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-comprimento",
+  "title": "Quantas letras tem",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "a-string-e-o-zero"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 2,
+    "ensina": "api:strlen (com o #include <string.h> — node:IncludeDirective em forma nova)",
+    "presume": "a-string-e-o-zero",
+    "quiz": "strlen devolve o tamanho SEM contar o \\0: strlen(\"abc\") é 3 (medido).",
+    "desafio": "medidor-de-palavras — imprime o tamanho de 3 palavras fixas; teste compara os 3 números."
+  }
+}

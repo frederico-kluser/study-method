@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "enderecos",
+  "title": "O endereço das casas",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "quantos-bytes",
+    "perguntar-ao-usuario"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 8,
+    "ensina": "cons. — op:unary:& em forma nova (o mesmo & da aula perguntar-ao-usuario, agora com nome de operador; o %p fica em prosa — não há eixo de formato)",
+    "presume": "quantos-bytes, perguntar-ao-usuario",
+    "quiz": "&x devolve o endereço de x — o mesmo & que a scanf sempre pediu; agora com nome.",
+    "desafio": "enderecos-na-tela — imprime endereço e valor de duas variáveis; teste compara as duas linhas (cada uma com %p e o valor)."
+  }
+}

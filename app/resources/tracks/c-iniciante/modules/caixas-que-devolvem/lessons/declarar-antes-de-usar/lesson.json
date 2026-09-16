@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "declarar-antes-de-usar",
+  "title": "O cartaz na porta",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "uma-caixa-chama-outra"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "caixas-que-devolvem",
+    "moduloTitulo": "Caixas que devolvem",
+    "aula": 12,
+    "ensina": "cons. — decl:func em forma nova (o protótipo: a promessa sem corpo — no clang é FunctionDecl e emite a MESMA chave)",
+    "presume": "uma-caixa-chama-outra",
+    "quiz": "O compilador lê de cima para baixo: sem protótipo, chamar antes de definir não compila.",
+    "desafio": "ordem-invertida — starter com a chamada antes da definição (não compila); o aluno acrescenta o protótipo; teste: compila e o valor devolvido bate."
+  }
+}

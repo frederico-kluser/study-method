@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "acrescentar-no-fim",
+  "title": "Acrescentar no fim",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "escrever-no-caderno"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 12,
+    "ensina": "cons. — api:fopen em forma nova (modo \"a\")",
+    "presume": "escrever-no-caderno",
+    "quiz": "\"w\" apaga tudo; \"a\" escreve no fim — a diferença é uma letra.",
+    "desafio": "o-diario-crescente — roda a escrita duas vezes; teste compara as 6 linhas acumuladas."
+  }
+}

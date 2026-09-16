@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "slug": "consolidacao-texto",
+  "title": "O projeto do módulo",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 16,
+    "ensina": "cons. — projeto (capitalização por palavra)",
+    "presume": "a-string-e-o-zero a contar-palavras",
+    "quiz": "(quiz) Por que todo texto precisa de espaço para o \\0?",
+    "desafio": "o-normalizador — lê um nome composto e capitaliza a inicial de cada palavra (ctype, laços, buffer com snprintf); 3 testes."
+  }
+}

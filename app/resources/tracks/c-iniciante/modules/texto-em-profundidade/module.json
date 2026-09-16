@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "texto-em-profundidade",
+  "title": "Texto em profundidade",
+  "order": 6,
+  "lessons": [
+    "a-string-e-o-zero",
+    "o-comprimento",
+    "ler-uma-palavra",
+    "percorrer-a-string",
+    "copiar-a-mao",
+    "copiar-com-limite",
+    "comparar-textos",
+    "montar-um-texto",
+    "gritar-a-mao",
+    "a-biblioteca-de-letras",
+    "a-string-como-parametro",
+    "a-lista-de-strings",
+    "procurar-na-lista-de-strings",
+    "ao-contrario",
+    "contar-palavras",
+    "consolidacao-texto"
+  ]
+}

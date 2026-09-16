@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-em-vez-de-mostrar",
+  "title": "Devolver em vez de mostrar",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-janela-de-entrada"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "caixas-que-devolvem",
+    "moduloTitulo": "Caixas que devolvem",
+    "aula": 4,
+    "ensina": "cons. — node:ReturnStmt em forma nova (um valor para quem chamou — a ESCRITA própria da chave)",
+    "presume": "a-janela-de-entrada",
+    "quiz": "O return ENCERRA a caixa no ato e entrega o valor na linha da chamada.",
+    "desafio": "maior-caixa — maior(a, b) devolve o maior e o main imprime; teste espera 9 para (3, 9) e (9, 3)."
+  }
+}

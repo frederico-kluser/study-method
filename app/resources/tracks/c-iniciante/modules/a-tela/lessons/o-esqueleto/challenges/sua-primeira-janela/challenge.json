@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "sua-primeira-janela",
+  "title": "Sua primeira janela",
+  "concept": "a_funcao",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Sua primeira janela\n\nDesta vez **a função inteira é sua** — da linha de assinatura ao `}` final. O arquivo vem só com o `#include <stdio.h>` pronto (leitura) e com um aviso de onde escrever.\n\nEscreva a função `tela` — o programa de fora a chama por esse nome, então o nome é contrato — para imprimir uma janela de três linhas, exatamente assim:\n\n```text\n+------------------+\n| oi, sou a tela!  |\n+------------------+\n```\n\nSão três `printf`, cada um com `\\n` no fim: as duas bordas são iguais, e no meio vem a mensagem da tela.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao tela inteira:\n   a assinatura agora e sua, e o corpo tambem.\n   o programa de fora chama tela() pelo nome — o nome e o contrato. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio sua-primeira-janela — counter_protocol (03-tdd 3.9.3).\n   Aqui o aluno escreveu a funcao INTEIRA; o teste a chama e compara a\n   janela. A captura do stdout acontece DENTRO do teste: freopen para o\n   arquivo temporario, chamada da funcao, leitura do arquivo de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid tela(void);\n\nSM_TEST(a_janela_completa) {\n    /* captura: o stdout vira o arquivo sm_saida.tmp */\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    tela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a borda de cima\", linha, \"+------------------+\\n\",\n              \"a janela comeca pela borda de cima\");\n    fgets(linha, 80, f);\n    checa_str(\"o conteudo da janela\", linha, \"| oi, sou a tela!  |\\n\",\n              \"entre as bordas vem a mensagem da tela\");\n    fgets(linha, 80, f);\n    checa_str(\"a borda de baixo\", linha, \"+------------------+\\n\",\n              \"a janela fecha com a mesma borda de cima\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"+------------------+\\n\");\n    printf(\"| oi, sou a tela!  |\\n\");\n    printf(\"+------------------+\\n\");\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_janela_completa",
+      "teste": "a_janela_completa",
+      "descricao": "a funcao tela, escrita inteira pelo aluno (assinatura void tela(void) e corpo), imprime a janela de tres linhas na ordem: borda de cima, mensagem do meio, borda de baixo"
+    }
+  ]
+}

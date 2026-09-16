@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "structs-e-arquivos",
+  "title": "Structs e arquivos",
+  "order": 7,
+  "lessons": [
+    "o-molde-e-o-dado",
+    "mudar-o-dado",
+    "o-apelido-do-molde",
+    "o-dado-na-caixa",
+    "mudar-o-original",
+    "a-lista-de-fichas",
+    "ficha-dentro-de-ficha",
+    "a-ficha-completa",
+    "o-caderno",
+    "escrever-no-caderno",
+    "ler-o-caderno",
+    "acrescentar-no-fim",
+    "ler-numeros-do-caderno",
+    "o-caderno-de-fichas",
+    "a-biblioteca-em-dois-arquivos",
+    "compilar-sozinho",
+    "consolidacao-structs-arquivos"
+  ]
+}

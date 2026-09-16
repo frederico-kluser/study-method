@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "ler-ate-sentar",
+  "title": "Ler até sentar",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "para",
+    "perguntar-ao-usuario"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "repeticao",
+    "moduloTitulo": "Repetição",
+    "aula": 6,
+    "ensina": "cons. — api:scanf em forma nova (o retorno como condição: quantos campos leu; EOF só em prosa)",
+    "presume": "para, perguntar-ao-usuario",
+    "quiz": "scanf devolve QUANTOS campos leu — é por isso que ele pode ser condição de laço.",
+    "desafio": "soma-ate-sentinela — lê inteiros até o valor -1 e soma os anteriores; teste injeta \"5 7 3 -1\", espera 15."
+  }
+}

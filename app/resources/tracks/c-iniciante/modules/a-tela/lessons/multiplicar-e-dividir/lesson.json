@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "multiplicar-e-dividir",
+  "title": "Multiplicar, e o corte da divisão",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "somar-e-subtrair"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 10,
+    "ensina": "op:binary:*, op:binary:/",
+    "presume": "somar-e-subtrair",
+    "quiz": "Entre inteiros, 7 / 2 é 3 — o C corta, sem arredondar (medido).",
+    "desafio": "repartir-figurinhas — reparte figurinhas entre amigos (divisão inteira); teste compara o quociente."
+  }
+}

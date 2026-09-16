@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "varrer-a-lista",
+  "title": "Varrer a lista",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "pegar-pela-gaveta",
+    "para"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 3,
+    "ensina": "cons. — node:ForStmt em forma nova (o for que percorre o array)",
+    "presume": "pegar-pela-gaveta, para",
+    "quiz": "O laço anda de 0 até n-1: i < 5, nunca <=.",
+    "desafio": "soma-das-notas — soma os elementos com for; teste compara a soma."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-caderno-de-fichas",
+  "title": "O caderno de fichas",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-ficha-completa",
+    "ler-numeros-do-caderno"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 14,
+    "ensina": "cons. — composição (fprintf/fscanf campo a campo: uma linha, um registro) [pendente: MemberExpr nos campos]",
+    "presume": "a-ficha-completa, ler-numeros-do-caderno",
+    "quiz": "Um campo por vez, na MESMA ordem para escrever e ler.",
+    "desafio": "a-agenda — salva 2 pessoas em arquivo e re-lê imprimindo; teste compara as 2 fichas re-lidas."
+  }
+}

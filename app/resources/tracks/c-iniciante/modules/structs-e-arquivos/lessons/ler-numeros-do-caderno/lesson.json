@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "ler-numeros-do-caderno",
+  "title": "Ler números do caderno",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-caderno",
+    "perguntar-ao-usuario"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 13,
+    "ensina": "api:fscanf",
+    "presume": "o-caderno, perguntar-ao-usuario",
+    "quiz": "fscanf devolve QUANTOS campos leu: o laço termina quando não lê mais (!= 2).",
+    "desafio": "a-soma-do-arquivo — lê números de um arquivo até o fim e soma; teste com arquivo de 5 números, compara a soma."
+  }
+}
