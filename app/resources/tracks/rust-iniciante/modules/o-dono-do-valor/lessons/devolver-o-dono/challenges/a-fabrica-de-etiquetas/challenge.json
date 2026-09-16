@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-fabrica-de-etiquetas",
+  "title": "A fábrica de etiquetas",
+  "concept": "devolver_dono",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A fábrica de etiquetas\n\nA função `fabricar` não recebe nada: ela CRIA a etiqueta com `String::from` numa ligação nova e DEVOLVE o dono:\n\n- `fabricar()` devolve `CX-42`.\n\nO dono nasce dentro da função e sai pelo retorno — a última expressão é a própria `String`.",
+  "starterCode": "pub fn fabricar() -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn fabricar() -> String {\n    let etiqueta = String::from(\"CX-42\");\n    etiqueta\n}\n",
+  "testsCode": "use desafio::fabricar;\n\n#[test]\nfn testa_a_etiqueta_fabricada() {\n    assert_eq!(fabricar(), \"CX-42\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "fabricar deve devolver o String dono \"CX-42\", criado com String::from numa ligação nova dentro da função.",
+      "teste": "testa_a_etiqueta_fabricada"
+    }
+  ],
+  "expectedTestCount": 1
+}

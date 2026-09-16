@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta-que-sobrescreve",
+  "title": "A etiqueta que sobrescreve",
+  "concept": "sombreamento",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A etiqueta que sobrescreve\n\nA função `reetiquetar` recebe a nota, soma 1 com SOMBREAMENTO — um `let` de novo sobre o mesmo nome — e monta o rótulo:\n\n- `reetiquetar(6)` devolve `nota 7`;\n- `reetiquetar(9)` devolve `nota 10`.\n\nO `let nota = nota + 1;` lê o valor antigo na direita e deixa o nome apontando para o valor novo. Monte o rótulo com o `format!`.",
+  "starterCode": "pub fn reetiquetar(nota: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn reetiquetar(nota: i32) -> String {\n    let nota = nota + 1;\n    format!(\"nota {}\", nota)\n}\n",
+  "testsCode": "use desafio::reetiquetar;\n\n#[test]\nfn testa_a_etiqueta_da_nota_seis() {\n    assert_eq!(reetiquetar(6), \"nota 7\");\n}\n\n#[test]\nfn testa_a_etiqueta_da_nota_nove() {\n    assert_eq!(reetiquetar(9), \"nota 10\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "reetiquetar(6) deve devolver \"nota 7\", com a nota somada por sombreamento.",
+      "teste": "testa_a_etiqueta_da_nota_seis"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "reetiquetar(9) deve devolver \"nota 10\", com a nota somada por sombreamento.",
+      "teste": "testa_a_etiqueta_da_nota_nove"
+    }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-funcao-que-transforma",
+  "title": "A função que transforma",
+  "summary": "Recebe a String como dono, devolve uma String NOVA: o texto entra, a transformação sai.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "transformacao"
+  ],
+  "prerequisites": [
+    "devolver-o-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "entra-dono-sai-dono-2",
+      "title": "Entra dono, sai dono",
+      "markdown": "A função de transformação assina o caminho completo do dono:\n\n```rust\npub fn transformar(texto: String) -> String {\n    format!(\"[{}]\", texto)\n}\n```\n\n`String` entra por valor (a função consome) e uma `String` NOVA sai pelo retorno (o dono volta). São duas caixas: a que morre dentro e a que nasce para fora."
+    },
+    {
+      "id": "o-pipeline-do-dono",
+      "title": "O pipeline do dono",
+      "markdown": "Este é o formato das funções de texto em Rust: receber o dono, transformar, devolver outro dono. Quem chama encadeia sem medo:\n\n```rust\nlet rotulo = transformar(String::from(\"ano\"));\n```\n\n`rotulo` vale `[ano]` — e a caixa `ano` já era: foi consumida na transformação."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "duas-caixas-no-caminho",
+      "sectionId": "entra-dono-sai-dono-2",
+      "statement": "A função que transforma recebe String por valor e devolve uma String nova.",
+      "question": "Em `transformar(texto: String) -> String`, quantos donos passam pelo caminho?",
+      "options": [
+        "Dois: o que entra (consumido) e o que sai (novo)",
+        "Um só",
+        "Nenhum",
+        "Três"
+      ],
+      "answerIndex": 0,
+      "feedback": "O dono entra (e morre dentro); a String nova sai pelo retorno.",
+      "optionRationales": [
+        "Entrada e saída são dois valores donos — o consumo e a criação.",
+        "São dois: a caixa recebida e a caixa devolvida.",
+        "Toda String no caminho tem dono — em cada ponta, um.",
+        "Entrada e saída: dois donos, não três."
+      ]
+    },
+    {
+      "id": "quem-chama-troca-de-caixa",
+      "sectionId": "o-pipeline-do-dono",
+      "statement": "Quem chama perde a caixa recebida e ganha a devolvida.",
+      "question": "Depois de `let rotulo = transformar(String::from(\"ano\"));`, o que sobra da String `ano`?",
+      "options": [
+        "Nada: ela foi consumida; rotulo é a nova dona",
+        "Ela continua dona",
+        "Ela vira rotulo",
+        "Ela fica vazia"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa morreu na transformação; o dono que volta é o rótulo.",
+      "optionRationales": [
+        "A String criada na hora foi consumida; o retorno é outra caixa.",
+        "A caixa criada em linha não sobrevive à chamada.",
+        "rotulo é OUTRA caixa — a antiga foi consumida.",
+        "Consumir não esvazia: a caixa inteira se foi."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "o-texto-que-vira-rotulo"
+  ]
+}

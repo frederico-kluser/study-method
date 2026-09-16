@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-dois-temas",
+  "title": "Os dois temas",
+  "concept": "string_dona",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# Os dois temas\n\nA função `tema` recebe a escolha e devolve o rótulo do tema como `String` DONA, montada com `String::from`:\n\n- `tema(true)` devolve `tema escuro`;\n- `tema(false)` devolve `tema claro`.\n\nCada ramo do `if` monta a própria caixa dona e a devolve. Os testes chamam com `true` e com `false`.",
+  "starterCode": "pub fn tema(escuro: bool) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn tema(escuro: bool) -> String {\n    if escuro {\n        String::from(\"tema escuro\")\n    } else {\n        String::from(\"tema claro\")\n    }\n}\n",
+  "testsCode": "use desafio::tema;\n\n#[test]\nfn testa_o_tema_escuro() {\n    assert_eq!(tema(true), \"tema escuro\");\n}\n\n#[test]\nfn testa_o_tema_claro() {\n    assert_eq!(tema(false), \"tema claro\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "tema(true) deve devolver o String dono \"tema escuro\", montado com String::from.",
+      "teste": "testa_o_tema_escuro"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "tema(false) deve devolver o String dono \"tema claro\", montado com String::from.",
+      "teste": "testa_o_tema_claro"
+    }
+  ],
+  "expectedTestCount": 2
+}

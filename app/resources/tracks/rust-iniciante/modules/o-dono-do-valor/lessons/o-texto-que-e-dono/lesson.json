@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-texto-que-e-dono",
+  "title": "O texto que é dono",
+  "summary": "O String::from cria um texto que TEM dono — a caixa que o compilador vigia.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "api:String::from",
+  "concepts": [
+    "string_dona"
+  ],
+  "prerequisites": [
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "api:String::from",
+      "global:String",
+      "node:ScopedIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:dono"
+  ],
+  "theory": [
+    {
+      "id": "o-tipo-com-dono",
+      "title": "O tipo com dono",
+      "markdown": "O `String` que o `format!` devolve é um texto com DONO: a caixa guarda os caracteres e o compilador vigia quem é o dono dela.\n\n```rust\npub fn tema(escuro: bool) -> String {\n    String::from(\"tema escuro\")\n}\n```\n\nO `String::from` MONTA um `String` dono a partir do texto entre aspas — e a assinatura promete esse dono no `-> String`."
+    },
+    {
+      "id": "duas-caixas-dois-donos",
+      "title": "Duas caixas, dois donos",
+      "markdown": "Cada `String::from` cria a própria caixa:\n\n```rust\nlet claro = String::from(\"tema claro\");\nlet escuro = String::from(\"tema escuro\");\n```\n\n`claro` e `escuro` são donos independentes — mexer em um não afeta o outro. Esse dono é o centro do módulo: a partir de agora, toda `String` tem um nome que responde por ela."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "from-monta-dono",
+      "sectionId": "o-tipo-com-dono",
+      "statement": "O String::from monta um String que tem dono — a caixa fica registrada em nome de uma variável.",
+      "question": "O que `String::from(\"tema escuro\")` devolve?",
+      "options": [
+        "Um String dono com o texto entre aspas",
+        "O texto entre aspas, sem dono",
+        "Nada: só mostra na tela",
+        "Um número"
+      ],
+      "answerIndex": 0,
+      "feedback": "O String::from monta a caixa dona com o texto entre aspas.",
+      "optionRationales": [
+        "O resultado é um String dono: a caixa existe e tem um nome que responde por ela.",
+        "O texto entre aspas é a matéria-prima; o String::from é que monta o dono.",
+        "Quem mostra na tela é o println! — o String::from devolve o valor.",
+        "O String::from monta texto; número dono é o i32, que não precisa de caixa."
+      ]
+    },
+    {
+      "id": "donos-independentes",
+      "sectionId": "duas-caixas-dois-donos",
+      "statement": "Duas variáveis criadas com String::from são donas independentes.",
+      "question": "Depois de `let a = String::from(\"x\"); let b = String::from(\"x\");`, o que acontece se você usar `a`?",
+      "options": [
+        "Nada muda: a e b são donos independentes",
+        "b some",
+        "a fica vazia",
+        "O compilador recusa"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada String::from criou a própria caixa: são dois donos do mesmo texto.",
+      "optionRationales": [
+        "São duas caixas iguais, cada uma com o seu dono — usar a não mexe em b.",
+        "Nada morre aqui: as duas caixas nasceram independentes.",
+        "a segue com o texto dele; nenhuma ligação esvaziou a caixa.",
+        "O compilador só recusa quando o dono deixa de existir — aqui existem dois."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "Understanding Ownership — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html",
+      "description": "O capítulo oficial do dono do valor: a visão geral antes do detalhe."
+    }
+  ],
+  "challenges": [
+    "os-dois-temas"
+  ]
+}

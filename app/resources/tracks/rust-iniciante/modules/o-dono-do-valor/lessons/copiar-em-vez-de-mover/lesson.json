@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "slug": "copiar-em-vez-de-mover",
+  "title": "Copiar em vez de mover",
+  "summary": "O .clone cria uma SEGUNDA caixa idêntica — o original continua com o dono dele.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "api:.clone",
+  "concepts": [
+    "clone"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.clone",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-segunda-caixa",
+      "title": "A segunda caixa",
+      "markdown": "O `.clone` copia o conteúdo para uma caixa NOVA — agora existem duas caixas idênticas, cada uma com o seu dono:\n\n```rust\nlet original = String::from(\"DOC-77\");\nlet copia = original.clone();\n```\n\n`original` segue vivo: o clone NÃO toma a caixa dele. O método vem depois do ponto, e o receptor é o nome — quem pede a cópia é a caixa."
+    },
+    {
+      "id": "por-que-copiar",
+      "title": "Por que copiar",
+      "markdown": "Dar o valor a outro nome SEM clone esvazia a caixa original — é a aula seguinte. O `.clone` é a saída quando os dois nomes precisam continuar donos:\n\n```rust\nlet relatorio = String::from(\"vendas\");\nlet arquivo = relatorio.clone();\n```\n\nDois donos, um mesmo texto. Guarde a forma: ela volta na aula `o-movimento`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "clone-mantem-o-original",
+      "sectionId": "a-segunda-caixa",
+      "statement": "O .clone cria uma caixa nova com o mesmo conteúdo; o dono original não perde nada.",
+      "question": "Depois de `let c = original.clone();`, o que acontece com `original`?",
+      "options": [
+        "Continua com o texto dele",
+        "Fica vazio",
+        "Vira a mesma variável que c",
+        "O compilador recusa"
+      ],
+      "answerIndex": 0,
+      "feedback": "O clone é uma SEGUNDA caixa: o original não perde nada.",
+      "optionRationales": [
+        "A cópia nasce nova; o original segue dono do texto dele.",
+        "Nada esvazia a caixa original — esvaziar é o movimento, sem clone.",
+        "c é outra caixa; as duas são donas independentes.",
+        "O compilador aprova o clone: é a forma de ter dois donos."
+      ]
+    },
+    {
+      "id": "clone-e-metodo",
+      "sectionId": "a-segunda-caixa",
+      "statement": "clone é método: vem depois do ponto, pedido pelo receptor.",
+      "question": "Como se pede a cópia do texto guardado em `texto`?",
+      "options": [
+        "texto.clone()",
+        "clone(texto)",
+        "String::from(texto)",
+        "texto copy"
+      ],
+      "answerIndex": 0,
+      "feedback": "O método vem depois do ponto: o receptor pede a cópia dele.",
+      "optionRationales": [
+        "O ponto chama o método no receptor — a caixa pede a própria cópia.",
+        "clone não é função solta: é método, e vem do receptor.",
+        "String::from monta uma caixa nova a partir de um texto — não é a cópia do receptor.",
+        "copy não é método de String; o nome do método é clone."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    }
+  ],
+  "challenges": [
+    "a-copia-do-relatorio"
+  ]
+}

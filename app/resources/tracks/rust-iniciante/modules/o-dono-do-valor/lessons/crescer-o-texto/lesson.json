@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "slug": "crescer-o-texto",
+  "title": "Crescer o texto",
+  "summary": "O .push_str acrescenta texto no fim da caixa — a String cresce no lugar, sem trocar de dono.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.push_str",
+  "concepts": [
+    "crescer_texto"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono",
+    "mudar-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.push_str"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "acrescentar-no-fim",
+      "title": "Acrescentar no fim",
+      "markdown": "O `.push_str` empurra texto para o FIM da caixa — a `String` cresce no lugar:\n\n```rust\nlet mut texto = String::from(\"oi\");\ntexto.push_str(\"!!!\");\n```\n\nDepois da linha, `texto` vale `oi!!!`. Nada é devolvido: a caixa é mudada ONDE ELA ESTÁ — é o mesmo texto, agora maior."
+    },
+    {
+      "id": "a-caixa-precisa-de-mut",
+      "title": "A caixa precisa de mut",
+      "markdown": "Crescer a caixa é MUDAR o que o dono tem permitido: por isso o receptor precisa de `mut` — no `let mut texto`, ou no parâmetro `mut texto`.\n\nSem o `mut`, o compilador recusa: quem não é dono-mutável não pode mudar a caixa. É o `let mut` da aula `mudar-o-valor`, agora numa `String`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "push-str-acrescenta",
+      "sectionId": "acrescentar-no-fim",
+      "statement": "O push_str acrescenta o texto no FIM da caixa, mudando a String no lugar.",
+      "question": "Depois de `let mut t = String::from(\"oi\"); t.push_str(\"!!!\");`, quanto vale `t`?",
+      "options": [
+        "oi!!!",
+        "!!!oi",
+        "oi",
+        "!!!"
+      ],
+      "answerIndex": 0,
+      "feedback": "O push_str empurra para o fim: o texto cresce no lugar.",
+      "optionRationales": [
+        "A caixa cresceu pelo fim: oi seguido de !!!.",
+        "O empurrão é para o fim, não para o começo.",
+        "Sem o push_str a caixa não cresce — e aqui ela cresceu.",
+        "O !!! entra no FIM da caixa que já tinha oi."
+      ]
+    },
+    {
+      "id": "mut-no-receptor",
+      "sectionId": "a-caixa-precisa-de-mut",
+      "statement": "O receptor de push_str precisa ser mutável.",
+      "question": "Por que `let mut texto` antes do `.push_str`?",
+      "options": [
+        "A caixa vai ser MUDADA, e mudar exige mut",
+        "O push_str devolve String nova",
+        "O mut deixa o texto maior",
+        "Sem mut o len falha"
+      ],
+      "answerIndex": 0,
+      "feedback": "Mudar a caixa no lugar é trabalho de dono-mutável.",
+      "optionRationales": [
+        "Crescer a caixa é mudança — e mudança pede mut no dono.",
+        "O push_str não devolve nada: ele muda a caixa dele.",
+        "mut não muda o tamanho; muda a PERMISSÃO de mexer.",
+        "O len só lê — quem exige mut é a mudança."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    }
+  ],
+  "challenges": [
+    "o-texto-que-cresce"
+  ]
+}

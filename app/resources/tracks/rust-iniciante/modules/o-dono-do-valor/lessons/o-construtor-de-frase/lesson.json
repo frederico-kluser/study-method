@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-construtor-de-frase",
+  "title": "O construtor de frase",
+  "summary": "O format! com vários {} monta a frase final sobre valores computados — o fecho do módulo.",
+  "difficulty": 4,
+  "role": "integration",
+  "targetAtom": "api:format!",
+  "concepts": [
+    "construtor_frase"
+  ],
+  "prerequisites": [
+    "juntar-textos",
+    "crescer-o-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "api:format!"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "varios-buracos",
+      "title": "Vários buracos, vários valores",
+      "markdown": "O `format!` aceita VÁRIOS `{}` — um para cada valor, na ordem:\n\n```rust\nlet nome = String::from(\"Ana\");\nlet pecas = 3;\nlet total = pecas * 2;\nformat!(\"{} levou {} pecas por {}\", nome, pecas, total)\n```\n\nO resultado é `Ana levou 3 pecas por 6` — cada `{}` ocupa a vaga do valor que vem depois, na ordem em que aparecem."
+    },
+    {
+      "id": "valores-computados",
+      "title": "Valores computados",
+      "markdown": "Os buracos não precisam de variáveis prontas: o valor pode sair de uma conta — o `total` veio do `*` numa ligação nova.\n\nEste desafio é o FECHO do módulo: `String::from`, movimento, `clone`, `+`, `push_str` e agora o `format!` montando a frase final. Nada novo: tudo junto."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "cada-buraco-um-valor",
+      "sectionId": "varios-buracos",
+      "statement": "Cada {} do format! ocupa a vaga de um valor, na ordem.",
+      "question": "Em `format!(\"{} levou {} por {}\", nome, pecas, total)`, o que entra no primeiro `{}`?",
+      "options": [
+        "nome",
+        "pecas",
+        "total",
+        "O maior dos três"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem manda: o primeiro valor ocupa o primeiro buraco.",
+      "optionRationales": [
+        "O primeiro valor depois do texto é o primeiro buraco.",
+        "pecas é o segundo valor — vai para o segundo buraco.",
+        "total é o terceiro — vai para o terceiro buraco.",
+        "Não há comparação: os buracos seguem a ordem dos valores."
+      ]
+    },
+    {
+      "id": "o-valor-pode-vir-de-conta",
+      "sectionId": "valores-computados",
+      "statement": "O valor do buraco pode vir de uma conta.",
+      "question": "No exemplo da teoria, o `total` saiu de onde?",
+      "options": [
+        "Da conta pecas * 2",
+        "Do nome",
+        "Do format!",
+        "De um String::from"
+      ],
+      "answerIndex": 0,
+      "feedback": "O total nasceu numa ligação nova, da multiplicação.",
+      "optionRationales": [
+        "O let calculou pecas * 2 antes do format!.",
+        "O nome é só um dos valores da frase.",
+        "O format! só encaixa valores — não calcula o deles.",
+        "String::from monta texto; a conta é do *."
+      ]
+    },
+    {
+      "id": "fecho-nao-ensina-nada",
+      "sectionId": "valores-computados",
+      "statement": "O desafio de fechamento não ensina nada novo: compõe o que o módulo ensinou.",
+      "question": "O que é NOVO no desafio `o-recibo-do-dono`?",
+      "options": [
+        "Nada — ele compõe o que o módulo ensinou",
+        "O format!",
+        "O *",
+        "O movimento"
+      ],
+      "answerIndex": 0,
+      "feedback": "É o fecho: a construção é a soma das aulas do módulo.",
+      "optionRationales": [
+        "Tudo já tem aula — a prova é compor dono, ligação e frase.",
+        "format! é da aula a-mensagem-montada, do módulo 1.",
+        "O * vem lá da aula a-primeira-funcao.",
+        "O movimento é da aula o-movimento, deste módulo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Macro format! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro oficial que monta um texto e o devolve como valor."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "o-recibo-do-dono"
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-que-copia-e-o-que-move",
+  "title": "O que copia e o que move",
+  "summary": "Números e booleanos COPIAM numa ligação nova; String MOVE — e o nome antigo morre.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "decl:let",
+  "concepts": [
+    "copia_vs_move"
+  ],
+  "prerequisites": [
+    "o-movimento"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "numeros-copiam",
+      "title": "Números copiam",
+      "markdown": "Ligar um número a um nome novo COPIA o valor — os dois nomes continuam vivos:\n\n```rust\nlet a = 7;\nlet b = a;\n```\n\nUsar `a` depois continua funcionando: o `7` é uma cópia barata, sem caixa e sem dono que morra. Booleano é igual."
+    },
+    {
+      "id": "string-move",
+      "title": "String move",
+      "markdown": "A `String` é diferente: ela TEM dono, e ligar a outro nome MOVE:\n\n```rust\nlet t1 = String::from(\"t\");\nlet t2 = t1;\n```\n\nDepois desta linha, `t1` está morto — o `E0382` aparece se você insistir. Regra do módulo: inteiro e booleano COPIAM; `String` MOVE."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "numero-copia",
+      "sectionId": "numeros-copiam",
+      "statement": "Números e booleanos copiam numa ligação nova: os dois nomes ficam vivos.",
+      "question": "Depois de `let b = a;` com `a` valendo um número, o que acontece com `a`?",
+      "options": [
+        "Continua valendo: o número foi copiado",
+        "Morre como a String",
+        "Vira zero",
+        "O compilador recusa"
+      ],
+      "answerIndex": 0,
+      "feedback": "Número não tem dono: a ligação nova copia o valor.",
+      "optionRationales": [
+        "O número é copiado; os dois nomes seguem valendo.",
+        "Morre quem tem dono — número não tem caixa nem dono.",
+        "a não mudou de valor: copiar não mexe no original.",
+        "Copiar número é o caminho feliz: nada é recusado."
+      ]
+    },
+    {
+      "id": "string-move-2",
+      "sectionId": "string-move",
+      "statement": "String move numa ligação nova: o nome antigo morre.",
+      "question": "`let t2 = t1;` com String: o que acontece com `t1`?",
+      "options": [
+        "Está movido: usar t1 é E0382",
+        "Continua dono",
+        "Virou cópia",
+        "Fica com metade do texto"
+      ],
+      "answerIndex": 0,
+      "feedback": "String tem dono: a ligação move e o nome antigo morre.",
+      "optionRationales": [
+        "O valor migrou para t2; insistir em t1 é o erro E0382.",
+        "O dono mudou de mão — t1 não é mais dono.",
+        "Sem clone não há cópia de String.",
+        "O valor não se divide: ele se move inteiro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "Understanding Ownership — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html",
+      "description": "O capítulo oficial do dono do valor: a visão geral antes do detalhe."
+    }
+  ],
+  "challenges": [
+    "o-numero-que-sobrevive"
+  ]
+}

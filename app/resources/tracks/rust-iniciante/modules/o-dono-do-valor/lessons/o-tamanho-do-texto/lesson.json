@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-tamanho-do-texto",
+  "title": "O tamanho do texto",
+  "summary": "O .len devolve o tamanho do texto — a contagem em bytes que a caixa guarda.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "api:.len",
+  "concepts": [
+    "tamanho_texto"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.len"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "perguntar-o-tamanho",
+      "title": "Perguntar o tamanho",
+      "markdown": "O `.len` devolve o tamanho do texto — quantos BYTES a caixa guarda:\n\n```rust\nlet texto = String::from(\"abc\");\nlet tamanho = texto.len();\n```\n\n`tamanho` vale `3`. O receptor vem ANTES do ponto: é a caixa que responde — e a resposta é um número (`usize`)."
+    },
+    {
+      "id": "o-que-o-len-conta",
+      "title": "O que o len conta",
+      "markdown": "O `len` conta bytes, não telas: cada letra simples vale 1, e acentos custam mais de um byte. Nos textos desta aula (sem acento), a contagem é a de letras mesmo.\n\nO `.len` não mexe no texto: ele SÓ lê — a caixa fica como está, sem movimento nenhum."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-receptor-responde",
+      "sectionId": "perguntar-o-tamanho",
+      "statement": "texto.len() devolve o tamanho do texto guardado na caixa texto.",
+      "question": "Com `let texto = String::from(\"casa\");`, quanto vale `texto.len()`?",
+      "options": [
+        "4",
+        "3",
+        "5",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "casa tem 4 letras simples: 4 bytes, 4 de tamanho.",
+      "optionRationales": [
+        "c-a-s-a: quatro letras simples, quatro bytes.",
+        "3 seria o tamanho de abc — casa tem uma letra a mais.",
+        "Nada custa byte extra aqui: nenhuma acentuação.",
+        "A caixa não está vazia: o len responde pelo conteúdo."
+      ]
+    },
+    {
+      "id": "o-len-so-le",
+      "sectionId": "o-que-o-len-conta",
+      "statement": "O .len só lê: não mexe na caixa.",
+      "question": "Depois de `texto.len();`, o que acontece com `texto`?",
+      "options": [
+        "Continua igual: o len só lê",
+        "Fica vazio",
+        "Morre (move)",
+        "Vira número"
+      ],
+      "answerIndex": 0,
+      "feedback": "O len é leitura pura: a caixa segue com o texto dela.",
+      "optionRationales": [
+        "Ler o tamanho não mexe no conteúdo nem no dono.",
+        "Nada esvazia a caixa: len não consome.",
+        "Leitura não move — movimento é o let e a passagem por valor.",
+        "A resposta do len é um número NOVO; o texto segue texto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    }
+  ],
+  "challenges": [
+    "o-peso-do-texto"
+  ]
+}

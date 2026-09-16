@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-movimento",
+  "title": "O movimento",
+  "summary": "let s2 = s1; MOVE o valor: o dono muda de mão e o nome antigo morre — o erro E0382 diz isso.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "decl:let",
+  "concepts": [
+    "movimento"
+  ],
+  "prerequisites": [
+    "copiar-em-vez-de-mover"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:move",
+    "term:E0382"
+  ],
+  "theory": [
+    {
+      "id": "a-troca-de-dono",
+      "title": "A troca de dono",
+      "markdown": "Atribuir uma `String` a um nome novo MOVE o valor — o dono muda de mão e o nome antigo morre:\n\n```rust\nlet s1 = String::from(\"caixa\");\nlet s2 = s1;\n```\n\nA String NÃO foi copiada: agora só `s2` é o dono. Esse evento é o `move` — a ligação nova sem `.clone` no meio é quem move."
+    },
+    {
+      "id": "o-erro-tem-nome-e0382",
+      "title": "O erro tem nome: E0382",
+      "markdown": "Usar `s1` depois da linha do movimento NÃO compila:\n\n```text\nerror[E0382]: borrow of moved value: `s1`\n --> src/lib.rs:4:5\n```\n\nO `E0382` é o NOME do erro: o valor foi movido e o nome antigo não aponta mais para nada. Leia o `E0382` antes de mexer — ele diz QUAL nome morreu e em que linha."
+    },
+    {
+      "id": "dizer-antes",
+      "title": "Dizer antes",
+      "markdown": "Antes de cada linha com `String`, diga: move, copia ou empresta?\n\n```rust\nlet s2 = s1;\n```\n\nUma ligação nova com uma `String` MOVE — sem `.clone`, o dono troca e o nome antigo morre. Com `.clone`, copia. E o que só passa (o `&str`) empresta — essa terceira resposta tem módulo próprio, o `emprestar`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-ligacao-move",
+      "sectionId": "a-troca-de-dono",
+      "statement": "Uma ligação nova `let s2 = s1;` MOVE a String: o dono passa a ser s2.",
+      "question": "Depois de `let s2 = s1;`, quem é o dono da String?",
+      "options": [
+        "s2",
+        "s1",
+        "os dois",
+        "ninguém"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ligação move: o dono muda de mão para s2.",
+      "optionRationales": [
+        "A String não foi copiada — o dono novo é s2 e só ele.",
+        "s1 morreu na linha do movimento: não é mais dono.",
+        "Sem clone não existem dois donos; o valor não se divide.",
+        "O valor existe — o dono é s2, que o recebeu pelo movimento."
+      ]
+    },
+    {
+      "id": "e0382-e-o-nome-do-erro",
+      "sectionId": "o-erro-tem-nome-e0382",
+      "statement": "Usar o nome antigo depois do movimento é o erro E0382.",
+      "question": "O que significa `error[E0382]: borrow of moved value: s1`?",
+      "options": [
+        "s1 foi movido e não pode mais ser usado",
+        "s1 precisa de ponto e vírgula",
+        "s1 não é String",
+        "s1 faltou ser declarado"
+      ],
+      "answerIndex": 0,
+      "feedback": "E0382 é o erro do movimento: o valor saiu de s1 e ele ficou sem nada.",
+      "optionRationales": [
+        "O valor foi movido para outro nome; usar s1 depois é E0382.",
+        "Ponto e vírgula não conserta movimento — o problema é o dono.",
+        "O erro não discute o tipo: diz que o VALOR mudou de dono.",
+        "s1 foi declarado — o que acabou foi o valor dele, movido."
+      ]
+    },
+    {
+      "id": "o-clone-evita-o-move",
+      "sectionId": "dizer-antes",
+      "statement": "O .clone evita o movimento: com ele, os dois nomes continuam donos.",
+      "question": "Como fazer `s2` receber o valor de `s1` SEM matar `s1`?",
+      "options": [
+        "let s2 = s1.clone();",
+        "let s2 = s1;",
+        "move s1;",
+        "clone(s1)"
+      ],
+      "answerIndex": 0,
+      "feedback": "O clone cria uma segunda caixa: os dois nomes seguem donos.",
+      "optionRationales": [
+        "A cópia dá a s2 uma caixa própria — s1 não perde nada.",
+        "Essa é exatamente a linha que move e mata s1.",
+        "move não é uma palavra do código do aluno; o movimento é o let.",
+        "clone é método, não função solta: quem pede é o receptor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "Understanding Ownership — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html",
+      "description": "O capítulo oficial do dono do valor: a visão geral antes do detalhe."
+    }
+  ],
+  "challenges": [
+    "o-pacote-que-troca-de-dono"
+  ]
+}

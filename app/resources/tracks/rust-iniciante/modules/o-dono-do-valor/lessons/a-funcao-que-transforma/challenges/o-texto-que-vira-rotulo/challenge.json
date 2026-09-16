@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-texto-que-vira-rotulo",
+  "title": "O texto que vira rótulo",
+  "concept": "transformacao",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O texto que vira rótulo\n\nA função `transformar` recebe o texto como `String` (e o consome) e devolve uma `String` NOVA: o texto entre colchetes:\n\n- `transformar(String::from(\"ano\"))` devolve `[ano]`;\n- `transformar(String::from(\"ordem\"))` devolve `[ordem]`.\n\nMonte o rótulo com o `format!` — a caixa nova sai pelo retorno, e a recebida morre dentro.",
+  "starterCode": "pub fn transformar(texto: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn transformar(texto: String) -> String {\n    format!(\"[{}]\", texto)\n}\n",
+  "testsCode": "use desafio::transformar;\n\n#[test]\nfn testa_o_rotulo_de_ano() {\n    assert_eq!(transformar(String::from(\"ano\")), \"[ano]\");\n}\n\n#[test]\nfn testa_o_rotulo_de_ordem() {\n    assert_eq!(transformar(String::from(\"ordem\")), \"[ordem]\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "transformar deve devolver o rótulo \"[ano]\" — a String nova construída a partir da recebida.",
+      "teste": "testa_o_rotulo_de_ano"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "transformar deve devolver o rótulo \"[ordem]\" — a String nova construída a partir da recebida.",
+      "teste": "testa_o_rotulo_de_ordem"
+    }
+  ],
+  "expectedTestCount": 2
+}

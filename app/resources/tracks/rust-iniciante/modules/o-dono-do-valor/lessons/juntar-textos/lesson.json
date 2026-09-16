@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-textos",
+  "title": "Juntar textos",
+  "summary": "O + também soma textos — e MOVE o da esquerda: a caixa esquerda é consumida na soma.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "op:binary:+",
+  "concepts": [
+    "soma_textos"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono",
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:+",
+      "node:BinaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-mais-das-caixas",
+      "title": "O + das caixas",
+      "markdown": "O `+` que soma números também junta textos — a caixa da DIREITA entra na da esquerda:\n\n```rust\nlet nome = String::from(\"Ana\");\nlet saudacao = nome + \"!\";\n```\n\n`saudacao` vale `Ana!`. É o mesmo `+` da aula `somar`, agora com `String` de um lado e texto entre aspas do outro."
+    },
+    {
+      "id": "o-mais-consome-a-esquerda",
+      "title": "O + consome a esquerda",
+      "markdown": "O `+` MOVE a caixa da esquerda: ela é consumida na soma.\n\n```text\nerror[E0382]: borrow of moved value: `nome`\n --> src/lib.rs:3:20\n```\n\nUsar `nome` depois do `+` é `E0382` — a caixa esquerda morreu na soma. A direita (o texto entre aspas) fica; quem some textos precisa saber disto: só a caixa da esquerda muda de dono."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-resultado-da-soma",
+      "sectionId": "o-mais-das-caixas",
+      "statement": "O + junta textos: a caixa da direita entra no fim da da esquerda.",
+      "question": "Quanto vale `saudacao` depois de `let nome = String::from(\"Ana\"); let saudacao = nome + \"!\";`?",
+      "options": [
+        "Ana!",
+        "!Ana",
+        "Ana",
+        "erro de compilação"
+      ],
+      "answerIndex": 0,
+      "feedback": "A direita entra no fim da esquerda: o texto vira Ana!.",
+      "optionRationales": [
+        "O + cola a direita no fim da esquerda.",
+        "A ordem é esquerda + direita: o ! vai para o fim.",
+        "Falta a direita: o ! entra na soma.",
+        "A soma compila — a caixa da esquerda é String dona."
+      ]
+    },
+    {
+      "id": "a-esquerda-morre",
+      "sectionId": "o-mais-consome-a-esquerda",
+      "statement": "O + MOVE a caixa da esquerda: usá-la depois é E0382.",
+      "question": "Depois de `let saudacao = nome + \"!\";`, o que acontece ao usar `nome`?",
+      "options": [
+        "E0382: a caixa esquerda foi movida",
+        "Funciona normalmente",
+        "Devolve Ana!",
+        "Reinicia a caixa"
+      ],
+      "answerIndex": 0,
+      "feedback": "O + consumiu a caixa da esquerda — o E0382 cobra a conta.",
+      "optionRationales": [
+        "A soma moveu nome: o nome antigo não aponta para nada.",
+        "Depois do movimento o nome morreu — não funciona.",
+        "O valor está em saudacao; nome não responde mais.",
+        "Nada reinicia: o movimento é definitivo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    }
+  ],
+  "challenges": [
+    "a-palavra-exclamada"
+  ]
+}
