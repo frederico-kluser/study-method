@@ -656,7 +656,16 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
       // obriga InitDecl(i) ⊆ Demo(i) ∪ Cum(i) (declarar não é demonstrar) e em
       // inferred Init(i) = Demo(i) \ Cum(i) já está dentro de Demo(i).
       {
-        const rTests = extractAllOccurrences(desafio.tests, { language: adapterId });
+        // `surface: 'testsCode'` — o MESMO contrato do gate A2/A3 no audit.ts:
+        // o call-site declara o que está passando e a ante-sala do testsCode
+        // de C vive no PONTO ÚNICO (extract.ts, onda 3). Hoje a bateria é
+        // javascript-only (exigirAdaptadorJavascript acima reprova C), então
+        // a dica é inerte aqui; se um dia a bateria abrir para outra
+        // linguagem, a leitura do teste já nasce normalizada. O teste de
+        // audit C (tests/engineAuditC.test.ts) percorre os call-sites e
+        // trava que nenhum que alimenta testsCode com language fique sem a
+        // dica.
+        const rTests = extractAllOccurrences(desafio.tests, { language: adapterId, surface: 'testsCode' });
         if (rTests.ok) {
           const spans = spansMecanicosDeTeste(desafio.tests);
           for (const occ of rTests.occurrences) {
