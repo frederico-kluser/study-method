@@ -205,6 +205,30 @@ export const TSC_NOEMIT_ARGS: readonly string[] = [
 export const POLITICAS_DE_TIPOS: Readonly<Record<string, PoliticaDeTipos>> = Object.freeze({
   javascript: { required: false, args: [], compilador: null },
   typescript: { required: true, args: TSC_NOEMIT_ARGS, compilador: 'typescript/bin/tsc' },
+  /**
+   * C — A COMPILAÇÃO É O TYPECHECK, e ela JÁ ACONTECE na prova. O runner de
+   * C (`lang/c.ts`, `SM_RUNNER_SCRIPT`) compila a SOLUÇÃO com
+   * `-std=c11 -g` (a linha medida de
+   * `skills/study-method/references/languages.md` §3.1) antes de rodar o
+   * teste: qualquer erro de tipo de C (tipo errado em atribuição, número
+   * errado de argumentos, símbolo indefinido) é falha de COMPILAÇÃO e derruba
+   * a prova 1 (`judgeSolutionPasses`) com os diagnósticos do compilador na
+   * saída. Uma QUINTA prova separada pagaria a compilação DUAS vezes (o
+   * `cc` é caro, da ordem de segundos) para repetir o mesmo julgamento — e a
+   * política `required: false` aqui NÃO é fail-open, porque a prova que ela
+   * dispensa já correu dentro das quatro.
+   *
+   * POR QUE NÃO `-Wall -Werror` (decisão documentada): `-Werror` transformaria
+   * AVISO didático (variável não usada, conversão implícita int→double que o
+   * curso ensina) em reprovação da prova inteira — o gate passaria a reprovar
+   * código correto pelo padrão estético de quem escreveu a flag. Os erros de
+   * TIPO de verdade já são ERROS sem nenhuma flag (`-std=c11` os eleva); o
+   * que sobra de aviso é ruído, e aviso não é prova. E `required: false`
+   * também resolve o slot `compilador`: o compilador de C não é um módulo npm
+   * (`resolverCompiladorNpm` não o acharia) — quem o detecta é
+   * `cDetect()` (membro 15 do §6), que a degradação DIZ quando falta.
+   */
+  c: { required: false, args: [], compilador: null },
 });
 
 /**

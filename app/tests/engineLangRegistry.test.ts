@@ -44,6 +44,7 @@ import {
   registerAdapter,
   type LanguageAdapter,
 } from '../electron/main/engine/lang/registry';
+import { cAdapter } from '../electron/main/engine/lang/c';
 import { javascriptAdapter, jsKindName } from '../electron/main/engine/lang/javascript';
 import { pyAtomsPath, pyExtractorPath, pythonAdapter } from '../electron/main/engine/lang/python';
 import { typescriptAdapter } from '../electron/main/engine/lang/typescript';
@@ -87,7 +88,9 @@ describe('registro — enum de ids e resolução', () => {
         assert.ok(err instanceof LanguageRegistryError);
         assert.equal(err.code, 'ADAPTADOR_DESCONHECIDO');
         assert.equal(err.detalhes.pedido, 'ruby');
-        assert.deepEqual(err.detalhes.conhecidos, ['javascript', 'python', 'typescript']);
+        // ONDA C: 'c' é a quarta linguagem (a ordem é a de KNOWN_LANGUAGE_IDS
+        // ordenada — 'c' vem primeiro).
+        assert.deepEqual(err.detalhes.conhecidos, ['c', 'javascript', 'python', 'typescript']);
         assert.ok(err.message.includes('javascript'), err.message);
         return true;
       },
@@ -173,7 +176,7 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
   it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
     assert.deepEqual(
       listTheoryCodeTags(),
-      [...js.theoryFenceTags, ...py.theoryFenceTags, ...tsAdapter.theoryFenceTags].sort(),
+      [...js.theoryFenceTags, ...py.theoryFenceTags, ...tsAdapter.theoryFenceTags, ...cAdapter.theoryFenceTags].sort(),
     );
   });
 });
@@ -550,7 +553,8 @@ describe('bundle-safety — TODO adaptador de engine/lang é um módulo FOLHA', 
   }
 
   it('a guarda cobre TODOS os arquivos de engine/lang (a lista sai do disco)', () => {
-    assert.deepEqual(ARQUIVOS, ['javascript.ts', 'python.ts', 'registry.ts', 'typescript.ts']);
+    // ONDA C: c.ts entra na lista — quarto adaptador.
+    assert.deepEqual(ARQUIVOS, ['c.ts', 'javascript.ts', 'python.ts', 'registry.ts', 'typescript.ts']);
   });
 
   for (const nome of ARQUIVOS) {

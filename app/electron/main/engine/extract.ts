@@ -420,6 +420,12 @@ export const CAMINHADA_POR_LINGUAGEM: Readonly<Record<string, 'ts-node' | 'lang-
   javascript: 'ts-node',
   typescript: 'ts-node',
   python: 'lang-node',
+  // ONDA C: a árvore de C vem do subprocesso clang→python3 (`vocab/c/
+  // extract_ast.py`) — um `LangNode`, não um `ts.Node`. E a árvore do clang é
+  // SEMÂNTICA (o `-fsyntax-only` resolve tipos e casts): os casts implícitos
+  // viram nós `ImplicitCastExpr` que o helper DERRUBA (os filhos sobem ao
+  // pai), e o eixo `form:` não existe aqui pela mesma razão do Python.
+  c: 'lang-node',
 };
 
 /** As linguagens que ESTE módulo sabe caminhar, em ordem estável. */
