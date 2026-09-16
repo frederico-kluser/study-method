@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-rust-minima",
+  "title": "Trilha Rust mínima (fixture)",
+  "description": "Trilha-fixture dos testes do adaptador Rust: 1 módulo, 1 aula, 1 desafio de Rust na forma import (use desafio::… + assert_eq!). Existe para provar que o orçamento, a auditoria e o sintetizador de código mínimo LÊEM Rust — os gates de linguagem nova são os mesmos do python-iniciante.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "rust",
+  "runtime": "cargo-1.98",
+  "harnessLanguage": "rust",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

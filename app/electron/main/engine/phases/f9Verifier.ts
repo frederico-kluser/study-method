@@ -167,6 +167,13 @@ export interface CriarProverDeDesafioOptions {
  * sobrescreve `os._exit`/`os.abort` (`lang/python.ts`, PY_PACKAGE_MARKER) —,
  * então não há nada a passar na linha de comando.
  *
+ * Em Rust também é `false`, e por outro motivo: não existe `--require` em
+ * Rust NEM um "primeiro import" interceptável. A defesa lá é em camadas
+ * ESTÁTICAS dentro do próprio adaptador (`lang/rust.ts`, decisões 5 e 7): o
+ * manifesto trava `[lib] test = false` (o `#[test]` forjado no código do
+ * aluno nem roda — MEDIDO) e `RS_FORBIDDEN_INVARIANTS` reprova na auditoria
+ * o `std::process::exit`/`extern "C"`/`asm!` que a forja runtime exigiria.
+ *
  * FAIL-CLOSED, no mesmo espírito de `CAMINHADA_POR_LINGUAGEM`
  * (`engine/extract.ts`): linguagem registrada e AUSENTE desta tabela LANÇA, e
  * o provador converte isso em veredito inválido com `execError` — nunca um
@@ -184,6 +191,7 @@ export const GUARD_POR_REQUIRE: Readonly<Record<string, boolean>> = {
   // `--require` — a linha é `false` pelo MESMO motivo da de Python (o guard
   // já vem no layout), e o `C_ENV_SCRUB.scope` declara os limites restantes.
   c: false,
+  rust: false,
 };
 
 /** Resolve a política de exit-guard da linguagem. LANÇA quando não há linha. */

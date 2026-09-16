@@ -64,6 +64,7 @@
 import { cAdapter } from './c';
 import { javascriptAdapter } from './javascript';
 import { pythonAdapter } from './python';
+import { rustAdapter } from './rust';
 import { typescriptAdapter } from './typescript';
 
 // ---------------------------------------------------------------------------
@@ -94,10 +95,26 @@ import { typescriptAdapter } from './typescript';
  * dela roda `clang -Xclang -ast-dump=json` por subprocesso e exige clang
  * ESPECIFICAMENTE (o gcc não tem a extensão), enquanto o runner aceita
  * cc/gcc/clang. O modelo de subprocesso é o do `lang/python.ts`.
+ *
+ * ONDA RUST: `rust` é a QUINTA linha, e é a prova da promessa do §7 item 3
+ * fora de um interpretador de script — a Porta 1 dela é um SUBPROCESSO node
+ * rodando o WASM do tree-sitter (`vocab/rs/extract_ast.mjs`), a MESMA
+ * arquitetura de `python.ts` com outro binário host. O §7 coloca Rust por
+ * ÚLTIMO do Tier B por causa do custo (1,5 GiB de toolchain, binário
+ * auxiliar para o AST, runner com armadilha de contagem); o WASM de
+ * tree-sitter eliminou a segunda, e as duas armadilhas do runner (exit 101,
+ * nome não-qualificado que sai 0) estão codificadas em `lang/rust.ts` com os
+ * fatos medidos de `docs/research/06-toolchains.md`.
  */
-export const KNOWN_LANGUAGE_IDS = ['javascript', 'python', 'typescript', 'c'] as const;
+export const KNOWN_LANGUAGE_IDS = [
+  'javascript',
+  'python',
+  'typescript',
+  'c',
+  'rust',
+] as const;
 
-/** Um id de linguagem conhecido (`'javascript'`, `'python'`, `'typescript'`, `'c'`). */
+/** Um id de linguagem conhecido (`'javascript'`, `'python'`, `'typescript'`, `'c'`, `'rust'`). */
 export type LanguageId = (typeof KNOWN_LANGUAGE_IDS)[number];
 
 /**
@@ -122,7 +139,8 @@ export const DEFAULT_ADAPTER_ID: LanguageId = 'javascript';
  * — é `'typescript'`, e aceitar as duas grafias evita reprovar uma trilha por
  * escrever a mesma coisa com dois nomes. `'c'` e `'c11'` seguem o mesmo
  * princípio: a linguagem e o padrão que a trilha de C compila (`-std=c11`, a
- * linha medida de `skills/study-method/references/languages.md` §3.1).
+ * linha medida de `skills/study-method/references/languages.md` §3.1). `'rs'`
+ * acompanha `'rust'` pelo MESMO motivo (é a extensão e a tag da cerca).
  */
 export const KNOWN_CHALLENGE_LANGUAGES = [
   'javascript',
@@ -134,6 +152,8 @@ export const KNOWN_CHALLENGE_LANGUAGES = [
   'ts',
   'c',
   'c11',
+  'rust',
+  'rs',
 ] as const;
 
 /** Valor válido de `challenge.language` / `track.programmingLanguage`. */
@@ -694,8 +714,15 @@ export interface LanguageAdapter {
   /**
    * Contagem DINÂMICA na saída do runner (o lado EXECUTADO da igualdade).
    * SUBSTITUI: `parseSpecCounts` (`engine/exec/proofs.ts:115`).
+   *
+   * O segundo parâmetro é OPCIONAL e o runtime do Rust usa: a contagem
+   * DECLARADA (`countDeclared` sobre o `testsCode`) liga a integridade de
+   * saída do `rsCountRun` — o resumo só vale com cabeçalho `running N tests`,
+   * linhas por-teste, o resumo por último e números consistentes (ver
+   * `resumoIntegro` em `lang/rust.ts`). Os outros adaptadores ignoram o
+   * parâmetro: a defesa deles (resumo real por último) não precisa dele.
    */
-  countRun(output: string): RunCounts;
+  countRun(output: string, declaredTestCount?: number): RunCounts;
 
   /**
    * Checks individuais para a UI do aluno.
@@ -945,8 +972,11 @@ export function listTheoryCodeTags(): string[] {
 // prova que a interface aguenta uma linguagem que difere da vizinha por
 // camada, e não por toolchain. `c` é a QUARTA forma e a primeira "toolchain
 // emite AST" (§7 item 3): o clang é quem produz a árvore, por subprocesso.
+// `rust` é a QUINTA forma e a segunda "toolchain emite AST": o WASM do
+// tree-sitter é quem produz a árvore, por subprocesso node.
 
 registerAdapter(javascriptAdapter);
 registerAdapter(pythonAdapter);
 registerAdapter(typescriptAdapter);
 registerAdapter(cAdapter);
+registerAdapter(rustAdapter);

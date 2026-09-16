@@ -458,6 +458,11 @@ export const CAMINHADA_POR_LINGUAGEM: Readonly<Record<string, 'ts-node' | 'lang-
   // viram nós `ImplicitCastExpr` que o helper DERRUBA (os filhos sobem ao
   // pai), e o eixo `form:` não existe aqui pela mesma razão do Python.
   c: 'lang-node',
+  // ONDA RUST: a árvore de Rust vem do subprocesso node→tree-sitter WASM
+  // (`vocab/rs/extract_ast.mjs`) — um `LangNode`, não um `ts.Node`. E a árvore
+  // do tree-sitter é SINTÁTICA (sem resolução de tipos): o eixo `form:` não
+  // existe aqui pela mesma razão do Python.
+  rust: 'lang-node',
 };
 
 /** As linguagens que ESTE módulo sabe caminhar, em ordem estável. */

@@ -47,6 +47,7 @@ import {
 import { cAdapter } from '../electron/main/engine/lang/c';
 import { javascriptAdapter, jsKindName } from '../electron/main/engine/lang/javascript';
 import { pyAtomsPath, pyExtractorPath, pythonAdapter } from '../electron/main/engine/lang/python';
+import { rustAdapter } from '../electron/main/engine/lang/rust';
 import { typescriptAdapter } from '../electron/main/engine/lang/typescript';
 
 // as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
@@ -65,6 +66,7 @@ import * as ts from 'typescript';
 const js = javascriptAdapter;
 const py = pythonAdapter;
 const tsAdapter = typescriptAdapter;
+const rs = rustAdapter;
 
 describe('registro — enum de ids e resolução', () => {
   it('todo id DECLARADO tem adaptador registrado, e todo adaptador tem id declarado', () => {
@@ -79,18 +81,19 @@ describe('registro — enum de ids e resolução', () => {
 
   it('getAdapter de id desconhecido LANÇA erro estruturado — nunca cai no default', () => {
     // ONDA 5: 'python' passou a EXISTIR (segundo adaptador). ONDA 6:
-    // 'typescript' (terceiro). O id de teste é 'ruby', que o §7 lista como
-    // PRÓXIMO da fila (depois de Go) e ainda não tem adaptador — trocar o id
-    // aqui é o sinal esperado de que a linguagem entrou.
+    // 'typescript' (terceiro). ONDA C: 'c' (quarto, toolchain emite AST). ONDA
+    // RUST: 'rust' (quinto, a Porta 1 por subprocesso node+WASM). O id de
+    // teste é 'go', que o §7 lista como PRÓXIMO da fila e ainda não tem
+    // adaptador — trocar o id aqui é o sinal esperado de que a linguagem
+    // entrou.
     assert.throws(
-      () => getAdapter('ruby'),
+      () => getAdapter('go'),
       (err: unknown) => {
         assert.ok(err instanceof LanguageRegistryError);
         assert.equal(err.code, 'ADAPTADOR_DESCONHECIDO');
-        assert.equal(err.detalhes.pedido, 'ruby');
-        // ONDA C: 'c' é a quarta linguagem (a ordem é a de KNOWN_LANGUAGE_IDS
-        // ordenada — 'c' vem primeiro).
-        assert.deepEqual(err.detalhes.conhecidos, ['c', 'javascript', 'python', 'typescript']);
+        assert.equal(err.detalhes.pedido, 'go');
+        // A ordem é a de KNOWN_LANGUAGE_IDS ordenada — 'c' vem primeiro.
+        assert.deepEqual(err.detalhes.conhecidos, ['c', 'javascript', 'python', 'rust', 'typescript']);
         assert.ok(err.message.includes('javascript'), err.message);
         return true;
       },
@@ -98,9 +101,10 @@ describe('registro — enum de ids e resolução', () => {
   });
 
   it('findAdapter é a variante TOLERANTE (null em vez de lançar)', () => {
-    assert.equal(findAdapter('ruby'), null);
+    assert.equal(findAdapter('go'), null);
     assert.equal(findAdapter('javascript'), js);
     assert.equal(findAdapter('python'), py);
+    assert.equal(findAdapter('rust'), rs);
   });
 
   it("registerAdapter recusa id fora de KNOWN_LANGUAGE_IDS (id fantasma)", () => {
@@ -176,7 +180,7 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
   it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
     assert.deepEqual(
       listTheoryCodeTags(),
-      [...js.theoryFenceTags, ...py.theoryFenceTags, ...tsAdapter.theoryFenceTags, ...cAdapter.theoryFenceTags].sort(),
+      [...js.theoryFenceTags, ...py.theoryFenceTags, ...tsAdapter.theoryFenceTags, ...cAdapter.theoryFenceTags, ...rs.theoryFenceTags].sort(),
     );
   });
 });
@@ -553,8 +557,12 @@ describe('bundle-safety — TODO adaptador de engine/lang é um módulo FOLHA', 
   }
 
   it('a guarda cobre TODOS os arquivos de engine/lang (a lista sai do disco)', () => {
-    // ONDA C: c.ts entra na lista — quarto adaptador.
-    assert.deepEqual(ARQUIVOS, ['c.ts', 'javascript.ts', 'python.ts', 'registry.ts', 'typescript.ts']);
+    // ONDA C: c.ts entra (quarto adaptador); ONDA RUST: rust.ts entra
+    // (quinto) — a lista sai do disco, em ordem.
+    assert.deepEqual(
+      ARQUIVOS,
+      ['c.ts', 'javascript.ts', 'python.ts', 'registry.ts', 'rust.ts', 'typescript.ts'],
+    );
   });
 
   for (const nome of ARQUIVOS) {

@@ -350,13 +350,21 @@ export async function runStudentCode(
       timeoutMs: input.timeoutMs ?? 30_000,
     });
     const output = `${res.stdout}\n${res.stderr}`.trim();
+    // A contagem DECLARADA é a ÚNICA do repositório (por AST, via o adaptador):
+    // a regex que vivia neste arquivo foi apagada na onda 5. Ela vem ANTES da
+    // executada porque é ela que LIGA a integridade de saída no Rust
+    // (FIX adversarial H1): sem ela, um resumo forjado direto no fd
+    // (`write_all` em std::io::stdout() + std::process::exit(0)) — que
+    // bypassa a captura do libtest e mata o runner antes do relatório real —
+    // saía exit 0 com o bloco mentiroso POR ÚLTIMO e era lido como contagem
+    // verdadeira. Com o declarado, o bloco só vale com cabeçalho/linhas
+    // por-teste/posição/consistência (`resumoIntegro` em lang/rust.ts); a
+    // forja volta ZERO e a igualdade abaixo reprova.
+    const declared = adaptador.countDeclared(input.testsCode);
     // A contagem EXECUTADA vem do adaptador (§6, membro 11) — a MESMA função
     // das provas, que lê o ÚLTIMO bloco de resumo. A cópia fraca que vivia
     // neste arquivo (primeira linha `ℹ tests N`) aceitava relatório forjado.
-    const counts = adaptador.countRun(output);
-    // A contagem DECLARADA é a ÚNICA do repositório (por AST, via o adaptador):
-    // a regex que vivia neste arquivo foi apagada na onda 5.
-    const declared = adaptador.countDeclared(input.testsCode);
+    const counts = adaptador.countRun(output, declared);
     const passed = res.code === 0 && counts.testsRun === input.expectedTestCount && declared === input.expectedTestCount;
     const checks = adaptador.parseChecks(output);
     // totalCount/passedCount vêm dos checks; se o parse não achou NENHUMA
@@ -473,8 +481,11 @@ export async function verifyChallengePair(
 
     await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles }, adaptador);
     const sol = await rodar(work, testArgs, { timeoutMs: 30_000 });
-    const solCounts = adaptador.countRun(`${sol.stdout}\n${sol.stderr}`);
+    // O declarado ANTES do executado: liga a integridade de saída no Rust
+    // (FIX adversarial H1) — resumo forjado no caminho da AUTORIA também volta
+    // ZERO e a igualdade abaixo reprova o par.
     const declared = adaptador.countDeclared(pair.testsCode);
+    const solCounts = adaptador.countRun(`${sol.stdout}\n${sol.stderr}`, declared);
     const solutionPasses = sol.code === 0 && solCounts.testsRun === pair.expectedTestCount && declared === pair.expectedTestCount;
 
     await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles }, adaptador);

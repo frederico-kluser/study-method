@@ -61,8 +61,10 @@
     "sherpa-onnx-node": "^1.13.5",
     "sql.js": "^1.14.2",
     "systeminformation": "^5.23.0",
+    "tree-sitter-rust": "^0.24.0",
     "typescript": "~5.8.2",
     "unified": "^11.0.5",
+    "web-tree-sitter": "^0.25.10",
     "zod": "^3.25.76"
   },
   "devDependencies": {

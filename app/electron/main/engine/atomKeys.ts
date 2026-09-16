@@ -794,6 +794,105 @@ export const C_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
 ] as const;
 
 /**
+ * A semente receptiva do HARNESS RUST — o análogo de
+ * `PYTHON_HARNESS_RECEPTIVE_SEED`, medida contra o arquivo de teste que a
+ * trilha de Rust escreve (`tests/fixtures/rust/harness-desafio.rs`): um
+ * teste de INTEGRAÇÃO da crate `desafio` que importa as funções do aluno e
+ * as assere com as macros do prelude.
+ *
+ *     use desafio::dobro;
+ *     #[test]
+ *     fn testa_dobro_positivo() {
+ *         assert_eq!(dobro(2), 4);
+ *     }
+ *
+ * ─── O QUE É HARNESS (perdoado) × O QUE É CONTEÚDO (não perdoado) ──────────
+ *
+ * HARNESS: a estrutura do arquivo de teste que o AUTOR escreve — a
+ * declaração `use` (o módulo do aluno NÃO emite `api:`; ver abaixo), os nós
+ * estruturais de função/parâmetro/bloco, o atributo `#[test]`
+ * (`api:test`), e as macros de asserção do prelude (`api:assert_eq!`,
+ * `api:assert!`) — é o análogo de `api:.assertEqual`. Os literais
+ * (`node:IntegerLiteral`, `node:StringLiteral`) seguem o precedente de
+ * Python (`node:IntLiteral`/`node:StrLiteral` na semente lá): o VALOR é do
+ * problema, a CONSTRUÇÃO é do invólucro.
+ *
+ * `use desafio::dobro;` NÃO emite `api:` em lugar nenhum: o crate que o
+ * ALUNO escreve (`src/lib.rs`, o `RS_ENTRY_PATH` do adaptador) não é API
+ * externa — o análogo exato do `from solucao import dobro` de Python
+ * (`extract_ast.py`, ramo `ast.ImportFrom`, `MODULO_DO_ALUNO`). O nome
+ * importado (`dobro`) varia de desafio para desafio; uma chave
+ * `api:desafio.<nome>` na semente seria impossível (lista FIXA contra nome
+ * variável) e perdoar `api:desafio.*` por prefixo abriria a porta para todo
+ * import de todo módulo.
+ *
+ * O ARGUMENTO do teste continua FORA: `dobro(-3)` emite `op:unary:-`
+ * (a matéria da aula de negação), `dobro(x, y)` com variáveis emite
+ * `node:Identifier` estrutural (perdoado), `assert_eq!(a, b)` onde `b` é
+ * `String::from("oi")` emite `api:String::from` (construção da aula). A
+ * fronteira é medida por `tests/engineLangRust.test.ts` nos DOIS sentidos:
+ * nada FALTA (todo o invólucro cabe na semente) e nada SOBRA (cada chave da
+ * semente é emitida por um harness real).
+ */
+export const RUST_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
+  // estrutura do arquivo de teste
+  'node:UseDeclaration',
+  'node:ScopedIdentifier',
+  'node:Identifier',
+  'node:AttributeItem',
+  'node:Attribute',
+  'node:FunctionItem',
+  'node:Parameters',
+  'node:Block',
+  'node:ExpressionStatement',
+  'node:CallExpression',
+  'node:MacroInvocation',
+  'node:TokenTree',
+  // a forma `let resultado = dobro(2);` + assert sobre a variável (o análogo
+  // do par `decl:assign`/`node:Assign` da semente Python — a regra do par)
+  'node:LetDeclaration',
+  'decl:let',
+  // a forma `#[cfg(test)] mod tests { … }` (o módulo e o container do corpo)
+  'node:ModItem',
+  'node:DeclarationList',
+  'node:Super',
+  // os literais do invólucro (o VALOR é do problema, a CONSTRUÇÃO não — o
+  // precedente é `node:IntLiteral`/`node:StrLiteral` da semente Python)
+  'node:IntegerLiteral',
+  'node:StringLiteral',
+  'node:BooleanLiteral',
+  // o `use desafio::X;` em si — nós, NUNCA `api:` (o crate do aluno não é API)
+  // o atributo que faz o cargo coletar o teste
+  'api:test',
+  // `#[cfg(test)]` no módulo de testes internos (a forma alternativa de harness)
+  'api:cfg.test',
+  // as macros de asserção do prelude (o análogo de `api:.assertEqual`)
+  'api:assert_eq!',
+  'api:assert_ne!',
+  'api:assert!',
+] as const;
+
+/**
+ * As ESTRUTURAIS de Rust — o análogo de `PYTHON_STRUCTURAL_ALWAYS_ALLOWED`:
+ * o contexto de expressão e container que todo programa tem e que não ensina
+ * nada. `node:SourceFile` é a raiz; `node:ExpressionStatement` é a expressão
+ * solta em bloco; `node:Arguments` é a lista de argumentos de uma chamada;
+ * `node:LineComment` é COMENTÁRIO — no tree-sitter ele é nó nomeado (o `ast`
+ * do Python o esconde), e comentário nunca é conteúdo de orçamento.
+ */
+export const RUST_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
+  'node:SourceFile',
+  'node:Identifier',
+  'node:ExpressionStatement',
+  'node:Arguments',
+  'node:LineComment',
+  // o SLOT de argumento de uma macro (`MacroArg`) — todo `assert_eq!(a, b)`
+  // tem dois; é invólucro. O CONTEÚDO do argumento (o `op:` do `-3`, o
+  // literal) segue o seu próprio eixo e é medido como conteúdo.
+  'node:MacroArg',
+] as const;
+
+/**
  * Construções ESTRUTURAIS que todo programa tem e que não ensinam nada: exigir
  * que a trilha "introduza" `SourceFile` ou `ExpressionStatement` transformaria
  * o gate em ruído. Ficam sempre liberadas nas DUAS faixas.
@@ -855,6 +954,15 @@ export const STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
 // deixar de perdoar `api:SM_TEST` faria TODO desafio C nascer violando A3
 // por causa do próprio envelope de teste. A porta continua fechada para o
 // resto.
+//
+// ONDA RUST — `rust` entra pelo MESMO caminho do Python e do C: DUAS TABELAS
+// PRÓPRIAS, medidas do harness real do adaptador (o teste de integração da
+// crate `desafio` que o trilha-rust escreve — método e exclusões em
+// `RUST_HARNESS_RECEPTIVE_SEED`, acima). Copiar a semente de Python semearia
+// o orçamento de Rust com `api:runpy.run_path` e `node:With` — chaves que
+// nenhum fonte Rust emite — e deixar de perdoar `api:assert_eq!` faria TODO
+// desafio Rust nascer violando A3 por causa do próprio envelope. A porta
+// continua fechada para o resto.
 
 /** As linguagens cujas tabelas ESTE arquivo declara. */
 export const LINGUAGENS_COM_TABELA: readonly LanguageId[] = [
@@ -862,6 +970,7 @@ export const LINGUAGENS_COM_TABELA: readonly LanguageId[] = [
   'typescript',
   'python',
   'c',
+  'rust',
 ];
 
 /** Erro estruturado: a linguagem não tem tabela declarada neste alfabeto. */
@@ -901,7 +1010,9 @@ function exigirTabela(tabela: string, language: LanguageId): void {
  * (`TYPESCRIPT_TYPE_HARNESS_SEED`); Python tem lista PRÓPRIA, medida contra o
  * arquivo de teste que a trilha de fato escreve
  * (`PYTHON_HARNESS_RECEPTIVE_SEED`, e `tests/engineLangPython.test.ts` §"a
- * semente receptiva cobre o harness REAL"). Sem elas, TODO desafio nasceria
+ * semente receptiva cobre o harness REAL"). C e Rust têm as suas também
+ * (`C_HARNESS_RECEPTIVE_SEED`, `RUST_HARNESS_RECEPTIVE_SEED`), medidas contra
+ * o harness real de cada adaptador. Sem elas, TODO desafio nasceria
  * violando A3 por causa do próprio harness — o modo de falha que esta política
  * existe para evitar.
  */
@@ -910,6 +1021,7 @@ export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID):
   if (language === 'typescript') return TYPESCRIPT_HARNESS_RECEPTIVE_SEED;
   if (language === 'python') return PYTHON_HARNESS_RECEPTIVE_SEED;
   if (language === 'c') return C_HARNESS_RECEPTIVE_SEED;
+  if (language === 'rust') return RUST_HARNESS_RECEPTIVE_SEED;
   return HARNESS_RECEPTIVE_SEED;
 }
 
@@ -930,10 +1042,16 @@ export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID):
  * `node:CompoundStmt`/`node:DeclRefExpr`/`node:VarDecl`/`node:ParmVarDecl` —
  * e de novo a didática mora no ATRIBUTO, porque o extrator C emite
  * `decl:func`/`decl:var` de TODO `FunctionDecl`/`VarDecl`.
+ *
+ * Rust tem a sua também (`RUST_STRUCTURAL_ALWAYS_ALLOWED`, medida junto da
+ * semente do adaptador): `node:SourceFile`/`node:Identifier`/
+ * `node:ExpressionStatement`/`node:Arguments`/`node:LineComment` — no
+ * tree-sitter comentário é nó nomeado e nunca é conteúdo de orçamento.
  */
 export function structuralAlwaysAllowed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('STRUCTURAL_ALWAYS_ALLOWED', language);
   if (language === 'python') return PYTHON_STRUCTURAL_ALWAYS_ALLOWED;
   if (language === 'c') return C_STRUCTURAL_ALWAYS_ALLOWED;
+  if (language === 'rust') return RUST_STRUCTURAL_ALWAYS_ALLOWED;
   return STRUCTURAL_ALWAYS_ALLOWED;
 }
