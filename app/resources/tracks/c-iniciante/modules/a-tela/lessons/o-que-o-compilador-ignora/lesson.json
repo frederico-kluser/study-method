@@ -22,7 +22,7 @@
     "modulo": "a-tela",
     "moduloTitulo": "A tela",
     "aula": 5,
-    "ensina": "cons. — api:printf em forma nova (com comentários; term:comentario)",
+    "ensina": "cons. — api:printf em forma nova (com comentários; term:comentário)",
     "presume": "primeira-tela",
     "quiz": "O compilador ignora tudo entre // e o fim da linha, e entre /* e */.",
     "desafio": "ficha-comentada — função com comentário de cabeçalho e por linha; o teste prova que a saída não muda."

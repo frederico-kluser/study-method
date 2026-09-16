@@ -23,7 +23,7 @@
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",
     "aula": 4,
-    "ensina": "cons. — node:ForStmt em forma nova (até strlen ou até s[i] != 0)",
+    "ensina": "cons. — node:ForStmt em forma nova (até strlen ou até s[i] != '\\0')",
     "presume": "o-comprimento, varrer-a-lista",
     "quiz": "Perceber o fim é VER o \\0: as duas condições ensinam a mesma coisa.",
     "desafio": "contador-de-vogais — conta as vogais (aeiou, sem acento) de uma palavra lida; teste com 2 palavras de contagens conhecidas."
