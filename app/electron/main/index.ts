@@ -47,6 +47,7 @@ import { createLlmClient } from './services/llmClient';
 import { createResearchPlanner, followUpsWithLlm, planWithLlm } from './services/researchPlanner';
 import { createAnswerJudge } from './services/answerJudge';
 import { embeddedLlm } from './services/embeddedLlm/EmbeddedLlmService';
+import { isAppOwnNavigation } from './navigation-guard';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
@@ -301,6 +302,27 @@ function createWindow(): void {
       void shell.openExternal(url);
     }
     return { action: 'deny' };
+  });
+
+  // Navegação de TOPO só para origem PRÓPRIA (camada 2 do fix do embed de
+  // Fontes; a camada 1 é o `sandbox` do iframe em LessonView.tsx): sem este
+  // guard, um iframe cross-origin com user activation poderia fazer
+  // `top.location = 'https://hostil'` — a janela inteira navegaria, o preload
+  // RE-executaria no novo documento do mesmo webContents e a página hostil
+  // receberia a superfície completa de window.api. Navegação estranha é
+  // bloqueada aqui e delegada ao navegador do sistema (MESMO comportamento do
+  // setWindowOpenHandler acima). Origens próprias: em dev, a URL do dev server
+  // (ELECTRON_RENDERER_URL); em prod, o bundle carregado via loadFile (file:).
+  const ownOrigins: readonly string[] =
+    isDev && process.env['ELECTRON_RENDERER_URL']
+      ? [process.env['ELECTRON_RENDERER_URL']]
+      : ['file:///'];
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isAppOwnNavigation(url, ownOrigins)) return;
+    event.preventDefault();
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      void shell.openExternal(url);
+    }
   });
 
   if (isDev) {

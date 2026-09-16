@@ -653,6 +653,11 @@ com mensagem clara — nunca skip silencioso).
   preload é um bundle CJS que só `require('electron')` — compatível com o sandbox de preload.
 - **`webSecurity: true`** (default) + links externos `http(s)` abrem no navegador do sistema
   (`setWindowOpenHandler`).
+- **Navegação de topo**: o embed de Fontes roda com `sandbox` (sem `allow-top-navigation`/
+  `allow-plugins`) e o main registra `will-navigate` (`main/navigation-guard.ts`) — um iframe
+  cross-origin não pode arrastar a JANELA inteira para uma página hostil, onde o preload
+  re-executaria e re-exporia `window.api`; navegação estranha é bloqueada e delegada ao
+  navegador do sistema.
 - **Workspace FS**: `resolveContainedWorkspacePath` rejeita traversal; nunca se lê/escreve
   fora do `workspaceDir`.
 

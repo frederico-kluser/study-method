@@ -1348,6 +1348,17 @@ export function LessonSourceViewer(props: LessonSourceViewerProps): ReactElement
         component="iframe"
         src={source.url}
         title={source.title}
+        // Sandbox do embed (segurança): sem `allow-top-navigation` o frame NÃO
+        // pode navegar o topo (`top.location = …`), o que mata a cadeia em que
+        // uma página externa hostil reexecuta o preload no mesmo webContents e
+        // recebe a superfície completa de window.api. Tokens mantidos para não
+        // quebrar um site comum: `allow-scripts` (JS do site), `allow-same-origin`
+        // (cookies/localStorage da própria origem), `allow-popups` (links
+        // target=_blank) e `allow-forms` (submissão de formulários). A ausência
+        // de `allow-plugins` bloqueia plugins (Flash/PDF acionáveis) e a de
+        // `allow-top-navigation` é a camada 1 do fix — a camada 2 é o guard
+        // `will-navigate` no main (app/electron/main/navigation-guard.ts).
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
         // O embed é o RESTO da coluna (abaixo do cabeçalho e do aviso) e o
         // `position:relative` do main (App.tsx) é quem mantém o overlay preso
         // ao tabpanel.
