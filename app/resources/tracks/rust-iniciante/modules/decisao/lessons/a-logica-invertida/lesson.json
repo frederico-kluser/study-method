@@ -80,7 +80,7 @@
     },
     {
       "id": "o-contrario-de-a-e-b",
-      "statement": "O contrário de (a e b) se escreve com o ! na frente da pergunta inteira, com nome — o || ainda não tem aula nesta trilha.",
+      "statement": "O contrário de (a e b) se escreve com o ! na frente da pergunta inteira, com nome — o `||` ainda não tem aula nesta trilha.",
       "question": "Qual é o contrário de *os dois zerados*?",
       "options": [
         "pelo menos um não é zero",

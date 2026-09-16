@@ -70,7 +70,7 @@
   "sources": [
     {
       "title": "How Functions Work — The Rust Programming Language",
-      "url": "https://doc.rust-lang.org/book/ch03-03-functions.html",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
       "description": "O capítulo oficial das funções, onde a aritmética aparece no corpo."
     },
     {
