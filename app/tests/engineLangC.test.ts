@@ -30,8 +30,8 @@
  *      do aluno — as provas FALHAM nos sete;
  *  11. a caminhada genérica: `extractAtoms(…, { language: 'c' })` usa SÓ o
  *      vocabulário do adaptador C (nada de JS vaza), e a porta de tabelas de
- *      `atomKeys.ts` segue FECHADA para 'c' (fail-closed — é trabalho da
- *      onda do vocabulário).
+ *      `atomKeys.ts` está ABERTA para 'c' (a abertura, medida, está em
+ *      `tests/engineGatesC.test.ts`).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,8 +64,7 @@ import {
   getAdapter,
 } from '../electron/main/engine/lang/registry';
 import type { LangNode } from '../electron/main/engine/lang/registry';
-import { structuralAlwaysAllowed } from '../electron/main/engine/atomKeys';
-import { TabelaDeLinguagemAusenteError } from '../electron/main/engine/atomKeys';
+import { structuralAlwaysAllowed, harnessReceptiveSeed } from '../electron/main/engine/atomKeys';
 import { extractAtoms } from '../electron/main/engine/extract';
 import {
   judgeCountMatches,
@@ -961,7 +960,7 @@ describe('c — a forja NÃO passa (o relatório nasce FORA do alcance do códig
 // 10. a caminhada genérica e a porta de tabelas (o que falta para a onda 2)
 // ---------------------------------------------------------------------------
 
-describe('c — a caminhada do extrator usa SÓ o vocabulário C, e as tabelas de budget seguem FECHADAS', () => {
+describe('c — a caminhada do extrator usa SÓ o vocabulário C, e as tabelas de budget estão ABERTAS', () => {
   it('extractAtoms com language c emite chaves do vocabulário C — nada de JS vaza', { skip: !TEM_C }, () => {
     const r = extractAtoms(
       '#include <stdio.h>\nint main(void) { int x = 1; if (x > 0) { printf("oi %d\\n", x); } return 0; }\n',
@@ -986,11 +985,15 @@ describe('c — a caminhada do extrator usa SÓ o vocabulário C, e as tabelas d
     assert.equal(ifOcc?.line, 2);
   });
 
-  it('a porta de tabelas de atomKeys segue FECHADA para c (fail-closed — trabalho da onda do vocabulário)', () => {
-    // A semente receptiva e as estruturais de C NÃO existem ainda: semear o
-    // orçamento de C com as tabelas de JavaScript perdoaria as construções
-    // erradas em silêncio. A porta reprova — e quem abre é a onda seguinte,
-    // com a tabela MEDIDA contra o harness real (ver o handoff).
-    assert.throws(() => structuralAlwaysAllowed('c'), TabelaDeLinguagemAusenteError);
+  it('a porta de tabelas de atomKeys está ABERTA para c (aberta pela onda do vocabulário)', () => {
+    // A onda 1 pinava o CONTRÁRIO (a porta LANÇAVA TabelaDeLinguagemAusenteError —
+    // fail-closed enquanto a tabela não existia). A onda seguinte abriu a porta
+    // com as tabelas MEDIDAS contra o harness real (SM_HARNESS_HEADER,
+    // SM_MAIN_SOURCE e um testsCode da convenção com SM_COUNT_PREABULO); a
+    // medição completa e o laço nos dois sentidos estão em
+    // `tests/engineGatesC.test.ts`.
+    const estruturais = structuralAlwaysAllowed('c');
+    assert.ok(estruturais.includes('node:CompoundStmt'), estruturais.join(' '));
+    assert.ok(harnessReceptiveSeed('c').includes('api:SM_TEST'));
   });
 });

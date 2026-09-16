@@ -166,7 +166,9 @@ describe('requirements (python) — a bijeção pelo NOME DO MÉTODO', {
 
 describe('requirements — o despachante por linguagem (fail-closed)', () => {
   it('a tabela diz QUEM tem derivação escrita, e é explícita', () => {
-    assert.deepEqual([...LINGUAGENS_COM_REQUIREMENTS], ['javascript', 'python']);
+    // onda C: 'c' entrou (a derivação SM_TEST/checa_* de
+    // `engine/quality/requirements.ts`) — a ordenação é a do `Object.keys().sort()`.
+    assert.deepEqual([...LINGUAGENS_COM_REQUIREMENTS], ['c', 'javascript', 'python']);
   });
 
   it('Python que NÃO parseia LANÇA — nunca um conjunto vazio silencioso', {
