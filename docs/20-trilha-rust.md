@@ -244,7 +244,17 @@ deste documento o implementa:
 | `api:<qualquer macro do prelude>` (`println!`, `format!`, `vec!`, …) | `node:MacroInvocation` + `node:TokenTree` |
 | `api:derive.<qualquer>` | `node:Attribute` + `node:AttributeItem` |
 | `api:std::collections::<qualquer>` (o `use`) | `node:UseDeclaration` + `node:ScopedIdentifier` |
+| `api:.<método>` (a cadeia de método: `.step_by`, `.clone`, `.len`, `.push_str`, `.to_string`) | `node:FieldExpression` + `node:FieldIdentifier` |
+| `api:<Caminho>::<nome>` (o caminho-qualificado de função/const: `String::from`, `HashMap::new`) | `node:ScopedIdentifier` — e `global:<raiz>` quando o receptor/retorno é tipo do prelude (`String::from` também emite `global:String`) |
 | anotação de tipo por nome (`String`, `Vec<i32>`, `HashMap<String, i32>`, `Option<i32>`) | `node:TypeIdentifier` + `node:GenericType` + `node:TypeArguments` — a anotação é derivada da construção que a aula ensina, NUNCA item de `Ensina` |
+
+As duas linhas do `api:` de método e de caminho-qualificado são PARCIAIS na verificação reexecutável:
+`node:FieldExpression` e `node:ScopedIdentifier` entram no `DERIVADAS` do script (o `node:FieldIdentifier`
+já entrava pela linha do struct literal), mas o `global:<raiz>` da linha do caminho-qualificado é
+CONDICIONAL — só emite quando o receptor/retorno é tipo do prelude — e conjunto mecânico nenhum o
+representa sem mentir. A verificação o cobre pelo outro lado: `global:` é eixo fechado, então se a
+chave aparecer num `Ensina` o script exige que exista no inventário (VOCAB) e tenha origem ou
+consolidação legítima (CONS).
 
 `node:VisibilityModifier` (o `pub`) e `node:PrimitiveType` (os tipos primitivos na assinatura)
 **não têm aula**: acompanham o harness desde a aula 1 (o starter os lê e o aluno os copia) e entram
@@ -419,8 +429,8 @@ da aula 1: seis produtivas (`node:FunctionItem`, `node:Parameters`, `node:Parame
 
 | Aula | Ensina | Presume |
 |---|---|---|
-| `repetir-para-sempre` | `node:LoopExpression` | M2 `se` |
-| `parar-no-meio` | `node:BreakExpression` | `repetir-para-sempre` |
+| `repetir-para-sempre` | `node:LoopExpression` · `node:BreakExpression` (o par que termina) | M2 `se` |
+| `parar-no-meio` | cons. — `node:BreakExpression` em forma nova (o PARE no MEIO do corpo: as linhas da volta depois dele não rodam) | `repetir-para-sempre` |
 | `contar-ate` | `node:ForExpression`, `op:range:..` | `parar-no-meio` |
 | `ate-inclusive` | `op:range:..=` | `contar-ate` |
 | `enquanto` | `node:WhileExpression` | `parar-no-meio` |
@@ -579,11 +589,15 @@ api:test api:cfg.test api:assert_eq! api:assert_ne! api:assert!""".split())
 ESTRUTURAL = set("""node:SourceFile node:Identifier node:ExpressionStatement node:Arguments
 node:LineComment node:MacroArg""".split())
 # Derivadas da regra do par (§"A regra do par") — a mesma construção as produz.
+# Inclui as duas linhas do api: de método (`api:.<método>` → node:FieldExpression +
+# node:FieldIdentifier) e de caminho-qualificado (`api:<Caminho>::<nome>` → node:ScopedIdentifier);
+# o `global:<raiz>` condicional dessas linhas NÃO entra aqui (não é representável como derivada
+# incondicional) — o script o cobre pelo VOCAB (eixo fechado) e pelo CONS (origem/consolidação).
 DERIVADAS = set("""node:BinaryExpression node:IntegerLiteral node:UnaryExpression node:ReferenceExpression
 node:AssignmentExpression node:CompoundAssignmentExpr node:RangeExpression node:LetDeclaration
 node:MutableSpecifier node:ConstItem node:StaticItem node:Parameters node:Parameter
 node:FieldDeclarationList node:FieldDeclaration node:FieldInitializerList node:FieldInitializer
-node:FieldIdentifier node:EnumVariantList node:EnumVariant node:MatchBlock node:MatchPattern
+node:FieldIdentifier node:FieldExpression node:EnumVariantList node:EnumVariant node:MatchBlock node:MatchPattern
 node:SelfParameter node:ReferenceType node:MacroInvocation node:TokenTree node:Attribute
 node:AttributeItem node:UseDeclaration node:ScopedIdentifier node:TypeIdentifier node:GenericType
 node:TypeArguments""".split())
@@ -795,8 +809,8 @@ mesmo padrão publicado). Nunca URL inventada.
 |---|---|
 | M1 `a-tela` | [`book/ch03-03-how-functions-work.html`](https://doc.rust-lang.org/book/ch03-03-how-functions-work.html) · [`book/ch03-01-variables-and-mutability.html`](https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html) · [`std/macro.println.html`](https://doc.rust-lang.org/std/macro.println.html) · [`std/macro.format.html`](https://doc.rust-lang.org/std/macro.format.html) · [`rust-by-example/hello.html`](https://doc.rust-lang.org/rust-by-example/hello.html) · [`cargo/guide/project-layout.html`](https://doc.rust-lang.org/cargo/guide/project-layout.html) · [`cargo/commands/cargo-test.html`](https://doc.rust-lang.org/cargo/commands/cargo-test.html) |
 | M2 `decisao` | [`book/ch03-05-control-flow.html`](https://doc.rust-lang.org/book/ch03-05-control-flow.html) · [`rust-by-example/flow_control/if_else.html`](https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html) · [`reference/expressions/operator-expr.html`](https://doc.rust-lang.org/reference/expressions/operator-expr.html) · [`std/primitive.i32.html`](https://doc.rust-lang.org/std/primitive.i32.html) · [`std/primitive.bool.html`](https://doc.rust-lang.org/std/primitive.bool.html) · [`std/keyword.if.html`](https://doc.rust-lang.org/std/keyword.if.html) · [`std/keyword.else.html`](https://doc.rust-lang.org/std/keyword.else.html) |
-| M3 `repeticao` | [`book/ch03-05-control-flow.html`](https://doc.rust-lang.org/book/ch03-05-control-flow.html) · [`rust-by-example/flow_control/loop.html`](https://doc.rust-lang.org/rust-by-example/flow_control/loop.html) · [`std/ops/struct.Range.html`](https://doc.rust-lang.org/std/ops/struct.Range.html) |
-| M4 `o-dono-do-valor` | [`book/ch04-00-understanding-ownership.html`](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) · [`book/ch04-01-what-is-ownership.html`](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html) · [`std/string/struct.String.html`](https://doc.rust-lang.org/std/string/struct.String.html) |
+| M3 `repeticao` | [`book/ch03-05-control-flow.html`](https://doc.rust-lang.org/book/ch03-05-control-flow.html) · [`rust-by-example/flow_control/loop.html`](https://doc.rust-lang.org/rust-by-example/flow_control/loop.html) · [`rust-by-example/flow_control/for.html`](https://doc.rust-lang.org/rust-by-example/flow_control/for.html) · [`rust-by-example/flow_control/while.html`](https://doc.rust-lang.org/rust-by-example/flow_control/while.html) · [`std/macro.format.html`](https://doc.rust-lang.org/std/macro.format.html) · [`std/keyword.loop.html`](https://doc.rust-lang.org/std/keyword.loop.html) · [`std/keyword.break.html`](https://doc.rust-lang.org/std/keyword.break.html) · [`std/keyword.for.html`](https://doc.rust-lang.org/std/keyword.for.html) · [`std/keyword.while.html`](https://doc.rust-lang.org/std/keyword.while.html) · [`std/ops/struct.Range.html`](https://doc.rust-lang.org/std/ops/struct.Range.html) · [`std/ops/struct.RangeInclusive.html`](https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html) · [`std/iter/trait.Iterator.html`](https://doc.rust-lang.org/std/iter/trait.Iterator.html) · [`std/iter/struct.StepBy.html`](https://doc.rust-lang.org/std/iter/struct.StepBy.html) |
+| M4 `o-dono-do-valor` | [`book/ch04-00-understanding-ownership.html`](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) · [`book/ch04-01-what-is-ownership.html`](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html) · [`rust-by-example/std/str.html`](https://doc.rust-lang.org/rust-by-example/std/str.html) · [`std/keyword.let.html`](https://doc.rust-lang.org/std/keyword.let.html) · [`std/string/struct.String.html`](https://doc.rust-lang.org/std/string/struct.String.html) |
 | M5 `emprestar` | [`book/ch04-02-references-and-borrowing.html`](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html) · [`book/ch04-03-slices.html`](https://doc.rust-lang.org/book/ch04-03-slices.html) |
 | M6 `estruturas` | [`book/ch05-01-defining-structs.html`](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) · [`book/ch05-03-method-syntax.html`](https://doc.rust-lang.org/book/ch05-03-method-syntax.html) · [`rust-by-example/custom_types/structs.html`](https://doc.rust-lang.org/rust-by-example/custom_types/structs.html) |
 | M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-the-match-control-flow-construct.html`](https://doc.rust-lang.org/book/ch06-02-the-match-control-flow-construct.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) |

@@ -4,7 +4,7 @@
   "title": "Parar no meio",
   "summary": "O break interrompe o laço no meio do corpo — é ele quem manda a corrida parar.",
   "difficulty": 4,
-  "role": "regular",
+  "role": "consolidation",
   "targetAtom": "node:BreakExpression",
   "concepts": [
     "parar_no_meio"

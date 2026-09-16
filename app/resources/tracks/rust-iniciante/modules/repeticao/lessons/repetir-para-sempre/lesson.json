@@ -14,11 +14,10 @@
   ],
   "introduces": {
     "productive": [
-      "node:LoopExpression"
-    ],
-    "receptive": [
+      "node:LoopExpression",
       "node:BreakExpression"
-    ]
+    ],
+    "receptive": []
   },
   "introducesTerms": [],
   "theory": [
