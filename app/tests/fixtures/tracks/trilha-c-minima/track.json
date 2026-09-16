@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-c-minima",
+  "title": "Trilha C mínima (fixture)",
+  "description": "Trilha-fixture dos testes de coverage de C: 1 módulo, 1 aula, 2 desafios de C no counter_protocol (03-tdd §3.9.3) — um na forma de IMPRESSÃO (captura de stdout + checa_str) e um na forma de VALOR (checa_int com chamada à função do aluno). Existe para provar que o sintetizador de código mínimo LÊ C — protótipos, SM_TEST e checa_*.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "c",
+  "runtime": "cc-c11",
+  "harnessLanguage": "c",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

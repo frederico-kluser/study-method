@@ -736,6 +736,7 @@ const ISENTOS_COM_LANGUAGE: Record<string, string> = {
   'electron/main/engine/modes/curriculumGap.ts#bloco.codigo': 'teoria da aula nova (A4 do laço)',
   'electron/main/engine/quality/discriminacao.ts#desafio.solutionCode': 'solutionCode parseia standalone',
   'electron/main/engine/quality/minimalPython.ts#candidato': 'minimal Python (solutionCode), guarda própria',
+  'electron/main/engine/quality/minimalC.ts#candidato': 'minimal C (solutionCode sintetizado, parseia standalone), guarda própria',
   'electron/main/engine/quality/progressao.ts#arquivo.solution': 'solutionCode da bateria (javascript-only)',
   'electron/main/engine/quality/progressao.ts#arquivo.starter': 'starterCode da bateria (javascript-only)',
   'electron/main/engine/quality/progressao.ts#codigo': 'teoria (demoDaAula) — bloco cercado parseia standalone',
