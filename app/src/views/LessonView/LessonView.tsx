@@ -559,7 +559,20 @@ export function LessonComposer({
   const micLabel = micTranscribing ? tI('lesson.micStop') : tI('lesson.micStart');
 
   return (
-    <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center' }}>
+    <Stack
+      direction="row"
+      useFlexGap
+      spacing={1}
+      sx={{
+        alignItems: 'center',
+        // ONDA-FIX-COMPOSER: cinto-e-suspensório da pior coluna (~331px — a
+        // CONTA completa está no `sx` do campo abaixo): se a linha inteira
+        // AINDA não couber (fonte maior, i18n com rótulo mais largo), o
+        // avanço quebra PARA BAIXO em vez de truncar ou estourar scrollbar
+        // horizontal — a coluna é flexível e nada trunca (SC 1.4.12).
+        flexWrap: 'wrap',
+      }}
+    >
       <Tooltip title={micTranscribing ? t('translation:lesson.micStop') : t('translation:lesson.micStart')}>
         {/* <span>: o Tooltip escuta eventos que um controle DESABILITADO não
             dispara — sem o wrapper a dica some justamente quando explicaria o
@@ -599,9 +612,27 @@ export function LessonComposer({
       <TextField
         // ONDA-AVANCAR-COMPOSER: o campo deixou de ser `fullWidth` — a linha
         // é [mic] [campo que encolhe] [Avançar], então ele vira item flexível
-        // (`flex: 1 1 auto`) com PISO de 240px: o abraço do flex nunca o
-        // apaga de vez com o botão de avanço em cena.
-        sx={{ flex: '1 1 auto', minWidth: 240 }}
+        // (`flex: 1 1 auto`).
+        // ONDA-FIX-COMPOSER — A CONTA DO PISO (por que 128): a pior coluna
+        // que o app suporta E PERSISTE (a razão do split é gravada em disco)
+        // é: janela `minWidth: 900` (electron/main/index.ts, createWindow)
+        // − rail 104 (components/shell/NavigationRail.tsx, RAIL_WIDTH) =
+        // 796 de container do split; `usablePx = container − divider` com
+        // `dividerPx: 6` e `maxRatio: 0.5` (lib/splitRatio.ts,
+        // SHELL_SPLIT_CONSTRAINTS) ⇒ main = (796 − 6) × 0.5 = 395px; o
+        // padding do tabpanel no breakpoint md (default MUI = 900px) é
+        // `4` = 32 de cada lado (App.tsx) ⇒ coluna de 395 − 64 = 331px.
+        // A linha nessa coluna precisa caber: mic 44 + 2 gaps de 8
+        // (spacing 1) = 16 + min-content do botão "Avançar" com ícone
+        // (~135 — `whiteSpace: 'nowrap'` + px 3) + este piso = 44 + 16 +
+        // 135 + 128 = 323 ≤ 331, com folga de 8px. O piso antigo de 240
+        // pedia ~435px de linha e estourava a coluna em TODAS as faixas de
+        // padding (363/347/331 < 435) — scrollbar horizontal/botão cortado,
+        // contrariando o contrato do App ("as views são flexíveis e nenhum
+        // conteúdo trunca", SC 1.4.12). Antes desta onda o campo era
+        // fullWidth com min-width 0 e a mesma coluna cabia. Prova da conta
+        // e do CSS emitido: tests/composerMinWidth.test.ts.
+        sx={{ flex: '1 1 auto', minWidth: 128 }}
         size="small"
         data-onboarding-target="lesson-chat-input"
         placeholder={askLabel}
