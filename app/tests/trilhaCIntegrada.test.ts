@@ -451,14 +451,21 @@ describe('as 2 aulas completas do M1 — quiz, typewriter, fontes, teoria, intro
       });
 
       it('introduces declaradas: productive não vazio e todas as chaves são átomos bem-formados', () => {
-        const intro = lesson.introduces;
+        // Campos ADITIVOS do currículo (§10 do docs/16: o loader faz CAST, não
+        // pick — o tipo do loader não os declara, o conteúdo real sim; mesma
+        // ponte dos campos `autoria`/`requirements` nos testes irmãos).
+        const curriculo = lesson as TrackLessonSource & {
+          introduces?: { productive: string[]; receptive: string[] };
+          targetAtom?: string;
+        };
+        const intro = curriculo.introduces;
         assert.ok(intro, 'a aula completa declara introduces (o contrato do currículo)');
         assert.ok(intro!.productive.length > 0, 'a aula produtiva introduz ALGO (A6)');
         for (const k of [...intro!.productive, ...intro!.receptive]) {
           assert.ok(isAtomKey(k), `chave '${k}' não é um átomo bem-formado (AXIS:… no atomKeys)`);
         }
-        assert.ok(lesson.targetAtom, 'targetAtom declarado');
-        assert.ok(isAtomKey(lesson.targetAtom!), 'targetAtom é átomo bem-formado');
+        assert.ok(curriculo.targetAtom, 'targetAtom declarado');
+        assert.ok(isAtomKey(curriculo.targetAtom!), 'targetAtom é átomo bem-formado');
       });
     });
   }
@@ -623,6 +630,12 @@ describe('espinha × docs/20 — o conteúdo confere com o contrato congelado', 
     assert.equal(noDisco.size, 115);
   });
 
+  // Asserção ESTRITA (zero divergência). No estado PRÉ-fix desta worktree ela
+  // reprova em 2 células (o-que-o-compilador-ignora "term:comentario" vs
+  // docs/20:498; percorrer-a-string "s[i] != 0" vs docs/20:670) — vermelho
+  // ESPERADO AQUI, que é branch pré-fix; o gate do snapshot PÓS-merge
+  // (raiz-de-mundo, squash 1d99dda: "term:comentário" e "s[i] != '\0'") é quem
+  // decide, e lá a asserção PASSA.
   it('autoria de CADA aula de esqueleto confere com a célula do docs/20 (slug, aula, ensina, presume)', async () => {
     const semAutoria: string[] = [];
     const diffs: string[] = [];
