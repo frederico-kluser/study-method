@@ -9,7 +9,8 @@
  *
  * ─── "WITHERED TECHNOLOGY" (docs/ux-redesign.md §1) ───────────────────────
  * Nenhuma dependência nova. `@lezer/highlight`, `@codemirror/lang-python`,
- * `@codemirror/lang-javascript`, `@codemirror/lang-json` e
+ * `@codemirror/lang-rust`, `@codemirror/lang-javascript`,
+ * `@codemirror/lang-json` e
  * `@codemirror/lang-markdown` já são dependências DECLARADAS em package.json —
  * o editor CodeMirror as usa para colorir o buffer. Aqui a MESMA gramática é
  * usada de um jeito novo: o `parser` da linguagem roda direto sobre uma string
@@ -32,6 +33,7 @@
  */
 import { highlightTree, tagHighlighter, tags, type Highlighter } from '@lezer/highlight';
 import { pythonLanguage } from '@codemirror/lang-python';
+import { rustLanguage } from '@codemirror/lang-rust';
 import {
   javascriptLanguage,
   jsxLanguage,
@@ -137,6 +139,8 @@ const PARSERS: Readonly<Record<string, Parser>> = {
   python: pythonLanguage.parser,
   py: pythonLanguage.parser,
   python3: pythonLanguage.parser,
+  rust: rustLanguage.parser,
+  rs: rustLanguage.parser,
   javascript: javascriptLanguage.parser,
   js: javascriptLanguage.parser,
   mjs: javascriptLanguage.parser,
