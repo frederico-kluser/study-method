@@ -531,6 +531,14 @@ orçamento):
 
 Implementado em `app/electron/main/engine/extract.ts`, sobre o **compilador do TypeScript**.
 
+⚑ **O extrator é POR LINGUAGEM** (`lang/registry.ts`): a interface `LanguageAdapter` registra um
+adaptador por linguagem — `javascript`/`typescript` (TS compiler), `python` (`vocab/py/`,
+subprocesso `python3`) e **`rust`** (`lang/rust.ts` + `vocab/rs/`, parser tree-sitter WASM por
+subprocesso, inventário `vocab/atoms.rust.json`, 190 chaves). A engine é multilíngue; o contrato de
+conteúdo da cadeia Rust (iniciante → intermediário → avançado → especialista) é o
+[`20-trilha-rust.md`](20-trilha-rust.md). Os gates desta seção valem para TODAS as linguagens sem
+exceção.
+
 A escolha é medida, não estética: `acorn`, `eslint-visitor-keys`, `esquery`, `eslint-scope` e
 `globals` **não existem** em `app/node_modules`, nem transitivamente; `typescript@5.8.3` existe como
 dependência direta. Custa zero dependência nova. E o AST do TypeScript modela como **nó** o que o
