@@ -84,6 +84,16 @@ leem; uma guarda de identidade (token por processo) descarta continuamentos de
 gerações antigas. Contrato completo:
 [`docs/14-respostas-nunca-repetir.md`](14-respostas-nunca-repetir.md).
 
+**Fontes da aula.** O botão **Fontes** do cabeçalho (no sidebar) abre o diálogo
+"Fontes desta aula" — as fontes nunca entram no fluxo do chat. Escolher uma
+fonte fecha o diálogo e a **embebe num visualizador que cobre o tabpanel da
+aula inteiro** (`role="tabpanel"`, portal sobre `#sm-panel-lesson`): título,
+botão **Fechar**, link de reserva **"Abrir no navegador"** (para site que
+recusa embed — o iframe nasce vazio e o app não detecta a recusa) e o `<iframe>`
+da fonte. **Fechar (botão ou Esc) sai do iframe e REABRE o diálogo de Fontes**.
+O embed é autorizado pelo CSP `frame-src https:` (§3); nenhum outro frame é
+permitido e o restante do app continua sem rede no renderer.
+
 ### 1.4 Desafio (aba Desafio)
 
 Layout em três painéis:
@@ -628,7 +638,7 @@ com mensagem clara — nunca skip silencioso).
 
 - **CSP** (`app/index.html`):
   `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'
-  data:; font-src 'self'; connect-src 'self'`.
+  data:; font-src 'self'; connect-src 'self'; frame-src https:`.
   - **`style-src 'unsafe-inline'`** é necessário: o **CodeMirror** e o **xterm** injetam
     estilos via atributo `style` (highlight/gutter, cursor, seleção). Sem ele, editor e
     terminal perdem cor/posicionamento.
@@ -636,6 +646,9 @@ com mensagem clara — nunca skip silencioso).
     de autocomplete está desligada nesta onda).
   - **`connect-src 'self'`** basta porque todo o tráfego de rede (OpenRouter, Pi, Brave,
     download de modelo) roda no **main**, não no renderer.
+  - **`frame-src https:`** existe só para o **visualizador de Fontes da aula** (§1.3): a
+    fonte escolhida é embebida num `<iframe>` dentro do tabpanel. Autoriza apenas esquemas
+    `https:` (nenhum `file:`/`http:`) e nenhum fetch do app passa a rodar no renderer.
 - **Sandbox**: `sandbox: true` nas `webPreferences` do `BrowserWindow` (`main/index.ts`); o
   preload é um bundle CJS que só `require('electron')` — compatível com o sandbox de preload.
 - **`webSecurity: true`** (default) + links externos `http(s)` abrem no navegador do sistema

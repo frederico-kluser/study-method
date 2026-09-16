@@ -189,6 +189,7 @@
  *      vazio) — nunca gera.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -207,6 +208,7 @@ import {
   Link,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   Popover,
   Stack,
@@ -216,6 +218,8 @@ import {
 } from '@mui/material';
 import { useTheme, type SxProps, type Theme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
+import CloseIcon from '@mui/icons-material/Close';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LockIcon from '@mui/icons-material/Lock';
@@ -313,6 +317,9 @@ import {
 } from '../../lib/challengeGenerateStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
+// ONDA2-FONTES: o id do `role="tabpanel"` da aula — é NELE que o portal do
+// visualizador de fonte se ancora (mesma fonte de verdade do App.tsx).
+import { navPanelId } from '../../lib/shellNav';
 // ONDA-AULA-NO-SIDEBAR: o cabeçalho da aula (título, resumo, progresso,
 // Desafios/Fontes, pré-requisitos) mora no SIDEBAR do shell. Esta view o
 // PUBLICA no slot da coluna por portal (`ShellSidebarPortal`) e continua dona
@@ -333,6 +340,7 @@ import type {
   TrackAssertionDto,
   TrackChallengeSummaryDto,
   TrackLessonPayload,
+  TrackSourceLinkDto,
 } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
 
@@ -1212,6 +1220,149 @@ export function LessonActionRow(props: LessonActionRowProps): ReactElement {
 }
 
 /**
+ * ONDA2-FONTES (pedido do dono: *"quando clico em fontes, e escolho uma das
+ * fontes, quero que renderize ela no 'role=\"tabpanel\"' inteiro ali com um
+ * botao de fechar para sair do iframe, e abrir de novo o modal das fontes"*).
+ *
+ * O VISUALIZADOR DE FONTE, de APRESENTAÇÃO: recebe a fonte escolhida e
+ * desenha o embed — cabeçalho (título + link de reserva "Abrir no navegador" +
+ * botão "Fechar"), o aviso de frame bloqueado e o `<iframe>` preenchendo todo
+ * o resto. Ele NÃO sabe onde é montado nem quem o fecha: a view (abaixo) é
+ * quem o porta no tabpanel via portal e quem decide o que o Fechar faz.
+ *
+ * ─── POR QUE UM LINK DE RESERVA ───────────────────────────────────────────
+ * Sites com `X-Frame-Options: DENY`/`SAMEORIGIN` ou `frame-ancestors`
+ * recusam ser exibidos dentro de outro documento — o iframe nasce VAZIO e o
+ * app não tem como detectar isso (é recusa silenciosa do browser, sem
+ * evento). O link externo é a rota de fuga anunciada no aviso
+ * (`lesson.sourcesViewerFrameHint`): o CSP ganhou `frame-src https:` só para
+ * este embed (ver index.html) — o resto do app continua sem rede no renderer.
+ *
+ * ─── APRESENTAÇÃO EXPORTADA, PELO MESMO MOTIVO DO LessonComposer ──────────
+ * Sem jsdom nesta base, um pedaço de tela só é testável se puder ser montado
+ * sozinho: tests/lessonSourcesViewer.test.ts renderiza ESTE componente com o
+ * tema e o i18n REAIS e mede iframe (src/title), "Fechar" com nome acessível,
+ * o link com href e o aviso. A view usa ESTE componente — não existe cópia
+ * para teste. As cascas animadas seguem o padrão do irmão (Tooltip + span +
+ * motion.span whileTap com `tabIndex={-1}` — o motion marca tabindex=0 em
+ * todo elemento com gesto quando o autor não declara um).
+ */
+export interface LessonSourceViewerProps {
+  /** A fonte escolhida no diálogo de Fontes (`TrackSourceLinkDto`). */
+  source: { title: string; url: string; description?: string };
+  /** O clique no botão "Fechar" (a view decide o que fechar — e o que reabrir). */
+  onClose: () => void;
+  /** href do link de reserva "Abrir no navegador" (target=_blank). */
+  openExternalHref: string;
+}
+
+export function LessonSourceViewer(props: LessonSourceViewerProps): ReactElement {
+  const { source, onClose, openExternalHref } = props;
+  const { t } = useTranslation();
+  const tI = t as unknown as (key: string) => string;
+  // ONDA2-FONTES (medido no e2e-fontes, 2ª rodada): o item do diálogo que
+  // ABRIU este visualizador é DESMONTADO junto com o diálogo — sem tomar o
+  // foco, o `activeElement` fica num nó solto e o Esc do fechar único NUNCA
+  // chega ao `window` (keydown não dispara em documento com foco órfão). O
+  // foco no "Fechar" ao montar também dá a quem navega por teclado um ponto
+  // de partida honesto: a primeira tecla disponível é a que sai do embed.
+  // Efeito vazio = só o mount (o componente só existe com o visualizador
+  // aberto; no SSR não roda).
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  return (
+    <Box
+      sx={{
+        // O PAI (overlay da view) é flex column; aqui preenchemos o resto.
+        flex: 1,
+        minWidth: 0,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <Stack
+        direction="row"
+        useFlexGap
+        spacing={1.5}
+        sx={{
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        {/* Título TRUNCADO em vez de empurrar o Fechar para fora (SC 1.4.10). */}
+        <Typography
+          variant="subtitle1"
+          noWrap
+          sx={{ flex: '1 1 auto', minWidth: 120, fontWeight: 600 }}
+        >
+          {source.title}
+        </Typography>
+        {/* Reserva para site que recusa embed (X-Frame-Options/frame-ancestors):
+            o iframe nasce vazio e o app NÃO consegue detectar a recusa — o
+            aviso abaixo aponta para cá. */}
+        <Link
+          href={openExternalHref}
+          target="_blank"
+          rel="noreferrer"
+          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}
+        >
+          <OpenInNewIcon fontSize="small" />
+          {tI('lesson.sourcesViewerOpenExternal')}
+        </Link>
+        <Tooltip title={tI('lesson.sourcesViewerClose')}>
+          <span>
+            <motion.span
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              tabIndex={-1}
+              style={{ display: 'inline-block' }}
+            >
+              <Button
+                ref={closeButtonRef}
+                onClick={onClose}
+                variant="contained"
+                startIcon={<CloseIcon />}
+                sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX }}
+              >
+                {tI('lesson.sourcesViewerClose')}
+              </Button>
+            </motion.span>
+          </span>
+        </Tooltip>
+      </Stack>
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', display: 'block', px: 2, pt: 1, pb: 0.5 }}
+      >
+        {tI('lesson.sourcesViewerFrameHint')}
+      </Typography>
+      <Box
+        component="iframe"
+        src={source.url}
+        title={source.title}
+        // O embed é o RESTO da coluna (abaixo do cabeçalho e do aviso) e o
+        // `position:relative` do main (App.tsx) é quem mantém o overlay preso
+        // ao tabpanel.
+        sx={{
+          flex: 1,
+          width: '100%',
+          border: 0,
+          bgcolor: 'background.paper',
+        }}
+      />
+    </Box>
+  );
+}
+
+/**
  * ONDA2-QUIZ-OVERLAY: um quiz RENDERIZÁVEL — a assertion AUTORAL (a que ancora
  * a chave e a seção), o que `visibleQuizFor` devolve para ela (chave canônica,
  * assertion da geração corrente, estado e passo do ciclo) e o índice da bolha
@@ -1380,6 +1531,39 @@ export function LessonView(props: ViewProps): ReactElement {
   const [draft, setDraft] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // ONDA2-FONTES (pedido do dono: *"escolho uma das fontes, renderiza ela no
+  // role="tabpanel" inteiro com um botão de fechar para sair do iframe, e
+  // abrir de novo o modal das fontes"*). `openSource` é a fonte escolhida no
+  // diálogo; não null = o visualizador (iframe) cobre o tabpanel inteiro.
+  // O FECHAR (botão ou Esc) é UM handler que faz as duas coisas: limpa a fonte
+  // E reabre o diálogo — sair do iframe é voltar para a lista, nunca para o
+  // nada.
+  const [openSource, setOpenSource] = useState<TrackSourceLinkDto | null>(null);
+  // O nó do tabpanel (`#sm-panel-lesson`) capturado UMA vez no mount — o
+  // createPortal precisa de um nó REAL, que não existe no SSR (os testes desta
+  // base são react-dom/server, sem jsdom): `null` até o cliente montar, e sem
+  // alvo o portal renderiza NADA (mesmo contrato do ShellSidebarPortal).
+  const [lessonPanel, setLessonPanel] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setLessonPanel(document.getElementById(navPanelId('lesson')));
+  }, []);
+  // O fechar ÚNICO: sai do iframe e reabre o diálogo de Fontes.
+  const closeSourceViewer = useCallback(() => {
+    setOpenSource(null);
+    setSourcesOpen(true);
+  }, []);
+  // Esc com o visualizador aberto fecha o iframe (o MUI não vê o evento — o
+  // diálogo já está fechado quando o overlay está em cena). O listener só
+  // existe com o visualizador aberto: Esc SEM ele continua sendo do Popover /
+  // diálogo (fechar lista/desafios), sem roubo de tecla.
+  useEffect(() => {
+    if (openSource === null) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') closeSourceViewer();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [openSource, closeSourceViewer]);
   // ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"): a lista de
   // desafios saiu do fluxo do chat; o botão "Desafios" do cabeçalho da aula
   // abre um POPOVER ancorado no próprio botão (`challengesAnchorEl`). Fecha ao
@@ -3696,7 +3880,12 @@ export function LessonView(props: ViewProps): ReactElement {
         />
       </ShellSidebarPortal>
 
-      {/* Fontes: NUNCA no fluxo — botão "Fontes" abre este diálogo. */}
+      {/* Fontes: NUNCA no fluxo — botão "Fontes" abre este diálogo.
+          ONDA2-FONTES: o item deixou de ser <Link> externo e virou BOTÃO
+          (ListItemButton): escolher uma fonte fecha o diálogo e abre o
+          visualizador (iframe) no tabpanel inteiro — o link externo continua
+          existindo como RESERVA, dentro do visualizador ("Abrir no
+          navegador"). */}
       <Dialog open={sourcesOpen} onClose={() => setSourcesOpen(false)} aria-labelledby="lesson-sources-title" maxWidth="sm" fullWidth>
         <DialogTitle id="lesson-sources-title">{t('translation:lesson.sourcesTitle')}</DialogTitle>
         <DialogContent dividers>
@@ -3705,23 +3894,49 @@ export function LessonView(props: ViewProps): ReactElement {
               {t('translation:lesson.sourcesEmpty')}
             </Typography>
           ) : (
-            <List dense>
+            <List dense disablePadding>
               {lesson.sources.map((s, i) => (
-                <ListItem key={i} disableGutters>
-                  <ListItemText
-                    primary={
-                      <Link href={s.url} target="_blank" rel="noreferrer">
-                        {s.title}
-                      </Link>
-                    }
-                    secondary={s.description}
-                  />
+                <ListItem key={i} disableGutters disablePadding>
+                  <ListItemButton
+                    onClick={() => {
+                      setSourcesOpen(false);
+                      setOpenSource(s);
+                    }}
+                  >
+                    <ListItemText primary={s.title} secondary={s.description} />
+                  </ListItemButton>
                 </ListItem>
               ))}
             </List>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ONDA2-FONTES: O VISUALIZADOR DE FONTE — portal DENTRO do
+          `role="tabpanel"` da aula (#sm-panel-lesson), cobrindo-o INTEIRO
+          (absolute inset:0 — o padding do main também fica por baixo). Sem nó
+          alvo (SSR/testes, primeiro render do cliente) o portal renderiza
+          NADA; o `position:'relative'` do main (App.tsx) é a âncora que
+          impede o overlay de escapar do painel. Fechar (botão ou Esc) limpa
+          `openSource` E reabre o diálogo — um handler só. */}
+      {openSource !== null && lessonPanel !== null
+        ? createPortal(
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 40,
+                display: 'flex',
+                // level0: o MESMO fundo da superfície do app (theme.ts) — o
+                // iframe fica "em casa", sem folha branca flutuando.
+                bgcolor: theme.vars.palette.surface.level0,
+              }}
+            >
+              <LessonSourceViewer source={openSource} onClose={closeSourceViewer} openExternalHref={openSource.url} />
+            </Box>,
+            lessonPanel,
+          )
+        : null}
 
       {/* ONDA1-UX (pedido do dono): DESAFIOS fora do fluxo — o botão
           "Desafios" do cabeçalho da aula (no sidebar, publicado pelo portal

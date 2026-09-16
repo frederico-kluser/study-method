@@ -258,6 +258,11 @@ function Shell({
               // views são flexíveis e nenhum conteúdo trunca (SC 1.4.12).
               display: 'flex',
               flexDirection: 'column',
+              // ONDA2-FONTES: o visualizador de Fontes da aula é um portal
+              // FILHO deste main e usa position:'absolute' inset:0 — sem
+              // 'relative' aqui ele escalaria até o ancestral posicionado
+              // mais distante e vazaria para fora do tabpanel.
+              position: 'relative',
               flexGrow: 1,
               minWidth: 0,
               overflow: 'auto',

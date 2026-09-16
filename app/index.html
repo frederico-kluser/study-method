@@ -18,10 +18,16 @@
       PROCESSO MAIN (electron/main/services/*), não no renderer — por isso a
       connect-src do renderer fica restrita a 'self' (dev server / file). Os
       assets de build (out/renderer/assets/*) saem do próprio app.
+
+      frame-src https:: o visualizador de Fontes da aula (LessonSourceViewer)
+      abre a fonte escolhida num <iframe> externo dentro do tabpanel da aula.
+      default-src 'self' bloquearia esse embed; https: libera apenas esquemas
+      https:// (nenhuma página file:/http:) para esse único frame. Não há
+      rede própria do iframe: qualquer fetch continua no processo main.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https:"
     />
     <title>Study Method — Tutor</title>
   </head>
