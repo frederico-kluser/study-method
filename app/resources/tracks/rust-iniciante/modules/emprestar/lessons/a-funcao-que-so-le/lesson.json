@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-funcao-que-so-le",
+  "title": "A função que só lê",
+  "summary": "A assinatura &str aceita o dono emprestado e a fatia crua: quem só lê assina o &str.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:ReferenceType",
+  "concepts": [
+    "a_funcao_que_so_le"
+  ],
+  "prerequisites": [
+    "emprestar-o-texto",
+    "emprestar-qualquer-coisa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ReferenceType"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "uma-assinatura-dois-textos",
+      "title": "Uma assinatura, dois textos",
+      "markdown": "A função abaixo aceita um `String` emprestado E um literal crua — porque a assinatura pede o `&str`, o texto emprestado:\n\n```rust\npub fn mede(texto: &str) -> usize {\n    texto.len()\n}\n```\n\n`mede(&nome)` empresta o dono; `mede(\"sol\")` passa a fatia crua. As duas leituras chegam pela mesma porta."
+    },
+    {
+      "id": "por-que-nao-o-string-emprestado",
+      "title": "Por que não &String",
+      "markdown": "Assinar `&String` aceitaria SÓ o dono emprestado: o literal `\"sol\"` não tem caixa `String` para emprestar. Assinar `&str` aceita os DOIS:\n\n```rust\npub fn mede(texto: &str) -> usize {\n    texto.len()\n}\n```\n\nA regra da mão na roda: quem só lê texto assina `&str` — e o compilador empresta o que vier."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-str-aceita-os-dois",
+      "sectionId": "uma-assinatura-dois-textos",
+      "statement": "A assinatura &str aceita o dono emprestado (&String vira &str na porta) e a fatia crua.",
+      "question": "Quem assina `&str` aceita chegar de que formas?",
+      "options": [
+        "O dono emprestado e a fatia crua",
+        "Só a fatia crua",
+        "Só o dono emprestado",
+        "Nem um nem outro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O &str é a porta larga: quem lê, assina ele.",
+      "optionRationales": [
+        "O & do dono se vira &str na porta da função — e o literal já nasce &str.",
+        "O literal cru passa, mas o dono emprestado também.",
+        "O literal cru não cabe em &String — só o dono.",
+        "As duas formas passam: é o ponto da assinatura."
+      ]
+    },
+    {
+      "id": "quem-so-le-assina-str",
+      "sectionId": "por-que-nao-o-string-emprestado",
+      "statement": "Quem só lê o texto assina &str: a assinatura mais larga é a mais útil.",
+      "question": "Por que assinar `&str` em vez de `&String`?",
+      "options": [
+        "Porque aceita os dois textos — o dono emprestado e a fatia crua",
+        "Porque &String não existe",
+        "Porque o len só funciona com &str",
+        "Porque fica mais rápido para copiar"
+      ],
+      "answerIndex": 0,
+      "feedback": "&String estreita a porta: o literal ficaria de fora.",
+      "optionRationales": [
+        "A assinatura larga recebe mais: quem chama não é obrigado a criar caixa.",
+        "&String existe — só aceita menos.",
+        "O len funciona nos dois; a diferença é quem pode chegar.",
+        "Não há cópia em nenhuma das assinaturas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "primitive str — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "O texto cru emprestado: fatias, len e chars, lidos sem dono."
+    }
+  ],
+  "challenges": [
+    "a-assinatura-que-aceita-os-dois"
+  ]
+}

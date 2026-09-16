@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-valor-que-muda-la-dentro",
+  "title": "O valor que muda lá dentro",
+  "concept": "mudar_pelo_emprestimo",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O valor que muda lá dentro\n\nA função `soma_no_lugar` recebe a ponta mutável do número (`&mut i32`) e soma `valor` NELE:\n\n- leia o número com `*r`, some `valor` e escreva de volta: `*r = *r + valor;`;\n- devolva o novo valor com `*r`.\n\nCom `placar` em `10`, `soma_no_lugar(&mut placar, 5)` devolve `15` — e o `placar` fica `15`.",
+  "starterCode": "pub fn soma_no_lugar(r: &mut i32, valor: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_no_lugar(r: &mut i32, valor: i32) -> i32 {\n    *r = *r + valor;\n    *r\n}\n",
+  "testsCode": "use desafio::soma_no_lugar;\n\n#[test]\nfn testa_a_soma_no_placar_de_dez() {\n    let mut placar = 10;\n    let novo = soma_no_lugar(&mut placar, 5);\n    assert_eq!(novo, 15);\n    assert_eq!(placar, 15);\n}\n\n#[test]\nfn testa_a_soma_no_placar_de_dois() {\n    let mut placar = 2;\n    let novo = soma_no_lugar(&mut placar, 3);\n    assert_eq!(novo, 5);\n    assert_eq!(placar, 5);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "soma_no_lugar deve escrever pelo deref *r e devolver 15, deixando o placar do chamador em 15.",
+      "teste": "testa_a_soma_no_placar_de_dez"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "soma_no_lugar deve escrever pelo deref *r e devolver 5, deixando o placar do chamador em 5.",
+      "teste": "testa_a_soma_no_placar_de_dois"
+    }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-assinatura-que-aceita-os-dois",
+  "title": "A assinatura que aceita os dois",
+  "concept": "a_funcao_que_so_le",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A assinatura que aceita os dois\n\nA função `mede` deve aceitar o dono emprestado E a fatia crua:\n\n- troque a assinatura: o parâmetro deve ser `&str` — quem só lê assina o texto emprestado;\n- meça com `.len` e devolva.\n\n`mede(&nome)` com `nome` em `String::from(\"bom dia\")` devolve `7`; `mede(\"sol\")` devolve `3`. Uma assinatura, os dois textos.",
+  "starterCode": "pub fn mede(texto: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn mede(texto: &str) -> usize {\n    texto.len()\n}\n",
+  "testsCode": "use desafio::mede;\n\n#[test]\nfn testa_a_medida_do_dono_emprestado() {\n    let nome = String::from(\"bom dia\");\n    assert_eq!(mede(&nome), 7);\n}\n\n#[test]\nfn testa_a_medida_da_fatia_crua() {\n    assert_eq!(mede(\"sol\"), 3);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "mede deve aceitar o dono emprestado (&nome com &str na assinatura) e devolver 7 para \"bom dia\".",
+      "teste": "testa_a_medida_do_dono_emprestado"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "mede deve aceitar a fatia crua (\"sol\" direto na chamada) e devolver 3.",
+      "teste": "testa_a_medida_da_fatia_crua"
+    }
+  ],
+  "expectedTestCount": 2
+}

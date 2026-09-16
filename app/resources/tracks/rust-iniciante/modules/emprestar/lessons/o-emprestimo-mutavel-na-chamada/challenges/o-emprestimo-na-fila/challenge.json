@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-emprestimo-na-fila",
+  "title": "O empréstimo na fila",
+  "concept": "emprestimo_mutavel_na_chamada",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O empréstimo na fila\n\nA ajudante `empurra` (já no esqueleto — mantenha-a) recebe o `&mut String`: quem RECEBE pode escrever. A função `empilha` deve emprestar MUTÁVEL na chamada:\n\n1. mantenha a ajudante `fn empurra(texto: &mut String, pedaco: &str) { texto.push_str(pedaco); }`;\n2. chame `empurra(&mut pilha, letra);` — o `&mut` empresta para mudar;\n3. depois, devolva `pilha.len()`.\n\n`empilha(String::from(\"Placar\"), \" 10\")` devolve `9`.",
+  "starterCode": "pub fn empilha(mut pilha: String, letra: &str) -> usize {\n    fn empurra(texto: &mut String, pedaco: &str) {\n        texto.push_str(pedaco);\n    }\n    todo!()\n}\n",
+  "solutionCode": "pub fn empilha(mut pilha: String, letra: &str) -> usize {\n    fn empurra(texto: &mut String, pedaco: &str) {\n        texto.push_str(pedaco);\n    }\n    empurra(&mut pilha, letra);\n    pilha.len()\n}\n",
+  "testsCode": "use desafio::empilha;\n\n#[test]\nfn testa_a_pilha_do_placar() {\n    assert_eq!(empilha(String::from(\"Placar\"), \" 10\"), 9);\n}\n\n#[test]\nfn testa_a_pilha_do_texto_vazio() {\n    assert_eq!(empilha(String::from(\"\"), \"x\"), 1);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "empilha deve emprestar &mut na chamada da ajudante, escrever o pedaço e devolver 9 para \"Placar\" e \" 10\".",
+      "teste": "testa_a_pilha_do_placar"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "empilha deve emprestar &mut na chamada da ajudante, escrever o pedaço e devolver 1 para a pilha vazia e \"x\".",
+      "teste": "testa_a_pilha_do_texto_vazio"
+    }
+  ],
+  "expectedTestCount": 2
+}

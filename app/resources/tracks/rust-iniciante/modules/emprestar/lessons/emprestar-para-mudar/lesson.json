@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "emprestar-para-mudar",
+  "title": "Emprestar para mudar",
+  "summary": "A assinatura com &mut String promete mudança: quem recebe pode escrever na caixa do dono.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:MutableReference",
+  "concepts": [
+    "emprestar_para_mudar"
+  ],
+  "prerequisites": [
+    "emprestar-qualquer-coisa",
+    "mudar-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:MutableReference",
+      "node:MutableSpecifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-emprestimo-que-promete-mudar",
+      "title": "O empréstimo que promete mudar",
+      "markdown": "O `&` comum promete SÓ leitura. Para emprestar E poder mudar, a assinatura leva `&mut`:\n\n```rust\npub fn grava(texto: &mut String, pedaco: &str) -> usize {\n    texto.push_str(pedaco);\n    texto.len()\n}\n```\n\nEm `texto: &mut String`, o `&mut` é o empréstimo MUTÁVEL: quem recebe pode escrever na caixa do dono."
+    },
+    {
+      "id": "a-mudanca-chega-ao-dono",
+      "title": "A mudança chega ao dono",
+      "markdown": "Quem chama entrega `&mut rotulo` — e o que muda dentro da função aparece FORA dela:\n\n```rust\npub fn grava(texto: &mut String, pedaco: &str) -> usize {\n    texto.push_str(pedaco);\n    texto.len()\n}\n```\n\nDepois de `grava(&mut rotulo, \"2\")` com `rotulo` em `Ana: `, o rótulo de fora virou `Ana: 2` — a mesma caixa, mudada pela ponta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-mut-promete-mudanca",
+      "sectionId": "o-emprestimo-que-promete-mudar",
+      "statement": "O &mut na assinatura é o empréstimo que promete mudança.",
+      "question": "Em `texto: &mut String`, o que o `&mut` promete?",
+      "options": [
+        "Que quem recebe PODE escrever na caixa do dono",
+        "Que o texto será copiado",
+        "Que o texto é dono da função",
+        "Que a caixa é maior"
+      ],
+      "answerIndex": 0,
+      "feedback": "&mut é empréstimo com caneta: escreve na caixa alheia.",
+      "optionRationales": [
+        "O mut do empréstimo abre a caixa do dono para escrita.",
+        "Nada é copiado: a mesma caixa é aberta pela ponta.",
+        "Quem empresta é o chamador — a função só recebe a ponta.",
+        "O tamanho da caixa não muda com o mut."
+      ]
+    },
+    {
+      "id": "a-mudanca-vazao",
+      "sectionId": "a-mudanca-chega-ao-dono",
+      "statement": "A mudança feita pela ponta &mut aparece no dono de fora.",
+      "question": "Depois de `grava(&mut rotulo, \"2\")`, o que o chamador vê em `rotulo`?",
+      "options": [
+        "O rótulo mudou: a mesma caixa, escrita pela ponta",
+        "O rótulo vazio",
+        "Uma cópia do rótulo novo",
+        "O rótulo antigo intacto"
+      ],
+      "answerIndex": 0,
+      "feedback": "O &mut escreve na caixa do chamador: a mudança é dele.",
+      "optionRationales": [
+        "A ponta apontava para a caixa do chamador — o push_str escreveu nela.",
+        "A caixa não esvazia: ela ganha texto.",
+        "Não há cópia — a escrita foi na caixa original.",
+        "Intacto seria o empréstimo de leitura; aqui a promessa era mudar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "a-caixa-que-pode-mudar"
+  ]
+}

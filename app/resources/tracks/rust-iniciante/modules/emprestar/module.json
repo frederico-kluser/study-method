@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "emprestar",
+  "title": "Emprestar",
+  "order": 5,
+  "lessons": [
+    "emprestar-o-texto",
+    "emprestar-qualquer-coisa",
+    "ler-pelo-emprestimo",
+    "emprestar-para-mudar",
+    "o-emprestimo-mutavel-na-chamada",
+    "mudar-pelo-emprestimo",
+    "um-ou-muitos",
+    "o-emprestimo-morre-junto",
+    "a-funcao-que-so-le",
+    "a-fatia-do-texto",
+    "percorrer-o-texto",
+    "mover-ou-emprestar",
+    "o-placar"
+  ]
+}

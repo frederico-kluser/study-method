@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-chamada-que-empresta",
+  "title": "A chamada que empresta",
+  "concept": "ler_pelo_emprestimo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A chamada que empresta\n\nA ajudante `tamanho` (já no esqueleto — mantenha-a) recebe o texto EMPRESTADO. A função `mede_dois` deve somar as medidas dos dois textos SEM movê-los:\n\n1. mantenha a ajudante `fn tamanho(frase: &str) -> usize { frase.len() }` dentro da função;\n2. devolva `tamanho(&um) + tamanho(&dois)` — o `&` empresta na chamada.\n\n`mede_dois(String::from(\"Ana\"), String::from(\"sol\"))` devolve `6`. Com `String::from(\"bom dia\")` e `String::from(\"x\")`, devolve `8`.",
+  "starterCode": "pub fn mede_dois(um: String, dois: String) -> usize {\n    fn tamanho(frase: &str) -> usize {\n        frase.len()\n    }\n    todo!()\n}\n",
+  "solutionCode": "pub fn mede_dois(um: String, dois: String) -> usize {\n    fn tamanho(frase: &str) -> usize {\n        frase.len()\n    }\n    tamanho(&um) + tamanho(&dois)\n}\n",
+  "testsCode": "use desafio::mede_dois;\n\n#[test]\nfn testa_a_medida_dos_dois_emprestimos() {\n    assert_eq!(mede_dois(String::from(\"Ana\"), String::from(\"sol\")), 6);\n}\n\n#[test]\nfn testa_a_medida_do_bom_dia_e_do_x() {\n    assert_eq!(mede_dois(String::from(\"bom dia\"), String::from(\"x\")), 8);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "mede_dois deve somar as medidas dos dois textos emprestados na chamada (&) e devolver 6 para \"Ana\" e \"sol\".",
+      "teste": "testa_a_medida_dos_dois_emprestimos"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "mede_dois deve somar as medidas dos dois textos emprestados na chamada (&) e devolver 8 para \"bom dia\" e \"x\".",
+      "teste": "testa_a_medida_do_bom_dia_e_do_x"
+    }
+  ],
+  "expectedTestCount": 2
+}

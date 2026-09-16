@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "ler-pelo-emprestimo",
+  "title": "Ler pelo empréstimo",
+  "summary": "Na chamada, o & empresta: tamanho(&um) lê o texto e o deixa vivo para a próxima.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "op:unary:&",
+  "concepts": [
+    "ler_pelo_emprestimo"
+  ],
+  "prerequisites": [
+    "emprestar-qualquer-coisa",
+    "chamar-a-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:&",
+      "node:ReferenceExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-e-na-chamada",
+      "title": "O & na chamada",
+      "markdown": "A ajudante `tamanho` quer o texto emprestado — e quem CHAMA empresta com o `&` na frente do argumento:\n\n```rust\npub fn mede_dois(um: String, dois: String) -> usize {\n    fn tamanho(frase: &str) -> usize {\n        frase.len()\n    }\n    tamanho(&um) + tamanho(&dois)\n}\n```\n\nEm `tamanho(&um)`, o `&um` é o empréstimo passado na chamada — o `um` segue com quem o trouxe."
+    },
+    {
+      "id": "o-dono-sobrevive-as-duas",
+      "title": "O dono sobrevive às duas chamadas",
+      "markdown": "Sem o `&`, o texto mudaria de dono na primeira chamada — e a segunda não teria mais nada para ler. Com o `&`, as duas leem os MESMOS textos:\n\n```rust\npub fn mede_dois(um: String, dois: String) -> usize {\n    fn tamanho(frase: &str) -> usize {\n        frase.len()\n    }\n    tamanho(&um) + tamanho(&dois)\n}\n```\n\n`mede_dois(String::from(\"Ana\"), String::from(\"sol\"))` devolve `6`: três e três, medidos sem tirar nada de casa."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-emprestimo-e-na-chamada",
+      "sectionId": "o-e-na-chamada",
+      "statement": "Na chamada, &um empresta o um: a ajudante lê e o dono continua.",
+      "question": "Em `tamanho(&um)`, o que o `&um` entrega?",
+      "options": [
+        "O empréstimo do um — a ajudante lê, o dono fica",
+        "O um, mudando de dono",
+        "Uma cópia do um",
+        "O tamanho do um"
+      ],
+      "answerIndex": 0,
+      "feedback": "O & na chamada é o gesto de emprestar.",
+      "optionRationales": [
+        "O argumento &um é a ponta; o um segue com quem o trouxe.",
+        "Se mudasse de dono, a segunda chamada morreria — por isso o &.",
+        "Cópia não é o gesto: o & aponta para a caixa original.",
+        "O tamanho vem depois, do len lá dentro."
+      ]
+    },
+    {
+      "id": "duas-leituras-um-dono",
+      "sectionId": "o-dono-sobrevive-as-duas",
+      "statement": "Duas chamadas com & leem o mesmo texto sem consumi-lo.",
+      "question": "Por que `tamanho(&um) + tamanho(&dois)` compila sem brigar com o compilador?",
+      "options": [
+        "Porque os dois empréstimos só leem: nada morre",
+        "Porque o + empresta os números",
+        "Porque dois textos nunca se movem",
+        "Porque a ajudante copia a frase"
+      ],
+      "answerIndex": 0,
+      "feedback": "Leitura emprestada não gasta o dono: as duas chamadas coexistem.",
+      "optionRationales": [
+        "O & devolve a caixa no fim da chamada — a segunda encontra tudo no lugar.",
+        "O + soma os números devolvidos; ele não empresta nada.",
+        "Os textos não se movem POR CAUSA do & — não por serem textos.",
+        "A ajudante mede o que recebe; não copia nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "a-chamada-que-empresta"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "mover-ou-emprestar",
+  "title": "Mover ou emprestar",
+  "summary": "A decisão: dono (String) quando vai guardar, empréstimo (&str) quando só vai ler.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:ReferenceType",
+  "concepts": [
+    "mover_ou_emprestar"
+  ],
+  "prerequisites": [
+    "a-funcao-que-so-le",
+    "a-caixa-que-consome"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ReferenceType"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-pergunta-da-assinatura",
+      "title": "A pergunta da assinatura",
+      "markdown": "Antes de assinar, a pergunta: a função VAI GUARDAR o valor ou SÓ VAI LER? Guardar pede o dono; ler pede o empréstimo:\n\n```rust\npub fn guarda(frase: String) -> String {\n    frase\n}\n```\n\nO `frase: String` é o dono chegando para ficar — quem chama perde a caixa, e a função a devolve dona."
+    },
+    {
+      "id": "ler-e-emprestar",
+      "title": "Ler é emprestar",
+      "markdown": "Quem só lê assina o `&str` — e o compilador aceita o dono emprestado e a fatia crua:\n\n```rust\npub fn mede(frase: &str) -> usize {\n    frase.len()\n}\n```\n\n`mede(frase)`, `mede(\"sol\")`: nada morre, nada se copia. Dono quando vai guardar; empréstimo quando só vai ler."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-decisao",
+      "sectionId": "a-pergunta-da-assinatura",
+      "statement": "A decisão da assinatura: dono (String) quando vai guardar, empréstimo (&str) quando só vai ler.",
+      "question": "A função só vai MEDIR o texto. Qual assinatura escolhe?",
+      "options": [
+        "mede(frase: &str) — ler é emprestar",
+        "mede(frase: String) — medir consome",
+        "mede(frase: &mut String)",
+        "Tanto faz — as três são iguais"
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem só lê empresta: o &str aceita tudo e não move nada.",
+      "optionRationales": [
+        "O &str mede e devolve — o texto fica com o dono.",
+        "O String moveria a caixa para dentro da função: consumo à toa.",
+        "O &mut promete mudança — e medir não muda nada.",
+        "As três se comportam diferente: move, muta, lê."
+      ]
+    },
+    {
+      "id": "guardar-e-receber-o-dono",
+      "sectionId": "ler-e-emprestar",
+      "statement": "Guardar pede o dono: a função que fica com o valor assina String.",
+      "question": "Quando a assinatura pede o `String` dono?",
+      "options": [
+        "Quando a função vai GUARDAR o valor — quem chama perde a caixa",
+        "Quando a função só quer ler",
+        "Quando o texto é curto",
+        "Quando o chamador é outra função"
+      ],
+      "answerIndex": 0,
+      "feedback": "Dono é transferência: quem recebe fica com a caixa de verdade.",
+      "optionRationales": [
+        "O move acontece: a caixa muda de casa e quem chama não a tem mais.",
+        "Ler é o &str — pedir o dono para ler é desperdício.",
+        "O tamanho não decide: o USO decide.",
+        "Dono é dono — independe de quem chama."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "primitive str — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "O texto cru emprestado: fatias, len e chars, lidos sem dono."
+    }
+  ],
+  "challenges": [
+    "o-que-guarda-e-o-que-le"
+  ]
+}

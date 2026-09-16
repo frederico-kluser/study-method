@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-placar-que-dobra",
+  "title": "O placar que dobra",
+  "concept": "um_ou_muitos",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O placar que dobra\n\nA função `dobra` recebe o placar para MUDAR e dobra o valor NA caixa do chamador — pela regra do empréstimo: UM empréstimo mutável, ninguém mais lendo.\n\n- troque a assinatura: o `placar` deve chegar como `&mut i32`;\n- escreva pelo deref: `*placar = *placar * 2;`;\n- devolva o novo valor com `*placar`.\n\nCom `placar` em `10`, `dobra(&mut placar)` devolve `20` — e o `placar` fica `20`.",
+  "starterCode": "pub fn dobra(pontos: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn dobra(placar: &mut i32) -> i32 {\n    *placar = *placar * 2;\n    *placar\n}\n",
+  "testsCode": "use desafio::dobra;\n\n#[test]\nfn testa_a_dobra_do_placar_de_dez() {\n    let mut placar = 10;\n    let novo = dobra(&mut placar);\n    assert_eq!(novo, 20);\n    assert_eq!(placar, 20);\n}\n\n#[test]\nfn testa_a_dobra_do_placar_de_dois() {\n    let mut placar = 2;\n    let novo = dobra(&mut placar);\n    assert_eq!(novo, 4);\n    assert_eq!(placar, 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "dobra deve receber &mut i32, dobrar pelo deref e devolver 20, deixando o placar do chamador em 20.",
+      "teste": "testa_a_dobra_do_placar_de_dez"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "dobra deve receber &mut i32, dobrar pelo deref e devolver 4, deixando o placar do chamador em 4.",
+      "teste": "testa_a_dobra_do_placar_de_dois"
+    }
+  ],
+  "expectedTestCount": 2
+}

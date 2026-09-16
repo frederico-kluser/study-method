@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-emprestimo-mutavel-na-chamada",
+  "title": "O empréstimo mutável na chamada",
+  "summary": "Na chamada, o &mut empresta para mudar: empurra(&mut pilha, letra) escreve na caixa do chamador.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "op:unary:&",
+  "concepts": [
+    "emprestimo_mutavel_na_chamada"
+  ],
+  "prerequisites": [
+    "emprestar-para-mudar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:&",
+      "node:ReferenceExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-mut-na-chamada",
+      "title": "O &mut na chamada",
+      "markdown": "A ajudante `empurra` quer MUDAR o texto — quem chama entrega o empréstimo mutável na chamada, com `&mut`:\n\n```rust\npub fn empilha(mut pilha: String, letra: &str) -> usize {\n    fn empurra(texto: &mut String, pedaco: &str) {\n        texto.push_str(pedaco);\n    }\n    empurra(&mut pilha, letra);\n    pilha.len()\n}\n```\n\nEm `empurra(&mut pilha, letra)`, o `&mut` é o gesto de quem empresta: a ponta sai daqui podendo escrever."
+    },
+    {
+      "id": "a-pilha-muda-e-conta",
+      "title": "A pilha muda e o tamanho conta",
+      "markdown": "Depois da chamada, a `pilha` já tem o pedaço — a mudança atravessou o empréstimo:\n\n```rust\npub fn empilha(mut pilha: String, letra: &str) -> usize {\n    fn empurra(texto: &mut String, pedaco: &str) {\n        texto.push_str(pedaco);\n    }\n    empurra(&mut pilha, letra);\n    pilha.len()\n}\n```\n\n`empilha(String::from(\"Placar\"), \" 10\")` devolve `9`: a pilha virou `Placar 10` e a medida contou o conteúdo final."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-argumento-mutavel",
+      "sectionId": "o-mut-na-chamada",
+      "statement": "Na chamada, &mut pilha empresta a pilha para MUDAR.",
+      "question": "Em `empurra(&mut pilha, letra)`, o que o `&mut pilha` entrega?",
+      "options": [
+        "O empréstimo mutável: a ajudante pode escrever na pilha",
+        "A pilha copiada",
+        "A pilha, mudando de dono",
+        "A letra a empurrar"
+      ],
+      "answerIndex": 0,
+      "feedback": "O &mut na chamada é o gesto: empresta com caneta.",
+      "optionRationales": [
+        "A ponta &mut atravessa a chamada com direito de escrita.",
+        "Não há cópia: a ajudante escreve na pilha original.",
+        "A pilha segue com quem a trouxe — o empréstimo volta ao fim.",
+        "A letra é o segundo argumento, sem mut."
+      ]
+    },
+    {
+      "id": "a-mudanca-fica",
+      "sectionId": "a-pilha-muda-e-conta",
+      "statement": "O que a ajudante escreveu pela ponta &mut fica na pilha do chamador.",
+      "question": "Depois de `empurra(&mut pilha, letra);`, o que acontece com `pilha`?",
+      "options": [
+        "Ganha o pedaço: a escrita ficou na caixa dele",
+        "Continua igual",
+        "Vira uma cópia",
+        "Perde o conteúdo"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ponta apontava para a pilha — o que foi escrito, ficou.",
+      "optionRationales": [
+        "A ajuda escreveu NA caixa apontada: a pilha cresce.",
+        "Igual seria leitura; aqui a promessa era mudar.",
+        "Cópia não acontece no empréstimo.",
+        "Perder seria mover — o &mut não move nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "o-emprestimo-na-fila"
+  ]
+}

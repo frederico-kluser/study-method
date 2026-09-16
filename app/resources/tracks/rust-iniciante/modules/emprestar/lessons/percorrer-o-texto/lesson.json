@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "percorrer-o-texto",
+  "title": "Percorrer o texto",
+  "summary": "O .chars entrega as letras, uma por vez: o laço percorre o texto emprestado sem copiá-lo.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.chars",
+  "concepts": [
+    "percorrer_o_texto"
+  ],
+  "prerequisites": [
+    "a-fatia-do-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.chars",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "uma-letra-por-vez",
+      "title": "Uma letra por vez",
+      "markdown": "O método `.chars` abre o texto e entrega as letras, UMA por vez — o laço `for` percorre:\n\n```rust\npub fn conta_espacos(frase: &str) -> usize {\n    let mut total = 0;\n    for letra in frase.chars() {\n        if letra.to_string() == \" \" {\n            total += 1;\n        }\n    }\n    total\n}\n```\n\nCada volta do laço recebe UMA letra em `letra` — a frase continua emprestada, intacta."
+    },
+    {
+      "id": "a-letra-vira-texto-para-comparar",
+      "title": "A letra vira texto para comparar",
+      "markdown": "A `letra` sai da ponta no tipo da letra — para comparar com o espaço, ela vira texto com o `.to_string` conhecido:\n\n```rust\npub fn conta_espacos(frase: &str) -> usize {\n    let mut total = 0;\n    for letra in frase.chars() {\n        if letra.to_string() == \" \" {\n            total += 1;\n        }\n    }\n    total\n}\n```\n\n`conta_espacos(\"bom dia\")` devolve `1`: só o espaço entre as palavras."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-chars-entrega-letras",
+      "sectionId": "uma-letra-por-vez",
+      "statement": "O .chars entrega as letras do texto, uma por vez, para o laço percorrer.",
+      "question": "O que `frase.chars()` entrega ao laço `for`?",
+      "options": [
+        "As letras do texto, uma por volta",
+        "A frase inteira de uma vez",
+        "O tamanho da frase",
+        "Os espaços da frase"
+      ],
+      "answerIndex": 0,
+      "feedback": "O chars abre o texto em letras individuais.",
+      "optionRationales": [
+        "Cada volta do laço recebe uma letra — é o percurso.",
+        "A frase inteira é o papel do &str; o chars fatia o percurso.",
+        "O tamanho é o len; o chars entrega conteúdo.",
+        "Os espaços são só parte: o chars entrega TODAS as letras."
+      ]
+    },
+    {
+      "id": "a-comparacao-da-letra",
+      "sectionId": "a-letra-vira-texto-para-comparar",
+      "statement": "A letra do laço vira texto com .to_string para ser comparada ao espaço.",
+      "question": "Por que a comparação é `letra.to_string() == \" \"`?",
+      "options": [
+        "Porque a letra sai no tipo dela e o espaço é texto — os dois lados se acertam virando texto",
+        "Porque o to_string apaga a letra",
+        "Porque o espaço não é texto",
+        "Porque o laço exige String"
+      ],
+      "answerIndex": 0,
+      "feedback": "A letra sai no tipo próprio; o .to_string a vira texto para o ==.",
+      "optionRationales": [
+        "O to_string traduz a letra para texto — aí o == compara com o espaço.",
+        "O to_string não apaga nada: só troca o tipo.",
+        "O espaço é texto — \" \" é o texto de uma casa.",
+        "O laço aceita qualquer letra; quem precisa do acerto é o ==."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "primitive str — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "O texto cru emprestado: fatias, len e chars, lidos sem dono."
+    },
+    {
+      "title": "primitive char — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.char.html",
+      "description": "A letra de verdade: o que o .chars entrega, uma por vez."
+    },
+    {
+      "title": "Slices — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-03-slices.html",
+      "description": "O capítulo oficial das fatias: o pedaço emprestado de um texto e o intervalo que o recorta."
+    }
+  ],
+  "challenges": [
+    "os-espacos-do-texto"
+  ]
+}

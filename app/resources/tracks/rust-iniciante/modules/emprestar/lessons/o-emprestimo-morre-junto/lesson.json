@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-emprestimo-morre-junto",
+  "title": "O empréstimo morre junto",
+  "summary": "A referência não sobrevive ao dono: o lifetime é esse acordo, e em escopo simples ele fica implícito.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:ReferenceType",
+  "concepts": [
+    "emprestimo_morre_junto"
+  ],
+  "prerequisites": [
+    "um-ou-muitos"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ReferenceType"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:lifetime"
+  ],
+  "theory": [
+    {
+      "id": "o-acordo-implicito",
+      "title": "O acordo implícito",
+      "markdown": "Toda referência assina um acordo escondido: não sobreviver ao dono. Em Rust esse acordo é o `lifetime` — e em escopo simples ele fica IMPLÍCITO, sem anotação nenhuma:\n\n```rust\npub fn resposta(texto: String) -> usize {\n    let fatia: &str = &texto;\n    fatia.len()\n}\n```\n\nA `fatia` empresta do `texto` e morre ANTES dele — o fim da função encerra os dois na ordem certa."
+    },
+    {
+      "id": "quando-o-acordo-e-quebrado",
+      "title": "Quando o acordo é quebrado",
+      "markdown": "Se o empréstimo tentasse sobreviver ao dono, o compilador mostraria o `E0597`: a referência ficou viva num lugar onde a caixa já não existe. No código abaixo o acordo se cumpre — o `dono` vive até o fim e a `fatia` morre no mesmo fim:\n\n```rust\nlet dono = String::from(\"Ana\");\nlet fatia = &dono;\n```\n\nAnotar o lifetime só é preciso quando os escopos se enrolam — matéria de depois do iniciante."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-emprestimo-nao-sobrevive",
+      "sectionId": "o-acordo-implicito",
+      "statement": "A referência não sobrevive ao dono: o lifetime é esse acordo, implícito em escopo simples.",
+      "question": "Qual é o acordo do empréstimo com o dono?",
+      "options": [
+        "A referência morre antes do dono — sempre",
+        "O dono morre antes da referência",
+        "Os dois morrem em lugares diferentes",
+        "Nenhum dos dois morre"
+      ],
+      "answerIndex": 0,
+      "feedback": "O empréstimo vive dentro da vida do dono — sem anotação nenhuma em escopo simples.",
+      "optionRationales": [
+        "O lifetime implícito garante: referência não sobrevive ao dono.",
+        "O dono é o último a sair; o empréstimo morre primeiro.",
+        "Em escopo simples a ordem é única e implícita.",
+        "Tudo morre no fim do escopo — na ordem do acordo."
+      ]
+    },
+    {
+      "id": "o-e0597-e-a-quebra",
+      "sectionId": "quando-o-acordo-e-quebrado",
+      "statement": "Empréstimo que sobrevive ao dono é o E0597: o compilador mostra a quebra do acordo.",
+      "question": "O que acontece quando uma referência tenta viver mais que o dono?",
+      "options": [
+        "O compilador mostra o E0597 e recusa o programa",
+        "O programa roda com a caixa vazia",
+        "O dono é revivido",
+        "A referência vira dona"
+      ],
+      "answerIndex": 0,
+      "feedback": "E0597 é o nome do acordo quebrado: referência sem caixa não roda.",
+      "optionRationales": [
+        "O lifetime é verificado na compilação — a quebra nunca roda.",
+        "A caixa não existe mais: não há o que ler.",
+        "O dono não volta — a caixa morreu no fim do escopo.",
+        "Referência nunca vira dona: dona se nasce ou se recebe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "Rust by Example — Lifetimes (implícitos)",
+      "url": "https://doc.rust-lang.org/rust-by-example/scope/lifetime.html",
+      "description": "Exemplos oficiais executáveis do escopo que mantém o empréstimo vivo — e o que o mata."
+    }
+  ],
+  "challenges": [
+    "o-emprestimo-que-acaba"
+  ]
+}
