@@ -114,9 +114,12 @@ pub fn dobro(x: i32) -> i32 {
 
 É a aula `a-primeira-funcao` — e ela já existe: é a fixture viva
 `app/tests/fixtures/tracks/trilha-rust-minima/modules/modulo-1/lessons/a-primeira-funcao/`. Este
-contrato a adota como aula 1 da cadeia, com uma correção de leitura: as seis chaves que a fixture
-declara produtivas contam **dois** itens pela regra do par (§"A regra do par") —
-`node:FunctionItem` (com as derivadas de assinatura) e `op:binary:*` (com `node:BinaryExpression`).
+contrato a adota como aula 1 da cadeia, e a lesson.json da fixture é o `introduces` NORMATIVO da
+aula 1, com uma correção de leitura: as seis chaves que ela declara produtivas —
+`node:FunctionItem`, `node:Parameters`, `node:Parameter`, `node:IntegerLiteral`, `op:binary:*`,
+`node:BinaryExpression` — contam **dois** itens pela regra do par (§"A regra do par"): a assinatura
+(`node:FunctionItem` com `node:Parameters` + `node:Parameter`) e o `x * 2` do desafio
+(`node:IntegerLiteral` + `op:binary:*` com `node:BinaryExpression`).
 
 ### A tela — e por que o canal é VALOR desde a aula 1
 
@@ -220,6 +223,7 @@ deste documento o implementa:
 | Chave listada em `Ensina` | Derivadas que a mesma construção produz |
 |---|---|
 | `op:binary:<qualquer>`, `op:compare:<qualquer>`, `op:logical:<qualquer>` | `node:BinaryExpression` |
+| `op:binary:<qualquer>` sobre operando literal (o `2` do `x * 2` da aula 1) | `node:IntegerLiteral` |
 | `op:unary:!`, `op:unary:-`, `op:unary:*` | `node:UnaryExpression` |
 | `op:unary:&` | `node:ReferenceExpression` |
 | `op:assign:=` | `node:AssignmentExpression` |
@@ -372,12 +376,15 @@ marca aula de composição (`role: "integration"`, [`16`](16-engine-de-trilha.md
 
 #### Módulo 1 — `a-tela` (13 aulas)
 
-A aula 1 adota a fixture viva `trilha-rust-minima` (com os receptivos dela: `node:VisibilityModifier`,
-`node:PrimitiveType`, `node:UnaryExpression`, `op:unary:-`, `api:todo!`).
+A aula 1 adota a fixture viva `trilha-rust-minima` — a lesson.json dela é o `introduces` NORMATIVO
+da aula 1: seis produtivas (`node:FunctionItem`, `node:Parameters`, `node:Parameter`,
+`node:IntegerLiteral`, `op:binary:*`, `node:BinaryExpression` — 2 itens pela regra do par,
+§"A regra do par") e os receptivos dela: `node:VisibilityModifier`, `node:PrimitiveType`,
+`node:UnaryExpression`, `op:unary:-`, `api:todo!`.
 
 | Aula | Ensina | Presume |
 |---|---|---|
-| `a-primeira-funcao` | `node:FunctionItem` | nada |
+| `a-primeira-funcao` | `node:FunctionItem`, `op:binary:*` — 2 itens pela regra do par: a assinatura (fn + params) e o `x * 2` do desafio (literal inteiro + multiplicação); a lesson.json da fixture é o `introduces` NORMATIVO da aula 1 | nada |
 | `somar` | `op:binary:+` | `a-primeira-funcao` |
 | `chamar-a-funcao` | `node:CallExpression` | `a-primeira-funcao` |
 | `a-mensagem-montada` | `api:format!` | `chamar-a-funcao`, `somar` |
@@ -572,7 +579,7 @@ api:test api:cfg.test api:assert_eq! api:assert_ne! api:assert!""".split())
 ESTRUTURAL = set("""node:SourceFile node:Identifier node:ExpressionStatement node:Arguments
 node:LineComment node:MacroArg""".split())
 # Derivadas da regra do par (§"A regra do par") — a mesma construção as produz.
-DERIVADAS = set("""node:BinaryExpression node:UnaryExpression node:ReferenceExpression
+DERIVADAS = set("""node:BinaryExpression node:IntegerLiteral node:UnaryExpression node:ReferenceExpression
 node:AssignmentExpression node:CompoundAssignmentExpr node:RangeExpression node:LetDeclaration
 node:MutableSpecifier node:ConstItem node:StaticItem node:Parameters node:Parameter
 node:FieldDeclarationList node:FieldDeclaration node:FieldInitializerList node:FieldInitializer
@@ -753,13 +760,16 @@ concorrência, não o FFI; declarar isso não é limitação escondida, é o con
 
 ## 5. Split das ondas de conteúdo (ondas 3–7)
 
-**Regras duras** ([`18`](18-estado-da-fabricacao-dos-cursos.md) §3.3): **2 autores por onda**, um
-módulo **NUNCA dividido** entre autores (dono único do `module.json`), `track.json` é singleton com
-dono declarado, ~20–25 aulas por onda. Os oito módulos do iniciante cabem em **quatro ondas de dois
-módulos** (2 autores, 1 módulo cada); a **quinta onda é o fecho** — os desafios de MÓDULO (um por
-módulo, 8 no total, 4 por autor, dono único do `module.json` de cada módulo) + quitamento das
-dívidas declaradas de conteúdo (backfill de `requirements[]`, forcing J5 dos desafios de tela).
-Partir M7+M8 (26 aulas) para caber em 25 violaria a regra dura; a onda 6 leva 26 e é declarada.
+**Regras duras** — o que vem de [`18`](18-estado-da-fabricacao-dos-cursos.md) §3.3 e o que este
+contrato endurece: **2 autores por onda** e `track.json` singleton com dono declarado (padrão do
+18 §3.3); a **carga por onda é ajustada do padrão do 18 §3.3 (≈14 aulas/autor) para 12–13
+aulas/autor e 2 módulos/onda**; e a **divisão de módulo é EVITADA** por decisão deste contrato —
+mais dura que a fonte, que só exige **dono único do `module.json`** quando o módulo é partido.
+Os oito módulos do iniciante cabem em **quatro ondas de dois módulos** (2 autores, 1 módulo cada);
+a **quinta onda é o fecho** — os desafios de MÓDULO (um por módulo, 8 no total, 4 por autor, dono
+único do `module.json` de cada módulo) + quitamento das dívidas declaradas de conteúdo (backfill de
+`requirements[]`, forcing J5 dos desafios de tela). Partir M7+M8 (26 aulas) para caber em 25
+dividiria um módulo — a divisão que este contrato evita; a onda 6 leva 26 e é declarada.
 
 | Onda | Módulos (dono único por autor) | Aulas | Worktree sugerida (≤40 chars) |
 |---|---|---|---|

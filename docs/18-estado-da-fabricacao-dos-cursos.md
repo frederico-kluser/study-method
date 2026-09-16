@@ -2,7 +2,7 @@
 
 > **Status (2026-09-11): PARADO NO CURSO INICIANTE, por decisão do dono.** O produto hoje tem UM curso completo no disco (`python-iniciante`) e três planejados (intermediário, avançado, especialista), com o desenho integral no [`17-trilha-python.md`](17-trilha-python.md). Este documento registra o que foi feito, o que foi aprendido durante a criação e o que falta — com as matérias dos cursos pendentes e o roteiro de retomada.
 
-> ⚑ **A engine é multilíngue e a cadeia de RUST começou (2026-09-16).** O adaptador da linguagem Rust está na engine (`app/electron/main/engine/lang/rust.ts` + `vocab/atoms.rust.json`, 190 chaves) e o contrato dos QUATRO cursos de Rust está no [`20-trilha-rust.md`](20-trilha-rust.md) — o `rust-iniciante` desenhado aula a aula (8 módulos, 101 aulas) e os três cursos seguintes por módulo, no mesmo formato deste documento. As regras de fabricação aqui registradas (§3) valem para a autoria Rust sem adaptação.
+> ⚑ **A engine é multilíngue e a cadeia de RUST começou (2026-09-16).** O adaptador da linguagem Rust está na engine (`app/electron/main/engine/lang/rust.ts` + `vocab/atoms.rust.json`, 190 chaves) e o contrato dos QUATRO cursos de Rust está no [`20-trilha-rust.md`](20-trilha-rust.md) — o `rust-iniciante` desenhado aula a aula (8 módulos, 101 aulas) e os três cursos seguintes por módulo, no mesmo formato deste documento. As regras de fabricação aqui registradas (§3) valem para a autoria Rust **com as adaptações de forma que o [`20-trilha-rust.md`](20-trilha-rust.md) declara** (ex.: a regra do receptor literal vira `api:str.to_string` em Rust; `node:Tuple` de `for a, b` não se aplica).
 
 ## 1. Estado atual
 
