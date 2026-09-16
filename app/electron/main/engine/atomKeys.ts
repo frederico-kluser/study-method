@@ -568,15 +568,17 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  * contagem sai do `main` do harness num relatório com nonce.
  *
  * MÉTODO DA MEDIÇÃO (a mesma disciplina da semente Python — rodar o extrator
- * REAL, nunca opinar): `extractAtoms(…, { language: 'c' })` sobre TRÊS fontes:
+ * REAL, nunca opinar): `extractAtoms(…, { language: 'c' })` sobre TRÊS fontes
+ * (contagens re-medidas na onda 3, com os seis kinds P1–P6 no extrator e o
+ * guard do cast-macro `NULL`):
  *
- *   1. `SM_HARNESS_HEADER` (tests/sm_harness.h) — 24 chaves;
+ *   1. `SM_HARNESS_HEADER` (tests/sm_harness.h) — 26 chaves;
  *   2. o TU combinado header+main (`#define SM_HARNESS_NUCLEO` + header +
- *      SM_MAIN_SOURCE, a semântica de compilação do `sm_main.c` real) — 36
+ *      SM_MAIN_SOURCE, a semântica de compilação do `sm_main.c` real) — 38
  *      chaves;
  *   3. um `testsCode` real da convenção (`SM_TEST` + `checa_*`), lido com o
  *      `SM_COUNT_PREABULO` que a PRÓPRIA engine usa para parsear testsCode C
- *      (`cCountDeclared`) — 9 chaves no envelope mínimo.
+ *      (`cCountDeclared`) — 10 chaves no envelope mínimo.
  *
  * O PARTIDO que separa as duas tabelas de C é o MESMO do lado Python:
  *
@@ -589,7 +591,7 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  *     escreve: o envelope do teste na convenção e o harness gerado que ele
  *     lê no diretório do desafio.
  *
- * AS DOZE CHAVES, cada uma com a sua origem medida:
+ * ── AS TREZE CHAVES, cada uma com a sua origem medida ────────────────────────
  *
  *   - `api:SM_TEST` — o envelope. A macro `SM_TEST(slug)` expande para o
  *     construtor `__attribute__((constructor))` que chama `sm_registrar`; a
@@ -613,6 +615,16 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  *   - `node:IntegerLiteral` + `node:StringLiteral` — não existe cenário sem
  *     o texto do cenário (`"dobro de 2"`) e sem o número esperado (o mesmo
  *     argumento de `node:IntLiteral`/`node:StrLiteral` na semente Python).
+ *   - `node:TypedefDecl` (onda 3 — CORREÇÃO MEDIDA da premissa da onda 2 de
+ *     que "o harness não usa typedef"): o `SM_COUNT_PREABULO` — a ante-sala
+ *     que a PRÓPRIA engine coloca na frente de TODO parse de testsCode C
+ *     (`cCountDeclared` e `requirements.ts:parseSourceC`) — abre com
+ *     `typedef void (*SmTestFn)(void);`, e o `SM_HARNESS_HEADER` repete o
+ *     typedef. Medido, `node:TypedefDecl` sai do testsCode+preabulo em todo
+ *     desafio C. É andaime do harness (o aluno não escreve e não escolhe o
+ *     nome `SmTestFn`), então vai na faixa RECEPTIVA — escrever typedef na
+ *     SOLUÇÃO continua emitindo `node:TypedefDecl` fora do produtivo, e a
+ *     aula de typedef (P3 do §8.2) continua sendo cobrada.
  *   - `api:fprintf`, `api:fflush`, `api:fclose`, `api:fopen`, `api:getenv`,
  *     `api:strcmp` — o que o HARNESS REAL chama, medido dos dois TUs
  *     gerados: o `main` escreve o relatório (`fopen`/`fprintf`/`fflush`/
@@ -658,6 +670,11 @@ export const C_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'node:CallExpr',
   'node:IntegerLiteral',
   'node:StringLiteral',
+  // o typedef do próprio harness: `typedef void (*SmTestFn)(void);` abre o
+  // SM_COUNT_PREABULO (e o SM_HARNESS_HEADER repete) — medido na onda 3; a
+  // justificativa e a fronteira com o typedef CONTEÚDO estão no comentário
+  // das treze chaves, acima
+  'node:TypedefDecl',
   // o que os TUs do harness REAL chamam (medido em SM_HARNESS_HEADER +
   // SM_MAIN_SOURCE — o relatório fora do alcance do código do aluno)
   'api:fprintf',

@@ -72,6 +72,19 @@
  *    gerado pelo `layout()` — ver o bloco "O RELATÓRIO FORA DO ALCANCE DO
  *    CÓDIGO DO ALUNO" antes de `SM_RUNNER_SCRIPT`. Está escrito no código de
  *    propósito: limite escondido é pior que limite nenhum.
+ *
+ * 8. A ONDA 3 ACRESCENTA OS SEIS KINDS DO §8.2 DO docs/20 (P1–P6) — struct
+ *    (`RecordDecl`), acesso a campo (`MemberExpr` + atributo
+ *    `memberAccess`), typedef (`TypedefDecl`), ternário
+ *    (`ConditionalOperator`), switch (`SwitchStmt`; `CaseStmt`/`DefaultStmt`
+ *    transparentes) e cast (`CStyleCastExpr` + atributo `castType`) — todos
+ *    MEDIDOS no dump JSON do clang antes de entrar no inventário (o
+ *    experimento e os kinds reais estão no comentário de `cInventory`). O
+ *    EIXO continua sendo o `node:` para TODOS os seis: o docs/20 §8 nomeia
+ *    cada um como UMA construção, e as distinções que o clang carrega no nó
+ *    (isArrow, tagUsed, castKind) viram ATRIBUTOS de relatório — o padrão
+ *    `resolvedName`/`storageClass` do extrator, não o padrão `declKind`,
+ *    que é para quando a chave é o evento de currículo.
  */
 
 import type {
@@ -312,6 +325,31 @@ export function cResetDetectCache(): void {
  * É literal AQUI e tabela LÁ de propósito: o teste
  * `tests/engineLangC.test.ts` §"o inventário é fechado" compara os dois
  * sentidos (toda chave `node:` emitida está aqui; todo nome aqui é emitível).
+ *
+ * AS SEIS ENTRADAS DA ONDA 3 (docs/20 §8.2 P1–P6, cada kind MEDIDO no dump
+ * JSON do clang desta máquina — Apple clang 17 — nunca inventado):
+ *   P1 `RecordDecl`         — `struct Ponto { … }`. NÃO existe kind
+ *                             `StructDecl` no dump; a definição de struct é
+ *                             `RecordDecl` com `tagUsed: "struct"` (o mesmo
+ *                             kind do union, que o extrator DERRUBA pelo
+ *                             guard `tagUsed != "struct"`).
+ *   P2 `MemberExpr`         — `s.x` e `p->m`. UM kind só: o clang separa os
+ *                             dois num único `MemberExpr` com `isArrow` — a
+ *                             distinção vai no ATRIBUTO `memberAccess`
+ *                             ('dot'/'arrow'), porque o docs/20 §8 nomeia
+ *                             "acesso a campo" UMA vez.
+ *   P3 `TypedefDecl`        — `typedef struct Ponto P;`. Os TypedefDecls
+ *                             builtin (`__int128_t` e família) são
+ *                             `isImplicit: true` e sem posição no fonte —
+ *                             morrem nos filtros de header/implícito/pos.
+ *   P4 `ConditionalOperator` — `a ? b : c`. Saíu de `_TRANSPARENTES`.
+ *   P5 `SwitchStmt`         — `switch (x) { … }`. `CaseStmt` e `DefaultStmt`
+ *                             (kind PRÓPRIO do `default:`, medido) ficam
+ *                             TRANSPARENTES: "switch/case" é UM evento de
+ *                             currículo, e o valor/corpo dos casos sobe para
+ *                             dentro do SwitchStmt.
+ *   P6 `CStyleCastExpr`     — `(int)3.7`. Saíu de `_TRANSPARENTES`; o
+ *                             tipo-alvo vai no ATRIBUTO `castType`.
  */
 export function cInventory(): readonly string[] {
   return [
@@ -319,10 +357,12 @@ export function cInventory(): readonly string[] {
     'ArraySubscriptExpr',
     'BinaryOperator',
     'BreakStmt',
+    'CStyleCastExpr',
     'CallExpr',
     'CharacterLiteral',
     'CompoundAssignOperator',
     'CompoundStmt',
+    'ConditionalOperator',
     'ContinueStmt',
     'DeclRefExpr',
     'DeclStmt',
@@ -336,9 +376,13 @@ export function cInventory(): readonly string[] {
     'IndirectCall',
     'InitListExpr',
     'IntegerLiteral',
+    'MemberExpr',
     'ParmVarDecl',
+    'RecordDecl',
     'ReturnStmt',
     'StringLiteral',
+    'SwitchStmt',
+    'TypedefDecl',
     'UnaryExprOrTypeTraitExpr',
     'UnaryOperator',
     'VarDecl',

@@ -157,7 +157,7 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     for (const marca of ['api:fopen', 'api:getenv', 'node:ForStmt']) {
       assert.ok(chavesDoMain.has(marca), `o main deixou de emitir ${marca}`);
     }
-    for (const marca of ['api:SM_TEST', 'decl:func', 'node:CallExpr', 'node:IntegerLiteral', 'node:StringLiteral']) {
+    for (const marca of ['api:SM_TEST', 'decl:func', 'node:CallExpr', 'node:IntegerLiteral', 'node:StringLiteral', 'node:TypedefDecl']) {
       assert.ok(chavesDoTestsCode.has(marca), `o testsCode deixou de emitir ${marca}`);
     }
   });
@@ -184,10 +184,12 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     assert.deepEqual(fora, [], `a tabela estrutural traz chave que nenhum material real emite: ${fora.join(' ')}`);
   });
 
-  it('a fronteira do CONTEÚDO: fluxo, operadores, variável, include e IndirectCall ficam FORA', () => {
+  it('a fronteira do CONTEÚDO: fluxo, operadores, variável, include, struct/switch/cast e IndirectCall ficam FORA', () => {
     // As declarações de exclusão do comentário de C_HARNESS_RECEPTIVE_SEED,
     // afirmadas: o corpo dos helpers (if/for/++) mora no header GERADO que o
-    // gate não audita; o que o testsCode USAR é cobrança legítima.
+    // gate não audita; o que o testsCode USAR é cobrança legítima. Os cinco
+    // kinds novos do §8.2 que são CONTEÚDO (onda 3) também ficam fora — a
+    // exceção é o typedef do PRÓPRIO harness, perdoado no receptivo.
     for (const chave of [
       'node:IfStmt',
       'node:ForStmt',
@@ -200,9 +202,21 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
       'op:binary:*',
       'decl:var',
       'node:IncludeDirective',
+      // onda 3 (P1–P6, exceto o typedef do harness): conteúdo de M7 e aulas
+      'node:RecordDecl',
+      'node:MemberExpr',
+      'node:ConditionalOperator',
+      'node:SwitchStmt',
+      'node:CStyleCastExpr',
     ]) {
       assert.ok(!PERDOADO.has(chave), `${chave} é CONTEÚDO — não pode estar na semente nem na estrutural`);
     }
+    // a ÚNICA chave nova na semente é o typedef do andaime do harness
+    // (SM_COUNT_PREABULO/SM_HARNESS_HEADER) — só RECEPTIVA: a solução que
+    // escrever typedef continua emitindo a chave fora do produtivo
+    assert.ok(PERDOADO.has('node:TypedefDecl'));
+    assert.ok(C_HARNESS_RECEPTIVE_SEED.includes('node:TypedefDecl'));
+    assert.ok(!C_STRUCTURAL_ALWAYS_ALLOWED.includes('node:TypedefDecl'));
     // proibição global de C: o despacho `sm_fns[i]()` do main emite, mas o
     // gate nunca audita o main — e semente não perdoa o indecidível.
     assert.ok(!PERDOADO.has('node:IndirectCall'));
@@ -365,6 +379,160 @@ describe('gates C — deriveTrackBudget numa trilha C sintética', {
       [],
       `o testsCode emite chave fora do orçamento receptivo de ENTRADA (violação A3 por construção): ${fora.join(' ')}`,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3b. A PORTA ACEITA QUEM USA AS CONSTRUÇÕES NOVAS DO §8.2 (onda 3, P1–P6):
+//     trilha C com STRUCT ensinado na aula 1 e USADO na aula 2 (testsCode e
+//     solução) — A2/A3 passam com as chaves novas, e elas têm origem.
+// ---------------------------------------------------------------------------
+
+describe('gates C — trilha com struct: deriveTrackBudget aceita as construções novas do §8.2', {
+  skip: !TEM_C ? 'toolchain C ausente (clang/python3/extrator)' : false,
+}, () => {
+  const TEORIA_STRUCT = [
+    'Structs guardam campos juntos.',
+    '',
+    '```c',
+    'struct Ponto {',
+    '    int x;',
+    '    int y;',
+    '};',
+    '',
+    'typedef struct Ponto Ponto;',
+    '',
+    'int main(void) {',
+    '    struct Ponto p = {1, 2};',
+    '    p.x = 3;',
+    '    Ponto q = p;',
+    '    return p.x + q.y;',
+    '}',
+    '```',
+  ].join('\n');
+
+  const TESTS_STRUCT = [
+    'struct Ponto { int x; int y; };',
+    'struct Ponto soma(struct Ponto a, struct Ponto b);',
+    '',
+    'SM_TEST(soma_campos) {',
+    '    struct Ponto a = {1, 2};',
+    '    struct Ponto b = {3, 4};',
+    '    struct Ponto r = soma(a, b);',
+    '    checa_int("soma x", r.x, 4, "x de a mais x de b");',
+    '    checa_int("soma y", r.y, 6, "y de a mais y de b");',
+    '}',
+  ].join('\n');
+
+  const SOLUTION_STRUCT = [
+    'struct Ponto { int x; int y; };',
+    'struct Ponto soma(struct Ponto a, struct Ponto b) {',
+    '    struct Ponto r = {a.x + b.x, a.y + b.y};',
+    '    return r;',
+    '}',
+  ].join('\n');
+
+  /** Aula 1 ensina struct/typedef/campo; aula 2 USA tudo no desafio. */
+  function trilhaStruct(): LoadedTrack {
+    const aula1 = {
+      schemaVersion: 1,
+      slug: 'fundamentos-struct',
+      title: 'fundamentos struct',
+      summary: 'struct, typedef e acesso a campo',
+      difficulty: 1,
+      concepts: ['struct'],
+      prerequisites: [],
+      theory: [theoryC(TEORIA_STRUCT)],
+      sources: [],
+      challenges: [],
+    };
+    const aula2 = {
+      schemaVersion: 1,
+      slug: 'usa-struct',
+      title: 'usa struct',
+      summary: 'função que devolve struct',
+      difficulty: 2,
+      concepts: ['struct'],
+      prerequisites: ['struct'],
+      theory: [theoryC('Aula. \n\n```c\nint main(void) {\n    return 0;\n}\n```\n')],
+      sources: [],
+      challenges: ['soma-pontos'],
+    };
+    const mod: LoadedModule = {
+      meta: { schemaVersion: 1, slug: 'modulo-1', title: 'modulo-1', order: 1, lessons: ['fundamentos-struct', 'usa-struct'] },
+      lessons: [
+        { meta: aula1 as unknown as LoadedLesson['meta'], challenges: [] },
+        {
+          meta: aula2 as unknown as LoadedLesson['meta'],
+          challenges: [challengeC({
+            slug: 'soma-pontos',
+            title: 'soma pontos',
+            concept: 'struct',
+            difficulty: 2,
+            statement: '# soma pontos',
+            starterCode: 'struct Ponto { int x; int y; };\nstruct Ponto soma(struct Ponto a, struct Ponto b) {\n    /* TODO */\n}\n',
+            testsCode: TESTS_STRUCT,
+            solutionCode: SOLUTION_STRUCT,
+            expectedTestCount: 1,
+          })],
+        },
+      ],
+      challenge: null,
+    };
+    return {
+      root: {
+        schemaVersion: 1,
+        slug: 'trilha-c-struct',
+        title: 'trilha-c-struct',
+        description: 'fixture struct',
+        language: 'pt-BR',
+        domain: 'programming',
+        programmingLanguage: 'c',
+        modules: ['modulo-1'],
+      },
+      modules: [mod],
+      proficiency: null,
+      dir: '/tmp/fixture-c-struct',
+    } as unknown as LoadedTrack;
+  }
+
+  it('as chaves novas têm ORIGEM: primeira aula que ensina é a da teoria com struct', () => {
+    const orcamento = deriveTrackBudget(trilhaStruct());
+    assert.equal(orcamento.parseErrors.length, 0, JSON.stringify(orcamento.parseErrors));
+    for (const chave of ['node:RecordDecl', 'node:MemberExpr', 'node:TypedefDecl']) {
+      assert.equal(orcamento.firstTaughtIn.get(chave), 'modulo-1/fundamentos-struct', `${chave} sem origem`);
+    }
+  });
+
+  it('A3: o testsCode que usa struct/typedef/campo cabe no receptivo de ENTRADA da aula seguinte', () => {
+    const orcamento = deriveTrackBudget(trilhaStruct());
+    const aula2 = orcamento.lessons[1];
+    assert.equal(aula2.ref, 'modulo-1/usa-struct');
+    for (const chave of ['node:RecordDecl', 'node:MemberExpr']) {
+      assert.ok(aula2.entrada.receptive.has(chave), `a entrada da aula 2 não herdou ${chave}`);
+    }
+    const doTestsCode = chavesDe(`${SM_COUNT_PREABULO}\n${TESTS_STRUCT}`, 'tests/test_solucao.c');
+    const fora = [...doTestsCode].filter((k) => !aula2.entrada.receptive.has(k));
+    assert.deepEqual(
+      fora,
+      [],
+      `o testsCode com struct nasce violando A3 (a porta derrubou quem usa as chaves novas): ${fora.join(' ')}`,
+    );
+  });
+
+  it('A2: a solução que usa struct/campo cabe no produtivo de SAÍDA', () => {
+    const orcamento = deriveTrackBudget(trilhaStruct());
+    const aula2 = orcamento.lessons[1];
+    const daSolucao = chavesDe(SOLUTION_STRUCT, 'solucao.c');
+    const fora = [...daSolucao].filter((k) => !aula2.saida.productive.has(k));
+    assert.deepEqual(
+      fora,
+      [],
+      `a solução com struct nasce violando A2: ${fora.join(' ')}`,
+    );
+    // e o typedef CONTINUA gateável como conteúdo: semente é só receptiva
+    assert.ok(!aula2.entrada.productive.has('node:TypedefDecl') || daSolucao.has('node:TypedefDecl') === false,
+      'solução sem typedef não depende de perdao algum');
   });
 });
 

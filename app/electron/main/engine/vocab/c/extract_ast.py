@@ -23,9 +23,13 @@ AS QUATRO ARMADILHAS DO JSON DO CLANG (todas medidas, Apple clang 17)
    o mesmo valor (o LastLoc do dumper). POR ISSO linha e coluna NUNCA saem
    do `loc` do clang — derivam do OFFSET (`range.begin.offset`) contra a
    tabela de inícios de linha do FONTE, aqui.
-2. RANGE DE TOKEN ÚNICO: para expressões de UM token (`42`, `"texto"`, `x`),
-   o clang reporta `end.offset == begin.offset` e o COMPRIMENTO do token vai
-   no `tokLen`. Fim do nó = `begin.offset + tokLen` quando o fim não avança.
+2. O FIM É O ÚLTIMO TOKEN, NÃO UM-PAST-THE-END: `range.end.offset` aponta
+   para o INÍCIO do último token do nó e o COMPRIMENTO dele vai no `tokLen`
+   (medido: em `p.x = 3;` o fim do `BinaryOperator` é o offset do `3`). Fim
+   do nó = `range.end.offset + end.tokLen` SEMPRE — que cobre também o caso
+   particular do token único (`42`, `"texto"`, `x`), em que
+   `end.offset == begin.offset` e o `tokLen` é o comprimento do token inteiro.
+   Ignorar o `tokLen` do fim truncava o último token de todo nó multi-token.
 3. Nós de HEADER entram no dump misturados com os do arquivo principal (o
    `#include <stdio.h>` expande centenas de decls). O filtro é ESTRUTURAL e
    confiável: todo nó vindo de outro arquivo carrega `includedFrom` no
@@ -41,7 +45,7 @@ fosse tratado como caractere.
 
 O QUE ESTE ARQUIVO EMITE ALÉM DA ÁRVORE CRUA
 --------------------------------------------
-1. Nós TRANSPARENTES (`ImplicitCastExpr`, `ParenExpr`, `CStyleCastExpr`, …)
+1. Nós TRANSPARENTES (`ImplicitCastExpr`, `ParenExpr`, `CaseStmt`, `DefaultStmt`, …)
    são DERRUBADOS mas os FILHOS SOBEM (a conversão devolve uma LISTA, não um
    nó opcional — sem isso o `DeclRefExpr` envolto em todo `ImplicitCastExpr`
    de C desapareceria, e com ele metade das chaves). Só os tipos do enum
@@ -156,6 +160,16 @@ _EMITIDOS = frozenset({
     "FunctionDecl",
     "VarDecl",
     "ParmVarDecl",
+    # tipos compostos e aliases (onda 3 — docs/20 §8.2 P1/P3)
+    "RecordDecl",     # `struct Ponto { … }` — MEDIDO: NÃO existe kind `StructDecl`
+                      # no dump JSON do clang (Apple clang 17); a definição de
+                      # struct é `RecordDecl` com `tagUsed: "struct"`. O guard
+                      # em `_converter` DERRUBA o `tagUsed: "union"` — o
+                      # inventário v1 nomeia SÓ o struct (union/`EnumDecl`
+                      # ficam fora do escopo e transparentes).
+    "TypedefDecl",    # `typedef struct Ponto P;` — os TypedefDecls BUILTIN
+                      # (`__int128_t`, medidos) são `isImplicit: true` e sem
+                      # posição no fonte: já morrem nos dois filtros de baixo.
     # controle de fluxo
     "IfStmt",
     "WhileStmt",
@@ -164,6 +178,11 @@ _EMITIDOS = frozenset({
     "ReturnStmt",
     "BreakStmt",
     "ContinueStmt",
+    "SwitchStmt",     # `switch (x) { … }` (onda 3 — P5). `CaseStmt` e
+                      # `DefaultStmt` ficam TRANSPARENTES: os filhos (o valor
+                      # do case, envolto em `ConstantExpr`, e o corpo) sobem
+                      # para dentro do SwitchStmt — "switch/case" é UM evento
+                      # de currículo no docs/20 §8.
     # blocos e declarações dentro de corpo
     "CompoundStmt",
     "DeclStmt",
@@ -172,6 +191,17 @@ _EMITIDOS = frozenset({
     "CompoundAssignOperator",
     "UnaryOperator",
     "UnaryExprOrTypeTraitExpr",  # `sizeof` — o único trait do curso iniciante
+    "ConditionalOperator",       # `a ? b : c` (onda 3 — P4): saiu de
+                                 # `_TRANSPARENTES` — ternário é construção
+                                 # nomeada no docs/20 §8.
+    # acesso a membro e cast explícito (onda 3 — P2/P6)
+    "MemberExpr",     # `s.x` e `p->m` — UM kind só (MEDIDO: o clang separa os
+                      # dois num único `MemberExpr` com `isArrow`); a
+                      # distinção dot/arrow vai no ATRIBUTO `memberAccess`,
+                      # porque o docs/20 §8 nomeia "acesso a campo" UMA vez.
+    "CStyleCastExpr", # `(int)3.7` (onda 3 — P6): saiu de `_TRANSPARENTES` —
+                      # cast é construção nomeada no docs/20 §8; o tipo-alvo
+                      # vai no ATRIBUTO `castType`.
     # chamadas e referências
     "CallExpr",
     "DeclRefExpr",
@@ -188,10 +218,11 @@ _EMITIDOS = frozenset({
 # Kinds que são SÓ ruído de expressão — derrubados com os filhos SUBINDO.
 # `ImplicitCastExpr` é o mais comum: envolve TODA expressão em C (a conversão
 # int→double etc.) e não ensina nada (o precedente é `_OPERATOR_BASES` do py).
+# `CStyleCastExpr` e `ConditionalOperator` SAÍRAM daqui na onda 3 (P6/P4 do
+# docs/20 §8.2): cast explícito e ternário são construções nomeadas.
 _TRANSPARENTES = frozenset({
     "ImplicitCastExpr",
     "ParenExpr",
-    "CStyleCastExpr",
     "CompoundLiteralExpr",
     "ImplicitValueInitExpr",
     "AtomicExpr",
@@ -200,10 +231,15 @@ _TRANSPARENTES = frozenset({
     "ConvertVectorExpr",
     "VAArgExpr",
     "GenericSelectionExpr",
-    "ConditionalOperator",   # `? :` — fora do escopo iniciante; filhos sobem
     "BinaryConditionalOperator",
     "ChooseExpr",
     "StmtExpr",
+    # os rótulos internos do switch (P5): `case N:` é `CaseStmt` (o valor vem
+    # envolto em `ConstantExpr`, MEDIDO) e `default:` é `DefaultStmt` — kind
+    # PRÓPRIO, medido no Apple clang 17. Os dois são transparentes: o valor e
+    # o corpo sobem para dentro do `SwitchStmt` emitido.
+    "CaseStmt",
+    "DefaultStmt",
 })
 
 # A família de cada opcode — `=` e os compostos (`+=`, `-=`, `*=`, `/=`, …) são
@@ -281,22 +317,33 @@ def _offset_inicio(nativo: dict) -> tuple[int, int] | None:
     return None
 
 
-def _offset_fim(nativo: dict) -> int | None:
-    """Offset em bytes do FIM do nó, ou None quando não há."""
+def _offset_fim(nativo: dict) -> tuple[int, int] | None:
+    """(offset em bytes, tokLen) do ÚLTIMO TOKEN do nó, ou None quando não há.
+
+    MEDIDO (Apple clang 17): o `range.end.offset` do dump JSON aponta para o
+    INÍCIO do último token do nó — NÃO para um-past-the-end (em `p.x = 3;` o
+    fim do `BinaryOperator` é o offset do `3`, com o comprimento dele no
+    `tokLen`). Quem soma o `tokLen` é `_pos_do_no`.
+    """
     end = nativo.get("range", {}).get("end", {})
     if isinstance(end.get("offset"), int):
-        return end["offset"]
+        return end["offset"], end.get("tokLen") or 0
     if isinstance(end.get("expansionLoc"), dict) and isinstance(end["expansionLoc"].get("offset"), int):
-        return end["expansionLoc"]["offset"]
+        return end["expansionLoc"]["offset"], end["expansionLoc"].get("tokLen") or 0
     return None
 
 
 def _pos_do_no(nativo: dict, off: _Offsets) -> dict | None:
     """Posição do nó a partir dos OFFSETS do clang (nunca do `loc.line`).
 
-    `range.begin.offset` é o início. O FIM é `range.end.offset` — MAS para
-    expressões de token único o clang reporta `end == begin` e o comprimento
-    vai no `tokLen` (armadilha 2 do cabeçalho): fim = início + tokLen. E uma
+    `range.begin.offset` é o início. O FIM é `range.end.offset` + o `tokLen`
+    do ÚLTIMO token — MEDIDO (Apple clang 17), o `range.end.offset` aponta
+    para o INÍCIO do último token do nó, nunca um-past-the-end; ignorar o
+    `tokLen` truncava o último token de TODO nó multi-token (`p.x = 3;` saía
+    como `p.x = `, `{1, 2` sem o `}`). A armadilha 2 do cabeçalho — a
+    expressão de UM token (`42`, `"texto"`, `x`), em que o clang reporta
+    `end == begin` e o comprimento só existe no `tokLen` — é o CASO
+    PARTICULAR em que fim == início: a mesma soma cobre os dois. E uma
     EXPANSÃO DE MACRO (`SM_TEST(slug)`) tem loc
     `{spellingLoc, expansionLoc}` — a posição HONESTA é a da EXPANSÃO, no
     arquivo do autor (a do spelling vive no `<scratch space>` do
@@ -307,15 +354,33 @@ def _pos_do_no(nativo: dict, off: _Offsets) -> dict | None:
     if inicio_e_tok is None:
         return None
     inicio, tok = inicio_e_tok
-    fim = _offset_fim(nativo)
-    if fim is None or fim <= inicio:
+    fim_e_tok = _offset_fim(nativo)
+    if fim_e_tok is None:
         fim = inicio + int(tok)
+    else:
+        fim = fim_e_tok[0] + fim_e_tok[1]
     return {
         "line": off.line_of_byte(inicio),
         "column": off.char_col(inicio),
         "start": off.absolute(inicio),
         "end": off.absolute(fim),
     }
+
+
+def _e_expansao_de_macro(nativo: dict) -> bool:
+    """O nó nasce da EXPANSÃO de uma macro (o corpo dela mora em outro lugar)?
+
+    MEDIDO (Apple clang 17): o `NULL` do fonte é `#define NULL ((void*)0)` no
+    header — o `CStyleCastExpr` da expansão carrega `range.begin` com
+    `expansionLoc` (e o corpo no `spellingLoc`). Um nó ESCRITO pelo autor tem
+    `range.begin.offset` PLANO. O mesmo sinal estrutural que `_vem_de_header`
+    usa, lido do lado da expansão.
+    """
+    begin = nativo.get("range", {}).get("begin", {})
+    if isinstance(begin.get("expansionLoc"), dict):
+        return True
+    loc = nativo.get("loc", {})
+    return isinstance(loc.get("expansionLoc"), dict)
 
 
 def _vem_de_header(nativo: dict) -> bool:
@@ -352,6 +417,16 @@ def _attrs_do_no(nativo: dict) -> dict:
                     (IntegerLiteral/FloatingLiteral/…), que o clang JÁ
                     separa — não existe eixo `lit:` neste vocabulário (a
                     decisão está documentada em `lang/c.ts`).
+    - `tagUsed`   — o `RecordDecl` só é EVENTO DE CURRÍCULO como struct; o
+                    atributo registra `"struct"` (o guard de `_converter`
+                    derruba o `tagUsed: "union"` antes de emitir).
+    - `memberAccess` — `"dot"` (`s.x`) ou `"arrow"` (`p->m`), do `isArrow`
+                    MEDIDO do `MemberExpr`. NÃO participa da chave (o
+                    docs/20 §8 nomeia "acesso a campo" uma vez só) — é
+                    metadata do relatório, como `resolvedName`.
+    - `castType`  — o tipo-alvo do `CStyleCastExpr` (`(int)3.7` → `"int"`),
+                    do `type.qualType`. Metadata do relatório; a chave é
+                    `node:CStyleCastExpr`.
     """
     kind = nativo.get("kind", "")
     attrs: dict[str, str] = {}
@@ -394,6 +469,21 @@ def _attrs_do_no(nativo: dict) -> dict:
         attrs["declKind"] = "func"
     elif kind == "VarDecl":
         attrs["declKind"] = "var"
+    elif kind == "MemberExpr":
+        # `s.x` (dot) × `p->m` (arrow) — do `isArrow` MEDIDO do dump. A chave
+        # é a MESMA (`node:MemberExpr`): o docs/20 §8 nomeia "acesso a campo"
+        # uma vez; a distinção fica no atributo para o relatório.
+        attrs["memberAccess"] = "arrow" if nativo.get("isArrow") is True else "dot"
+    elif kind == "RecordDecl":
+        tag = nativo.get("tagUsed")
+        if isinstance(tag, str) and tag:
+            attrs["tagUsed"] = tag
+    elif kind == "CStyleCastExpr":
+        alvo = nativo.get("type", {})
+        if isinstance(alvo, dict):
+            qual = alvo.get("qualType")
+            if isinstance(qual, str) and qual:
+                attrs["castType"] = qual
 
     storage = nativo.get("storageClass")
     if isinstance(storage, str) and storage and storage != "none":
@@ -421,6 +511,27 @@ def _converter(nativo: dict, off: _Offsets, ctx: dict) -> list[dict]:
     filhos: list[dict] = []
     for bruto in nativo.get("inner", []) or []:
         filhos.extend(_converter(bruto, off, ctx))
+
+    # `RecordDecl` só é EVENTO DE CURRÍCULO como struct (MEDIDO: `union U {…}`
+    # é o MESMO kind com `tagUsed: "union"`, e o docs/20 §8 nomeia só o
+    # struct). O union DERRUBA o nó — os filhos (FieldDecl, já transparentes)
+    # sobem vazios e o union continua fora do vocabulário, como antes.
+    if kind == "RecordDecl" and nativo.get("tagUsed") != "struct":
+        return filhos
+
+    # O CAST QUE O ALUNO NÃO ESCREVEU (medido, Apple clang 17): `NULL` é
+    # `#define NULL ((void*)0)` — TODO `NULL` do fonte vira um
+    # `CStyleCastExpr` (`castKind: "NullToPointer"`) cujo `range.begin` é um
+    # `expansionLoc` (o corpo da macro mora no header; a expansão aponta para
+    # o token `NULL`). Emitir esse nó como `node:CStyleCastExpr` cobraria
+    # "cast" de toda aula que usa `NULL` — o mesmo defeito de nomear pelo
+    # `__stdoutp` em vez do `stdout` (o que o aluno ESCREVEU é `NULL`, não um
+    # cast). O cast REAL (`(int)3.7`) começa num offset PLANO, sem
+    # `expansionLoc` — medido: `castKind: "FloatingToIntegral"`, begin direto.
+    # O guard é SÓ para o cast: a expansão de `SM_TEST` produz `FunctionDecl`
+    # com `expansionLoc` e PRECISA emergir (a dupla-igualdade conta por ela).
+    if kind == "CStyleCastExpr" and _e_expansao_de_macro(nativo):
+        return filhos
 
     pos = _pos_do_no(nativo, off)
     if pos is None:

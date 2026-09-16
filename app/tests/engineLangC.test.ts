@@ -376,7 +376,11 @@ describe('c — (2)(3) os eixos do vocabulário e o inventário FECHADO', () => 
   it('o inventário é FECHADO, ordenado, e cobre toda chave `node:` emitida', { skip: !TEM_C }, () => {
     const inv = c.inventory();
     assert.deepEqual([...inv], [...inv].sort(), 'ordenado (determinismo do complemento)');
-    assert.ok(inv.length >= 25, `esperado ≥ 25 tipos, veio ${inv.length}`);
+    // onda 3: 28 kinds da onda 1 + os SEIS do docs/20 §8.2 (P1–P6) = 34
+    assert.equal(inv.length, 34, `esperado 34 tipos, veio ${inv.length}`);
+    for (const novo of ['RecordDecl', 'MemberExpr', 'TypedefDecl', 'ConditionalOperator', 'SwitchStmt', 'CStyleCastExpr']) {
+      assert.ok(inv.includes(novo), `o kind do §8.2 não entrou no inventário: ${novo}`);
+    }
     const emitidas = chavesDe(FONTE);
     for (const chave of emitidas) {
       if (!chave.startsWith('node:')) continue;
@@ -396,6 +400,165 @@ describe('c — (2)(3) os eixos do vocabulário e o inventário FECHADO', () => 
     const fonte = 'typedef int (*fn)(int);\nint main(void) { fn f = 0; return f(1); }\n';
     const chaves = chavesDe(fonte);
     assert.ok(chaves.has('node:IndirectCall'), [...chaves].join(' '));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4b. AS SEIS CONSTRUÇÕES DO docs/20 §8.2 (onda 3 — P1 a P6), cada kind MEDIDO
+//     no dump JSON do clang desta máquina antes de entrar no inventário.
+// ---------------------------------------------------------------------------
+
+describe('c — as seis construções do §8.2 (P1–P6): kinds medidos no clang', () => {
+  /** O primeiro nó do tipo pedido na árvore, ou null. */
+  function achar(tipo: string, no: LangNode): LangNode | null {
+    if (no.type === tipo) return no;
+    for (const filho of no.children) {
+      const achado = achar(tipo, filho);
+      if (achado) return achado;
+    }
+    return null;
+  }
+
+  it('P1 struct: `struct Ponto { … }` é RecordDecl com tagUsed "struct" — NÃO existe StructDecl no dump', { skip: !TEM_C }, () => {
+    const fonte = 'struct Ponto { int x; int y; };\nint main(void) { struct Ponto p = {1, 2}; p.x = 3; return p.x; }\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:RecordDecl'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const rec = achar('RecordDecl', r.root);
+    assert.ok(rec, 'a árvore expõe o RecordDecl da struct');
+    if (!rec) return;
+    assert.equal(rec.attributes.name, 'Ponto');
+    assert.equal(rec.attributes.tagUsed, 'struct', 'o atributo MEDIDO que separa struct de union');
+    assert.equal(rec.text, 'struct Ponto { int x; int y; }');
+    assert.equal(achar('FieldDecl', r.root), null, 'FieldDecl não é inventário — os campos não emergem');
+  });
+
+  it('P1 union/enum ficam FORA: `union` é o MESMO RecordDecl com tagUsed "union" — derrubado', { skip: !TEM_C }, () => {
+    const fonte = 'union U { int a; float b; };\nenum E { A, B };\nint main(void) { union U u; enum E e = A; return 0; }\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(!chaves.has('node:RecordDecl'), 'union não pode herdar a chave do struct');
+    assert.ok(!chaves.has('node:EnumDecl'), 'enum não é inventário v1');
+    assert.ok(chaves.has('decl:var'), 'a variável do tipo union continua sendo decl:var normal');
+  });
+
+  it('P2 acesso a campo: `s.x` e `p->m` são UM kind (MemberExpr) — a distinção vai no ATRIBUTO memberAccess', { skip: !TEM_C }, () => {
+    const fonte = 'struct P { int x; };\nint main(void) {\n    struct P s = {1};\n    struct P *p = &s;\n    s.x = 2;\n    p->x = 3;\n    return s.x + p->x;\n}\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:MemberExpr'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const membros: LangNode[] = [];
+    const coletar = (no: LangNode): void => {
+      if (no.type === 'MemberExpr') membros.push(no);
+      for (const filho of no.children) coletar(filho);
+    };
+    for (const filho of r.root.children) coletar(filho);
+    assert.equal(membros.length, 4, 'quatro acessos: s.x, p->x, s.x, p->x');
+    const dots = membros.filter((m) => m.attributes.memberAccess === 'dot');
+    const arrows = membros.filter((m) => m.attributes.memberAccess === 'arrow');
+    assert.equal(dots.length, 2, 'dois `.`');
+    assert.equal(arrows.length, 2, 'dois `->`');
+    for (const m of membros) {
+      assert.equal(m.attributes.name, 'x', 'o atributo name é o CAMPO');
+      assert.equal(m.text.includes('.'), m.attributes.memberAccess === 'dot', `texto ${m.text} casa com ${m.attributes.memberAccess}`);
+      assert.equal(m.text.includes('->'), m.attributes.memberAccess === 'arrow');
+    }
+  });
+
+  it('P3 typedef: `typedef struct Ponto P;` emite node:TypedefDecl, e os typedefs BUILTIN ficam de fora', { skip: !TEM_C }, () => {
+    const fonte = 'struct Ponto { int x; };\ntypedef struct Ponto P;\nint main(void) { P p = {1}; return p.x; }\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:TypedefDecl'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const tds: LangNode[] = [];
+    const coletar = (no: LangNode): void => {
+      if (no.type === 'TypedefDecl') tds.push(no);
+      for (const filho of no.children) coletar(filho);
+    };
+    for (const filho of r.root.children) coletar(filho);
+    // os TypedefDecls builtin (`__int128_t` etc., isImplicit) NÃO emergem —
+    // só o typedef ESCRITO pelo autor
+    assert.equal(tds.length, 1, `um TypedefDecl (o builtin é isImplicit): ${tds.map((t) => t.attributes.name).join(', ')}`);
+    assert.equal(tds[0].attributes.name, 'P');
+    assert.equal(tds[0].text, 'typedef struct Ponto P');
+  });
+
+  it('P4 ternário: ConditionalOperator SAIU de _TRANSPARENTES — o nó emerge na árvore', { skip: !TEM_C }, () => {
+    const fonte = 'int main(void) { int y = 1; int z = y > 0 ? 2 : 3; return z; }\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:ConditionalOperator'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const tern = achar('ConditionalOperator', r.root);
+    assert.ok(tern, 'o nó existe (antes era derrubado e os filhos subiam)');
+    if (!tern) return;
+    assert.equal(tern.text, 'y > 0 ? 2 : 3');
+    assert.equal(tern.children.length, 3, 'condição, then e else como filhos');
+  });
+
+  it('P5 switch: node:SwitchStmt emerge; CaseStmt e DefaultStmt (kind próprio do `default:`) ficam transparentes', { skip: !TEM_C }, () => {
+    const fonte = [
+      'int main(void) {',
+      '    int x = 1;',
+      '    switch (x) {',
+      '        case 1:',
+      '            x = 2;',
+      '            break;',
+      '        default:',
+      '            break;',
+      '    }',
+      '    return x;',
+      '}',
+    ].join('\n');
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:SwitchStmt'), [...chaves].join(' '));
+    assert.ok(chaves.has('node:BreakStmt'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const sw = achar('SwitchStmt', r.root);
+    assert.ok(sw);
+    if (!sw) return;
+    assert.ok(sw.text.startsWith('switch (x) {') && sw.text.endsWith('}'), 'o SwitchStmt cobre o bloco inteiro');
+    // os rótulos sobem TRANSPARENTES: nada de CaseStmt/DefaultStmt na árvore,
+    // e o valor do case (IntegerLiteral) sobe para dentro do SwitchStmt
+    const tipos: string[] = [];
+    const coletar = (no: LangNode): void => {
+      tipos.push(no.type);
+      for (const filho of no.children) coletar(filho);
+    };
+    coletar(sw);
+    assert.ok(!tipos.includes('CaseStmt'), 'CaseStmt não é inventário — filhos sobem');
+    assert.ok(!tipos.includes('DefaultStmt'), 'DefaultStmt (kind PRÓPRIO do `default:`, medido) não é inventário');
+    assert.ok(tipos.includes('IntegerLiteral'), 'o valor do case sobe');
+    assert.ok(tipos.includes('CompoundStmt'), 'o corpo do switch sobe como bloco');
+  });
+
+  it('P6 cast: `(int)3.7` emite node:CStyleCastExpr com castType; o cast do NULL (macro) NÃO é cast do aluno', { skip: !TEM_C }, () => {
+    const fonte = '#include <stddef.h>\nint main(void) {\n    const char *s = NULL;\n    int z = (int)3.7;\n    return z;\n}\n';
+    const chaves = chavesDe(fonte);
+    assert.ok(chaves.has('node:CStyleCastExpr'), [...chaves].join(' '));
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const casts: LangNode[] = [];
+    const coletar = (no: LangNode): void => {
+      if (no.type === 'CStyleCastExpr') casts.push(no);
+      for (const filho of no.children) coletar(filho);
+    };
+    for (const filho of r.root.children) coletar(filho);
+    // O `NULL` do fonte é `#define NULL ((void*)0)` — o cast da expansão é
+    // ANDAIME do header, não construção do aluno (medido: `range.begin` é um
+    // `expansionLoc`). Só o cast ESCRITO emerge.
+    assert.equal(casts.length, 1, `um cast (o do NULL é macro): ${casts.map((x) => x.text).join(', ')}`);
+    assert.equal(casts[0].text, '(int)3.7');
+    assert.equal(casts[0].attributes.castType, 'int', 'o tipo-alvo MEDIDO vai no atributo');
   });
 });
 

@@ -556,6 +556,59 @@ describe('c — constructKey: op:update:--, op:logical:||, %, %=, global:stdout,
       'decl: tem prioridade sobre api:',
     );
   });
+
+  it('os SEIS kinds novos do §8.2 usam o eixo node: — atributos dot/arrow/castType NÃO mudam a chave', { skip: !TEM_C }, () => {
+    // docs/20 §8 nomeia cada construção UMA vez; a distinção que o clang
+    // carrega no nó (isArrow, tagUsed, castKind) é metadata de relatório — o
+    // padrão resolvedName/storageClass do extrator, não o declKind.
+    const chaves = chavesDe([
+      'struct P { int x; };',
+      'typedef struct P P2;',
+      'int main(void) {',
+      '    struct P s = {1};',
+      '    struct P *p = &s;',
+      '    s.x = p->x;',
+      '    int y = 1 > 0 ? 2 : 3;',
+      '    switch (y) { case 2: break; default: break; }',
+      '    return (int)1.5;',
+      '}',
+    ].join('\n'));
+    for (const chave of ['node:RecordDecl', 'node:MemberExpr', 'node:TypedefDecl', 'node:ConditionalOperator', 'node:SwitchStmt', 'node:CStyleCastExpr']) {
+      assert.ok(chaves.has(chave), `falta ${chave}: ${[...chaves].join(' ')}`);
+    }
+    assert.ok(!chaves.has('op:member:.'), 'o acesso a campo não é operador — é node:MemberExpr');
+    assert.ok(!chaves.has('op:member:->'), 'dot e arrow compartilham a MESMA chave');
+  });
+
+  it('o FIM do nó inclui o ÚLTIMO TOKEN (medido: range.end.offset é o INÍCIO dele; o tokLen completa)', { skip: !TEM_C }, () => {
+    // A correção da onda 3, travada: antes, todo nó multi-token perdia o
+    // último token no snippet (`p.x = 3` saía `p.x = `, `x * 2` saía
+    // `x * `). O snippet é o `trechoOfensor` do relatório de auditoria.
+    const fonte = 'int dobro(int x) {\n    return x * 2;\n}\n';
+    const r = c.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const achar = (tipo: string, no: LangNode): LangNode | null => {
+      if (no.type === tipo) return no;
+      for (const filho of no.children) {
+        const achado = achar(tipo, filho);
+        if (achado) return achado;
+      }
+      return null;
+    };
+    const bin = achar('BinaryOperator', r.root);
+    assert.ok(bin);
+    assert.equal(bin?.text, 'x * 2', `texto completo do operador: veio ${String(bin?.text)}`);
+    const func = achar('FunctionDecl', r.root);
+    assert.ok(func);
+    assert.ok(func?.text.endsWith('}'), 'a definição termina na chave de fechamento');
+    // e o INVARIANTE geral: todo nó fatia o fonte exatamente no seu texto
+    const visitar = (no: LangNode): void => {
+      assert.equal(fonte.slice(no.start, no.end), no.text, `${no.type}: offsets fora do fonte`);
+      for (const filho of no.children) visitar(filho);
+    };
+    for (const filho of r.root.children) visitar(filho);
+  });
 });
 
 // ---------------------------------------------------------------------------
