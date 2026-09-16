@@ -60,7 +60,34 @@ import { dirname } from 'node:path';
 import ptBR from '../src/i18n/locales/pt-BR/translation.json';
 import en from '../src/i18n/locales/en/translation.json';
 import { lessonFinishBlock, type LessonFinishBlockReason } from '../src/lib/trackLessonState';
-import type { LessonActionStep, LessonActionStepInput } from '../src/views/LessonView/LessonView';
+/**
+ * Os TIPOS do passo são DECLARADOS aqui, NÃO importados da view: um import
+ * estático (mesmo `import type`) de '../src/views/LessonView/LessonView' faz o
+ * tsc RESOLVER o .tsx — que entra no programa deste projeto
+ * (tsconfig.node.json: tests + lib ES2022 SEM DOM, sem `jsx`) — e o lint morre
+ * com TS6142 ("--jsx is not set"). É o padrão do contrato
+ * tests/lessonActionRow.test.ts: tipos re-declarados localmente e o módulo da
+ * view alcançado SÓ pelo import dinâmico de string não-literal (VIEW_MODULE
+ * abaixo, invisível ao tsc).
+ */
+type LessonActionStep =
+  | 'nao-comecou'
+  | 'revelar'
+  | 'quiz-secao'
+  | 'proximo'
+  | 'quiz-aula'
+  | 'desafio'
+  | 'concluir'
+  | 'proxima-aula';
+
+interface LessonActionStepInput {
+  started: boolean;
+  theoryDone: boolean;
+  doneMarked: boolean;
+  typingTheory: boolean;
+  nextBlockedByQuiz: boolean;
+  finishBlock: LessonFinishBlockReason | null;
+}
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VIEW_MODULE = new URL('../src/views/LessonView/LessonView.tsx', import.meta.url).href;
