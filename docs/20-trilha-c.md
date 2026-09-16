@@ -17,13 +17,14 @@
 >
 > **Autoridade.** Onde este documento e [`16-engine-de-trilha.md`](16-engine-de-trilha.md)
 > divergirem, o 16 vence. Onde este documento e um gate determinístico divergirem, o gate vence — e
-> este documento está errado. O vocabulário de átomos deste documento é **PRELIMINAR e assumido**
-> (§"Vocabulário" e §"Apêndice"): o adaptador C da engine está sendo construído **em paralelo,
-> nesta mesma onda 1**, como nova linha do registro de adaptadores
-> (`app/electron/main/engine/lang/` — hoje `javascript.ts`, `python.ts`, `typescript.ts` e
-> `registry.ts`; o `c.ts` é irmão deste documento). A onda 2 **congela** as chaves daqui contra o
-> `inventory()` real do adaptador e re-executa a verificação Ensina × Presume (§"A verificação").
-> Nenhuma chave daqui é origem normativa até esse congelamento.
+> este documento está errado. O vocabulário de átomos deste documento foi **CONGELADO na onda 2**
+> (§"Vocabulário" e §"Apêndice §8") contra o `inventory()` real do adaptador C
+> (`app/electron/main/engine/lang/c.ts`, função `cInventory()`, e
+> `app/electron/main/engine/vocab/c/extract_ast.py`, tabela `_EMITIDOS` — o adaptador existe e é
+> irmão deste documento na `lang/`). A verificação executável Ensina × Presume roda em
+> `tools/check-trilha-c.mjs` (§"A verificação"). As construções que o adaptador AINDA não emite
+> estão isoladas na subseção **PENDENTE DE INVENTÁRIO** do §8 — a decisão de estender o adaptador
+> (scaffold/fix) é da onda 3.
 >
 > **Base.** Fatos de linguagem medidos nesta máquina (cada linha traz o número que o comando
 > produziu, como exige o `CONTRIBUTING.md`): a matriz de execução de C de
@@ -90,7 +91,7 @@ curso seguinte re-introduz as construções de fronteira do anterior em aulas pr
 
 | Porta (prevista) | De → para | Re-introduz (as construções de fronteira) |
 |---|---|---|
-| `a-porta-do-endereco` (~12 aulas) | iniciante → intermediário | `decl:ptr`, `op:unary:*`, `op:unary:&`, `decl:array`, `decl:struct`, `node:Arrow`, `fmt:%s`/`api:strlen`, `api:fopen`/`api:fprintf`/`api:fgets` — as aulas-fonte 8–14 do M5, 1–11 do M6 e 9–14 do M7, reescritas para "quem vem do iniciante" |
+| `a-porta-do-endereco` (~12 aulas) | iniciante → intermediário | `decl:var` em forma nova (ponteiro e array — o inventário emite `decl:var` para os dois), `op:unary:*`, `op:unary:&`, structs e acesso a campo (PENDENTE DE INVENTÁRIO — §8), `api:strlen`, `api:fopen`/`api:fprintf`/`api:fgets` — as aulas-fonte 8–14 do M5, 1–11 do M6 e 9–14 do M7, reescritas para "quem vem do iniciante" |
 | `a-porta-da-medicao` (~8 aulas) | intermediário → avançado | ponteiros para função, recursão, `malloc`/`free`, multi-arquivo com linker, `gdb`/sanitizers — o que M16+ presume medir |
 | `a-porta-do-metal` (~8 aulas) | avançado → especialista | `pthreads`/`atomics`, `make`, ABI, alinhamento — o que M20+ presume abrir |
 
@@ -119,28 +120,35 @@ só um `console.log` e acabou". Para C a mesma decisão significa:
 printf("oi\n");
 ```
 
-Uma linha, escrita pelo aluno, dentro do trampolim congelado (abaixo), sem variável, sem `scanf`,
-sem função própria. Ele roda, vê `oi` aparecer, e acabou. Tudo o que vem abaixo — a ordem dos
+Uma linha, escrita pelo aluno, dentro da função congelada (abaixo), sem variável, sem `scanf`,
+sem nada além da linha. Ele roda, vê `oi` aparecer, e acabou. Tudo o que vem abaixo — a ordem dos
 módulos, o formato dos testes, o axioma de entrada — é consequência dessa decisão, não o contrário.
 
-**O trampolim `main`.** C não tem modo script: nada roda fora de uma função, e a função é sempre
-`main`. O análogo honesto do script Python de uma linha é o programa cujas partes fixas o aluno
-**lê e nunca edita** (`frozenRegion`, como o arquivo de teste):
+**O modelo cenário-do-harness (re-pinado na onda 2, contra o que o adaptador executa de verdade).**
+C não tem modo script: nada roda fora de uma função, e o `main` — SEMPRE — é do harness
+(`lang/c.ts`: o `main` do harness é decisão documentada do adaptador; um `main` em `solucao.c`
+não linka — `duplicate symbol '_main'`). O análogo honesto do script Python de uma linha é o
+programa cujas partes fixas o aluno **lê e nunca edita** (`frozenRegion`, como o arquivo de
+teste): o `main` do harness chama a função que o aluno escreve, e a captura do `stdout` acontece
+DENTRO do próprio teste (freopen para arquivo temporário — §"A tensão imprimir × devolver"):
 
 ```c
+/* main do harness — o aluno LÊ, nunca edita (frozenRegion) */
 #include <stdio.h>
 
-int main(void) {
+void tela(void) {
     printf("oi\n");   /* ← a linha que o aluno escreve */
-    return 0;
 }
+/* … o main do harness chama tela(); captura o stdout; devolve o exit — congelado … */
 ```
 
-Nas **aulas 1–3** o aluno usa o trampolim com regiões congeladas e escreve só o corpo (aula 1),
-depois o `main` inteiro (aula 2), depois também o `return 0;` (aula 3); na **aula 4** ele escreve o
-`#include <stdio.h>` — e vê o aviso do compilador quando esquece. A partir da aula 2 ele já digitou
-a porta do programa; a competência "escrever um programa C inteiro sozinho" fica assim, literalmente
-verificável desde o começo.
+Nas **aulas 1–3** o aluno usa a função congelada `tela` com graus crescentes: escreve só o corpo
+(aula 1), escreve a função inteira (aula 2) e LÊ o `return 0;` do `main` do harness — o código de
+saída (aula 3); na **aula 4** ele escreve o `#include <stdio.h>` do SEU arquivo — e vê o aviso do
+compilador quando esquece. A partir da aula 2 ele já escreve funções C inteiras; a competência
+"escrever um programa C inteiro sozinho" (§1) é fechada no M7, quando o `.h`/`.c` e a compilação
+própria entram — e a compilação por ela mesma com 0 warnings é PRÁTICA DE TERMINAL descrita na
+prosa, não gate do desafio (o adaptador não tem caminho de dados para warnings — §4).
 
 ---
 
@@ -152,17 +160,22 @@ fases, com a virada na aula `imprimir-nao-e-devolver` (M4):
 
 | Fase | Módulos | `outputChannel` | O que o teste assevera |
 |---|---|---|---|
-| **SAÍDA** | M1 a M3 | `impressao` | o texto que o programa imprimiu (`stdout` capturado pelo runner) |
+| **SAÍDA** | M1 a M3 | `impressao` | o texto que a função do aluno imprimiu (`stdout` capturado DENTRO do próprio teste) |
 | **A VIRADA** | M4, aula `imprimir-nao-e-devolver` | `ambos` | o retorno **e** a saída, no mesmo desafio |
 | **VALOR** | M4 (a partir da virada) a M7 | `retorno` | o valor que a função devolveu (comparado pelo helper `checa_<tipo>` do `counter_protocol`) |
 
-O que muda de forma para C é **como** o teste mede cada fase — e isto é pinado aqui, para a onda 2
-congelar com as provas de execução do adaptador:
+O que muda de forma para C é **como** o teste mede cada fase — pinado na onda 2 contra o que o
+adaptador executa de verdade (repro empírica de `SM_HARNESS_HEADER`/`SM_MAIN_SOURCE`/
+`SM_RUNNER_SCRIPT` de `lang/c.ts`):
 
-- **SAÍDA**: o `runner.sh` compila `solucao.c` com os testes e roda o binário do programa
-  redirecionando `stdout` para um arquivo; `test_solucao.c` lê o arquivo (`fopen`/`fgets`) e
-  assevera com o helper `checa_<tipo>` do `counter_protocol`. O aluno nunca escreve nada disso: é
-  semente receptiva (abaixo).
+- **SAÍDA — modelo cenário-do-harness.** `solucao.c` NUNCA tem `main` (o `main` é sempre do
+  harness — um `main` do aluno não linka: `duplicate symbol '_main'`; e o `stdout` do programa só
+  chega à engine num run que FALHA, o que tornaria a captura-do-runner inimplementável para um
+  teste que passa). O desafio da fase SAÍDA verifica a impressão chamando a FUNÇÃO do aluno e
+  capturando o `stdout` NO PRÓPRIO TESTE: `freopen` de `stdout` para arquivo temporário dentro de
+  `testsCode` (stdlib puro, roda no harness atual sem mudança de engine), depois asserção com o
+  helper `checa_<tipo>` do `counter_protocol`. O aluno nunca escreve nada disso: é semente
+  receptiva (abaixo).
 - **VALOR**: `test_solucao.c` declara os **protótipos** das funções do aluno no topo (congelados) e
   assevera o retorno com o helper do `counter_protocol` —
   `checa_int("o dobro de 2 e 4", dobro(2), 4, "o dobro de n é n × 2");`. **Regra de harness
@@ -171,12 +184,11 @@ congelar com as provas de execução do adaptador:
   protótipo solto no topo do teste é a forma autorizada, porque o header próprio só nasce como
   conteúdo no M7. A partir daí, `#include "solucao.h"` é a forma legítima (e a esperada).
 - **A VIRADA**: os três fatos do desafio são normativos (devolve; imprime; **chamar a caixa
-  sozinha não imprime nada**). A mecânica exata do terceiro fato em C (capturar o `stdout` de uma
-  chamada dentro do processo do teste, via `dup2`/`freopen`, ou medir num segundo binário que o
-  runner monta) é decisão da onda 2 com as quatro provas de execução rodando — este documento
-  pinna os fatos e a ordem, não a mecânica.
+  sozinha não imprime nada**). A mecânica do terceiro fato em C é a MESMA da fase SAÍDA: capturar
+  o `stdout` de uma chamada dentro do processo do teste (`freopen` para arquivo temporário em
+  `testsCode`) — pinada na onda 2 com as provas de execução rodando.
 - **Exit codes desta trilha (D-V11, `languages.md`)**: o teste sai `return falhas == 0 ? 0 : 1`
-  (`counter_protocol`) e o `runner.sh` **normaliza** o exit bruto para **0** passou · **1** falhou ·
+  (`counter_protocol`) e o runner **normaliza** o exit bruto para **0** passou · **1** falhou ·
   **2** contagem errada · **3** timeout, ecoando `EXIT_BRUTO` e `DECORRIDO_MS` no stdout — o
   diagnóstico bruto não se perde (134=`SIGABRT` de `assert.h`, 5=zero testes coletados, 137=morto);
   **66** é erro de infraestrutura ([`00-contratos.md`](00-contratos.md) §5.3); **qualquer outro
@@ -203,10 +215,16 @@ checa_int("o dobro de 2 e 4", dobro(2), 4,
 
 Na divergência, o helper incrementa `falhas` e imprime em **stderr** `FALHOU [<cenario>]: obtido
 …, esperado …. <porque>` — e **nunca aborta**: um cenário vermelho não impede os seguintes de
-rodar. Ao final, `printf("TESTS_RUN=%d\nTESTS_FAILED=%d\n", total, falhas)` em **stdout** — a
-contagem que o gate confere por IGUALDADE contra `expectedTestCount`, nunca `> 0` (DES-4,
-[`03-tdd`](build-spec/blocks/03-tdd.md) §3.7.2) —, exit `return falhas == 0 ? 0 : 1`, e o filtro
-`--only` via `getenv("SM_ONLY")`: contrato integral de
+rodar. **Semântica do `TESTS_RUN` (re-pinada na onda 2, medida no adaptador):** o contador que o
+gate confere por IGUALDADE contra `expectedTestCount` é o de **CENÁRIOS** — os blocos `SM_TEST`
+(`SM_TEST(cenario) { … }`), não as chamadas de `checa_<tipo>` (medido: 2 blocos `SM_TEST` com 3
+`checa_int` imprimem `TESTS_RUN=2`); são **1–4 cenários por desafio de aula**. Os contadores
+`total`/`falhas` do `counter_protocol` continuam contando CHECAS para o exit
+(`return falhas == 0 ? 0 : 1`), nunca `> 0` como gate (DES-4, [`03-tdd`](build-spec/blocks/03-tdd.md)
+§3.7.2). **Guard de contagem:** a linha nunca aparece nua no stdout — o relatório real é
+`SM<nonce> TESTS_RUN=…` (namespace do runner) e o canal CONFIÁVEL é o **arquivo de relatório com
+nonce**, que o `run.sh` lê (não o stdout — que a captura pode poluir). Filtro `--only` via
+`getenv("SM_ONLY")`: contrato integral de
 [`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.3, com a semântica de exit de D-V11.
 
 ---
@@ -218,33 +236,44 @@ entrada declarada na cadeia (§1). A mesma pessoa, curso a curso: **115** aulas 
 escreve um programa C inteiro sozinha; os cursos seguintes partem dessa fronteira (§1). Este
 documento não promete prazos — promete a cadeia.
 
-**Axioma de entrada RECEPTIVO: o trampolim e o runner.** O que o aluno lê e não escreve em lugar
-nenhum: o `main` congelado das primeiras aulas e o arquivo de teste. O que isso contém (a lista
-normativa para a constante `C_HARNESS_RECEPTIVE_SEED` da engine, a congelar na onda 2 — mesma
-dívida declarada que o Python carregou em docs/17 §"A semente receptiva"):
+**Axioma de entrada RECEPTIVO: a função congelada e o runner.** O que o aluno lê e não escreve em lugar
+nenhum: o `main` congelado das primeiras aulas e o arquivo de teste. A lista normativa para a
+constante `C_HARNESS_RECEPTIVE_SEED` da engine — **CONGELADA na onda 2** contra o inventário real
+(mesma dívida declarada que o Python carregou em docs/17 §"A semente receptiva"; o mapeamento
+preliminar → real está no §"Vocabulário"):
 
 ```
-node:TranslationUnit  node:FunctionDef  node:Return  node:Name  node:IntLiteral
-node:StrLiteral  node:Call  decl:var  decl:array  decl:ptr  node:Subscript
-node:If  node:While  node:For  node:Prototype  op:aug:+  op:compare:==  op:compare:!=
-op:unary:*  hdr:stdio.h  hdr:stdlib.h  hdr:string.h
+decl:func  node:ReturnStmt  node:DeclRefExpr  node:IntegerLiteral
+node:StringLiteral  node:CallExpr  decl:var  node:ArraySubscriptExpr
+node:IfStmt  node:WhileStmt  node:ForStmt
+op:assign:+=  op:binary:==  op:binary:!=  op:unary:*  node:IncludeDirective
 api:getenv  api:printf  api:fopen  api:fclose  api:fgets  api:fscanf  api:fprintf
-api:NULL  api:strcmp  api:strlen
+api:strcmp  api:strlen
 ```
 
-(`hdr:assert.h`/`api:assert` saíram da semente com o `counter_protocol`: o teste gerado não usa
-`assert.h`; entrou o par que o protocolo exige para o filtro `--only` — `hdr:stdlib.h`/
-`api:getenv`, `getenv("SM_ONLY")`, [`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.3.)
+(O mapeamento a partir da semente preliminar: `node:FunctionDef`/`node:Prototype` → `decl:func`;
+`node:Name` → `node:DeclRefExpr`; `node:IntLiteral` → `node:IntegerLiteral`; `node:StrLiteral` →
+`node:StringLiteral`; `node:Call` → `node:CallExpr`; `node:Subscript` → `node:ArraySubscriptExpr`;
+`node:If`/`node:While`/`node:For` → `node:IfStmt`/`node:WhileStmt`/`node:ForStmt`;
+`op:aug:+` → `op:assign:+=`; `op:compare:==`/`op:compare:!=` → `op:binary:==`/`op:binary:!=`;
+`decl:array`/`decl:ptr` → `decl:var` (o adaptador emite `decl:var` para toda declaração de
+variável, inclusive array e ponteiro); os três `hdr:` → `node:IncludeDirective` (a chave não
+distingue o header — o `path` está no atributo, decisão de distinguir é da onda 3);
+`node:TranslationUnit` saiu — a raiz do dump não é chave de construção; `api:NULL` saiu — `NULL` é
+macro e não emite `ApiRef` (o adaptador não a enxerga). O include de `<assert.h>` saiu da semente
+com o `counter_protocol` — o teste gerado não usa `assert.h`; entrou o par que o protocolo exige
+para o filtro `--only` — `node:IncludeDirective` (de `<stdlib.h>`)/`api:getenv`,
+`getenv("SM_ONLY")`, [`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.3.)
 
 **Axioma de entrada PRODUTIVO: duas chaves, e só duas.**
 
 | Chave | Por que é axioma e não aula |
 |---|---|
-| `node:Call` | não existe programa em C que **faça** alguma coisa sem uma chamada de função (`printf` é uma). Uma aula "chamar" precisaria de um desafio em que o aluno chama algo — e não há nada para chamar antes de `printf`. É a gramática de "rodar", não conteúdo |
-| `node:StrLiteral` | é a mensagem que o `printf` mostra. Separar as duas exigiria uma aula "chamar `printf` sem argumento", que não mostra nada na tela e viola J6 (o passo apagado tem de ser o átomo-alvo) |
+| `node:CallExpr` | não existe programa em C que **faça** alguma coisa sem uma chamada de função (`printf` é uma). Uma aula "chamar" precisaria de um desafio em que o aluno chama algo — e não há nada para chamar antes de `printf`. É a gramática de "rodar", não conteúdo |
+| `node:StringLiteral` | é a mensagem que o `printf` mostra. Separar as duas exigiria uma aula "chamar `printf` sem argumento", que não mostra nada na tela e viola J6 (o passo apagado tem de ser o átomo-alvo) |
 
 **Consequência: a aula 1 introduz EXATAMENTE UM átomo produtivo — `api:printf`.** Medido nesta
-máquina, o programa de uma linha dentro do trampolim compila com o pin da trilha, roda e sai
+máquina, o programa de uma linha dentro da função congelada compila com o pin da trilha, roda e sai
 `oi\n` com exit 0:
 
 ```bash
@@ -278,74 +307,83 @@ printf '...cprobe...' | cc -std=c11 -Wall -Wextra -x c - -o /tmp/cprobe && /tmp/
 | `strlen("abc")` → **3** | o terminador `\0` não conta: é a aula que abre o M6 |
 | `printf("%c", 'A' + 1)` → **B** | letra é número: a aula `uma-letra-e-um-numero` (M1) semeia o M6 inteiro |
 | `INT_MAX` → **2147483647** | o limite é impresso, não decorado; overflow é prosa de aviso (UB), nunca desafio |
-| `x = 10; x += 3;` → **13** | a atribuição composta é um gesto só (regra do par: `op:aug:+`) |
+| `x = 10; x += 3;` → **13** | a atribuição composta é um gesto só (regra do par: `op:assign:+=`) |
 | `assert.h` que falha → exit **134** (`SIGABRT`) no PRIMEIRO erro, medido | é o motivo de o teste C desta trilha NUNCA usar `assert.h`: o `counter_protocol` é obrigatório ([`03-tdd`](build-spec/blocks/03-tdd.md) §3.7.1, §3.9.3); a falha sai como `TESTS_FAILED` > 0 em stdout e exit 1 — sem abortar os cenários seguintes |
-| **Não existe `input()`/`print()` de nível script** | toda E/S passa por `printf`/`scanf` com FORMATO: o `%d` é evento de currículo (aula `buraco-na-frase`) antes da variável |
-| **Não existe modo script** — tudo nasce dentro de `main` | o trampolim é a semente receptiva; `decl:main` é aula (a 2ª), `node:FunctionDef` é aula (M4) |
+| **Não existe `input()`/`print()` de nível script** | toda E/S passa por `printf`/`scanf` com FORMATO: o `%d` é evento de currículo (aula `buraco-na-frase`) antes da variável — descrito em prosa na célula (o eixo `fmt:` não existe no inventário; §8) |
+| **Não existe modo script** — tudo nasce dentro de `main` | o `main` do harness é a semente receptiva (LEITURA); `decl:func` é aula (a 2ª, a função que o aluno escreve), e `node:ReturnStmt` ganha ESCRITA no M4 (§"A tensão A6 × I3") |
 | **O compilador lê de cima para baixo** | protótipo é aula própria (`declarar-antes-de-usar`, M4); sem ele, chamar antes de definir não compila |
 | **O array não sabe o próprio tamanho** | `sizeof v / sizeof v[0]` funciona só onde o array foi declarado; dentro de função o tamanho viaja como parâmetro (`a-lista-como-parametro`) |
 
 ---
 
-### Vocabulário de átomos desta trilha — PRELIMINAR (assumido)
+### Vocabulário de átomos desta trilha — CONGELADO (onda 2)
 
-O adaptador C está sendo construído **agora**, em paralelo a este documento
-(`app/electron/main/engine/lang/`); o seu `inventory()` é o vocabulário REAL, e a onda 2 o congela.
-Enquanto isso, a espinha usa as chaves **mais prováveis**, seguindo os eixos do repositório
-(`docs/17` §"Vocabulário"): `node:`, `decl:`, `op:binary:`, `op:compare:`, `op:bool:`, `op:unary:`,
-`op:aug:`, `api:` — e três eixos novos que o C exige e o Python não tinha (`fmt:`, `hdr:`,
-`type:`), mais dois de uma linha cada (`cast:`, `qualifier:`). A lista integral, com o status de
-cada chave, está no **§"Apêndice"**. Nenhuma chave daqui é origem normativa antes do congelamento;
-a verificação de eixo fechado da onda 2 rejeita qualquer chave que o `inventory()` não emita.
+O vocabulário foi **CONGELADO na onda 2** contra o `inventory()` real do adaptador C
+(`app/electron/main/engine/lang/c.ts`, `cInventory()` + `cConstructKey()`; e
+`app/electron/main/engine/vocab/c/extract_ast.py`, `_EMITIDOS` + `_familia_do_operador` —
+confirmado olho nu nas duas fontes). O adaptador emite CINCO eixos: `node:` (os 28 kinds do
+`cInventory()`), `decl:` (`decl:func` · `decl:var`), `op:` (`op:assign:` · `op:binary:` ·
+`op:logical:` · `op:unary:` · `op:update:`), `global:` (`stdin`/`stdout`/`stderr`) e `api:`
+(aberto por formato: toda função externa chamada). Os eixos preliminares que NÃO existem no
+adaptador (`fmt:`, `hdr:`, `type:`, `cast:`, `qualifier:`, `op:compare:`, `op:bool:`, `op:aug:`)
+foram remapeados célula a célula (o mapa integral está no §8); as construções que o adaptador
+AINDA não emite estão na subseção **PENDENTE DE INVENTÁRIO** do §8 e não são chave normativa — a
+decisão de estender o adaptador é da onda 3. A verificação executável
+(`tools/check-trilha-c.mjs`) rejeita qualquer chave fora do congelado (fail-closed).
 
-Três decisões de vocabulário declaradas, com o motivo:
+Três decisões de vocabulário congeladas, com o motivo:
 
-1. **`decl:` continua "forma de ligação de nome".** Em C a declaração carrega o tipo: `decl:var`
-   (escalar), `decl:array`, `decl:ptr`, `decl:param`, `decl:struct`, `decl:typedef`,
-   `decl:array2d`. A **primeira** declaração de um tipo primitivo produz o tipo como chave
-   **derivada** (regra do par): `decl:var` → `type:int`. `int`, `double` e `char` são os únicos
-   tipos primitivos produtivos da trilha (`bool` vem de `hdr:stdbool.h`; `unsigned`, `short`,
-   `long`, `float` estão fora de escopo — §"Fora de escopo").
-2. **Atribuição é operador, não ligação.** `x = 10;` num nome que já existe é `op:assign`; a
-   **inicialização na declaração** (`int x = 10;`) é parte de `decl:var`. É a distinção que o C
-   faz de verdade (declaração × expressão de atribuição), e a que o orçamento precisa.
-3. **Comparação é família própria (`op:compare:`), separada de `op:binary:`** — mesmo em C as duas
-   famílias serem `BinaryOp` para o parser. O motivo é o de docs/17: misturar faria o orçamento de
-   uma aula de igualdade liberar aritmética. A onda 2 confirma se o adaptador refina; se não
-   refinar, as aulas de comparação continuam nas mesmas posições, com as chaves que o
-   `inventory()` emitir.
+1. **`decl:` ficou com DOIS valores: `decl:func` e `decl:var`.** O adaptador seguiu o partido do
+   Python ("a didática mora na FORMA"): `decl:var` cobre TODA declaração de variável — escalar,
+   array, array 2D, ponteiro — e o tipo/literal não ganham chave (o clang JÁ separa os literais
+   em kinds: `node:IntegerLiteral`, `node:FloatingLiteral`, `node:CharacterLiteral`,
+   `node:StringLiteral`); o parâmetro é `node:ParmVarDecl` (estrutura de toda função, não aula).
+   Consequência: as aulas que ensinavam `decl:array`/`decl:ptr`/`type:` viram **consolidações
+   "em forma nova" de `decl:var`** com o distinguível real na célula (literal, inicializador,
+   `*`/`[]`). Struct/typedef NÃO emitem nada hoje — PENDENTE (§8).
+2. **Atribuição é família `op:assign:` — com os compostos dentro.** `x = 10;` é `op:assign:=`;
+   `x += 3;` é `op:assign:+=` (o adaptador NÃO tem `op:aug:` — compostos são
+   `CompoundAssignOperator` com o opcode COMPOSTO no mesmo eixo: medido nesta execução com
+   `cc -Xclang -ast-dump=json`, `x += 3` carrega `opcode: '+='` — a chave é `op:assign:+=`, não
+   `op:assign:+`); `++`/`--` são `op:update:++`/`op:update:--` (NÃO `op:unary:`); a
+   **inicialização na declaração** (`int x = 10;`) continua parte de `decl:var`.
+3. **Comparação é `op:binary:` — o adaptador NÃO refinou família própria.** `==`/`!=`/`<`/`<=`/`>`/`>=`
+   são `BinaryOperator` e emitem `op:binary:<op>`, como o doc antecipava ("se não refinar, as
+   aulas de comparação continuam nas mesmas posições, com as chaves que o `inventory()` emitir" —
+   confirmado). E/ou é `op:logical:` (`&&`/`||` — família própria, curto-circuito é aula própria).
 
-#### A regra do par — a divergência normativa que este documento declara
+#### A regra do par — o mapa de derivadas congelado
 
-Vale a redação normativa de docs/17, reproduzida por ser o que a onda 2 implementa:
+Vale a redação normativa de docs/17, reproduzida por ser o que a verificação implementa:
 
 > **A tabela `Ensina` lista só a chave que DISTINGUE. O gerador de `introduces` acrescenta as
 > chaves que a mesma construção produz inevitavelmente, e o conjunto conta como UM item para
 > A7/I2.**
 
-O mapa de derivadas é mecânico; o análogo C, a congelar com o adaptador:
+O mapa de derivadas é mecânico, congelado contra `cConstructKey`/`extract_ast.py`:
 
 | Chave listada em `Ensina` | Derivadas que a mesma construção produz |
 |---|---|
-| `decl:var` (primeira ocorrência) | `type:int` (o tipo que a declaração carrega) |
-| `decl:array` | `node:InitList` quando com inicializador entre chaves |
-| `decl:struct` | `node:Member` — o acesso `p.x` é o par inevitável da primeira ficha |
-| `node:FunctionDef` | `decl:param` só quando a aula é a de parâmetro; caso contrário nada |
-| `node:Switch` | `node:Case`, `node:Default` |
-| `op:binary:<qualquer>` | o nó container da expressão binária do adaptador C |
-| `op:unary:<qualquer>` | o nó container da expressão unária do adaptador C |
-| `op:compare:<qualquer>` | idem, na família de comparação |
-| `op:aug:<qualquer>` | o nó container da atribuição composta |
-| `cast:explicit` | o nó container do cast |
-| `api:printf`/`api:fprintf`/`api:snprintf` | as chaves de formato `fmt:` usadas na MESMA aula não são segunda origem para I3 (quem as registra primeiro fica com elas) |
+| `decl:var` (com inicializador) | o literal da inicialização (`node:IntegerLiteral`, `node:FloatingLiteral`, `node:CharacterLiteral`, `node:StringLiteral`); `node:InitListExpr` quando entre chaves; `node:DeclStmt` (o nó container da declaração) |
+| `decl:func` | `node:CompoundStmt` (o corpo); `node:ParmVarDecl` só quando a aula é a de parâmetro; caso contrário nada |
+| `op:binary:<qualquer>` | `node:BinaryOperator` (o nó container) |
+| `op:logical:<qualquer>` | `node:BinaryOperator` (idem) |
+| `op:unary:<qualquer>` | `node:UnaryOperator` (o nó container) |
+| `op:assign:<qualquer>` | `node:CompoundAssignOperator` quando composto; `node:BinaryOperator` quando simples (`=`) |
+| `op:update:<qualquer>` | `node:UnaryOperator` (o clang só muda `isPostfix`) |
+| `op:unary:sizeof` | `node:UnaryExprOrTypeTraitExpr` é o MESMO nó (a chave sai do atributo) |
+| `api:<qualquer>` | `node:CallExpr` + `node:ApiRef` (os portadores da chamada externa) |
+| `global:<stream>` | `node:DeclRefExpr` + `node:GlobalRef` (os portadores da referência) |
+| `node:SwitchStmt` (PENDENTE) | os `case`/`default` sobem como filhos — hoje não há nó nem chave (§8, PENDENTE) |
 
 ---
 
 ### Princípios pedagógicos aplicados
 
 1. **A primeira construção é a que produz efeito visível.** O aluno escreve `printf`, roda e vê.
-   O trampolim é `frozenRegion`, não "isso a gente explica depois" — e nas aulas 2–4 ele vira
-   conteúdo, uma peça por aula.
+   A função congelada é `frozenRegion`, não "isso a gente explica depois" — e nas aulas 2–4 o que
+   ela esconde vira conteúdo, uma peça por aula (a função inteira, o `return 0;` do harness LIDO,
+   o include).
 2. **As chaves de bloco entram quando existe o que agrupar.** Nas aulas 1–3 do M1 o corpo é de uma
    linha. A aula `se` (M2) é a primeira em que uma linha **pertence a outra** — e é aí que o
    `term:blocos-de-chaves` é decidido por ele. A regra declarada da trilha: **chaves sempre**, e a
@@ -376,20 +414,22 @@ O mapa de derivadas é mecânico; o análogo C, a congelar com o adaptador:
 
 | # | Módulo | Aulas | cons. | Nível | Presume-se que o aluno sabe |
 |---|---|---|---|---|---|
-| 1 | `a-tela` | 21 | 2 | base | nada — é o zero absoluto |
-| 2 | `decisao` | 12 | 4 | base | variáveis, contas e comparações (M1) |
+| 1 | `a-tela` | 21 | 6 | base | nada — é o zero absoluto |
+| 2 | `decisao` | 12 | 6 | base | variáveis, contas e comparações (M1) |
 | 3 | `repeticao` | 13 | 9 | base | `if`/`else` e as chaves de bloco (M2) |
-| 4 | `caixas-que-devolvem` | 15 | 11 | base | laços (M3) |
-| 5 | `listas-e-enderecos` | 21 | 13 | base | função com parâmetro e `return` (M4) |
-| 6 | `texto-em-profundidade` | 16 | 9 | base | arrays e ponteiros básicos (M5) |
-| 7 | `structs-e-arquivos` | 17 | 9 | base | strings e seus bibliotecários (M6) |
+| 4 | `caixas-que-devolvem` | 15 | 13 | base | laços (M3) |
+| 5 | `listas-e-enderecos` | 21 | 15 | base | função com parâmetro e `return` (M4) |
+| 6 | `texto-em-profundidade` | 16 | 11 | base | arrays e ponteiros básicos (M5) |
+| 7 | `structs-e-arquivos` | 17 | 10 | base | strings e seus bibliotecários (M6) |
 
-**Por que 115, e por que tantas consolidações (57 de 115, ~50%).** O número é **saída, não entrada**
-([`16`](16-engine-de-trilha.md) §3.6). O C dá MENOS chaves por gesto que o Python: um
-`node:Subscript` cobre ler, escrever e indexar; `node:Member` cobre todo acesso a campo; e as
-construções que definem o curso — `swap` que funciona, lista como parâmetro, string terminada em
-`\0`, registro em arquivo — são **composições**, e composição vira aula própria (P-MICRO). O M4
-concentra consolidações pelo mesmo motivo medido em docs/17 (10 de 14 lá, 12 de 15 aqui): a
+**Por que 115, e por que tantas consolidações (70 de 115, ~61%).** O número é **saída, não entrada**
+([`16`](16-engine-de-trilha.md) §3.6). O C dá MENOS chaves por gesto que o Python — e o
+inventário congelado deu MENOS chaves ainda que o vocabulário preliminar: um
+`node:ArraySubscriptExpr` cobre ler, escrever e indexar; `decl:var` cobre escalar, array, 2D e
+ponteiro; o acesso a campo de struct não emite chave hoje (§8, PENDENTE) — e as construções que
+definem o curso — `swap` que funciona, lista como parâmetro, string terminada em `\0`, registro em
+arquivo — são **composições**, e composição vira aula própria (P-MICRO). O M4
+concentra consolidações pelo mesmo motivo medido em docs/17 (10 de 14 lá, 13 de 15 aqui): a
 decomposição pedagógica de "função" é obrigatória, e as chaves não multiplicam. Toda consolidação
 nomeia o degrau na própria célula `Ensina` ("em forma nova (…)").
 
@@ -400,27 +440,31 @@ declara `role: "consolidation"`, lista em `introduces.productive` o átomo que *
 mantém `targetAtom` apontando para a aula de origem. Duas consequências específicas do C,
 declaradas:
 
-- **`node:Break` nasce no `switch` (M2), não no laço.** Em C o primeiro `break` legítimo é o do
+- **`node:BreakStmt` nasce no `switch` (M2), não no laço.** Em C o primeiro `break` legítimo é o do
   `switch` — a aula `escolher-por-valor` o introduz, e a aula `parar-no-meio` (M3) é consolidação
   ("em forma nova: sair de um laço"). O Python não tinha essa inversão porque não tem
   fallthrough.
-- **`node:Return` nasce no `main` (M1), e volta em forma nova no M4.** O Python ensinava
-  `node:Return` no M4 porque o aluno nunca o tinha escrito; aqui a aula 3 `devolver-zero` é a
-  origem, e o M4 reexercita com degrau ("um valor para quem chamou").
+- **`node:ReturnStmt` nasce em LEITURA no M1 e vira ESCRITA no M4.** O `main` é sempre do harness
+  (modelo cenário-do-harness, §"A aula 1"): na aula 3 `devolver-zero` o aluno LÊ o `return 0;` do
+  harness e aprende o que é código de saída (o desafio assevera exit 0) — a origem listada da
+  chave é esta aula; a ESCRITA do `node:ReturnStmt` num corpo próprio chega em
+  `devolver-em-vez-de-mostrar` (M4), que é consolidação com degrau nomeado ("um valor para quem
+  chamou"), não segunda origem. O Python ensinava `node:Return` no M4 porque o aluno nunca o
+  tinha escrito; aqui a leitura vem antes, a escrita na mesma posição.
 
 ---
 
 ### A verificação Ensina × Presume
 
-**Reexecutável na onda 2 — e é a rede.** Como em docs/17, o script lê as tabelas deste arquivo,
-monta a ordem da cadeia e reprova: **I12** (slug repetido no mesmo curso), **LACUNA** (`Presume`
-apontando para aula que ainda não veio), **I3** (átomo com duas origens ou origem em aula que é
-axioma), **VOCAB** (chave que o `inventory()` do adaptador C não emite — fail-closed: sem o
-inventário no disco, reprova), **A7** (mais de 2 átomos numa aula que não é consolidação) e
-**A6** (aula que não introduz nem consolida nada; consolidação que reforça átomo sem origem
-anterior na cadeia). A rodada desta onda 1 é MANUAL (o inventário ainda não existe); a rodada
-executável é condição de aceite da onda 2, que também roda os quatro gates da engine sobre as
-primeiras aulas autoradas.
+**EXECUTÁVEL desde a onda 2 — e é a rede.** O script é
+`tools/check-trilha-c.mjs` (node puro, sem libs): lê as tabelas deste arquivo, monta a ordem da
+cadeia e reprova: **I12** (slug repetido no mesmo curso), **LACUNA** (`Presume` apontando para
+aula posterior ou inexistente), **VOCAB** (chave que o inventário CONGELADO (§8) não emite e que
+não está na lista PENDENTE — fail-closed), **A7** (mais de 2 construções numa aula que não é
+consolidação — derivadas do mapa da regra do par não contam) e **A6** (aula produtiva que não
+introduz nada sem marcador `[pendente: …]`; consolidação sem chave é permitida quando o degrau é
+prosa — `term:`). A rodada executável desta onda 2 está verde (Registro de execução); a onda 3
+roda os quatro gates da engine sobre as primeiras aulas autoradas.
 
 ---
 
@@ -432,52 +476,55 @@ Nas tabelas, `Ensina` lista as construções produtivas novas (**no máximo 2**,
 UMA afirmação para o quiz da aula (maestria obrigatória, ciclo de remediação — docs/17 §"O quiz da
 aula"); a coluna `Desafio` traz o slug e o cenário de teste. Os 7 módulos vão ao nível de átomo.
 
-O vocabulário de átomos é **PRELIMINAR** (§"Vocabulário"): a onda 2 o congela contra o
-`inventory()` do adaptador C; as chaves aqui usadas estão listadas no apêndice.
+O vocabulário de átomos está **CONGELADO** (§"Vocabulário" e §8): as chaves aqui usadas são as que
+o `inventory()` real do adaptador C emite; as construções sem chave estão marcadas
+`[pendente: …]` célula a célula e listadas na subseção PENDENTE DE INVENTÁRIO do §8.
 
 ---
 
 #### Módulo 1 — `a-tela` (21 aulas)
 
-A tela, a variável, a aritmética. Fase SAÍDA (`outputChannel: impressao`) nas 21 aulas. As aulas
-1–3 usam o trampolim com regiões congeladas em graus; a aula 2 é a primeira em que o aluno digita o
-programa inteiro.
+A tela, a variável, a aritmética. Fase SAÍDA (`outputChannel: impressao`) nas 21 aulas, sob o
+modelo cenário-do-harness (o aluno escreve a função que a tela pede; o `main` é do harness e é
+LEITURA — §"A aula 1"). As aulas 1–3 usam a função congelada `tela` em graus; a aula 2 é a
+primeira em que o aluno escreve a função inteira.
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `primeira-tela` — A primeira linha na tela | `api:printf` | nada | O `\n` no fim do literal manda a próxima saída para outra linha. | `tres-linhas` — imprime três linhas fixas; o teste compara o stdout inteiro. |
-| 2 | `o-esqueleto` — A porta do programa | `decl:main` | `primeira-tela` | Todo programa C começa a rodar pela função `main`. | `sua-primeira-janela` — o aluno digita o `main` inteiro (o include e o `return` continuam congelados) e imprime uma linha própria; teste compara o stdout. |
-| 3 | `devolver-zero` — O programa termina e diz como foi | `node:Return` | `o-esqueleto` | O `0` que o `main` devolve é o código de saída: zero significa "terminou bem". | `fim-limpo` — o aluno escreve também o `return 0;`; o runner exige exit 0 e captura a saída. |
-| 4 | `a-lista-de-ferramentas` — O inventário de cima | `hdr:stdio.h` | `primeira-tela` | Sem `#include <stdio.h>` o compilador não sabe o que `printf` é e avisa na compilação. | `include-proprio` — o starter vem SEM o include; o aluno o adiciona; o desafio falha antes (compilação) e passa depois. |
-| 5 | `o-que-o-compilador-ignora` — O que o compilador ignora | cons. — `api:printf` em forma nova (com comentários; `term:comentário`) | `primeira-tela` | O compilador ignora tudo entre `//` e o fim da linha, e entre `/*` e `*/`. | `ficha-comentada` — programa com comentário de cabeçalho e por linha; o teste prova que a saída não muda. |
-| 6 | `buraco-na-frase` — O buraco na frase | `fmt:%d` | `primeira-tela` | Cada `%d` consome um argumento inteiro, na ordem em que aparecem. | `ficha-numerada` — frase com dois números fixos interpolados; teste compara a frase inteira. |
-| 7 | `um-nome-para-um-valor` — Um nome para um valor | `decl:var` (com inicialização; `type:int` é derivada) | `buraco-na-frase` | Após `int idade = 20;`, `idade` vale 20 até alguém mudar. | `idade-na-tela` — declara a idade e imprime com `%d`; teste compara a linha. |
-| 8 | `mudar-o-valor` — Mudar o valor | `op:assign` | `um-nome-para-um-valor` | O valor antigo é perdido no momento da atribuição. | `trocar-os-valores` — troca os valores de duas variáveis usando uma terceira; teste imprime as duas depois da troca. |
+| 1 | `primeira-tela` — A primeira linha na tela | `api:printf` | nada | O `\n` no fim do literal manda a próxima saída para outra linha. | `tres-linhas` — imprime três linhas fixas; o teste compara o stdout capturado. |
+| 2 | `o-esqueleto` — A porta do programa | `decl:func` | `primeira-tela` | Todo programa C começa a rodar pela função `main` — e ela chama a função que você escreve. | `sua-primeira-janela` — o aluno escreve a função inteira (a linha de dentro já é dele); o `main` do harness a chama; teste compara o stdout. |
+| 3 | `devolver-zero` — O programa termina e diz como foi | `node:ReturnStmt` (LEITURA: o `return 0;` do `main` do harness; a ESCRITA nasce no M4) | `o-esqueleto` | O `0` que o `main` devolve é o código de saída: zero significa "terminou bem". | `fim-limpo` — o aluno escreve a função; o runner exige exit 0 do run; o `return 0;` do harness é lido na teoria. |
+| 4 | `a-lista-de-ferramentas` — O inventário de cima | `node:IncludeDirective` (o `#include <stdio.h>` do SEU arquivo) | `primeira-tela` | Sem `#include <stdio.h>` o compilador não sabe o que `printf` é e avisa na compilação. | `include-proprio` — o starter vem SEM o include; o aluno o adiciona; o desafio falha antes (compilação) e passa depois. |
+| 5 | `o-que-o-compilador-ignora` — O que o compilador ignora | cons. — `api:printf` em forma nova (com comentários; `term:comentário`) | `primeira-tela` | O compilador ignora tudo entre `//` e o fim da linha, e entre `/*` e `*/`. | `ficha-comentada` — função com comentário de cabeçalho e por linha; o teste prova que a saída não muda. |
+| 6 | `buraco-na-frase` — O buraco na frase | cons. — `api:printf` em forma nova (o especificador `%d` em prosa: cada `%d` consome um argumento inteiro, na ordem) | `primeira-tela` | Cada `%d` consome um argumento inteiro, na ordem em que aparecem. | `ficha-numerada` — frase com dois números fixos interpolados; teste compara a frase inteira. |
+| 7 | `um-nome-para-um-valor` — Um nome para um valor | `decl:var` (com inicialização; o literal `node:IntegerLiteral` é derivada) | `buraco-na-frase` | Após `int idade = 20;`, `idade` vale 20 até alguém mudar. | `idade-na-tela` — declara a idade e imprime com `%d`; teste compara a linha. |
+| 8 | `mudar-o-valor` — Mudar o valor | `op:assign:=` | `um-nome-para-um-valor` | O valor antigo é perdido no momento da atribuição. | `trocar-os-valores` — troca os valores de duas variáveis usando uma terceira; teste imprime as duas depois da troca. |
 | 9 | `somar-e-subtrair` — As contas de inteiro | `op:binary:+`, `op:binary:-` | `mudar-o-valor` | O C calcula a conta e então atribui: `x = 2 + 3;` deixa 5 em `x`. | `total-da-compra` — soma e subtrai valores fixos; teste compara o resultado impresso. |
 | 10 | `multiplicar-e-dividir` — Multiplicar, e o corte da divisão | `op:binary:*`, `op:binary:/` | `somar-e-subtrair` | Entre inteiros, `7 / 2` é 3 — o C corta, sem arredondar (medido). | `repartir-figurinhas` — reparte figurinhas entre amigos (divisão inteira); teste compara o quociente. |
 | 11 | `o-resto` — O resto que sobra | `op:binary:%` | `multiplicar-e-dividir` | `17 % 5` é 2 — o resto da divisão inteira (medido). | `minutos-e-segundos` — decompõe um total de segundos fixo em minutos e segundos; teste compara os dois números. |
-| 12 | `o-numero-com-virgula` — O número com vírgula | `type:double`, `fmt:%f` | `um-nome-para-um-valor`, `buraco-na-frase` | `%f` imprime seis casas por padrão: 3.5 sai como `3.500000`. | `preco-com-decimais` — imprime um preço `double`; teste compara a saída com seis casas. |
-| 13 | `a-divisao-real` — Dividir de verdade | `cast:explicit` | `multiplicar-e-dividir`, `o-numero-com-virgula` | `(double)7 / 2` é 3.5 — o cast de UM lado basta para a conta virar real. | `media-de-dois` — média de dois inteiros fixos com casas decimais; teste compara o valor com `%f`. |
-| 14 | `a-ordem-das-contas` — A ordem das contas | `node:Paren` | `somar-e-subtrair`, `multiplicar-e-dividir` | `2 + 3 * 4` é 14; `(2 + 3) * 4` é 20. | `media-ponderada` — média ponderada com parênteses corretos; teste compara o valor exato. |
-| 15 | `somar-no-lugar` — Somar no próprio nome | `op:aug:+`, `op:aug:-` | `mudar-o-valor`, `somar-e-subtrair` | `x += 3` é o mesmo que `x = x + 3;` (medido: 10 → 13). | `contador-de-visitas` — acumula três valores com `+=`; teste compara o total. |
-| 16 | `um-de-cada-vez` — De um em um | `op:unary:++`, `op:unary:--` | `somar-no-lugar` | `x++;` sozinho soma um — e é por isso que a condição do laço nunca pode esquecer o passo. | `ovos-na-cesta` — incrementa um contador três vezes e imprime; teste compara o total. |
-| 17 | `comparacoes` — Comparar devolve 0 ou 1 | `op:compare:==`, `op:compare:>=` (a família `== != < <= > >=`) | `multiplicar-e-dividir` | `printf("%d", 3 > 2)` imprime 1: em C a comparação É um número. | `tabela-de-comparacoes` — imprime o resultado (0/1) de cinco comparações fixas; teste compara a tabela. |
+| 12 | `o-numero-com-virgula` — O número com vírgula | cons. — `decl:var` em forma nova (o tipo real `double`; derivada: `node:FloatingLiteral`; o `%f` fica em prosa) | `um-nome-para-um-valor`, `buraco-na-frase` | `%f` imprime seis casas por padrão: 3.5 sai como `3.500000`. | `preco-com-decimais` — imprime um preço `double`; teste compara a saída com seis casas. |
+| 13 | `a-divisao-real` — Dividir de verdade | cast explícito `(double)7 / 2` [pendente: kind clang a confirmar no adaptador — `CStyleCastExpr` hoje é transparente no extrator] | `multiplicar-e-dividir`, `o-numero-com-virgula` | `(double)7 / 2` é 3.5 — o cast de UM lado basta para a conta virar real. | `media-de-dois` — média de dois inteiros fixos com casas decimais; teste compara o valor com `%f`. |
+| 14 | `a-ordem-das-contas` — A ordem das contas | cons. — `op:binary:*` e `op:binary:+` em forma nova (precedência; os parênteses não emitem chave — `ParenExpr` é transparente) | `somar-e-subtrair`, `multiplicar-e-dividir` | `2 + 3 * 4` é 14; `(2 + 3) * 4` é 20. | `media-ponderada` — média ponderada com parênteses corretos; teste compara o valor exato. |
+| 15 | `somar-no-lugar` — Somar no próprio nome | `op:assign:+=`, `op:assign:-=` | `mudar-o-valor`, `somar-e-subtrair` | `x += 3` é o mesmo que `x = x + 3;` (medido: 10 → 13). | `contador-de-visitas` — acumula três valores com `+=`; teste compara o total. |
+| 16 | `um-de-cada-vez` — De um em um | `op:update:++`, `op:update:--` | `somar-no-lugar` | `x++;` sozinho soma um — e é por isso que a condição do laço nunca pode esquecer o passo. | `ovos-na-cesta` — incrementa um contador três vezes e imprime; teste compara o total. |
+| 17 | `comparacoes` — Comparar devolve 0 ou 1 | `op:binary:==`, `op:binary:>=` (a família `== != < <= > >=` é toda `op:binary:`) | `multiplicar-e-dividir` | `printf("%d", 3 > 2)` imprime 1: em C a comparação É um número. | `tabela-de-comparacoes` — imprime o resultado (0/1) de cinco comparações fixas; teste compara a tabela. |
 | 18 | `perguntar-ao-usuario` — Perguntar ao usuário | `api:scanf`, `op:unary:&` | `um-nome-para-um-valor` | O `&` entrega à `scanf` o ENDEREÇO da variável — é ela quem preenche a casa. | `dobro-do-digitado` — lê um inteiro e imprime o dobro; teste injeta 21 no stdin e espera 42. |
-| 19 | `dois-valores-de-uma-vez` — Dois valores de uma vez | cons. — `api:scanf` em forma nova (dois `%d` na mesma chamada) | `perguntar-ao-usuario` | Digitando `3 4`, o `%d %d` lê os dois — espaço e Enter servem os dois. | `soma-digitada` — lê dois inteiros e imprime a soma; teste injeta 3 e 4, espera 7. |
-| 20 | `uma-letra-e-um-numero` — A letra que é um número | `type:char`, `fmt:%c` | `um-nome-para-um-valor`, `buraco-na-frase` | `'A'` é o número 65: `printf("%c", 'A' + 1)` imprime `B` (medido). | `proxima-letra` — dada a letra declarada no código, imprime a seguinte; teste compara a letra. |
-| 21 | `o-limite-do-int` — O maior número que cabe | `hdr:limits.h` | `comparacoes` | `INT_MAX` é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa. | `o-teto-e-o-piso` — imprime `INT_MAX` e `INT_MIN`; teste compara os dois números. |
+| 19 | `dois-valores-de-uma-vez` — Dois valores de uma vez | cons. — `api:scanf` em forma nova (dois `%d` na mesma chamada, em prosa) | `perguntar-ao-usuario` | Digitando `3 4`, o `%d %d` lê os dois — espaço e Enter servem os dois. | `soma-digitada` — lê dois inteiros e imprime a soma; teste injeta 3 e 4, espera 7. |
+| 20 | `uma-letra-e-um-numero` — A letra que é um número | `node:CharacterLiteral` (a letra que é número; `decl:var` em forma nova: o tipo `char`; o `%c` fica em prosa) | `um-nome-para-um-valor`, `buraco-na-frase` | `'A'` é o número 65: `printf("%c", 'A' + 1)` imprime `B` (medido). | `proxima-letra` — dada a letra declarada no código, imprime a seguinte; teste compara a letra. |
+| 21 | `o-limite-do-int` — O maior número que cabe | cons. — `node:IncludeDirective` em forma nova (o `#include <limits.h>`; `INT_MAX`/`INT_MIN` são macro e não emitem chave — §8) | `comparacoes` | `INT_MAX` é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa. | `o-teto-e-o-piso` — imprime `INT_MAX` e `INT_MIN`; teste compara os dois números. |
 
-**Progressão produtiva do M1 (27 átomos, na ordem):** `api:printf → decl:main → node:Return →
-hdr:stdio.h → fmt:%d → decl:var → op:assign → op:binary:+ → op:binary:- → op:binary:* →
-op:binary:/ → op:binary:% → type:double → fmt:%f → cast:explicit → node:Paren → op:aug:+ →
-op:aug:- → op:unary:++ → op:unary:-- → op:compare:== → op:compare:>= → api:scanf → op:unary:& →
-type:char → fmt:%c → hdr:limits.h`.
+**Progressão produtiva do M1 (22 chaves congeladas, na ordem):** `api:printf → decl:func →
+node:ReturnStmt (leitura) → node:IncludeDirective → decl:var → op:assign:= → op:binary:+ →
+op:binary:- → op:binary:* → op:binary:/ → op:binary:% → node:FloatingLiteral → [pendente: cast] →
+op:assign:+= → op:assign:-= → op:update:++ → op:update:-- → op:binary:== → op:binary:>= →
+api:scanf → op:unary:& → node:CharacterLiteral`.
 
 **Por que esta ordem — cada decisão, e o que ela elimina**
 
-- **`printf` antes de `main`** porque o efeito visível vem primeiro (princípio 1) — e o trampolim
-  torna isso possível SEM mentir: o `main` congelado é semente receptiva, e a aula 2 o entrega
-  como conteúdo, uma peça inteira.
+- **`printf` antes de `decl:func`** porque o efeito visível vem primeiro (princípio 1) — e a
+  função congelada torna isso possível SEM mentir: o `main` do harness é semente receptiva
+  (LEITURA — o `main` é SEMPRE do harness, modelo cenário-do-harness), e a aula 2 entrega a
+  função inteira como conteúdo, uma peça inteira.
 - **O `%d` antes da variável.** `printf("idade: %d", 20)` com número fixo mostra que o buraco e o
   valor são coisas separadas; quando a variável entra (aula 7), o aluno já sabe que ela é "um
   valor com nome" que se encaixa no buraco.
@@ -499,64 +546,68 @@ O primeiro bloco — e portanto as primeiras chaves. Ainda em `stdout`.
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `se` — O primeiro desvio | `node:If` (+ `term:blocos-de-chaves`) | `comparacoes` | Sem chaves, só a PRIMEIRA linha depois do `if` pertence a ele — nesta trilha, chaves sempre. | `maior-de-idade` — lê a idade e imprime uma linha só se `>= 18`; teste com 21 (imprime) e 15 (não imprime). |
-| 2 | `se-senao` — Um caminho ou outro | `node:IfElse` | `se` | Exatamente um dos dois blocos roda. | `par-ou-impar` — lê um inteiro e diz par ou ímpar com `%`; teste com 7 e 8. |
-| 3 | `e-logico` — Duas condições ao mesmo tempo | `op:bool:&&` | `se`, `comparacoes` | `1 && 0` é 0: os dois lados precisam ser verdadeiros. | `na-faixa` — lê um número e imprime `ok` se estiver em 1..100 (`&&` de duas comparações); teste com 50, 0 e 101. |
-| 4 | `ou-logico` — Um caminho ou o outro | `op:bool:\|\|` | `e-logico` | `0 \|\| 7` é 1: basta um lado verdadeiro. | `fim-de-semana` — lê o dia (1–7) e imprime `folga` para 6 ou 7; teste com 6, 7 e 3. |
+| 1 | `se` — O primeiro desvio | `node:IfStmt` (+ `term:blocos-de-chaves`) | `comparacoes` | Sem chaves, só a PRIMEIRA linha depois do `if` pertence a ele — nesta trilha, chaves sempre. | `maior-de-idade` — lê a idade e imprime uma linha só se `>= 18`; teste com 21 (imprime) e 15 (não imprime). |
+| 2 | `se-senao` — Um caminho ou outro | cons. — `node:IfStmt` em forma nova (o caminho `else`; o `if`/`else` é UM nó no clang) | `se` | Exatamente um dos dois blocos roda. | `par-ou-impar` — lê um inteiro e diz par ou ímpar com `%`; teste com 7 e 8. |
+| 3 | `e-logico` — Duas condições ao mesmo tempo | `op:logical:&&` | `se`, `comparacoes` | `1 && 0` é 0: os dois lados precisam ser verdadeiros. | `na-faixa` — lê um número e imprime `ok` se estiver em 1..100 (`&&` de duas comparações); teste com 50, 0 e 101. |
+| 4 | `ou-logico` — Um caminho ou o outro | `op:logical:\|\|` | `e-logico` | `0 \|\| 7` é 1: basta um lado verdadeiro. | `fim-de-semana` — lê o dia (1–7) e imprime `folga` para 6 ou 7; teste com 6, 7 e 3. |
 | 5 | `negacao` — Inverter a condição | `op:unary:!` | `ou-logico` | `!(3 > 2)` é 0: a negação troca verdadeiro por falso. | `fora-da-faixa` — inverte o desafio da faixa com `!`; teste com 0 e 50. |
-| 6 | `verdadeiro-e-falso-com-nome` — Dar nome à verdade | `hdr:stdbool.h`, `type:bool` | `negacao` | `bool` guarda 0 ou 1 com os nomes `false` e `true` — e imprime com `%d`. | `flag-de-aprovado` — `flag = nota >= 6;` e imprime com `%d`; teste com 8 (1) e 4 (0). |
-| 7 | `em-cascata` — Vários caminhos em ordem | cons. — `node:IfElse` em forma nova (cascata `else if`) | `se-senao` | Quando duas condições são verdadeiras, roda só a PRIMEIRA que casou. | `conceito-da-nota` — cascata 9–10 A, 7–8 B, 5–6 C, senão D; teste com 9, 7, 5 e 3. |
-| 8 | `escolher-por-valor` — O painel de botões | `node:Switch`, `node:Break` | `em-cascata` | Sem o `break`, a execução CAI para o `case` de baixo (fallthrough). | `menu-do-dia` — `switch` sobre o dia 1–7 com `break`; teste com 1 e 6. |
-| 9 | `escolher-em-uma-linha` — A condição que devolve | `node:Ternary` | `se-senao`, `um-nome-para-um-valor` | `max = a > b ? a : b;` atribui um dos dois valores numa linha. | `maior-de-dois` — lê dois números e imprime o maior via ternário; teste com (3, 9) e (9, 3). |
-| 10 | `faixas-com-prioridade` — Faixas com prioridade | cons. — `op:bool:&&` em forma nova (condições compostas dentro da cascata) | `em-cascata`, `e-logico` | A ordem das faixas importa: o teste é de cima para baixo. | `classificar-imc` — lê peso e altura (com cast real), calcula o IMC e classifica em cascata; teste com um valor de cada faixa. |
-| 11 | `desvio-dentro-de-desvio` — Desvio dentro de desvio | cons. — `node:If` em forma nova (aninhado; o `else` pertence ao `if` mais próximo) | `se-senao` | O `else` gruda no `if` mais interno quando faltam chaves — por aqui, as chaves sempre. | `entrada-do-show` — `if (idade >= 18) { if (ingresso) ... }` senão barra; teste com (20, sim), (20, não) e (16, sim). |
+| 6 | `verdadeiro-e-falso-com-nome` — Dar nome à verdade | cons. — `node:IncludeDirective` em forma nova (o `#include <stdbool.h>`; o tipo `bool` e os nomes `true`/`false` ficam em prosa — não há eixo de tipo; `decl:var` reexercitado) | `negacao` | `bool` guarda 0 ou 1 com os nomes `false` e `true` — e imprime com `%d`. | `flag-de-aprovado` — `flag = nota >= 6;` e imprime com `%d`; teste com 8 (1) e 4 (0). |
+| 7 | `em-cascata` — Vários caminhos em ordem | cons. — `node:IfStmt` em forma nova (cascata `else if`) | `se-senao` | Quando duas condições são verdadeiras, roda só a PRIMEIRA que casou. | `conceito-da-nota` — cascata 9–10 A, 7–8 B, 5–6 C, senão D; teste com 9, 7, 5 e 3. |
+| 8 | `escolher-por-valor` — O painel de botões | `node:BreakStmt` + o `switch` [pendente: kind clang a confirmar no adaptador — `SwitchStmt`/`CaseStmt` hoje não emergem (os filhos sobem)] | `em-cascata` | Sem o `break`, a execução CAI para o `case` de baixo (fallthrough). | `menu-do-dia` — `switch` sobre o dia 1–7 com `break`; teste com 1 e 6. |
+| 9 | `escolher-em-uma-linha` — A condição que devolve | ternário `max = a > b ? a : b;` [pendente: kind clang a confirmar no adaptador — `ConditionalOperator` hoje é transparente no extrator] | `se-senao`, `um-nome-para-um-valor` | `max = a > b ? a : b;` atribui um dos dois valores numa linha. | `maior-de-dois` — lê dois números e imprime o maior via ternário; teste com (3, 9) e (9, 3). |
+| 10 | `faixas-com-prioridade` — Faixas com prioridade | cons. — `op:logical:&&` em forma nova (condições compostas dentro da cascata) | `em-cascata`, `e-logico` | A ordem das faixas importa: o teste é de cima para baixo. | `classificar-imc` — lê peso e altura (com cast real), calcula o IMC e classifica em cascata; teste com um valor de cada faixa. |
+| 11 | `desvio-dentro-de-desvio` — Desvio dentro de desvio | cons. — `node:IfStmt` em forma nova (aninhado; o `else` pertence ao `if` mais próximo) | `se-senao` | O `else` gruda no `if` mais interno quando faltam chaves — por aqui, as chaves sempre. | `entrada-do-show` — `if (idade >= 18) { if (ingresso) ... }` senão barra; teste com (20, sim), (20, não) e (16, sim). |
 | 12 | `consolidacao-decisao` — O projeto do módulo | cons. — projeto (porta + faixa + menu) | `se` a `escolher-em-uma-linha` | (quiz) Entre cascata e `switch`, o que escolher quando os valores não são consecutivos? | `frete-da-loja` — lê peso e distância e decide a faixa de frete (condições compostas + cascata); 4 testes de faixa. |
 
-**Por que `switch` vem com `break` na mão (e a prova).** O fallthrough é o defeito nº 1 de quem
+**Por que o `switch` vem com `break` na mão (e a prova).** O fallthrough é o defeito nº 1 de quem
 copia `switch` de tutorial: a aula o NOMEIA (regra 9 — refutar a concepção errada ancorada na
 fonte: [cppreference, `switch`](https://en.cppreference.com/w/c/language/switch)) e o desafio o
-exige certo. `default` entra na mesma construção (derivada do par).
+exige certo. `default` entra na mesma construção (derivada do par — hoje sem chave própria: o
+`SwitchStmt`/`CaseStmt` não emergem no adaptador, §8 PENDENTE).
 
 #### Módulo 3 — `repeticao` (13 aulas)
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `enquanto` — Repetir enquanto | `node:While` | `se`, `somar-no-lugar` | Se a condição nunca vira falsa, o laço nunca acaba — o contador precisa andar dentro do corpo. | `contar-ate-dez` — imprime 1..10 com `while`; teste compara a sequência. |
-| 2 | `contar-para-tras` — Contar para trás | cons. — `node:While` em forma nova (decremento `--`) | `enquanto`, `um-de-cada-vez` | A contagem decrescente termina em 1: a condição é `>= 1`. | `contagem-final` — imprime 10..1 e `FOGO`; teste compara as 11 linhas. |
-| 3 | `somar-tudo` — Somar tudo | cons. — `op:aug:+` em forma nova (o acumulador dentro do laço) | `enquanto`, `somar-no-lugar` | A soma precisa começar em 0 FORA do laço — se começar dentro, cada volta esquece a anterior. | `soma-ate-n` — lê N e soma 1..N; teste com N=5 (15) e N=1 (1). |
-| 4 | `para` — O laço de três partes | `node:For` | `enquanto` | `for (início; condição; passo)` — o passo roda DEPOIS do corpo, na subida. | `tabuada` — lê N e imprime a tabuada 1..10; teste compara as 10 linhas. |
-| 5 | `passo-de-dois` — Passo de dois | cons. — `node:For` em forma nova (passo `i += 2`; decrescente com `i--`) | `para`, `somar-no-lugar` | O passo pode ser qualquer atribuição — inclusive andar para trás. | `pares-e-regressivos` — imprime os pares 2..N e, numa segunda lista, os múltiplos de 5 de trás para frente; teste compara as duas listas. |
+| 1 | `enquanto` — Repetir enquanto | `node:WhileStmt` | `se`, `somar-no-lugar` | Se a condição nunca vira falsa, o laço nunca acaba — o contador precisa andar dentro do corpo. | `contar-ate-dez` — imprime 1..10 com `while`; teste compara a sequência. |
+| 2 | `contar-para-tras` — Contar para trás | cons. — `node:WhileStmt` em forma nova (decremento `--`) | `enquanto`, `um-de-cada-vez` | A contagem decrescente termina em 1: a condição é `>= 1`. | `contagem-final` — imprime 10..1 e `FOGO`; teste compara as 11 linhas. |
+| 3 | `somar-tudo` — Somar tudo | cons. — `op:assign:+=` em forma nova (o acumulador dentro do laço) | `enquanto`, `somar-no-lugar` | A soma precisa começar em 0 FORA do laço — se começar dentro, cada volta esquece a anterior. | `soma-ate-n` — lê N e soma 1..N; teste com N=5 (15) e N=1 (1). |
+| 4 | `para` — O laço de três partes | `node:ForStmt` | `enquanto` | `for (início; condição; passo)` — o passo roda DEPOIS do corpo, na subida. | `tabuada` — lê N e imprime a tabuada 1..10; teste compara as 10 linhas. |
+| 5 | `passo-de-dois` — Passo de dois | cons. — `node:ForStmt` em forma nova (passo `i += 2`; decrescente com `i--`) | `para`, `somar-no-lugar` | O passo pode ser qualquer atribuição — inclusive andar para trás. | `pares-e-regressivos` — imprime os pares 2..N e, numa segunda lista, os múltiplos de 5 de trás para frente; teste compara as duas listas. |
 | 6 | `ler-ate-sentar` — Ler até sentar | cons. — `api:scanf` em forma nova (o retorno como condição: quantos campos leu; `EOF` só em prosa) | `para`, `perguntar-ao-usuario` | `scanf` devolve QUANTOS campos leu — é por isso que ele pode ser condição de laço. | `soma-ate-sentinela` — lê inteiros até o valor -1 e soma os anteriores; teste injeta `5 7 3 -1`, espera 15. |
-| 7 | `repetir-ao-menos-uma-vez` — Repetir ao menos uma vez | `node:DoWhile` | `enquanto` | O do-while executa o corpo PRIMEIRO e testa depois — ao menos uma vez. | `menu-valido` — repete até a opção ser 1–3; teste injeta `9 0 2` e espera a resposta da opção 2. |
-| 8 | `parar-no-meio` — Parar no meio | cons. — `node:Break` em forma nova (sair de um laço) | `para`, `escolher-por-valor` | O `break` sai do laço mais interno na hora — o que veio depois dele no corpo não roda. | `primeiro-divisor` — acha o menor divisor > 1 de N e para; teste com 15 (3) e 13 (13). |
-| 9 | `pular-uma-volta` — Pular uma volta | `node:Continue` | `parar-no-meio` | O `continue` pula para o PRÓXIMO passo — diferente do `break`, que sai. | `impares-fora` — imprime 1..20 pulando múltiplos de 3 com `continue`; teste compara a lista. |
-| 10 | `laco-dentro-de-laco` — Laço dentro de laço | cons. — `node:For` em forma nova (aninhado) | `para` | 3×4 são 12 iterações: para cada volta de fora, o de dentro roda inteiro. | `retangulo-de-hashtags` — lê L e C e desenha L linhas com C `#`; teste compara o desenho. |
-| 11 | `o-triangulo` — O triângulo | cons. — `node:For` aninhado em forma nova (o interno depende do externo: `j <= i`) | `laco-dentro-de-laco` | A linha i tem i caracteres: a condição do laço de dentro usa o contador de fora. | `triangulo-de-hashtags` — desenha um triângulo de N linhas; teste compara o desenho. |
-| 12 | `a-flag-da-busca` — A flag da busca | cons. — `type:bool` em forma nova (a flag que sobrevive ao laço) | `parar-no-meio`, `verdadeiro-e-falso-com-nome` | Se você precisa saber DEPOIS do laço se achou, a flag guarda o resultado — o `break` só sai. | `e-primo` — testa se N é primo com flag; teste com 13 (1) e 15 (0). |
+| 7 | `repetir-ao-menos-uma-vez` — Repetir ao menos uma vez | `node:DoStmt` | `enquanto` | O do-while executa o corpo PRIMEIRO e testa depois — ao menos uma vez. | `menu-valido` — repete até a opção ser 1–3; teste injeta `9 0 2` e espera a resposta da opção 2. |
+| 8 | `parar-no-meio` — Parar no meio | cons. — `node:BreakStmt` em forma nova (sair de um laço) | `para`, `escolher-por-valor` | O `break` sai do laço mais interno na hora — o que veio depois dele no corpo não roda. | `primeiro-divisor` — acha o menor divisor > 1 de N e para; teste com 15 (3) e 13 (13). |
+| 9 | `pular-uma-volta` — Pular uma volta | `node:ContinueStmt` | `parar-no-meio` | O `continue` pula para o PRÓXIMO passo — diferente do `break`, que sai. | `impares-fora` — imprime 1..20 pulando múltiplos de 3 com `continue`; teste compara a lista. |
+| 10 | `laco-dentro-de-laco` — Laço dentro de laço | cons. — `node:ForStmt` em forma nova (aninhado) | `para` | 3×4 são 12 iterações: para cada volta de fora, o de dentro roda inteiro. | `retangulo-de-hashtags` — lê L e C e desenha L linhas com C `#`; teste compara o desenho. |
+| 11 | `o-triangulo` — O triângulo | cons. — `node:ForStmt` aninhado em forma nova (o interno depende do externo: `j <= i`) | `laco-dentro-de-laco` | A linha i tem i caracteres: a condição do laço de dentro usa o contador de fora. | `triangulo-de-hashtags` — desenha um triângulo de N linhas; teste compara o desenho. |
+| 12 | `a-flag-da-busca` — A flag da busca | cons. — `decl:var` em forma nova (a flag `bool` que sobrevive ao laço; o tipo fica em prosa) | `parar-no-meio`, `verdadeiro-e-falso-com-nome` | Se você precisa saber DEPOIS do laço se achou, a flag guarda o resultado — o `break` só sai. | `e-primo` — testa se N é primo com flag; teste com 13 (1) e 15 (0). |
 | 13 | `consolidacao-repeticao` — O projeto do módulo | cons. — projeto (leitura de tamanho desconhecido + estatística) | `enquanto` a `a-flag-da-busca` | (quiz) Qual laço para entrada de tamanho desconhecido — e por quê? | `estatisticas-de-notas` — lê notas até -1, imprime média (cast real), máxima e quantos aprovados; 4 testes. |
 
 #### Módulo 4 — `caixas-que-devolvem` (15 aulas)
 
 O módulo da virada. Começa em `stdout` e termina em `retorno`. É o módulo com mais consolidações
-da espinha (11 de 15) — o mesmo efeito medido em docs/17 (10 de 14 no Python): a decomposição
-pedagógica de "função" é obrigatória e as chaves não multiplicam.
+da espinha (13 de 15) — o mesmo efeito medido em docs/17 (10 de 14 no Python): a decomposição
+pedagógica de "função" é obrigatória e as chaves não multiplicam. Sob o inventário congelado,
+`decl:func` já nasceu no M1 (a função que a tela pede) e o protótipo emite a MESMA chave
+`decl:func` — por isso `sua-primeira-caixa` e `declarar-antes-de-usar` viram consolidações "em
+forma nova".
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `sua-primeira-caixa` — A sua primeira caixa | `node:FunctionDef` | `devolver-zero`, `buraco-na-frase` | Definir não roda: quem define `void saudacao(void) { ... }` precisa CHAMAR. | `saudacao-em-dois-mundos` — define e chama a função duas vezes; teste compara as duas linhas. |
-| 2 | `chamar-a-caixa` — Chamar a caixa | cons. — `node:Call` em forma nova (chamar o que VOCÊ definiu) | `sua-primeira-caixa` | A chamada executa o corpo e volta para a linha de baixo. | `saudacao-tres-vezes` — chama a mesma função três vezes; teste compara as três linhas. |
-| 3 | `a-janela-de-entrada` — A janela de entrada | `decl:param` | `chamar-a-caixa` | O parâmetro é uma CÓPIA: mudá-lo dentro da caixa não muda quem chamou. | `dobro-caixa` — `dobra(n)` imprime o dobro de cada valor chamado; teste com 2 e -3. |
-| 4 | `devolver-em-vez-de-mostrar` — Devolver em vez de mostrar | cons. — `node:Return` em forma nova (um valor para quem chamou) | `a-janela-de-entrada` | O `return` ENCERRA a caixa no ato e entrega o valor na linha da chamada. | `maior-caixa` — `maior(a, b)` devolve o maior e o `main` imprime; teste espera 9 para (3, 9) e (9, 3). |
-| 5 | `imprimir-nao-e-devolver` — Imprimir não é devolver | cons. — `node:Return` e `api:printf` no MESMO desafio (**a aula da virada**) | `devolver-em-vez-de-mostrar` | Chamar a caixa sozinha não imprime nada — imprimir e devolver são canais diferentes. | `a-virada` — três testes: devolve, imprime, e chamar sozinha não imprime (formato de docs/17 §"A VIRADA"). |
-| 6 | `a-caixa-que-nao-devolve-nada` — A caixa que não devolve nada | cons. — `node:FunctionDef` em forma nova (`void` explícito; `return;` sozinho) | `imprimir-nao-e-devolver` | `void` devolve "nada"; o `return` sem valor só encerra cedo. | `cedo-demais` — função que imprime só para positivo, encerrando antes com `return;`; teste com 5 e -5. |
-| 7 | `mais-de-uma-janela` — Mais de uma janela | cons. — `decl:param` em forma nova (dois parâmetros) | `a-janela-de-entrada` | A ordem dos argumentos é a ordem dos parâmetros. | `area-e-perimetro` — duas funções com os MESMOS dois parâmetros; teste compara os dois resultados. |
-| 8 | `devolver-cedo` — Devolver cedo | cons. — `node:Return` em forma nova (um return por ramo) | `devolver-em-vez-de-mostrar`, `se-senao` | Depois do `return`, nada mais da caixa roda. | `divisao-segura` — `dividir(a, b)` devolve 0 se `b == 0` (a guarda); teste com (7, 2) → 3 e (7, 0) → 0. |
-| 9 | `devolver-verdade-ou-falso` — Devolver verdade ou falso | cons. — `node:Return` em forma nova (devolver a própria comparação) | `devolver-cedo`, `verdadeiro-e-falso-com-nome` | `return idade >= 18;` já devolve o 0/1 da comparação. | `maioridade-caixa` — `ehMaior(idade)` devolve `bool` e o `main` usa em `if`; teste com 21 e 15. |
+| 1 | `sua-primeira-caixa` — A sua primeira caixa | cons. — `decl:func` em forma nova (a caixa SUA: definir, não só a função-da-tela; quem define precisa CHAMAR) | `devolver-zero`, `buraco-na-frase` | Definir não roda: quem define `void saudacao(void) { ... }` precisa CHAMAR. | `saudacao-em-dois-mundos` — define e chama a função duas vezes; teste compara as duas linhas. |
+| 2 | `chamar-a-caixa` — Chamar a caixa | cons. — `node:CallExpr` em forma nova (chamar o que VOCÊ definiu) | `sua-primeira-caixa` | A chamada executa o corpo e volta para a linha de baixo. | `saudacao-tres-vezes` — chama a mesma função três vezes; teste compara as três linhas. |
+| 3 | `a-janela-de-entrada` — A janela de entrada | `node:ParmVarDecl` (o parâmetro — o adaptador o emite no eixo `node:`, não no `decl:`) | `chamar-a-caixa` | O parâmetro é uma CÓPIA: mudá-lo dentro da caixa não muda quem chamou. | `dobro-caixa` — `dobra(n)` imprime o dobro de cada valor chamado; teste com 2 e -3. |
+| 4 | `devolver-em-vez-de-mostrar` — Devolver em vez de mostrar | cons. — `node:ReturnStmt` em forma nova (um valor para quem chamou — a ESCRITA própria da chave) | `a-janela-de-entrada` | O `return` ENCERRA a caixa no ato e entrega o valor na linha da chamada. | `maior-caixa` — `maior(a, b)` devolve o maior e o `main` imprime; teste espera 9 para (3, 9) e (9, 3). |
+| 5 | `imprimir-nao-e-devolver` — Imprimir não é devolver | cons. — `node:ReturnStmt` e `api:printf` no MESMO desafio (**a aula da virada**) | `devolver-em-vez-de-mostrar` | Chamar a caixa sozinha não imprime nada — imprimir e devolver são canais diferentes. | `a-virada` — três testes: devolve, imprime, e chamar sozinha não imprime (formato de docs/17 §"A VIRADA"). |
+| 6 | `a-caixa-que-nao-devolve-nada` — A caixa que não devolve nada | cons. — `decl:func` em forma nova (`void` explícito; `return;` sozinho) | `imprimir-nao-e-devolver` | `void` devolve "nada"; o `return` sem valor só encerra cedo. | `cedo-demais` — função que imprime só para positivo, encerrando antes com `return;`; teste com 5 e -5. |
+| 7 | `mais-de-uma-janela` — Mais de uma janela | cons. — `node:ParmVarDecl` em forma nova (dois parâmetros) | `a-janela-de-entrada` | A ordem dos argumentos é a ordem dos parâmetros. | `area-e-perimetro` — duas funções com os MESMOS dois parâmetros; teste compara os dois resultados. |
+| 8 | `devolver-cedo` — Devolver cedo | cons. — `node:ReturnStmt` em forma nova (um return por ramo) | `devolver-em-vez-de-mostrar`, `se-senao` | Depois do `return`, nada mais da caixa roda. | `divisao-segura` — `dividir(a, b)` devolve 0 se `b == 0` (a guarda); teste com (7, 2) → 3 e (7, 0) → 0. |
+| 9 | `devolver-verdade-ou-falso` — Devolver verdade ou falso | cons. — `node:ReturnStmt` em forma nova (devolver a própria comparação) | `devolver-cedo`, `verdadeiro-e-falso-com-nome` | `return idade >= 18;` já devolve o 0/1 da comparação. | `maioridade-caixa` — `ehMaior(idade)` devolve `bool` e o `main` usa em `if`; teste com 21 e 15. |
 | 10 | `o-nome-so-vive-dentro` — O nome só vive dentro | cons. — `decl:var` em forma nova (nome local) + `term:escopo` | `devolver-em-vez-de-mostrar`, `um-nome-para-um-valor` | O nome da variável local nasce na chamada e morre no `return`. | `sombra-de-nome` — starter que usa um nome local fora da função (erro de compilação); o aluno conserta devolvendo o valor; teste compara o valor devolvido. |
-| 11 | `uma-caixa-chama-outra` — Uma caixa chama outra | cons. — `node:Call` em forma nova (chamada dentro de caixa) | `devolver-em-vez-de-mostrar` | A caixa que chama recebe o valor devolvido na hora da expressão. | `enquadra` — `enquadra(x, min, max)` usa `maior`/`menor` internas; teste com (5, 0, 10) → 5 e (15, 0, 10) → 10. |
-| 12 | `declarar-antes-de-usar` — O cartaz na porta | `node:Prototype` | `uma-caixa-chama-outra` | O compilador lê de cima para baixo: sem protótipo, chamar antes de definir não compila. | `ordem-invertida` — starter com a chamada antes da definição (não compila); o aluno acrescenta o protótipo; teste: compila e o valor devolvido bate. |
-| 13 | `mais-contas` — As contas que vêm de fora | `hdr:math.h`, `api:sqrt` | `devolver-em-vez-de-mostrar`, `a-divisao-real` | `sqrt` recebe e devolve `double`; o `-lm` no comando liga a biblioteca matemática (o runner já traz). | `hipotenusa` — `hipotenusa(a, b)` com `sqrt`; teste com (3, 4) → 5.0. |
-| 14 | `copias-no-vestibulo` — Cópias no vestíbulo | cons. — `decl:param` em forma nova (a cópia que não volta; `term:passagem por valor`) | `a-janela-de-entrada`, `mudar-o-valor` | A função tenta trocar e falha: os parâmetros são cópias — é assim que C funciona por padrão. | `a-troca-que-nao-troca` — chama `tentarTrocar(a, b)`; o teste prova que os originais NÃO mudaram (imprime o estado depois da chamada). |
+| 11 | `uma-caixa-chama-outra` — Uma caixa chama outra | cons. — `node:CallExpr` em forma nova (chamada dentro de caixa) | `devolver-em-vez-de-mostrar` | A caixa que chama recebe o valor devolvido na hora da expressão. | `enquadra` — `enquadra(x, min, max)` usa `maior`/`menor` internas; teste com (5, 0, 10) → 5 e (15, 0, 10) → 10. |
+| 12 | `declarar-antes-de-usar` — O cartaz na porta | cons. — `decl:func` em forma nova (o protótipo: a promessa sem corpo — no clang é `FunctionDecl` e emite a MESMA chave) | `uma-caixa-chama-outra` | O compilador lê de cima para baixo: sem protótipo, chamar antes de definir não compila. | `ordem-invertida` — starter com a chamada antes da definição (não compila); o aluno acrescenta o protótipo; teste: compila e o valor devolvido bate. |
+| 13 | `mais-contas` — As contas que vêm de fora | `api:sqrt` (com o `#include <math.h>` — a mesma chave `node:IncludeDirective`, em forma nova; o `-lm` no comando fica em prosa) | `devolver-em-vez-de-mostrar`, `a-divisao-real` | `sqrt` recebe e devolve `double`; o `-lm` no comando liga a biblioteca matemática (o runner já traz). | `hipotenusa` — `hipotenusa(a, b)` com `sqrt`; teste com (3, 4) → 5.0. |
+| 14 | `copias-no-vestibulo` — Cópias no vestíbulo | cons. — `node:ParmVarDecl` em forma nova (a cópia que não volta; `term:passagem por valor`) | `a-janela-de-entrada`, `mudar-o-valor` | A função tenta trocar e falha: os parâmetros são cópias — é assim que C funciona por padrão. | `a-troca-que-nao-troca` — chama `tentarTrocar(a, b)`; o teste prova que os originais NÃO mudaram (imprime o estado depois da chamada). |
 | 15 | `consolidacao-caixas` — O projeto do módulo | cons. — projeto (menu + funções de conversão) | `sua-primeira-caixa` a `copias-no-vestibulo` | (quiz) Por que os protótipos ficam em cima do arquivo? | `conversor-de-unidades` — menu em `switch` + `do-while`, uma função por conversão (comprimento e massa); 4 testes de conversão. |
 
 **Por que a `copias-no-vestibulo` falha DE PROPÓSITO.** É a aula mais importante do módulo e a
@@ -568,29 +619,32 @@ ponteiro e o faz funcionar.
 #### Módulo 5 — `listas-e-enderecos` (21 aulas)
 
 Arrays e ponteiros básicos — o módulo que o C cobra e o Python esconde. A fase continua `retorno`
-a partir do M4; a coluna `Ensina` segue a regra do par.
+a partir do M4; a coluna `Ensina` segue a regra do par. Sob o inventário congelado, array e
+ponteiro são `decl:var` (o adaptador não distingue a FORMA da declaração) — o distinguível real
+de cada aula está na célula; a promoção de formas próprias (`decl:array`/`decl:ptr`) é decisão
+da onda 3 (§8, PENDENTE).
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `a-caixa-com-gavetas` — A caixa com gavetas | `decl:array` | `mais-de-uma-janela`, `um-nome-para-um-valor` | `int notas[5]` cria 5 gavetas numeradas 0..4 — a gaveta 5 não existe. | `notas-na-tela` — imprime as 5 notas do inicializador; teste compara as 5 linhas. |
-| 2 | `pegar-pela-gaveta` — Pegar pela gaveta | `node:Subscript` | `a-caixa-com-gavetas` | `notas[i]` lê E escreve; fora do 0..4 é comportamento indefinido — e o compilador não avisa. | `dobra-as-notas` — dobra cada nota (escreve pelo índice) e imprime; teste compara as 5 linhas dobradas. |
-| 3 | `varrer-a-lista` — Varrer a lista | cons. — `node:For` em forma nova (o for que percorre o array) | `pegar-pela-gaveta`, `para` | O laço anda de 0 até n-1: `i < 5`, nunca `<=`. | `soma-das-notas` — soma os elementos com `for`; teste compara a soma. |
-| 4 | `o-maximo-da-lista` — O máximo da lista | cons. — `node:Subscript` em forma nova (o padrão do máximo) | `varrer-a-lista`, `devolver-em-vez-de-mostrar` | Comece o máximo com o PRIMEIRO elemento, não com zero. | `maior-nota` — acha a maior nota; teste com listas cujo máximo está no início e no fim. |
-| 5 | `gavetas-vazias` — Gavetas vazias | cons. — `decl:array` em forma nova (inicializador parcial: o resto fica em 0) | `a-caixa-com-gavetas` | `int v[5] = {1, 2};` deixa as outras três gavetas em 0. | `zeros-garantidos` — imprime o array parcialmente inicializado; teste compara os 5 valores. |
-| 6 | `contando-iguais` — Contando iguais | cons. — `node:Subscript` + `op:compare:==` na composição (contador de ocorrências) | `varrer-a-lista`, `se` | O contador cresce SÓ dentro do `if`. | `quantos-aprovados` — conta as notas `>= 6`; teste com listas de contagens conhecidas. |
-| 7 | `quantos-bytes` — Quantos bytes o molde ocupa | `op:unary:sizeof` | `a-caixa-com-gavetas` | `sizeof(int)` é 4 nesta máquina (medido); `sizeof v / sizeof v[0]` devolve QUANTOS elementos. | `o-tamanho-real` — calcula `n = sizeof v / sizeof v[0]` e imprime `n` e o array; teste espera n=5 e os valores. |
-| 8 | `enderecos` — O endereço das casas | `fmt:%p` (o degrau: o mesmo `&` da aula `perguntar-ao-usuario`, agora com nome de operador) | `quantos-bytes`, `perguntar-ao-usuario` | `&x` devolve o endereço de `x` — o mesmo `&` que a `scanf` sempre pediu; agora com nome. | `enderecos-na-tela` — imprime endereço e valor de duas variáveis; teste compara as duas linhas (cada uma com `%p` e o valor). |
-| 9 | `o-papel-com-o-endereco` — O papel com o endereço | `decl:ptr` | `enderecos` | `int *p = &x;` — o `p` não guarda número: guarda ONDE o número está. | `aponta-para-mim` — declara `p` e imprime `p` e `&x`; teste: as duas impressões são o mesmo endereço. |
-| 10 | `ir-ate-a-casa` — Ir até a casa | `op:unary:*` | `o-papel-com-o-endereco` | `*p` é o valor que está NO endereço: ler e escrever pela outra porta. | `via-ponteiro` — muda `x` só escrevendo em `*p`; teste compara o novo valor de `x`. |
+| 1 | `a-caixa-com-gavetas` — A caixa com gavetas | `node:InitListExpr` (o inicializador entre chaves; o par da regra do par: `decl:var` em forma nova — o array `int notas[5]`) | `mais-de-uma-janela`, `um-nome-para-um-valor` | `int notas[5]` cria 5 gavetas numeradas 0..4 — a gaveta 5 não existe. | `notas-na-tela` — imprime as 5 notas do inicializador; teste compara as 5 linhas. |
+| 2 | `pegar-pela-gaveta` — Pegar pela gaveta | `node:ArraySubscriptExpr` | `a-caixa-com-gavetas` | `notas[i]` lê E escreve; fora do 0..4 é comportamento indefinido — e o compilador não avisa. | `dobra-as-notas` — dobra cada nota (escreve pelo índice) e imprime; teste compara as 5 linhas dobradas. |
+| 3 | `varrer-a-lista` — Varrer a lista | cons. — `node:ForStmt` em forma nova (o for que percorre o array) | `pegar-pela-gaveta`, `para` | O laço anda de 0 até n-1: `i < 5`, nunca `<=`. | `soma-das-notas` — soma os elementos com `for`; teste compara a soma. |
+| 4 | `o-maximo-da-lista` — O máximo da lista | cons. — `node:ArraySubscriptExpr` em forma nova (o padrão do máximo) | `varrer-a-lista`, `devolver-em-vez-de-mostrar` | Comece o máximo com o PRIMEIRO elemento, não com zero. | `maior-nota` — acha a maior nota; teste com listas cujo máximo está no início e no fim. |
+| 5 | `gavetas-vazias` — Gavetas vazias | cons. — `node:InitListExpr` em forma nova (inicializador parcial: o resto fica em 0) | `a-caixa-com-gavetas` | `int v[5] = {1, 2};` deixa as outras três gavetas em 0. | `zeros-garantidos` — imprime o array parcialmente inicializado; teste compara os 5 valores. |
+| 6 | `contando-iguais` — Contando iguais | cons. — `node:ArraySubscriptExpr` + `op:binary:==` na composição (contador de ocorrências) | `varrer-a-lista`, `se` | O contador cresce SÓ dentro do `if`. | `quantos-aprovados` — conta as notas `>= 6`; teste com listas de contagens conhecidas. |
+| 7 | `quantos-bytes` — Quantos bytes o molde ocupa | `op:unary:sizeof` (o nó é `node:UnaryExprOrTypeTraitExpr` — a chave sai do atributo) | `a-caixa-com-gavetas` | `sizeof(int)` é 4 nesta máquina (medido); `sizeof v / sizeof v[0]` devolve QUANTOS elementos. | `o-tamanho-real` — calcula `n = sizeof v / sizeof v[0]` e imprime `n` e o array; teste espera n=5 e os valores. |
+| 8 | `enderecos` — O endereço das casas | cons. — `op:unary:&` em forma nova (o mesmo `&` da aula `perguntar-ao-usuario`, agora com nome de operador; o `%p` fica em prosa — não há eixo de formato) | `quantos-bytes`, `perguntar-ao-usuario` | `&x` devolve o endereço de `x` — o mesmo `&` que a `scanf` sempre pediu; agora com nome. | `enderecos-na-tela` — imprime endereço e valor de duas variáveis; teste compara as duas linhas (cada uma com `%p` e o valor). |
+| 9 | `o-papel-com-o-endereco` — O papel com o endereço | cons. — `decl:var` em forma nova (o ponteiro: `int *p = &x;` — o adaptador emite `decl:var`; a FORMA ponteiro é PENDENTE, §8) | `enderecos` | `int *p = &x;` — o `p` não guarda número: guarda ONDE o número está. | `aponta-para-mim` — declara `p` e imprime `p` e `&x`; teste: as duas impressões são o mesmo endereço. |
+| 10 | `ir-ate-a-casa` — Ir até a casa | `op:unary:*` (a desreferência) | `o-papel-com-o-endereco` | `*p` é o valor que está NO endereço: ler e escrever pela outra porta. | `via-ponteiro` — muda `x` só escrevendo em `*p`; teste compara o novo valor de `x`. |
 | 11 | `a-troca-que-funciona` — A troca que funciona | cons. — `op:unary:*` em forma nova (mudar o original via parâmetro-ponteiro) | `ir-ate-a-casa`, `copias-no-vestibulo` | Passando `&a` e `&b`, a função troca DE VERDADE: a cópia é do endereço, não do valor. | `o-swap` — `trocar(int *a, int *b)` que funciona; teste compara os dois valores trocados (o payoff do M4). |
-| 12 | `a-lista-como-parametro` — A lista como parâmetro | cons. — `decl:array` em forma nova (na função: `int v[]` — a lista não copia; o tamanho viaja junto) | `a-troca-que-funciona`, `varrer-a-lista` | O array vira o endereço do primeiro elemento; por isso o parâmetro `n` acompanha. | `soma-em-funcao` — `somaLista(v, n)` devolve a soma; teste com duas listas de tamanhos diferentes. |
-| 13 | `devolver-dois-valores` — Devolver dois valores | cons. — `decl:param` em forma nova (dois parâmetros-ponteiro de saída) | `a-lista-como-parametro`, `a-troca-que-funciona` | Sem structs ainda, a forma de devolver DOIS valores em C é o par de ponteiros de saída. | `minimo-e-maximo` — `minimoEMaximo(v, 5, &min, &max)`; teste compara os dois valores. |
-| 14 | `preencher-lendo` — Preencher lendo | cons. — `node:Subscript` + `op:unary:&` na composição (`&v[i]`) | `a-lista-como-parametro`, `perguntar-ao-usuario` | `scanf("%d", &v[i])` preenche a gaveta `i` pelo endereço dela. | `leitor-de-notas` — lê `n` (≤ 50) e `n` notas e imprime na ordem INVERSA; teste injeta 4 notas e compara as 4 linhas invertidas. |
+| 12 | `a-lista-como-parametro` — A lista como parâmetro | cons. — `node:ParmVarDecl` em forma nova (na função: `int v[]` — o parâmetro-array; a lista não copia; o tamanho viaja junto) | `a-troca-que-funciona`, `varrer-a-lista` | O array vira o endereço do primeiro elemento; por isso o parâmetro `n` acompanha. | `soma-em-funcao` — `somaLista(v, n)` devolve a soma; teste com duas listas de tamanhos diferentes. |
+| 13 | `devolver-dois-valores` — Devolver dois valores | cons. — `node:ParmVarDecl` em forma nova (dois parâmetros-ponteiro de saída) | `a-lista-como-parametro`, `a-troca-que-funciona` | Sem structs ainda, a forma de devolver DOIS valores em C é o par de ponteiros de saída. | `minimo-e-maximo` — `minimoEMaximo(v, 5, &min, &max)`; teste compara os dois valores. |
+| 14 | `preencher-lendo` — Preencher lendo | cons. — `node:ArraySubscriptExpr` + `op:unary:&` na composição (`&v[i]`) | `a-lista-como-parametro`, `perguntar-ao-usuario` | `scanf("%d", &v[i])` preenche a gaveta `i` pelo endereço dela. | `leitor-de-notas` — lê `n` (≤ 50) e `n` notas e imprime na ordem INVERSA; teste injeta 4 notas e compara as 4 linhas invertidas. |
 | 15 | `inverter-a-lista` — Inverter a lista | cons. — composição (trocar os simétricos com o swap até n/2) | `preencher-lendo`, `a-troca-que-funciona` | Chega até n/2: trocar além disso desfaz a troca. | `o-inversor` — inverte o array lido no próprio lugar e imprime; teste compara a ordem invertida. |
-| 16 | `procurar-na-lista` — Procurar na lista | cons. — `node:Return` em forma nova (devolver o índice ou -1) | `a-lista-como-parametro`, `se` | -1 é a convenção de "não achei": índices válidos começam em 0. | `o-procurador` — `procurar(v, n, x)` devolve a posição ou -1; teste com valor presente e ausente. |
+| 16 | `procurar-na-lista` — Procurar na lista | cons. — `node:ReturnStmt` em forma nova (devolver o índice ou -1) | `a-lista-como-parametro`, `se` | -1 é a convenção de "não achei": índices válidos começam em 0. | `o-procurador` — `procurar(v, n, x)` devolve a posição ou -1; teste com valor presente e ausente. |
 | 17 | `ordenar-a-lista` — Ordenar a lista | cons. — composição (for aninhado + swap: o primeiro algoritmo completo) | `inverter-a-lista`, `laco-dentro-de-laco` | Cada passada empurra o maior para o fim; n-1 passadas bastam. | `o-ordenador` — ordena as notas lidas em ordem crescente; teste compara as n linhas ordenadas. |
-| 18 | `a-promessa-de-nao-mudar` — A promessa de não mudar | `qualifier:const` | `a-lista-como-parametro` | `const int v[]` diz "esta função só lê" — tentar mudar vira ERRO de compilação. | `soma-com-promessa` — refaz `somaLista` com `const int v[]`; teste compara a soma (igual) e exige compilação limpa. |
-| 19 | `o-ponteiro-que-nao-aponta` — O papel sem endereço | `api:NULL` | `o-papel-com-o-endereco` | `NULL` é o endereço "nenhum"; usá-lo como casa desaba o programa — por isso se testa antes. | `o-gate-do-nulo` — `maiorDe(v, n)` devolve ponteiro para o maior, ou `NULL` se `n == 0`; o `main` testa `!= NULL`; teste com n=0 e n>0. |
+| 18 | `a-promessa-de-nao-mudar` — A promessa de não mudar | o qualificador `const` na promessa de leitura [pendente: sem nó no AST do clang — é qualificador de TIPO, invisível ao extrator; onda 3 decide a chave] | `a-lista-como-parametro` | `const int v[]` diz "esta função só lê" — tentar mudar vira ERRO de compilação. | `soma-com-promessa` — refaz `somaLista` com `const int v[]`; teste compara a soma (igual) e exige compilação limpa. |
+| 19 | `o-ponteiro-que-nao-aponta` — O papel sem endereço | `NULL`, o endereço "nenhum" [pendente: macro do `<stddef.h>` — não emite `ApiRef` nem nó; hoje invisível ao extrator; onda 3 decide] | `o-papel-com-o-endereco` | `NULL` é o endereço "nenhum"; usá-lo como casa desaba o programa — por isso se testa antes. | `o-gate-do-nulo` — `maiorDe(v, n)` devolve ponteiro para o maior, ou `NULL` se `n == 0`; o `main` testa `!= NULL`; teste com n=0 e n>0. |
 | 20 | `andar-de-ponteiro` — Andar de ponteiro | cons. — `op:unary:*` em forma nova (aritmética: `*(p + i)` é o mesmo que `v[i]`) | `ir-ate-a-casa`, `a-lista-como-parametro` | `p + 1` avança UM ELEMENTO (4 bytes num `int`, medido) — não um byte. | `o-passeio` — imprime o array usando só um ponteiro que anda; teste compara as n linhas. |
 | 21 | `consolidacao-listas` — O projeto do módulo | cons. — projeto (leitura + estatística + ordenação) | `a-caixa-com-gavetas` a `andar-de-ponteiro` | (quiz) Quando o tamanho precisa viajar com a lista — e por que `sizeof` não resolve dentro da função? | `as-vendas-do-dia` — lê `n` vendas, imprime total, máxima e o top 3 ordenado decrescente; 4 testes. |
 
@@ -610,19 +664,19 @@ copiar à mão (aula 5) vem antes de `strncpy` (aula 6), gritar à mão (aula 9)
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `a-string-e-o-zero` — O texto que acaba em zero | `fmt:%s` | `a-caixa-com-gavetas`, `uma-letra-e-um-numero` | `"abc"` são 4 gavetas: `a`, `b`, `c` e o terminador `\0` que marca o fim. | `saudacao-nome` — imprime a saudação com o nome fixo do código, via `%s`; teste compara a linha. |
-| 2 | `o-comprimento` — Quantas letras tem | `hdr:string.h`, `api:strlen` | `a-string-e-o-zero` | `strlen` devolve o tamanho SEM contar o `\0`: `strlen("abc")` é 3 (medido). | `medidor-de-palavras` — imprime o tamanho de 3 palavras fixas; teste compara os 3 números. |
-| 3 | `ler-uma-palavra` — Ler uma palavra | cons. — `api:scanf` em forma nova (`%s`, sem `&`; o limite de largura `%49s`) | `a-string-e-o-zero`, `perguntar-ao-usuario` | O nome do array JÁ é endereço: sem `&` no `%s`. O 49 em `%49s` é o freio de mão. | `eco-de-nome` — lê uma palavra e imprime com `%s`; teste injeta `Ana` e espera a linha. |
-| 4 | `percorrer-a-string` — Percorrer a string | cons. — `node:For` em forma nova (até `strlen` ou até `s[i] != '\0'`) | `o-comprimento`, `varrer-a-lista` | Perceber o fim é VER o `\0`: as duas condições ensinam a mesma coisa. | `contador-de-vogais` — conta as vogais (aeiou, sem acento) de uma palavra lida; teste com 2 palavras de contagens conhecidas. |
-| 5 | `copiar-a-mao` — Copiar à mão | cons. — `node:Subscript` em forma nova (copiar até o `\0` INCLUSIVE) | `percorrer-a-string`, `pegar-pela-gaveta` | Se o `\0` não copia, a cópia é um texto sem fim. | `o-copiador` — copia a palavra para um buffer e imprime os dois; teste compara as duas linhas iguais. |
+| 1 | `a-string-e-o-zero` — O texto que acaba em zero | cons. — `decl:var` em forma nova (o array de `char`; o terminador `\0` e o `%s` ficam em prosa — o literal `node:StringLiteral` já nasceu na aula 1) | `a-caixa-com-gavetas`, `uma-letra-e-um-numero` | `"abc"` são 4 gavetas: `a`, `b`, `c` e o terminador `\0` que marca o fim. | `saudacao-nome` — imprime a saudação com o nome fixo do código, via `%s`; teste compara a linha. |
+| 2 | `o-comprimento` — Quantas letras tem | `api:strlen` (com o `#include <string.h>` — `node:IncludeDirective` em forma nova) | `a-string-e-o-zero` | `strlen` devolve o tamanho SEM contar o `\0`: `strlen("abc")` é 3 (medido). | `medidor-de-palavras` — imprime o tamanho de 3 palavras fixas; teste compara os 3 números. |
+| 3 | `ler-uma-palavra` — Ler uma palavra | cons. — `api:scanf` em forma nova (`%s`, sem `&`; o limite de largura `%49s` em prosa) | `a-string-e-o-zero`, `perguntar-ao-usuario` | O nome do array JÁ é endereço: sem `&` no `%s`. O 49 em `%49s` é o freio de mão. | `eco-de-nome` — lê uma palavra e imprime com `%s`; teste injeta `Ana` e espera a linha. |
+| 4 | `percorrer-a-string` — Percorrer a string | cons. — `node:ForStmt` em forma nova (até `strlen` ou até `s[i] != '\0'`) | `o-comprimento`, `varrer-a-lista` | Perceber o fim é VER o `\0`: as duas condições ensinam a mesma coisa. | `contador-de-vogais` — conta as vogais (aeiou, sem acento) de uma palavra lida; teste com 2 palavras de contagens conhecidas. |
+| 5 | `copiar-a-mao` — Copiar à mão | cons. — `node:ArraySubscriptExpr` em forma nova (copiar até o `\0` INCLUSIVE) | `percorrer-a-string`, `pegar-pela-gaveta` | Se o `\0` não copia, a cópia é um texto sem fim. | `o-copiador` — copia a palavra para um buffer e imprime os dois; teste compara as duas linhas iguais. |
 | 6 | `copiar-com-limite` — Copiar com freio de mão | `api:strncpy` | `copiar-a-mao` | `strncpy(dst, src, sizeof dst)` nunca passa do limite — e cabe a VOCÊ garantir o `\0` no fim. | `o-copiador-seguro` — refaz a cópia com `strncpy` + terminador explícito; teste compara as duas linhas. |
 | 7 | `comparar-textos` — Comparar textos | `api:strcmp` | `o-comprimento` | `strcmp` devolve 0 quando IGUAL — `==` compara ENDEREÇOS, nunca textos. | `a-porta-secreta` — lê a palavra e compara com `abrir`; teste com `abrir` e `fechar`. |
 | 8 | `montar-um-texto` — Montar um texto novo | `api:snprintf` | `buraco-na-frase`, `a-string-e-o-zero` | `snprintf(buffer, sizeof buffer, ...)` é o `printf` que escreve num buffer, com limite. | `a-etiqueta` — monta `Nome: Ana | Idade: 20` num buffer e imprime; teste compara a linha. |
-| 9 | `gritar-a-mao` — Gritar à mão | cons. — `node:Subscript` em forma nova (mudar in-place; a aritmética de letras: `'A' + 1` é `'B'`, medido) | `percorrer-a-string`, `uma-letra-e-um-numero` | Maiúscula é minúscula menos a distância da tabela: letras SÃO números. | `o-gritador` — converte a palavra lida em maiúsculas no próprio lugar; teste injeta `ana`, espera `ANA`. |
-| 10 | `a-biblioteca-de-letras` — A biblioteca das letras | `hdr:ctype.h`, `api:toupper` | `gritar-a-mao` | `toupper(c)` faz a mesma conta sem mágica — e funciona para qualquer letra. | `o-gritador-biblioteca` — refaz com `toupper`; teste idêntico ao da aula 9 (mesma saída, outro caminho). |
-| 11 | `a-string-como-parametro` — A string como parâmetro | cons. — `decl:array` em forma nova (`char s[]` em função; a função ENXERGA o original) | `percorrer-a-string`, `a-lista-como-parametro` | A string em função é como a lista: o endereço do primeiro caractere — mudar muda o original. | `conta-espacos` — `contaEspacos(frase)` devolve a contagem; teste com 2 frases. |
-| 12 | `a-lista-de-strings` — A lista de listas de letras | `decl:array2d` | `a-string-e-o-zero`, `a-caixa-com-gavetas` | `char nomes[5][20]`: 5 palavras de até 19 letras + terminador cada. | `lista-de-convidados` — lê 3 nomes e lista numerada; teste injeta 3 nomes e compara as 3 linhas. |
-| 13 | `procurar-na-lista-de-strings` — Procurar na lista de strings | cons. — `api:strcmp` + `node:For` na composição | `a-lista-de-strings`, `comparar-textos` | Buscar é comparar com `strcmp` DENTRO do laço — nunca com `==`. | `lista-de-presenca` — checa se o nome lido está na lista; teste com nome presente e ausente. |
+| 9 | `gritar-a-mao` — Gritar à mão | cons. — `node:ArraySubscriptExpr` em forma nova (mudar in-place; a aritmética de letras: `'A' + 1` é `'B'`, medido) | `percorrer-a-string`, `uma-letra-e-um-numero` | Maiúscula é minúscula menos a distância da tabela: letras SÃO números. | `o-gritador` — converte a palavra lida em maiúsculas no próprio lugar; teste injeta `ana`, espera `ANA`. |
+| 10 | `a-biblioteca-de-letras` — A biblioteca das letras | `api:toupper` (com o `#include <ctype.h>` — `node:IncludeDirective` em forma nova) | `gritar-a-mao` | `toupper(c)` faz a mesma conta sem mágica — e funciona para qualquer letra. | `o-gritador-biblioteca` — refaz com `toupper`; teste idêntico ao da aula 9 (mesma saída, outro caminho). |
+| 11 | `a-string-como-parametro` — A string como parâmetro | cons. — `node:ParmVarDecl` em forma nova (`char s[]` em função; a função ENXERGA o original) | `percorrer-a-string`, `a-lista-como-parametro` | A string em função é como a lista: o endereço do primeiro caractere — mudar muda o original. | `conta-espacos` — `contaEspacos(frase)` devolve a contagem; teste com 2 frases. |
+| 12 | `a-lista-de-strings` — A lista de listas de letras | cons. — `decl:var` em forma nova (o array de arrays: `char nomes[5][20]` — o adaptador emite `decl:var`; a FORMA 2D é PENDENTE, §8) | `a-string-e-o-zero`, `a-caixa-com-gavetas` | `char nomes[5][20]`: 5 palavras de até 19 letras + terminador cada. | `lista-de-convidados` — lê 3 nomes e lista numerada; teste injeta 3 nomes e compara as 3 linhas. |
+| 13 | `procurar-na-lista-de-strings` — Procurar na lista de strings | cons. — `api:strcmp` + `node:ForStmt` na composição | `a-lista-de-strings`, `comparar-textos` | Buscar é comparar com `strcmp` DENTRO do laço — nunca com `==`. | `lista-de-presenca` — checa se o nome lido está na lista; teste com nome presente e ausente. |
 | 14 | `ao-contrario` — Ao contrário, e o espelho | cons. — composição (swap de caracteres nas pontas + comparação com o original: palíndromo simples) | `copiar-a-mao`, `inverter-a-lista` | Palíndromo: comparar a palavra com ela mesma invertida, posição a posição. | `o-espelho` — verifica se a palavra lida é palíndromo (sem acento); teste com `arara` (1) e `porta` (0). |
 | 15 | `contar-palavras` — Contar palavras | cons. — composição (flag dentro/fora de palavra: `bool` + percurso) | `percorrer-a-string`, `verdadeiro-e-falso-com-nome` | Uma palavra começa quando se sai do estado "dentro de espaço" — a flag guarda o estado. | `contador-de-palavras` — conta as palavras da frase lida; teste com 2 frases de contagens conhecidas. |
 | 16 | `consolidacao-texto` — O projeto do módulo | cons. — projeto (capitalização por palavra) | `a-string-e-o-zero` a `contar-palavras` | (quiz) Por que todo texto precisa de espaço para o `\0`? | `o-normalizador` — lê um nome composto e capitaliza a inicial de cada palavra (`ctype`, laços, buffer com `snprintf`); 3 testes. |
@@ -636,26 +690,29 @@ fonte do porquê.
 
 A "coleção" do C — o módulo que ocupa o lugar dos dicionários da espinha de Python: agrupar dados
 heterogêneos (`struct`) e persistir (`stdio`). O curso inteiro aponta para a aula 15: o programa
-em `.h`/`.c` é a fronteira de saída do `c-iniciante`.
+em `.h`/`.c` é a fronteira de saída do `c-iniciante`. **Aviso de inventário:** structs, typedef,
+acesso a campo (`.x` e `->`) e o `const` NÃO têm chave no adaptador hoje — as aulas que os
+introduzem estão marcadas `[pendente: …]` e a lista integral, com os kinds clang prováveis, está
+na subseção PENDENTE DE INVENTÁRIO do §8 (decisão de estender o adaptador: onda 3).
 
 | # | slug — título | Ensina | Presume | Quiz (afirmação) | Desafio (slug + cenário) |
 |---|---|---|---|---|---|
-| 1 | `o-molde-e-o-dado` — O molde e o dado | `decl:struct`, `node:Member` | `um-nome-para-um-valor` | `struct Ponto` agrupa valores DIFERENTES numa ficha só; cada campo tem o seu tipo. | `cartao-de-ponto` — declara o struct e imprime os campos; teste compara a linha. |
-| 2 | `mudar-o-dado` — Mudar o dado | cons. — `node:Member` em forma nova (atribuir campo; atribuir o struct INTEIRO copia tudo) | `o-molde-e-o-dado`, `mudar-o-valor` | `p2 = p1` copia campo a campo — a foto, não o molde. | `o-clonador` — copia um struct para outro e muda o original; teste prova que a cópia não mudou. |
-| 3 | `o-apelido-do-molde` — O apelido do molde | `decl:typedef` | `o-molde-e-o-dado` | `typedef struct { ... } Ponto;` — `Ponto` passa a ser um tipo seu, sem a palavra `struct`. | `o-retangulo` — typedef de `Retangulo` com 4 campos e impressão; teste compara a linha. |
-| 4 | `o-dado-na-caixa` — O dado na caixa | cons. — `decl:param` em forma nova (struct por valor entra e sai da função) | `o-apelido-do-molde`, `devolver-em-vez-de-mostrar` | A função recebe a CÓPIA: mudar o parâmetro não muda o original (o vestíbulo de novo). | `o-movedor` — `mover(p, dx, dy)` devolve o ponto novo; teste compara `x` e `y` devolvidos. |
-| 5 | `mudar-o-original` — Mudar o original | `node:Arrow` (`s->m`: o campo via ponteiro; o degrau é o `*` do M5 aplicado à ficha) | `o-dado-na-caixa`, `ir-ate-a-casa` | `p->x` é `(*p).x`: o ponteiro enxerga o original e muda de verdade. | `o-movedor-de-verdade` — `moverVia(Ponto *p, dx, dy)` muda o original; teste compara os campos do original. |
-| 6 | `a-lista-de-fichas` — A lista de fichas | cons. — `decl:array` em forma nova (array de structs) | `o-apelido-do-molde`, `varrer-a-lista` | `pontos[i].x`: primeiro a gaveta, depois o campo. | `o-ponto-mais-longe` — imprime todos e acha o mais distante da origem (`sqrt`); teste compara o índice. |
-| 7 | `ficha-dentro-de-ficha` — Ficha dentro de ficha | cons. — `node:Member` em forma nova (struct aninhada: `pessoa.casa.x`) | `o-apelido-do-molde` | O campo pode ser outro struct: um ponto por nível de ponto. | `a-ficha-da-pessoa` — `Pessoa { nome, casa: Ponto }`; imprime nome e casa; teste compara a linha. |
-| 8 | `a-ficha-completa` — A ficha completa | cons. — composição (struct com `char nome[40]` lida com `scanf`) | `o-apelido-do-molde`, `ler-uma-palavra` | `scanf("%s", p.nome)`: o campo já é endereço — sem `&`. | `o-cadastro` — lê 2 pessoas (nome, idade, altura) e imprime a mais alta; teste injeta os dados e compara a linha. |
+| 1 | `o-molde-e-o-dado` — O molde e o dado | `struct Ponto` (o molde e o dado) + o acesso a campo `p.x` [pendente: kinds clang a confirmar no adaptador — declaração: `StructDecl`/`RecordDecl`; acesso: `MemberExpr` — hoje ambos não emergem] | `um-nome-para-um-valor` | `struct Ponto` agrupa valores DIFERENTES numa ficha só; cada campo tem o seu tipo. | `cartao-de-ponto` — declara o struct e imprime os campos; teste compara a linha. |
+| 2 | `mudar-o-dado` — Mudar o dado | cons. — acesso a campo em forma nova (atribuir campo; atribuir o struct INTEIRO copia tudo) [pendente: `MemberExpr`] | `o-molde-e-o-dado`, `mudar-o-valor` | `p2 = p1` copia campo a campo — a foto, não o molde. | `o-clonador` — copia um struct para outro e muda o original; teste prova que a cópia não mudou. |
+| 3 | `o-apelido-do-molde` — O apelido do molde | `typedef` — `Ponto` passa a ser um tipo seu, sem a palavra `struct` [pendente: kind clang a confirmar no adaptador — `TypedefDecl` hoje não emerge] | `o-molde-e-o-dado` | `typedef struct { ... } Ponto;` — `Ponto` passa a ser um tipo seu, sem a palavra `struct`. | `o-retangulo` — typedef de `Retangulo` com 4 campos e impressão; teste compara a linha. |
+| 4 | `o-dado-na-caixa` — O dado na caixa | cons. — `node:ParmVarDecl` em forma nova (struct por valor entra e sai da função) | `o-apelido-do-molde`, `devolver-em-vez-de-mostrar` | A função recebe a CÓPIA: mudar o parâmetro não muda o original (o vestíbulo de novo). | `o-movedor` — `mover(p, dx, dy)` devolve o ponto novo; teste compara `x` e `y` devolvidos. |
+| 5 | `mudar-o-original` — Mudar o original | `s->m` — o campo via ponteiro (o degrau é o `*` do M5 aplicado à ficha) [pendente: kind clang a confirmar no adaptador — é `MemberExpr` com base ponteiro, hoje não emerge] | `o-dado-na-caixa`, `ir-ate-a-casa` | `p->x` é `(*p).x`: o ponteiro enxerga o original e muda de verdade. | `o-movedor-de-verdade` — `moverVia(Ponto *p, dx, dy)` muda o original; teste compara os campos do original. |
+| 6 | `a-lista-de-fichas` — A lista de fichas | cons. — `decl:var` em forma nova (array de structs) + acesso `pontos[i].x` [pendente: `MemberExpr`] | `o-apelido-do-molde`, `varrer-a-lista` | `pontos[i].x`: primeiro a gaveta, depois o campo. | `o-ponto-mais-longe` — imprime todos e acha o mais distante da origem (`sqrt`); teste compara o índice. |
+| 7 | `ficha-dentro-de-ficha` — Ficha dentro de ficha | cons. — acesso a campo em forma nova (struct aninhada: `pessoa.casa.x`) [pendente: `MemberExpr`] | `o-apelido-do-molde` | O campo pode ser outro struct: um ponto por nível de ponto. | `a-ficha-da-pessoa` — `Pessoa { nome, casa: Ponto }`; imprime nome e casa; teste compara a linha. |
+| 8 | `a-ficha-completa` — A ficha completa | cons. — composição (struct com `char nome[40]` lida com `scanf`; o campo já é endereço — sem `&`) [pendente: `MemberExpr` em `p.nome`] | `o-apelido-do-molde`, `ler-uma-palavra` | `scanf("%s", p.nome)`: o campo já é endereço — sem `&`. | `o-cadastro` — lê 2 pessoas (nome, idade, altura) e imprime a mais alta; teste injeta os dados e compara a linha. |
 | 9 | `o-caderno` — O caderno do disco | `api:fopen`, `api:fclose` | `o-ponteiro-que-nao-aponta` | `fopen` devolve um ponteiro — ou `NULL` quando o caderno não abre; cada `fopen` pede um `fclose`. | `o-abridor` — abre `diario.txt` em `"w"`, testa `!= NULL` e fecha; teste verifica que o arquivo existe no disco depois de rodar. |
 | 10 | `escrever-no-caderno` — Escrever no caderno | `api:fprintf` | `o-caderno`, `buraco-na-frase` | `fprintf` é o `printf` que escolhe o caderno: mesmo `%d`, mesmo `%s`. | `o-diario` — escreve 3 linhas de log com `fprintf`; teste lê o arquivo e compara as 3 linhas. |
 | 11 | `ler-o-caderno` — Ler linha por linha | `api:fgets` | `o-caderno`, `percorrer-a-string` | `fgets(buffer, tamanho, f)` lê UMA linha por vez — e traz o `\n` junto. | `o-leitor-do-diario` — lê e imprime numerado; teste compara as linhas numeradas. |
 | 12 | `acrescentar-no-fim` — Acrescentar no fim | cons. — `api:fopen` em forma nova (modo `"a"`) | `escrever-no-caderno` | `"w"` apaga tudo; `"a"` escreve no fim — a diferença é uma letra. | `o-diario-crescente` — roda a escrita duas vezes; teste compara as 6 linhas acumuladas. |
 | 13 | `ler-numeros-do-caderno` — Ler números do caderno | `api:fscanf` | `o-caderno`, `perguntar-ao-usuario` | `fscanf` devolve QUANTOS campos leu: o laço termina quando não lê mais (`!= 2`). | `a-soma-do-arquivo` — lê números de um arquivo até o fim e soma; teste com arquivo de 5 números, compara a soma. |
-| 14 | `o-caderno-de-fichas` — O caderno de fichas | cons. — composição (`fprintf`/`fscanf` campo a campo: uma linha, um registro) | `a-ficha-completa`, `ler-numeros-do-caderno` | Um campo por vez, na MESMA ordem para escrever e ler. | `a-agenda` — salva 2 pessoas em arquivo e re-lê imprimindo; teste compara as 2 fichas re-lidas. |
-| 15 | `a-biblioteca-em-dois-arquivos` — A biblioteca em dois arquivos | `hdr:local.h` (o include do SEU header) + `term:header` | `declarar-antes-de-usar`, `o-apelido-do-molde` | O `.h` guarda os cartazes (protótipos e tipos); o `.c` guarda as caixas; o `main` inclui o `.h`. | `a-biblioteca-geometria` — `ponto.h`/`ponto.c`/`main.c`; o teste compila os três e compara os valores devolvidos. |
-| 16 | `compilar-sozinho` — Compilar com as próprias mãos | cons. — leitura do compilador (`term:warning`, `term:flag`) | `a-biblioteca-em-dois-arquivos` | `-Wall -Wextra` acende os avisos que viram aliados; o gate desta trilha exige 0 warnings. | `zero-avisos` — o starter tem 3 avisos conhecidos (`unused variable`, `missing initializer`, `return` sem valor); o aluno conserta até o runner sair limpo; teste: exit 0 + saída correta. |
+| 14 | `o-caderno-de-fichas` — O caderno de fichas | cons. — composição (`fprintf`/`fscanf` campo a campo: uma linha, um registro) [pendente: `MemberExpr` nos campos] | `a-ficha-completa`, `ler-numeros-do-caderno` | Um campo por vez, na MESMA ordem para escrever e ler. | `a-agenda` — salva 2 pessoas em arquivo e re-lê imprimindo; teste compara as 2 fichas re-lidas. |
+| 15 | `a-biblioteca-em-dois-arquivos` — A biblioteca em dois arquivos | cons. — `node:IncludeDirective` em forma nova (o include do SEU header `"ponto.h"`; `term:header`) | `declarar-antes-de-usar`, `o-apelido-do-molde` | O `.h` guarda os cartazes (protótipos e tipos); o `.c` guarda as caixas; o `main` inclui o `.h`. | `a-biblioteca-geometria` — `ponto.h`/`ponto.c`/`main.c`; o teste compila os três e compara os valores devolvidos. |
+| 16 | `compilar-sozinho` — Compilar com as próprias mãos | cons. — leitura do compilador (`term:warning`, `term:flag`) — PRÁTICA DE TERMINAL: o 0 warnings NÃO é gate do desafio (o adaptador não tem caminho de dados para warnings — §4) | `a-biblioteca-em-dois-arquivos` | `-Wall -Wextra` acende os avisos que viram aliados; a prática de terminal exige 0 warnings antes de seguir. | `zero-avisos` — o starter tem 3 avisos conhecidos (`unused variable`, `missing initializer`, `return` sem valor); o aluno conserta rodando o compilador no terminal; o teste do desafio assestra exit 0 + saída correta. |
 | 17 | `consolidacao-structs-arquivos` — O projeto final do curso | cons. — projeto final (cadastro persistido, biblioteca própria) | `o-molde-e-o-dado` a `compilar-sozinho` | (quiz) O que vai no `.h` — e o que NUNCA vai? | `o-inventario-final` — cadastro de itens em arquivo com biblioteca própria `.h`/`.c` (adicionar, listar, total e mais caro); 5 testes end-to-end. |
 
 ---
@@ -674,30 +731,39 @@ natural desses desafios: composição é o que eles testam.
 
 ### Regras para os desafios de aula (`challenge.json`)
 
-- `language: 'c'`; `programmingLanguage: 'c'`; `runtime: 'gcc-c11'`; `harnessLanguage: 'c'` no
-  `track.json`; slug da trilha: `c-iniciante` (§1). O token de runtime é o do pin de §4 — a onda 2
-  o valida contra o adaptador (`registry.ts`).
-- layout obrigatório: `solucao.c` na raiz; `tests/test_solucao.c` com os **protótipos congelados**
-  das funções do aluno no topo (até o M7, ver §"A tensão imprimir × devolver"); `runner.sh` — o
-  `TEST_CMD` canônico de C do repo ([`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.2):
-  `gcc -std=c11 -g -O0 -Wall -o .build/test_bin stub.c tests/test_stub.c -lm && .build/test_bin`;
-  o runner lê `TESTS_RUN=`/`TESTS_FAILED=` do stdout e normaliza o exit (D-V11); `solucao.h` entra
-  como arquivo do aluno só a partir da aula `a-biblioteca-em-dois-arquivos` (M7). **NOTA
-  (reconciliação da onda 3 — template de prova):** o runner do adaptador da engine compila só com
-  `-std=c11 -g`; a divergência de flags frente ao `TEST_CMD` canônico (`-O0 -Wall`) fica
-  registrada aqui para a onda 3 reconciliar no template de prova — este documento não decide no
-  lugar dela.
-- **fase SAÍDA** (M1–M3): `outputChannel: 'impressao'` — o runner captura o `stdout` do programa e
-  o teste compara;
+- `language: 'c'`; `programmingLanguage: 'c'`; `runtime: 'cc-c11'`; `harnessLanguage: 'c'` no
+  `track.json`; slug da trilha: `c-iniciante` (§1). O token de runtime é o do pin de §4 —
+  **validado na onda 2** contra o adaptador (`c.ts`: `C_DEFAULT_RUNTIME = 'cc-c11'`, o par
+  (toolchain, padrão) — `gcc-c11` do vocabulário preliminar NÃO existe no adaptador).
+- **Duas superfícies de runner, sem conflito (explicitado na onda 2).** (1) O fluxo da SKILL
+  (`challenge-new.sh`) usa `runner.sh` + `.build/test_bin` com o `TEST_CMD` canônico de C do repo
+  ([`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.2):
+  `gcc -std=c11 -g -O0 -Wall -o .build/test_bin stub.c tests/test_stub.c -lm && .build/test_bin`.
+  (2) O LAYOUT do desafio de TRILHA é o que o ADAPTADOR gera: `run.sh` num diretório temporário
+  (`lang/c.ts` — `SM_HARNESS_HEADER`/`SM_MAIN_SOURCE`/`SM_RUNNER_SCRIPT`), que compila com
+  `-std=c11 -g`, roda o binário com o `main` do harness e lê o ARQUIVO DE RELATÓRIO com nonce.
+  Este documento desenha os DESAFIOS para a superfície (2); o `TEST_CMD` canônico continua sendo
+  o pin da skill. `solucao.h` entra como arquivo do aluno só a partir da aula
+  `a-biblioteca-em-dois-arquivos` (M7). **NOTA (reconciliação da onda 3 — template de prova):**
+  o runner do adaptador da engine compila só com `-std=c11 -g`; a divergência de flags frente ao
+  `TEST_CMD` canônico (`-O0 -Wall`) fica registrada aqui para a onda 3 reconciliar no template de
+  prova — este documento não decide no lugar dela.
+- layout do desafio: `solucao.c` na raiz — **NUNCA com `main`** (o `main` é do harness; um
+  `main` do aluno não linka — §"A tensão"); `tests/test_solucao.c` com os **protótipos
+  congelados** das funções do aluno no topo (até o M7, ver §"A tensão imprimir × devolver");
+- **fase SAÍDA** (M1–M3): `outputChannel: 'impressao'` — modelo cenário-do-harness: o teste chama
+  a função do aluno e captura o `stdout` NO PRÓPRIO TESTE (`freopen` para arquivo temporário em
+  `testsCode`), e assevera com o helper `checa_<tipo>`; `solucao.c` NUNCA tem `main`;
 - **a virada** (M4 `imprimir-nao-e-devolver`): `outputChannel: 'ambos'`, três testes — devolve,
-  imprime, e chamar sozinha não imprime (mecânica da onda 2, §"A tensão");
+  imprime, e chamar sozinha não imprime (mesma mecânica de captura da fase SAÍDA, §"A tensão");
 - **fase VALOR** (M4 em diante): `outputChannel: 'retorno'` — o teste chama por protótipo e
   assevera com o helper `checa_<tipo>` do `counter_protocol`;
-- o teste **falha** com o starter e **passa** com a solução; `expectedTestCount` = nº de testes,
-  conferido por IGUALDADE contra o `TESTS_RUN=` impresso pelo próprio teste, nunca `> 0` (DES-4,
-  [`00-contratos.md`](00-contratos.md) §5.3); 2–4 testes por desafio de aula; todo cenário carrega
-  o rótulo pt-BR no primeiro argumento (`cenario`) do helper `checa_<tipo>` — é o que o veredito
-  mostra (§"A tensão");
+- o teste **falha** com o starter e **passa** com a solução; `expectedTestCount` = nº de
+  **CENÁRIOS** (blocos `SM_TEST`), conferido por IGUALDADE contra o `TESTS_RUN=` do relatório
+  (guard com namespace: `SM<nonce> TESTS_RUN=…`; canal confiável: o arquivo de relatório, não o
+  stdout), nunca `> 0` (DES-4, [`00-contratos.md`](00-contratos.md) §5.3); **1–4 cenários** por
+  desafio de aula; todo cenário carrega o rótulo pt-BR no primeiro argumento (`cenario`) do
+  helper `checa_<tipo>` — é o que o veredito mostra (§"A tensão");
 - **exit codes (D-V11, `languages.md`)**: o teste sai `falhas == 0 ? 0 : 1` (`counter_protocol`,
   [`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.3) e o runner normaliza para **0** passou · **1**
   falhou · **2** contagem errada · **3** timeout, ecoando `EXIT_BRUTO` e `DECORRIDO_MS` no stdout;
@@ -761,10 +827,10 @@ Como docs/17 pinou o `cpython-3.14`, esta trilha pina o compilador. A decisão e
 |---|---|---|
 | Compilador | **qualquer `cc` C11-conformante** — na matriz medida do repo: **gcc 16.2.1** (`skills/study-method/references/languages.md` §"A matriz"); nesta execução: **Apple clang 17.0.0**, que é o `gcc` do PATH e produziu os MESMOS resultados com o MESMO comando | a trilha não pode depender de sabor de compilador: o pin é o PADRÃO (`-std=c11`), não o binário. Ambas as máquinas do produto rodam o mesmo comando e produzem o mesmo comportamento medido — inclusive o abort 134 do `assert.h` que torna o `counter_protocol` obrigatório — medido nas duas |
 | Padrão | **`-std=c11`** | é o padrão que a matriz de execução do repo já usa para C (medido); é o primeiro padrão estável e universalmente suportado com `stdbool.h`; evita os recursos ainda em rotação do C23 (o `bool` keyword, os `constexpr`) e o modo GNU implícito. O `c-intermediario` decide entre C17/C23 com número na mão — o iniciante não participa dessa discussão |
-| Flags de qualidade | **`-Wall -Wextra -Wpedantic`** (desafios e gate) · **`-g`** (runner) · **`-lm`** (quando `math.h`) | o warning é o aliado didático do C (§6, item 8); o gate desta trilha exige **0 warnings** — é o equivalente C do "limiar 100% em código" (P-DURA). `-lm` já vem no runner, e a aula `mais-contas` explica o porquê |
-| Runner | compilar `solucao.c` + `tests/test_solucao.c` → `.build/test_bin` (`TEST_CMD` canônico de C, [`03-tdd`](build-spec/blocks/03-tdd.md) §3.9.2); o teste imprime `TESTS_RUN=`/`TESTS_FAILED=` em stdout e sai `falhas == 0 ? 0 : 1` (`counter_protocol`, §3.9.3); o runner normaliza para **0** passou · **1** falhou · **2** contagem errada · **3** timeout (D-V11), ecoando `EXIT_BRUTO`/`DECORRIDO_MS`; 66 = infra; outro código pós-normalização = defeito do runner (fail-closed) | é a linha C da matriz de execução do repo, re-medida nesta execução; guard de contagem: `^TESTS_RUN=([0-9]+)` impresso pelo próprio teste (`03-tdd` §3.9.2) — o guard `assert\s*\(` de `languages.md` §"O guard de cada linguagem" não se aplica ao teste gerado: o `counter_protocol` proíbe `assert.h` |
-| Adaptador da engine | **`app/electron/main/engine/lang/`** — nova linha do registro (`LanguageId: 'c'`, ao lado de `javascript`, `python`, `typescript`) | o adaptador C é construído **nesta mesma onda 1**, em worktree irmã; `registry.ts` já define a tabela de 15 responsabilidades e o fail-closed de `getAdapter`. Este documento NÃO lê nem antecipa o trabalho do irmão: o vocabulário daqui é preliminar e a onda 2 congela contra o `inventory()` real |
-| Runtime token | `runtime: 'gcc-c11'` · `harnessLanguage: 'c'` · `language: 'c'` | análogo direto do `runtime: 'cpython-3.14'` / `harnessLanguage: 'python'` de docs/17 |
+| Flags de qualidade | **`-Wall -Wextra -Wpedantic`** (prática de terminal e gate da skill) · **`-g`** (runner) · **`-lm`** (quando `math.h`) | o warning é o aliado didático do C (§6, item 8). **O "0 warnings" é PRÁTICA DE TERMINAL, NUNCA gate do desafio** (re-pinado na onda 2): o adaptador não tem caminho de dados para warnings — eles vão para a captura e são descartados num run que passa; a exigência de 0 warnings vive na prosa da aula `compilar-sozinho` e no fluxo da skill. `-lm` já vem no runner, e a aula `mais-contas` explica o porquê |
+| Runner | compilar `solucao.c` + `tests/test_solucao.c` → binário com o `main` do harness (`run.sh` gerado pelo adaptador; o `TEST_CMD` canônico de C da skill é OUTRA superfície — §"Regras para os desafios de aula"); o teste imprime os contadores no relatório com namespace (`SM<nonce> TESTS_RUN=`/`TESTS_FAILED=`) e sai `falhas == 0 ? 0 : 1` (`counter_protocol`, §3.9.3); o runner lê o ARQUIVO DE RELATÓRIO (não o stdout) e normaliza para **0** passou · **1** falhou · **2** contagem errada · **3** timeout (D-V11), ecoando `EXIT_BRUTO`/`DECORRIDO_MS`; 66 = infra; outro código pós-normalização = defeito do runner (fail-closed) | é a linha C da matriz de execução do repo, re-pinada na onda 2 contra o adaptador; guard de contagem: `SM<nonce> TESTS_RUN=([0-9]+)` lido do arquivo de relatório — o guard nu `^TESTS_RUN=` NUNCA casa (o relatório sai com o namespace do runner) e o `TESTS_RUN` conta CENÁRIOS (blocos `SM_TEST`), não chamadas de `checa_` — o guard `assert\s*\(` de `languages.md` §"O guard de cada linguagem" não se aplica ao teste gerado: o `counter_protocol` proíbe `assert.h` |
+| Adaptador da engine | **`app/electron/main/engine/lang/c.ts`** — nova linha do registro (`LanguageId: 'c'`, ao lado de `javascript`, `python`, `typescript`) | o adaptador C EXISTE (construído na onda 1); o vocabulário deste documento foi CONGELADO na onda 2 contra o seu `inventory()` (`cInventory()`), `cConstructKey()` e o extrator `vocab/c/extract_ast.py` |
+| Runtime token | `runtime: 'cc-c11'` · `harnessLanguage: 'c'` · `language: 'c'` | alinhado na onda 2 com `C_DEFAULT_RUNTIME` do adaptador (`c.ts`) — o par (toolchain, padrão); o preliminar `gcc-c11` não existe no adaptador |
 
 ## 5. Política de fontes (P-FONTE)
 
@@ -780,7 +846,8 @@ HTTP 200; man7/GCC/Clang/WG14 confirmados por busca oficial):
 | — E/S e tipos | `…/w/c/io` · `…/w/c/io/printf` (printf/fprintf/sprintf/snprintf) · `…/w/c/io/fscanf` (scanf/fscanf/sscanf) · `…/w/c/io/fgets` · `…/w/c/io/fopen` · `…/w/c/io/fclose` · `…/w/c/types` · `…/w/c/types/limits` (INT_MAX) · `…/w/c/types/boolean` (stdbool) · `…/w/c/types/NULL` · `…/w/c/header` | M1 (printf/scanf/limits), M2 (stdbool), M7 (todo o stdio) | HTTP 200 (todas) |
 | — strings e matemática | `…/w/c/string` · `…/w/c/string/byte/strlen` · `…/w/c/string/byte/strcmp` · `…/w/c/string/byte/strncpy` · `…/w/c/string/byte/toupper` (ctype) · `…/w/c/numeric/math/sqrt` | M6 inteiro + `mais-contas`/`o-ponto-mais-longe` | HTTP 200 (todas) |
 | **ISO/IEC 9899 — WG14** | draft público **N3220**: https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3220.pdf · página do projeto: https://www.open-std.org/jtc1/sc22/wg14/www/projects | o padrão por dentro; citado quando a aula toca o que o padrão PROMETE (p. ex. "o `\0` é obrigatório" — N3220 §7.1.4) | confirmada por busca (o N3220 é o working draft livre de ISO/IEC 9899:2024; o N3096 é o último draft pré-C23 livre, no mesmo repositório de documentos da WG14) |
-| **man7.org — man-pages** | https://man7.org/linux/man-pages — páginas: `…/man3/printf.3.html` · `…/man3/scanf.3.html` · `…/man3/strlen.3.html` · `…/man3/strcmp.3.html` · `…/man3/strncpy.3.html` · `…/man3/snprintf.3.html` · `…/man3/fopen.3.html` · `…/man3/fgets.3.html` · `…/man3/toupper.3.html` · `…/man3/sqrt.3.html` · `…/man3/assert.3.html` | a referência da libc como o Linux a define — 2ª fonte de toda aula de `api:` | printf/scanf/strlen confirmadas ao vivo; as demais seguem o MESMO esquema `man3/<nome>.3.html` (esquema confirmado) — a onda 2 re-verifica cada uma com HTTP 200 |
+| **man7.org — man-pages** | https://man7.org/linux/man-pages — páginas: `…/man3/printf.3.html` · `…/man3/scanf.3.html` · `…/man3/strlen.3.html` ·
+`…/man3/strcmp.3.html` · `…/man3/strncpy.3.html` · `…/man3/snprintf.3.html` · `…/man3/fopen.3.html` · `…/man3/fgets.3.html` · `…/man3/toupper.3.html` · `…/man3/sqrt.3.html` · `…/man3/assert.3.html` | a referência da libc como o Linux a define — 2ª fonte de toda aula de `api:` | **Re-verificadas na onda 2 (HTTP 200, todas as 11):** printf, scanf, strlen, strcmp, strncpy, snprintf, fopen, fgets, toupper, sqrt e assert responderam 200 nesta execução — nenhuma 404, nada a substituir |
 | **GCC online docs** | https://gcc.gnu.org/onlinedocs — warnings: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html · C dialect: `…/onlinedocs/gcc/C-Dialect-Options.html` | `-std=c11`, `-Wall`/`-Wextra`/`-Wpedantic` — aulas `a-lista-de-ferramentas` e `compilar-sozinho` | confirmada |
 | **Clang docs** | https://clang.llvm.org/docs/UsersManual.html · https://clang.llvm.org/docs/DiagnosticsReference.html | o segundo compilador do pin; diagnósticos nomeados da aula `compilar-sozinho` | confirmada |
 
@@ -840,9 +907,11 @@ de currículo que dela decorre e a fonte que a ancora:
    `Warning-Options`.
 8. **O compilador é um aliado com nome.** Os avisos de `-Wall -Wextra` pegam em tempo de
    compilação o que em Python viraria `NameError` em runtime. **Didática:** a trilha inteira é
-   pinada com warnings ligados e o gate exige 0; a aula `compilar-sozinho` transforma três avisos
-   reais em exercício. É a "rede de proteção" que o C dá de graça — e o motivo de o curso terminar
-   com compilação própria. Fonte: GCC `Warning-Options`, Clang `DiagnosticsReference`.
+   pinada com warnings ligados e a PRÁTICA DE TERMINAL exige 0 warnings (re-pinado na onda 2: não
+   é gate do desafio — o adaptador não tem caminho de dados para warnings; §4); a aula
+   `compilar-sozinho` transforma três avisos reais em exercício. É a "rede de proteção" que o C
+   dá de graça — e o motivo de o curso terminar com compilação própria. Fonte: GCC
+   `Warning-Options`, Clang `DiagnosticsReference`.
 
 ### Ponteiros, sem assustar — o momento e a analogia (declaração didática)
 
@@ -872,36 +941,103 @@ Contado sobre as tabelas de §3 (a conferência executável roda na onda 2, §"A
 | `c-especialista` | porta `a-porta-do-metal` + M20–M22 | ~8 + ~28 | idem |
 | **cadeia** | 7 da espinha + 3 portas | **115** + ~186 previstas | — |
 
-## 8. Apêndice — vocabulário de átomos preliminar assumido
+## 8. Apêndice — vocabulário de átomos CONGELADO (onda 2)
 
-**PRELIMINAR — a congelar na onda 2** contra o `inventory()` real do adaptador C
-(`app/electron/main/engine/lang/`). As chaves da espinha de §3 estão aqui na íntegra, por eixo.
-Nenhuma delas é origem normativa antes do congelamento; chaves que o adaptador não emitir
-derrubam a aula correspondente na verificação VOCAB (fail-closed) — e a correção é re-mapear a
-chave na tabela, não relaxar o gate.
+**CONGELADO nesta onda 2** contra o inventário REAL do adaptador C — fonte da verdade lida e
+confirmada nesta execução: `app/electron/main/engine/lang/c.ts` (`cInventory()` + `cConstructKey()`)
+e `app/electron/main/engine/vocab/c/extract_ast.py` (`_EMITIDOS` + `_familia_do_operador`). A
+verificação executável (`tools/check-trilha-c.mjs`) reproduz estas listas com comentário apontando
+a fonte e reprova qualquer chave fora delas (fail-closed). A correção de chave errada é re-mapear
+a célula, nunca relaxar o gate.
 
-**Eixos existentes do repo, reutilizados:** `node:`, `decl:`, `op:binary:`, `op:compare:`,
-`op:bool:`, `op:unary:`, `op:aug:`, `api:`, `term:`. **Eixos novos que o C exige (proposta deste
-documento):** `fmt:` (o especificador de printf como evento de currículo), `hdr:` (o `#include`),
-`type:` (o tipo primitivo com nome), `cast:`, `qualifier:`.
+**Origem: `cInventory()` — os 28 kinds do eixo `node:`** (nó é chave com o prefixo
+`node:<Kind>`): `ApiRef` · `ArraySubscriptExpr` · `BinaryOperator` · `BreakStmt` · `CallExpr` ·
+`CharacterLiteral` · `CompoundAssignOperator` · `CompoundStmt` · `ContinueStmt` · `DeclRefExpr` ·
+`DeclStmt` · `DoStmt` · `FloatingLiteral` · `ForStmt` · `FunctionDecl` · `GlobalRef` · `IfStmt` ·
+`IncludeDirective` (portadora sintética lida do FONTE — o clang não emite nó para o
+preprocessor) · `IndirectCall` (proibida — `C_FORBIDDEN_INVARIANTS`) · `InitListExpr` ·
+`IntegerLiteral` · `ParmVarDecl` · `ReturnStmt` · `StringLiteral` · `UnaryExprOrTypeTraitExpr` ·
+`UnaryOperator` · `VarDecl` · `WhileStmt`.
 
-| Eixo | Chaves usadas na espinha (a congelar) | Status |
+**Eixo `decl:`** (2 valores — `declKind`): `decl:func` (`FunctionDecl`, inclusive o protótipo e a
+`main`) · `decl:var` (`VarDecl` — escalar, array, array 2D e ponteiro: a FORMA não é distinguida).
+
+**Eixo `op:`** (famílias de `_familia_do_operador`, `op:<família>:<opcode>`):
+`op:assign:` — `= += -= *= /= %= &= |= ^= <<= >>=` · `op:binary:` — `+ - * / % < > <= >= == != & | ^ << >>` ·
+`op:logical:` — `&& ||` · `op:unary:` — `! + - ~ & * sizeof` · `op:update:` — `++ --`.
+
+**Eixo `api:`** — aberto por formato: toda chamada a função externa (`CallExpr` → `ApiRef`)
+emite `api:<nome>`; o usado na espinha: `printf` · `scanf` · `sqrt` · `strlen` · `strncpy` ·
+`strcmp` · `snprintf` · `toupper` · `fopen` · `fclose` · `fprintf` · `fgets` · `fscanf` ·
+`getenv` (receptivo).
+
+**Eixo `global:`** — `stdin` · `stdout` · `stderr` (detectados pelo TEXTO, decisão do adaptador).
+
+**Fora do vocabulário (e não é chave):** `term:` (prosa pt-BR de outro módulo) e o eixo `form:`
+(desabilitado — `C_FORM_AXIS_SUPPORTED = false`).
+
+### 8.1 — O remapeamento (preliminar → congelado), eixo a eixo
+
+| Preliminar | Congelado | O que aconteceu |
 |---|---|---|
-| axioma produtivo | `node:Call` · `node:StrLiteral` | assumido (mesma dupla do Python; a onda 2 confirma os nomes que o adaptador emite) |
-| `node:` | `node:TranslationUnit` · `node:Return` · `node:Name` · `node:IntLiteral` · `node:Paren` · `node:If` · `node:IfElse` · `node:Switch` (derivadas: `node:Case`, `node:Default`) · `node:Ternary` · `node:While` · `node:DoWhile` · `node:For` · `node:Break` · `node:Continue` · `node:FunctionDef` (derivada: `decl:param` só na aula de parâmetro) · `node:Prototype` · `node:Subscript` · `node:Member` · `node:Arrow` | assumido — nomes mais prováveis; `node:IfElse`/`node:Ternary`/`node:Paren` são sintéticas no modelo do adaptador Python |
-| `decl:` | `decl:main` · `decl:var` · `decl:param` · `decl:array` · `decl:array2d` · `decl:ptr` · `decl:struct` · `decl:typedef` | assumido |
-| `op:` | `op:assign` · `op:binary:+` · `op:binary:-` · `op:binary:*` · `op:binary:/` · `op:binary:%` · `op:compare:==` · `op:compare:>=` (família `== != < <= > >=`) · `op:bool:&&` · `op:bool:\|\|` · `op:unary:!` · `op:unary:&` · `op:unary:*` · `op:unary:++` · `op:unary:--` · `op:unary:sizeof` · `op:aug:+` · `op:aug:-` (família `+= -= *= /=`) | assumido — `op:assign` é extensão proposta; `++/--/sizeof` entram na família unary |
-| `fmt:` | `fmt:%d` · `fmt:%f` · `fmt:%c` · `fmt:%s` · `fmt:%p` | eixo novo proposto |
-| `hdr:` | `hdr:stdio.h` · `hdr:limits.h` · `hdr:stdbool.h` · `hdr:math.h` · `hdr:string.h` · `hdr:ctype.h` · `hdr:stdlib.h` (receptivo) · `hdr:local.h` (o include do header do próprio aluno; a onda 2 decide se o eixo distingue por nome ou emite uma chave única) | eixo novo proposto |
-| `type:` | `type:int` (derivada de `decl:var`) · `type:double` · `type:char` · `type:bool` | eixo novo proposto |
-| `cast:` / `qualifier:` | `cast:explicit` · `qualifier:const` | eixos de uma chave cada |
-| `api:` | `api:printf` · `api:scanf` · `api:sqrt` · `api:strlen` · `api:strncpy` · `api:strcmp` · `api:snprintf` · `api:toupper` · `api:fopen` · `api:fclose` · `api:fprintf` · `api:fgets` · `api:fscanf` · `api:NULL` · `api:INT_MAX` · `api:INT_MIN` · (receptivo: `api:getenv`) | eixo aberto por formato (docs/17) |
-| `term:` | `term:comentário` · `term:blocos-de-chaves` · `term:escopo` · `term:passagem por valor` · `term:header` · `term:warning` · `term:flag` | não-vocabulário (prosa), sem eixo fechado |
+| `node:Call` | `node:CallExpr` | renome para o kind real |
+| `node:StrLiteral`/`node:IntLiteral` | `node:StringLiteral`/`node:IntegerLiteral` | idem |
+| `node:Return`/`node:If`/`node:While`/`node:For`/`node:DoWhile`/`node:Break`/`node:Continue` | `node:ReturnStmt`/`node:IfStmt`/`node:WhileStmt`/`node:ForStmt`/`node:DoStmt`/`node:BreakStmt`/`node:ContinueStmt` | kinds do clang; `if`/`else` é UM nó (`node:IfStmt`) — `node:IfElse` não existe |
+| `node:Subscript` | `node:ArraySubscriptExpr` | idem |
+| `node:Switch`/`node:Case`/`node:Default` | — | `SwitchStmt`/`CaseStmt` não estão em `_EMITIDOS` (os filhos sobem) — PENDENTE §8.2 |
+| `node:Ternary`/`node:Paren` | — | `ConditionalOperator`/`ParenExpr` são TRANSPARENTES no extrator — PENDENTE §8.2 |
+| `node:Member`/`node:Arrow` | — | `MemberExpr` não está em `_EMITIDOS` — PENDENTE §8.2 |
+| `node:FunctionDef`/`node:Prototype` | `decl:func` | definição e protótipo são `FunctionDecl` → `decl:func` |
+| `decl:main` | `decl:func` | a `main` é `FunctionDecl` como qualquer outra |
+| `decl:param` | `node:ParmVarDecl` | o parâmetro fica no eixo `node:` (decisão do adaptador) |
+| `decl:array`/`decl:array2d`/`decl:ptr` | `decl:var` | o `declKind` é `var` para TODA declaração de variável — a FORMA não emite chave (PENDENTE §8.2 para promover) |
+| `decl:struct`/`decl:typedef` | — | `StructDecl`/`RecordDecl`/`TypedefDecl` não emitem nada hoje — PENDENTE §8.2 |
+| `op:assign` (sem dois-pontos) | `op:assign:=` | o eixo é `op:<família>:<opcode>` |
+| `op:aug:<op>` | `op:assign:<op>` | os compostos são `CompoundAssignOperator` na MESMA família |
+| `op:compare:<op>` | `op:binary:<op>` | o adaptador NÃO refinou família de comparação |
+| `op:bool:&&`/`op:bool:\|\|` | `op:logical:&&`/`op:logical:\|\|` | família própria para curto-circuito |
+| `op:unary:++`/`op:unary:--` | `op:update:++`/`op:update:--` | família própria de incremento (pré e pós) |
+| `op:unary:sizeof` | `op:unary:sizeof` | MANTIDO (o `UnaryExprOrTypeTraitExpr` recebe o atributo) |
+| `fmt:%d/%f/%c/%s/%p` | prosa na célula | eixo NÃO existe; o especificador fica descrito na célula da aula que o usa (sem segunda chave) |
+| `hdr:<header>` | `node:IncludeDirective` | o `#include` vira portadora sintética; a chave NÃO distingue o header (o `path` fica no atributo — distinguir é decisão da onda 3) |
+| `type:int/double/char/bool` | `decl:var` + literal derivado (`node:IntegerLiteral`, `node:FloatingLiteral`, `node:CharacterLiteral`) ou prosa | eixo NÃO existe; o clang separa os LITERAIS por kind |
+| `cast:explicit` | — | `CStyleCastExpr` é TRANSPARENTE — PENDENTE §8.2 |
+| `qualifier:const` | — | qualificador de TIPO não tem nó no AST do clang — PENDENTE §8.2 |
+| `api:NULL`/`api:INT_MAX`/`api:INT_MIN` | — | são MACROS: não há `CallExpr`, logo não há `ApiRef` — PENDENTE §8.2 |
+| `node:TranslationUnit` (receptivo) | — | a raiz do dump (`TranslationUnitDecl`) não é chave de construção |
+
+### 8.2 — PENDENTE DE INVENTÁRIO (construções sem chave — input direto da onda 3)
+
+Estas construções SÃO conteúdo do `c-iniciante` (o M7 ensina structs!) mas o adaptador C de hoje
+as deixa sem chave — ou porque o kind não está em `_EMITIDOS`, ou porque é transparente, ou
+porque não tem nó no AST do clang. NÃO são chave normativa: a verificação VOCAB as aceita
+marcadas `[pendente: …]` na célula; a decisão de ESTENDER o adaptador (scaffold/fix — emitir
+chave própria ou aceitar a lacuna) é da onda 3. Kind do clang provável entre parênteses:
+
+| # | Construção (as aulas que a ensinam) | Kind do clang provável | Situação hoje no extrator |
+|---|---|---|---|
+| P1 | `struct` — a declaração do molde e a variável-ficha (M7 a1; porta do intermediário) | `StructDecl` / `RecordDecl` (a struct anônima do typedef: `RecordDecl`) | NÃO está em `_EMITIDOS` → derruba, filhos sobem; não há `decl:` (o `declKind` só tem `func`/`var`) |
+| P2 | acesso a campo — `p.x` e `s->m` (M7 a1/a2/a5/a6/a7/a8/a14) | `MemberExpr` (o `->` é o MESMO kind com base ponteiro; o `.` e o `->` não se distinguem no kind) | NÃO está em `_EMITIDOS` nem em `_TRANSPARENTES` → derrubado como desconhecido |
+| P3 | `typedef` — o apelido do molde (M7 a3) | `TypedefDecl` | NÃO está em `_EMITIDOS` |
+| P4 | ternário `? :` (M2 a9) | `ConditionalOperator` | TRANSPARENTE por decisão (`_TRANSPARENTES` — "fora do escopo iniciante") — a decisão contradiz a espinha: rever na onda 3 |
+| P5 | `switch`/`case`/`default` (M2 a8; M4 a15; M6 a16) | `SwitchStmt` / `CaseStmt` | NÃO estão em `_EMITIDOS` (os filhos sobem) — o `node:BreakStmt` de dentro emite |
+| P6 | cast explícito `(double)7 / 2` (M1 a13; M3 a13; M5 desafios) | `CStyleCastExpr` | TRANSPARENTE por decisão ("ImplicitCastExpr é o mais comum" — o cast EXPLÍCITO caiu junto) |
+| P7 | `const` — o qualificador (M5 a18) | sem nó próprio (qualificador de TIPO: `QualType`) | invisível ao AST como nó; só o texto do fonte o mostra |
+| P8 | `NULL` (M5 a19; M7 a9) | sem nó (macro → `((void*)0)`; após expansão resta um literal) | sem `CallExpr` → sem `ApiRef`; não emite chave |
+| P9 | `INT_MAX`/`INT_MIN` (M1 a21) | sem nó (macro → literal após expansão) | idem |
+| P10 | `bool` como tipo distinto (M2 a6; M3 a12) | sem nó (tipo; `typedef` do `<stdbool.h>`) | a declaração emite `decl:var` — distinguir o tipo é chave da onda 3 (ou prosa, como hoje) |
+| P11 | distinção do `#include` por HEADER (o `path` que o extrator JÁ captura no atributo) | `IncludeDirective` (atributo `path`) | a chave hoje é única — a onda 3 decide se promove `node:IncludeDirective` → chave por path (o precedente é `api:<nome>`) |
+| P12 | formas de declaração — array/2D/ponteiro (M5/M6) | `VarDecl` (tipo com `Array`/`Pointer` no `QualType`) | hoje tudo `decl:var`; promover exigiria derivar do tipo — onda 3 |
+
+**Regra de ouro da onda 3:** nenhuma destas vira chave por decreto deste documento — a decisão
+(mais o scaffold/fix no adaptador e os gates re-rodando) é dela; enquanto isso, as células usam
+prosa + `[pendente: …]`, e o M7 inteiro roda com o orçamento das chaves que EXISTEM (`decl:var`,
+`node:ParmVarDecl`, `api:*`, `node:IncludeDirective`).
 
 **O que o apêndice NÃO lista.** As chaves receptivas do harness C além da semente de §"Público e
-axioma de entrada" (a lista da onda 2 sai da leitura real dos `test_solucao.c` autorados, como
-fez docs/17 com as oito chaves do `runpy`) e as chaves derivadas de nó container
-(`node:BinaryOp`-equivalentes do adaptador C), que seguem o mapa da regra do par.
+axioma de entrada" (a lista sai da leitura real dos `test_solucao.c` autorados, como fez docs/17
+com as oito chaves do `runpy`) e as chaves derivadas de nó container, que seguem o mapa da regra
+do par (§"Vocabulário").
 
 ---
 
@@ -939,4 +1075,52 @@ fez docs/17 com as oito chaves do `runpy`) e as chaves derivadas de nó containe
   passou a vir ANTES de `devolver-dois-valores` (agora a13 — cujo desafio `minimo-e-maximo` chama
   `minimoEMaximo(v, 5, &min, &max)`, que passa array para função), com o `Presume` da a13 ajustado
   para `a-lista-como-parametro`, `a-troca-que-funciona`; as 115 linhas recontadas intactas (slug/
-  Ensina/Presume/quiz/desafio, verificação manual pós-edição).
+  Ensina/Presume/quiz/desafio, verificação manual pós-edição). (Registros de ondas anteriores
+  preservam o vocabulário da época — hoje remapeado, §8.1.)
+
+- **DÍVIDA "CONGELAR VOCABULÁRIO" — CONCLUÍDA (onda 2, esta execução).** Resumo do remapeamento:
+  (a) inventário REAL confirmado olho nu em `lang/c.ts` (`cInventory()`: 28 kinds; `cConstructKey()`:
+  eixos `node:`/`decl:`/`op:`/`global:`/`api:`; `C_DEFAULT_RUNTIME = 'cc-c11'`) e
+  `vocab/c/extract_ast.py` (`_EMITIDOS`, `_TRANSPARENTES`, `_familia_do_operador`);
+  (b) as **115 células `Ensina` remapeadas** das chaves preliminares para as congeladas (mapa
+  integral em §8.1): `op:compare:*` → `op:binary:*`; `op:bool:*` → `op:logical:*`;
+  `op:aug:*` → `op:assign:*`; `op:assign` → `op:assign:=`; `op:unary:++/--` → `op:update:*`;
+  `node:If/IfElse` → `node:IfStmt`; `node:While/For/DoWhile/Break/Continue/Return` →
+  `node:*Stmt`/`node:DoStmt`; `node:Subscript` → `node:ArraySubscriptExpr`;
+  `node:FunctionDef/Prototype/decl:main` → `decl:func`; `decl:param` → `node:ParmVarDecl`;
+  `decl:array/array2d/ptr` → `decl:var` (forma nova / PENDENTE); `hdr:*` → `node:IncludeDirective`;
+  `fmt:*`/`type:*` → prosa na célula (regra da tarefa);
+  (c) **13 células com `[pendente: …]`** — construções sem chave no adaptador (cast, ternário,
+  switch, const, NULL, struct, typedef, acesso a campo, array 2D) — lista integral com kinds
+  clang prováveis em §8.2 (input direto da onda 3);
+  (d) aulas que ensinavam chave que colapsou (double, char, include de limits/ctype/string.h,
+  ponteiro, array como parâmetro, protótipo, `sua-primeira-caixa`) viraram **consolidações "em
+  forma nova"** com o distinguível real nomeado — contagem de consolidações atualizada
+  (70/115); progressão produtiva do M1 recongelada; o `op:aug:+` preliminar virou
+  `op:assign:+=` — opcode COMPOSTO medido com `cc -Xclang -ast-dump=json` (`x += 3` →
+  `opcode: '+='`), não `op:assign:+`;
+  (e) semente receptiva recongelada com as chaves reais (§"Axioma de entrada": `decl:func`,
+  `node:*Stmt`, `node:DeclRefExpr`, `op:assign:+=`, `op:binary:==/!=`, `node:IncludeDirective`,
+  `api:getenv`…); `api:NULL`/`node:TranslationUnit` saíram;
+  (f) runtime `gcc-c11` → **`cc-c11`** (§"Regras" e §4); NOTA de reconciliação de flags da onda 3
+  PRESERVADA; (g) **as 11 URLs man7 do esquema re-verificadas por HTTP 200 nesta execução**
+  (printf, scanf, strlen, strcmp, strncpy, snprintf, fopen, fgets, toupper, sqrt, assert) —
+  nenhuma 404, nada a substituir; status do §5 atualizado;
+  (h) verificação executável criada: **`tools/check-trilha-c.mjs`** (node puro) — I12, LACUNA,
+  VOCAB (fail-closed contra o congelado + PENDENTE), A7 (regra do par com mapa de derivadas) e
+  A6 — **verde sobre o doc após o remapeamento** (5 testes negativos executados sobre CÓPIAS
+  temporárias — chave fora do inventário, 3 construções, Presume para aula posterior, Presume
+  fantasma, slug repetido — TODOS pegos com exit 1; estado quebrado NÃO commitado).
+
+- **Correção da revisão de integração (onda 2 — steering do orquestrador, 5 achados de repro
+  empírica de `lang/c.ts`):** SAÍDA re-pinada para o **modelo cenário-do-harness** — `solucao.c`
+  NUNCA tem `main` (`duplicate symbol '_main'`; captura do stdout só sai com exit≠0): o aluno
+  escreve FUNÇÕES que a tela pede, o teste captura o stdout NO PRÓPRIO TESTE (`freopen` para
+  arquivo temporário em `testsCode` — stdlib puro) — §"A aula 1", §"A tensão" e as células M1
+  a2/a3 ajustadas; **`TESTS_RUN` conta CENÁRIOS** (blocos `SM_TEST`), não chamadas de `checa_` —
+  `expectedTestCount` = nº de cenários, 1–4 por desafio; **guard com namespace**
+  (`SM<nonce> TESTS_RUN=`) e canal confiável = arquivo de relatório com nonce (o guard nu
+  `^TESTS_RUN=` nunca casa); **duas superfícies de runner** explicitadas (`runner.sh`/`.build/
+  test_bin` = fluxo da skill; `run.sh` em dir temporário = layout gerado pelo adaptador);
+  **0-warnings é PRÁTICA DE TERMINAL**, nunca gate do desafio (§4, §6 item 8, aula M7 a16).
+  As chaves do inventário NÃO mudam com este steering.
