@@ -4,7 +4,7 @@
   "title": "O corpo é uma expressão",
   "summary": "A última linha do corpo, SEM `;`, é o que a função devolve — o `;` transforma a expressão em instrução e mata o valor.",
   "difficulty": 3,
-  "role": "regular",
+  "role": "consolidation",
   "targetAtom": "node:FunctionItem",
   "concepts": [
     "corpo_expressao"

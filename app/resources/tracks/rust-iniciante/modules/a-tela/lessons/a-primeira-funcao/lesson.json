@@ -5,6 +5,7 @@
   "summary": "Uma função que devolve o dobro.",
   "difficulty": 1,
   "role": "regular",
+  "targetAtom": "node:FunctionItem",
   "concepts": [
     "funcao"
   ],

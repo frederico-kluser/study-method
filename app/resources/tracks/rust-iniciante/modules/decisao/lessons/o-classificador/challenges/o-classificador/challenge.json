@@ -5,9 +5,9 @@
   "concept": "o_classificador",
   "difficulty": 4,
   "language": "rust",
-  "statement": "# O classificador\n\nFim de módulo: uma função que classifica a nota em texto, com a fila de três ramos e o `format!`.\n\nA função `o_classificador` recebe a nota e devolve:\n\n- `nota N excelente` quando N é maior que 8;\n- `nota N boa` quando N é maior que 5 (mas não maior que 8);\n- `nota N precisa estudar` nos demais casos.\n\nOnde `N` é a própria nota, montada pelo `format!` com `{}`.\n\nOs testes chamam com uma nota de cada ramo. Este desafio não ensina nada novo — ele compõe o módulo inteiro.",
+  "statement": "# O classificador\n\nFim de módulo: uma função que classifica a nota em texto, com a fila de três ramos e o `format!`.\n\nA função `o_classificador` recebe a nota e devolve:\n\n- `nota N excelente` quando N é maior que 8;\n- `nota N boa` quando N é maior que 5 (mas não maior que 8);\n- `nota N precisa estudar` nos demais casos.\n\nOnde `N` é a própria nota, montada pelo `format!` com `{nota}`.\n\nOs testes chamam com uma nota de cada ramo. Este desafio não ensina nada novo — ele compõe o módulo inteiro.",
   "starterCode": "pub fn o_classificador(nota: i32) -> String {\n    todo!()\n}\n",
-  "solutionCode": "pub fn o_classificador(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {} excelente\", nota)\n    } else if nota > 5 {\n        format!(\"nota {} boa\", nota)\n    } else {\n        format!(\"nota {} precisa estudar\", nota)\n    }\n}\n",
+  "solutionCode": "pub fn o_classificador(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {nota} excelente\")\n    } else if nota > 5 {\n        format!(\"nota {nota} boa\")\n    } else {\n        format!(\"nota {nota} precisa estudar\")\n    }\n}\n",
   "testsCode": "use desafio::o_classificador;\n\n#[test]\nfn testa_nota_nove_e_excelente() {\n    assert_eq!(o_classificador(9), \"nota 9 excelente\");\n}\n\n#[test]\nfn testa_nota_sete_e_boa() {\n    assert_eq!(o_classificador(7), \"nota 7 boa\");\n}\n\n#[test]\nfn testa_nota_tres_precisa_estudar() {\n    assert_eq!(o_classificador(3), \"nota 3 precisa estudar\");\n}\n",
   "requirements": [
     {

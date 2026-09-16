@@ -4,7 +4,7 @@
   "title": "O erro de compilação",
   "summary": "O `rustc` lê o seu código antes de qualquer teste: quando recusa, ele diz o CÓDIGO do erro, a linha e a palavra exata — e o erro é conteúdo, não castigo.",
   "difficulty": 3,
-  "role": "regular",
+  "role": "consolidation",
   "targetAtom": "node:FunctionItem",
   "concepts": [
     "erro_compilacao"

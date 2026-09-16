@@ -4,7 +4,7 @@
   "title": "Dar nome ao valor",
   "summary": "O `let` dentro da função guarda um valor num nome — e o nome entra nas contas no lugar do valor.",
   "difficulty": 2,
-  "role": "regular",
+  "role": "consolidation",
   "targetAtom": "decl:let",
   "concepts": [
     "dar_nome"

@@ -24,12 +24,12 @@
     {
       "id": "tres-ramos-um-rotulo",
       "title": "Três ramos, um rótulo",
-      "markdown": "O classificador junta as duas matérias do módulo: a FILA de perguntas (`if`/`else if`/`else`) decide, e o `format!` monta o texto — cada ramo devolve o seu:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {} excelente\", nota)\n    } else if nota > 5 {\n        format!(\"nota {} boa\", nota)\n    } else {\n        format!(\"nota {} precisa estudar\", nota)\n    }\n}\n```\n\nA nota 9 cai no primeiro ramo; a 7 no segundo; a 3 no `else`."
+      "markdown": "O classificador junta as duas matérias do módulo: a FILA de perguntas (`if`/`else if`/`else`) decide, e o `format!` monta o texto — cada ramo devolve o seu:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {nota} excelente\")\n    } else if nota > 5 {\n        format!(\"nota {nota} boa\")\n    } else {\n        format!(\"nota {nota} precisa estudar\")\n    }\n}\n```\n\nA nota 9 cai no primeiro ramo; a 7 no segundo; a 3 no `else`."
     },
     {
       "id": "cada-ramo-monta-o-seu-texto",
       "title": "Cada ramo monta o seu texto",
-      "markdown": "O texto de cada ramo nasce no `format!` — a aula `a-mensagem-montada` — com o `{}` abrindo a vaga para o valor:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {} excelente\", nota)\n    } else if nota > 5 {\n        format!(\"nota {} boa\", nota)\n    } else {\n        format!(\"nota {} precisa estudar\", nota)\n    }\n}\n```\n\nO `nota` que vem depois do texto ocupa a vaga do `{}` — e o `format!` devolve o texto pronto."
+      "markdown": "O texto de cada ramo nasce no `format!` — a aula `a-mensagem-montada` — com o `{nota}` abrindo a vaga para o valor — dentro das chaves vai o NOME:\n\n```rust\npub fn o_rotulo_da_nota(nota: i32) -> String {\n    if nota > 8 {\n        format!(\"nota {nota} excelente\")\n    } else if nota > 5 {\n        format!(\"nota {nota} boa\")\n    } else {\n        format!(\"nota {nota} precisa estudar\")\n    }\n}\n```\n\nDentro das chaves vai o nome (`nota`); no texto sai o valor que ele guarda — e o `format!` devolve o texto pronto."
     },
     {
       "id": "o-fecho-do-modulo",
@@ -63,19 +63,19 @@
       "statement": "Cada ramo monta o próprio texto com format! — a fila decide qual, o format! monta como.",
       "question": "O que abre a vaga para o valor no texto do `format!`?",
       "options": [
-        "as chaves {} dentro do texto",
+        "as chaves {nota} dentro do texto",
         "o sinal >",
         "o let mut",
         "o ponto e vírgula"
       ],
       "answerIndex": 0,
-      "feedback": "O {} é a vaga no texto; o valor que vem depois da vírgula ocupa a vaga.",
+      "feedback": "O {nota} é a vaga no texto: dentro das chaves vai o nome, no texto sai o valor que ele guarda.",
       "sectionId": "cada-ramo-monta-o-seu-texto",
       "optionRationales": [
-        "O {} no meio do texto é a vaga onde o valor da nota entra.",
-        "O sinal > decide o ramo — a vaga no texto é papel do {}.",
-        "let mut liga nome a valor — a vaga no texto é trabalho do {}.",
-        "O ; fecha instruções — a montagem do texto é do {}."
+        "O {nota} no meio do texto é a vaga onde o valor da nota entra.",
+        "O sinal > decide o ramo — a vaga no texto é papel do {nota}.",
+        "let mut liga nome a valor — a vaga no texto é trabalho das chaves {nota}.",
+        "O ; fecha instruções — a montagem do texto é do {nota}."
       ]
     },
     {
