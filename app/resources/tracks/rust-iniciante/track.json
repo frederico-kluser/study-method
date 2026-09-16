@@ -13,6 +13,8 @@
   ],
   "modules": [
     "a-tela",
-    "decisao"
+    "decisao",
+    "repeticao",
+    "o-dono-do-valor"
   ]
 }

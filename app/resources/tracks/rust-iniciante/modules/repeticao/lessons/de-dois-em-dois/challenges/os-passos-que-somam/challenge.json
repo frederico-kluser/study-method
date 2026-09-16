@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-passos-que-somam",
+  "title": "Os passos que somam",
+  "concept": "dois_em_dois",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# Os passos que somam\n\nO `.step_by(2)` é o método do intervalo que muda o passo: os números da vez passam a vir de 2 em 2.\n\nEscreva uma função `soma_de_dois_em_dois` que recebe o `limite` e soma os números do intervalo `0..limite` de dois em dois:\n\n1. dê um nome ao intervalo: `let intervalo = 0..limite;`;\n2. comece com a soma em `0`;\n3. para cada `n` em `intervalo.step_by(2)`, some `n` na soma;\n4. depois do laço, devolva a soma.\n\n`soma_de_dois_em_dois(10)` devolve `20` — `0 + 2 + 4 + 6 + 8`. E `soma_de_dois_em_dois(1)` devolve `0`: do intervalo `0..1` de 2 em 2 só resta o `0`.",
+  "starterCode": "pub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    let intervalo = 0..limite;\n    let mut soma = 0;\n    for n in intervalo.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_de_dois_em_dois;\n\n#[test]\nfn testa_a_soma_de_dois_em_dois_ate_dez() {\n    assert_eq!(soma_de_dois_em_dois(10), 20);\n}\n\n#[test]\nfn testa_a_soma_de_dois_em_dois_ate_cinco() {\n    assert_eq!(soma_de_dois_em_dois(5), 6);\n}\n\n#[test]\nfn testa_o_intervalo_de_um_so_restara_o_zero() {\n    assert_eq!(soma_de_dois_em_dois(1), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_de_dois_em_dois deve devolver 20 quando chamada com 10 (0 + 2 + 4 + 6 + 8).", "teste": "testa_a_soma_de_dois_em_dois_ate_dez" },
+    { "id": "REQ-2", "descricao": "A função soma_de_dois_em_dois deve devolver 6 quando chamada com 5 (0 + 2 + 4).", "teste": "testa_a_soma_de_dois_em_dois_ate_cinco" },
+    { "id": "REQ-3", "descricao": "A função soma_de_dois_em_dois deve devolver 0 quando chamada com 1 (de 2 em 2, só o 0).", "teste": "testa_o_intervalo_de_um_so_restara_o_zero" }
+  ],
+  "expectedTestCount": 3
+}

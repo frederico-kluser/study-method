@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-volta",
+  "title": "A primeira volta",
+  "concept": "laco_loop",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A primeira volta\n\nO `loop` repete sem perguntar nada — e só sai com o `break`. O esqueleto já tem o exemplo pronto (`ate_tres`, com o `break` no lugar) para você copiar a forma.\n\nEscreva uma função `soma_ate` que recebe o `limite` e soma os números de 1 até o limite:\n\n1. comece com a soma em `0` e o número da vez `n` em `1`;\n2. dentro do `loop`, quando `n` passar do limite, mande parar com o `break`;\n3. a cada volta, some `n` na soma e faça `n` subir 1;\n4. depois do laço, devolva a soma.\n\n`soma_ate(4)` devolve `10` (1 + 2 + 3 + 4).",
+  "starterCode": "pub fn ate_tres() -> i32 {\n    let mut conta = 0;\n    loop {\n        conta += 1;\n        if conta == 3 {\n            break;\n        }\n    }\n    conta\n}\n\npub fn soma_ate(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn ate_tres() -> i32 {\n    let mut conta = 0;\n    loop {\n        conta += 1;\n        if conta == 3 {\n            break;\n        }\n    }\n    conta\n}\n\npub fn soma_ate(limite: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        if n > limite {\n            break;\n        }\n        soma += n;\n        n += 1;\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_ate;\n\n#[test]\nfn testa_a_soma_ate_quatro() {\n    assert_eq!(soma_ate(4), 10);\n}\n\n#[test]\nfn testa_a_soma_ate_um() {\n    assert_eq!(soma_ate(1), 1);\n}\n\n#[test]\nfn testa_a_soma_ate_zero_nao_soma_nada() {\n    assert_eq!(soma_ate(0), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_ate deve devolver 10 quando chamada com 4 (1 + 2 + 3 + 4).", "teste": "testa_a_soma_ate_quatro" },
+    { "id": "REQ-2", "descricao": "A função soma_ate deve devolver 1 quando chamada com 1.", "teste": "testa_a_soma_ate_um" },
+    { "id": "REQ-3", "descricao": "A função soma_ate deve devolver 0 quando chamada com 0.", "teste": "testa_a_soma_ate_zero_nao_soma_nada" }
+  ],
+  "expectedTestCount": 3
+}

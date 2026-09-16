@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "parar-no-meio",
+  "title": "Parar no meio",
+  "summary": "O break interrompe o laço no meio do corpo — é ele quem manda a corrida parar.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:BreakExpression",
+  "concepts": [
+    "parar_no_meio"
+  ],
+  "prerequisites": [
+    "repetir-para-sempre"
+  ],
+  "introduces": {
+    "productive": [
+      "node:BreakExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-pare-que-vem-de-dentro",
+      "title": "O PARE que vem de dentro",
+      "markdown": "O `break` interrompe o laço no MEIO do corpo: as linhas da volta que ficam depois dele não rodam:\n\n```rust\npub fn soma_ate_passar(teto: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        soma += n;\n        if soma > teto {\n            break;\n        }\n        n += 1;\n    }\n    soma\n}\n```\n\nQuando a soma passa do teto, o `break` corta: o `n += 1;` da volta NÃO roda, e o laço acaba ali mesmo. `soma_ate_passar(10)` devolve `15` — a primeira soma que passou do teto."
+    },
+    {
+      "id": "o-laco-que-nunca-acabaria",
+      "title": "O laço que nunca acabaria",
+      "markdown": "Esta corrida não tem fim natural: a soma sobe uma casa a cada volta, para sempre. O laço não tem condição de parada — o `break` é o ÚNICO caminho para fora:\n\n```rust\npub fn soma_ate_passar(teto: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        soma += n;\n        if soma > teto {\n            break;\n        }\n        n += 1;\n    }\n    soma\n}\n```\n\nTire o `break` e o programa fica preso: o teste nunca devolveria. É por isso que quem escreve um `loop` escreve junto o seu PARE."
+    },
+    {
+      "id": "depois-do-laco-a-vida-continua",
+      "title": "Depois do laço, a vida continua",
+      "markdown": "Quando o `break` interrompe, o programa segue na linha seguinte AO LAÇO — não ao `if`:\n\n```rust\npub fn soma_ate_passar(teto: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        soma += n;\n        if soma > teto {\n            break;\n        }\n        n += 1;\n    }\n    soma\n}\n```\n\nA última expressão do corpo da função é o que ela devolve (a aula `o-corpo-e-uma-expressao`): depois do laço, `soma` guarda a soma parada — `soma_ate_passar(2)` devolve `3`, porque 1 ainda não passa e 3 já passou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-break-corta-no-meio",
+      "statement": "O break interrompe o laço ali mesmo — as linhas da volta que ficam depois dele não rodam.",
+      "question": "Em `soma_ate_passar(10)`, o que acontece na volta em que a soma vira 15?",
+      "options": [
+        "o break interrompe o laço e o n += 1 da volta não roda",
+        "o bloco inteiro roda mais uma vez",
+        "o laço roda mais três voltas para conferir",
+        "o programa recomeça do zero"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `break` corta ali mesmo: a volta acaba no PARE, e o programa segue depois do laço.",
+      "sectionId": "o-pare-que-vem-de-dentro",
+      "optionRationales": [
+        "O `break` interrompe na hora: o resto da volta é pulado e o laço acaba.",
+        "Condição `true` roda o bloco do `if` — e o bloco é o PARE, não mais uma volta.",
+        "O `break` não confere nada: ele simplesmente interrompe.",
+        "Recomeçar não existe: o programa segue na linha seguinte ao laço."
+      ]
+    },
+    {
+      "id": "quem-decide-e-dentro",
+      "statement": "Nesta corrida quem decide a parada é a condição DENTRO do laço — fora dele não há juiz nenhum.",
+      "question": "Por que este laço precisa do break para acabar?",
+      "options": [
+        "porque o laço não tem condição de parada — o juiz é o if de dentro",
+        "porque a soma fica grande demais para continuar",
+        "porque o teste manda parar depois de três voltas",
+        "porque o n chega ao fim da linha"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `loop` repete sem perguntar nada: a única saída é o `break` que o `if` de dentro dispara.",
+      "sectionId": "o-laco-que-nunca-acabaria",
+      "optionRationales": [
+        "Sem condição de parada, o laço nunca acabaria sozinho — o PARE mora dentro dele.",
+        "Número grande não assusta o laço — o que decide é a condição do `if`.",
+        "O teste roda depois do programa; ele não interrompe laço nenhum.",
+        "Não existe fim de linha para laço — a volta volta ao começo sempre."
+      ]
+    },
+    {
+      "id": "o-programa-segue-depois",
+      "statement": "Depois do break, o programa continua na linha seguinte ao laço inteiro, não ao if.",
+      "question": "Depois que o `break` interrompe o laço, por onde o programa segue?",
+      "options": [
+        "pela linha seguinte ao laço — que devolve a soma",
+        "pela linha seguinte ao if, dentro do laço",
+        "pelo começo do laço, mais uma volta",
+        "por nada: o programa acaba no break"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `break` sai do laço inteiro: o programa segue na linha seguinte a ele — aqui, a expressão que devolve a soma.",
+      "sectionId": "depois-do-laco-a-vida-continua",
+      "optionRationales": [
+        "O `break` abandona o laço de uma vez: o programa continua depois dele.",
+        "O `if` já acabou — o break pulou o resto da volta inteira.",
+        "Voltar ao começo é o que o laço faz SEM o break — o break é o contrário disso.",
+        "O programa não acaba: ele segue para as linhas depois do laço."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do loop — e do break que interrompe no meio."
+    },
+    {
+      "title": "Rust by Example — Loops and Labels",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/loop.html",
+      "description": "Os exemplos oficiais do loop e do break."
+    },
+    {
+      "title": "std — a palavra-chave break",
+      "url": "https://doc.rust-lang.org/std/keyword.break.html",
+      "description": "A página oficial da palavra-chave break."
+    }
+  ],
+  "challenges": [
+    "a-soma-que-passa-do-teto"
+  ]
+}

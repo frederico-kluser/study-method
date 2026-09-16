@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-contagem-do-intervalo",
+  "title": "A contagem do intervalo",
+  "concept": "contar_com_for",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A contagem do intervalo\n\nO `for` dá, volta a volta, o número da vez — e o intervalo `0..limite` entrega os números de `0` até o limite, SEM incluir o limite.\n\nEscreva uma função `soma_dos_quadrados` que recebe o `limite` e soma o quadrado de cada número do intervalo `0..limite`:\n\n1. comece com a soma em `0`;\n2. para cada `n` no intervalo `0..limite`, some `n * n` na soma;\n3. depois do laço, devolva a soma.\n\n`soma_dos_quadrados(4)` devolve `14` — os quadrados de 0, 1, 2 e 3: `0 + 1 + 4 + 9`. Repare: o 4 NÃO entra no intervalo.",
+  "starterCode": "pub fn soma_dos_quadrados(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_dos_quadrados(limite: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        soma += n * n;\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_dos_quadrados;\n\n#[test]\nfn testa_os_quadrados_ate_quatro() {\n    assert_eq!(soma_dos_quadrados(4), 14);\n}\n\n#[test]\nfn testa_os_quadrados_ate_cinco() {\n    assert_eq!(soma_dos_quadrados(5), 30);\n}\n\n#[test]\nfn testa_o_intervalo_vazio_devolve_zero() {\n    assert_eq!(soma_dos_quadrados(0), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_dos_quadrados deve devolver 14 quando chamada com 4 (0 + 1 + 4 + 9, sem o 4).", "teste": "testa_os_quadrados_ate_quatro" },
+    { "id": "REQ-2", "descricao": "A função soma_dos_quadrados deve devolver 30 quando chamada com 5 (0 + 1 + 4 + 9 + 16, sem o 5).", "teste": "testa_os_quadrados_ate_cinco" },
+    { "id": "REQ-3", "descricao": "A função soma_dos_quadrados deve devolver 0 quando chamada com 0 (intervalo vazio).", "teste": "testa_o_intervalo_vazio_devolve_zero" }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tabuada-em-texto",
+  "title": "A tabuada em texto",
+  "concept": "tabuada",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# A tabuada em texto\n\nO laço que monta texto: a primeira linha nasce com o `format!`, e cada volta emenda a linha seguinte — com o `\\n` (quebra de linha) na frente.\n\nEscreva uma função `tabuada` que recebe o `n` e devolve o texto das três primeiras linhas da tabuada dele:\n\n1. comece o `texto` com a primeira linha: `format!(\"{} x 1 = {}\", n, n)`;\n2. para cada `i` no intervalo `2..4` (as voltas do `2` e do `3`):\n   - calcule a conta da linha num nome próprio (`let linha = n * i;`);\n   - emende no texto: `format!(\"{texto}\\n{n} x {i} = {linha}\");`\n3. depois do laço, devolva o texto.\n\n`tabuada(3)` devolve a linha do `1`, do `2` e do `3`: `\"3 x 1 = 3\"`, depois `\"3 x 2 = 6\"`, depois `\"3 x 3 = 9\"` — cada linha nova emendada com a quebra de linha na frente.",
+  "starterCode": "pub fn tabuada(n: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn tabuada(n: i32) -> String {\n    let mut texto = format!(\"{} x 1 = {}\", n, n);\n    for i in 2..4 {\n        let linha = n * i;\n        texto = format!(\"{texto}\\n{n} x {i} = {linha}\");\n    }\n    texto\n}\n",
+  "testsCode": "use desafio::tabuada;\n\n#[test]\nfn testa_a_tabuada_do_tres() {\n    assert_eq!(tabuada(3), \"3 x 1 = 3\\n3 x 2 = 6\\n3 x 3 = 9\");\n}\n\n#[test]\nfn testa_a_tabuada_do_cinco() {\n    assert_eq!(tabuada(5), \"5 x 1 = 5\\n5 x 2 = 10\\n5 x 3 = 15\");\n}\n\n#[test]\nfn testa_a_tabuada_do_dez() {\n    assert_eq!(tabuada(10), \"10 x 1 = 10\\n10 x 2 = 20\\n10 x 3 = 30\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função tabuada deve devolver as três linhas da tabuada do 3 (3 x 1 = 3, 3 x 2 = 6, 3 x 3 = 9), com quebra de linha entre elas.", "teste": "testa_a_tabuada_do_tres" },
+    { "id": "REQ-2", "descricao": "A função tabuada deve devolver as três linhas da tabuada do 5 (5 x 1 = 5, 5 x 2 = 10, 5 x 3 = 15), com quebra de linha entre elas.", "teste": "testa_a_tabuada_do_cinco" },
+    { "id": "REQ-3", "descricao": "A função tabuada deve devolver as três linhas da tabuada do 10 (10 x 1 = 10, 10 x 2 = 20, 10 x 3 = 30), com quebra de linha entre elas.", "teste": "testa_a_tabuada_do_dez" }
+  ],
+  "expectedTestCount": 3
+}

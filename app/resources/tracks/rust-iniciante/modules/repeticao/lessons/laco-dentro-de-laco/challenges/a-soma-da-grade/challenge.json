@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-da-grade",
+  "title": "A soma da grade",
+  "concept": "laco_aninhado",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A soma da grade\n\nA grade é o retrato do laço aninhado: para cada linha (laço de fora), o laço das colunas roda inteiro (laço de dentro).\n\nEscreva uma função `soma_da_grade` que recebe as `linhas` e as `colunas` e soma o produto `i * j` de cada célula da grade:\n\n1. comece com a soma em `0`;\n2. para cada `i` no intervalo `0..linhas`:\n   - para cada `j` no intervalo `0..colunas`, some `i * j` na soma;\n3. depois dos laços, devolva a soma.\n\n`soma_da_grade(3, 4)` devolve `18` — doze células, cada uma valendo `i * j`. E `soma_da_grade(1, 1)` devolve `0`: a única célula é a `(0, 0)`, cujo produto é `0 * 0`.",
+  "starterCode": "pub fn soma_da_grade(linhas: i32, colunas: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_da_grade(linhas: i32, colunas: i32) -> i32 {\n    let mut soma = 0;\n    for i in 0..linhas {\n        for j in 0..colunas {\n            soma += i * j;\n        }\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_da_grade;\n\n#[test]\nfn testa_a_grade_de_tres_por_quatro() {\n    assert_eq!(soma_da_grade(3, 4), 18);\n}\n\n#[test]\nfn testa_a_grade_de_dois_por_tres() {\n    assert_eq!(soma_da_grade(2, 3), 3);\n}\n\n#[test]\nfn testa_a_grade_de_uma_por_uma() {\n    assert_eq!(soma_da_grade(1, 1), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_da_grade deve devolver 18 quando chamada com 3 linhas e 4 colunas.", "teste": "testa_a_grade_de_tres_por_quatro" },
+    { "id": "REQ-2", "descricao": "A função soma_da_grade deve devolver 3 quando chamada com 2 linhas e 3 colunas.", "teste": "testa_a_grade_de_dois_por_tres" },
+    { "id": "REQ-3", "descricao": "A função soma_da_grade deve devolver 0 quando chamada com 1 linha e 1 coluna — a única célula vale 0 * 0.", "teste": "testa_a_grade_de_uma_por_uma" }
+  ],
+  "expectedTestCount": 3
+}

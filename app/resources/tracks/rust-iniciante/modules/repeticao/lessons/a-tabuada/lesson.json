@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tabuada",
+  "title": "A tabuada",
+  "summary": "O laço que monta texto: cada volta acrescenta uma linha com o format! — e a função devolve o texto pronto.",
+  "difficulty": 5,
+  "role": "integration",
+  "targetAtom": "node:ForExpression",
+  "concepts": [
+    "tabuada"
+  ],
+  "prerequisites": [
+    "laco-dentro-de-laco",
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-texto-que-cresce-volta-a-volta",
+      "title": "O texto que cresce volta a volta",
+      "markdown": "O laço pode montar TEXTO do mesmo jeito que soma números: um nome mutável começa com a primeira linha e cada volta acrescenta a seguinte:\n\n```rust\npub fn tabuada(n: i32) -> String {\n    let mut texto = format!(\"{} x 1 = {}\", n, n);\n    for i in 2..4 {\n        let linha = n * i;\n        texto = format!(\"{texto}\\n{n} x {i} = {linha}\");\n    }\n    texto\n}\n```\n\nO `texto` começa com a linha do `1`; as voltas do `2` e do `3` concatenam a linha nova — com o `\\n` (a quebra de linha) na frente. `tabuada(3)` devolve `\"3 x 1 = 3\\n3 x 2 = 6\\n3 x 3 = 9\"`."
+    },
+    {
+      "id": "o-format-que-recebe-o-texto",
+      "title": "O format! que recebe o texto",
+      "markdown": "Dentro do `format!`, o `{texto}` é o texto de ANTES — a linha de agora é emendada nele, com a quebra de linha no meio:\n\n```rust\npub fn tabuada(n: i32) -> String {\n    let mut texto = format!(\"{} x 1 = {}\", n, n);\n    for i in 2..4 {\n        let linha = n * i;\n        texto = format!(\"{texto}\\n{n} x {i} = {linha}\");\n    }\n    texto\n}\n```\n\nA conta da linha (`n * i`) é feita ANTES, num nome próprio — e o `{linha}` só entra no texto pronto. O `format!` emenda tudo: o texto antigo, a quebra, e a linha nova."
+    },
+    {
+      "id": "o-valor-nao-e-a-tela",
+      "title": "O valor não é a tela",
+      "markdown": "A função DEVOLVE o texto — o teste assevera o devolvido, não a tela:\n\n```rust\npub fn tabuada(n: i32) -> String {\n    let mut texto = format!(\"{} x 1 = {}\", n, n);\n    for i in 2..4 {\n        let linha = n * i;\n        texto = format!(\"{texto}\\n{n} x {i} = {linha}\");\n    }\n    texto\n}\n```\n\nO `println!` da aula `a-tela` escreve na tela — e o teste não vê a tela. O canal do desafio é VALOR: `assert_eq!(tabuada(3), \"3 x 1 = 3\\n3 x 2 = 6\\n3 x 3 = 9\");` confere o TEXTO devolvido, byte a byte."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-texto-cresce-por-volta",
+      "statement": "O laço monta texto: cada volta emenda a linha nova no texto que já existia.",
+      "question": "O que cada volta do laço da tabuada acrescenta ao `texto`?",
+      "options": [
+        "uma linha nova, emendada com a quebra de linha na frente",
+        "um número a mais na soma",
+        "uma cópia do texto inteiro de novo",
+        "nada — o texto só é criado no fim"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada volta emenda `\\n` + a linha nova no texto de antes — o texto cresce uma linha por volta.",
+      "sectionId": "o-texto-que-cresce-volta-a-volta",
+      "optionRationales": [
+        "O `format!(\"{texto}\\n…\")` emenda a linha nova com a quebra — o texto cresce por volta.",
+        "Somar números é a tabuada do acumulador — aqui o que cresce é o TEXTO.",
+        "Emendar não duplica: o texto de antes entra UMA vez, seguido da linha nova.",
+        "O texto nasce na primeira linha, fora do laço — as voltas só o acrescentam."
+      ]
+    },
+    {
+      "id": "a-conta-antes-do-texto",
+      "statement": "A conta da linha (n * i) é feita antes, num nome próprio — e o resultado entra no format! pronto.",
+      "question": "Por que a linha da tabuada calcula `n * i` num `let` antes do `format!`?",
+      "options": [
+        "para o resultado ter nome próprio — e o texto receber o valor pronto",
+        "porque o format! não aceita multiplicação",
+        "porque o let mut precisa de um uso",
+        "para o compilador conferir a tabuada"
+      ],
+      "answerIndex": 0,
+      "feedback": "Calcular primeiro e emendar depois deixa cada parte no seu lugar: a conta no nome, o texto no `format!`.",
+      "sectionId": "o-format-que-recebe-o-texto",
+      "optionRationales": [
+        "O nome próprio (`linha`) guarda o resultado — e o `{linha}` entra no texto pronto.",
+        "O `format!` aceita o que vier — a escolha é de CLAREZA, não de regra.",
+        "O `let mut` é do texto — o `let` da linha é um nome comum, de uma volta.",
+        "Quem confere a tabuada é o teste — o `let` só organiza a conta."
+      ]
+    },
+    {
+      "id": "o-teste-ve-o-valor",
+      "statement": "A função devolve o texto — e é o devolvido que o teste confere, byte a byte, não a tela.",
+      "question": "O que o teste da tabuada confere?",
+      "options": [
+        "o TEXTO devolvido pela função, igual byte a byte ao esperado",
+        "o que a função escreve na tela",
+        "a quantidade de linhas, só isso",
+        "a última linha da tabuada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O canal do desafio é VALOR: o `assert_eq!` confere o texto devolvido inteiro — quebras de linha incluídas.",
+      "sectionId": "o-valor-nao-e-a-tela",
+      "optionRationales": [
+        "O `assert_eq!(tabuada(3), \"…\")` compara o String devolvido com o texto esperado.",
+        "A tela é o canal do `println!` — o teste não captura tela nenhuma em Rust.",
+        "O teste confere o texto INTEIRO — uma linha faltando ou fora de ordem reprova.",
+        "Todas as linhas fazem parte do texto — o teste confere a primeira também."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "std — a macro format!",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro oficial que monta texto — o {texto} que entra na linha nova."
+    },
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do for — o laço que roda linha a linha."
+    },
+    {
+      "title": "Rust by Example — For Loops and Range",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/for.html",
+      "description": "Os exemplos oficiais do for com intervalos."
+    }
+  ],
+  "challenges": [
+    "a-tabuada-em-texto"
+  ]
+}

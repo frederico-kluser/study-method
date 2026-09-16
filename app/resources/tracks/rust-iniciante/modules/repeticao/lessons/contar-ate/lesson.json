@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "contar-ate",
+  "title": "Contar até",
+  "summary": "O for pede um intervalo e dá, volta a volta, o número da vez — o 0..limite corta antes do fim.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:ForExpression",
+  "concepts": [
+    "contar_com_for"
+  ],
+  "prerequisites": [
+    "parar-no-meio"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForExpression",
+      "op:range:..",
+      "node:RangeExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-for-que-da-o-numero-da-vez",
+      "title": "O for que dá o número da vez",
+      "markdown": "O `for` pede um intervalo e dá, volta a volta, o número da vez — sem contador à mão:\n\n```rust\npub fn soma_dos_quadrados(limite: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        soma += n * n;\n    }\n    soma\n}\n```\n\nO `n` entre o `for` e o `in` é o nome da volta: no intervalo `0..4`, ele vale `0`, depois `1`, depois `2`, depois `3` — e o laço acaba. `soma_dos_quadrados(4)` devolve `14`: os quadrados de `0`, `1`, `2` e `3` somam `0 + 1 + 4 + 9`."
+    },
+    {
+      "id": "o-intervalo-para-antes-do-fim",
+      "title": "O intervalo para antes do fim",
+      "markdown": "O intervalo `0..limite` vai de `0` até o limite SEM incluir o limite:\n\n```rust\npub fn quatro_primeiros() -> i32 {\n    let mut soma = 0;\n    for n in 0..4 {\n        soma += n * n;\n    }\n    soma\n}\n```\n\nOs números da vez são `0`, `1`, `2` e `3` — o `4` NÃO entra. Por isso `quatro_primeiros()` também devolve `14`, com quatro voltas e não cinco: o `..` corta ANTES do fim."
+    },
+    {
+      "id": "o-que-o-for-cuida-por-voce",
+      "title": "O que o for cuida por você",
+      "markdown": "O mesmo número da vez, à mão, pede o `loop` das aulas passadas — contador subindo e o `break` no limite:\n\n```rust\npub fn a_mao(limite: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 0;\n    loop {\n        if n == limite {\n            break;\n        }\n        soma += n * n;\n        n += 1;\n    }\n    soma\n}\n```\n\nO `for` cuida das duas coisas de uma vez: nomeia a volta e sabe onde acaba. A escolha do laço é pela pergunta — contar de A até B é `for`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-for-da-o-numero",
+      "statement": "O for dá, volta a volta, o número da vez — o nome entre o for e o in é quem carrega o número.",
+      "question": "Em `for n in 0..limite`, o que é o `n`?",
+      "options": [
+        "o nome da volta: em cada rodada ele vale o número da vez",
+        "o valor final do intervalo",
+        "a soma que o laço junta",
+        "uma variável que você cria antes com let"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `for` nomeia a volta: `n` vale `0`, depois `1`, e assim por diante até o intervalo acabar.",
+      "sectionId": "o-for-que-da-o-numero-da-vez",
+      "optionRationales": [
+        "O nome da volta é criado pelo próprio `for` — ele vale um número do intervalo por rodada.",
+        "O fim do intervalo é o `limite` — o `n` percorre os números ANTES dele.",
+        "A soma é o acumulador (`soma`) — o `n` é o número da vez.",
+        "O `let` antes não é preciso: o `for` cria o nome da volta por conta própria."
+      ]
+    },
+    {
+      "id": "o-intervalo-nao-inclui-o-fim",
+      "statement": "O intervalo 0..4 tem os números 0, 1, 2 e 3 — o 4 não entra.",
+      "question": "Quantas voltas dá `for n in 0..4`?",
+      "options": [
+        "quatro: 0, 1, 2 e 3",
+        "cinco: de 0 até 4, inclusive",
+        "três: de 1 a 3",
+        "nenhuma: o intervalo está vazio"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `..` corta antes do fim: `0..4` entrega 0, 1, 2 e 3 — o 4 fica de fora.",
+      "sectionId": "o-intervalo-para-antes-do-fim",
+      "optionRationales": [
+        "De 0 a 3 são quatro números — o fim (`4`) não entra no intervalo.",
+        "O fim entra em outro intervalo (`..=`) — o `..` puro corta antes.",
+        "O intervalo `0..4` começa no 0 — são quatro números, não três.",
+        "O intervalo tem números — vazio seria `4..4`, por exemplo."
+      ]
+    },
+    {
+      "id": "o-for-cuida-do-fim",
+      "statement": "O for nomeia a volta E sabe onde acaba — as duas coisas que o loop à mão fazia com contador e break.",
+      "question": "O que o `for` faz que o `loop` à mão precisava de duas linhas para fazer?",
+      "options": [
+        "nomeia a volta e sabe onde o intervalo acaba",
+        "soma os valores sozinho",
+        "cria o acumulador e o inicializa",
+        "repete para sempre até o break"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com `loop` você escreve o contador e o `break`; com `for`, o intervalo cuida dos dois.",
+      "sectionId": "o-que-o-for-cuida-por-voce",
+      "optionRationales": [
+        "O nome da volta e o fim são os dois papéis que o `for` assume.",
+        "Somar é papel do acumulador dentro do corpo — o `for` só dá o número da vez.",
+        "O acumulador continua sendo seu: `let mut soma = 0;` continua no corpo.",
+        "Repetir para sempre é o `loop` — o `for` tem fim, dado pelo intervalo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do for e do intervalo na sintaxe do laço."
+    },
+    {
+      "title": "Rust by Example — For Loops and Range",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/for.html",
+      "description": "Os exemplos oficiais do for com intervalos."
+    },
+    {
+      "title": "std — a palavra-chave for",
+      "url": "https://doc.rust-lang.org/std/keyword.for.html",
+      "description": "A página oficial da palavra-chave for."
+    }
+  ],
+  "challenges": [
+    "a-contagem-do-intervalo"
+  ]
+}

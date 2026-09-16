@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-passos-de-tres-em-tres",
+  "title": "Os passos de três em três",
+  "concept": "contador_mutavel",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# Os passos de três em três\n\nO contador é o `let mut` que o laço muda volta a volta — e nesta corrida são dois, com papéis diferentes.\n\nEscreva uma função `voltas_de_tres_em_tres` que recebe o `limite` e conta quantas voltas um passo de 3 em 3 dá até passar do limite:\n\n1. comece com o contador `conta` em `0` e o `passo` em `0`;\n2. enquanto o passo está antes do limite (`passo < limite`):\n   - faça o passo subir de 3 em 3;\n   - conte mais uma volta;\n3. quando a condição virar `false`, o laço acaba — devolva o `conta`.\n\n`voltas_de_tres_em_tres(10)` devolve `4`: os passos `3`, `6`, `9` e `12` — quatro trocas, e a quarta é a que passa do limite. `voltas_de_tres_em_tres(9)` devolve `3`: com o passo em `9`, a pergunta `9 < 9` vale `false`.",
+  "starterCode": "pub fn voltas_de_tres_em_tres(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn voltas_de_tres_em_tres(limite: i32) -> i32 {\n    let mut conta = 0;\n    let mut passo = 0;\n    while passo < limite {\n        passo += 3;\n        conta += 1;\n    }\n    conta\n}\n",
+  "testsCode": "use desafio::voltas_de_tres_em_tres;\n\n#[test]\nfn testa_os_passos_ate_passar_de_dez() {\n    assert_eq!(voltas_de_tres_em_tres(10), 4);\n}\n\n#[test]\nfn testa_os_passos_que_permanecem_antes_do_limite() {\n    assert_eq!(voltas_de_tres_em_tres(9), 3);\n}\n\n#[test]\nfn testa_o_primeiro_passo_ja_passa_do_limite() {\n    assert_eq!(voltas_de_tres_em_tres(2), 1);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função voltas_de_tres_em_tres deve devolver 4 quando chamada com o limite 10 (passos 3, 6, 9 e 12).", "teste": "testa_os_passos_ate_passar_de_dez" },
+    { "id": "REQ-2", "descricao": "A função voltas_de_tres_em_tres deve devolver 3 quando chamada com o limite 9 (com o passo em 9, a condição vira false).", "teste": "testa_os_passos_que_permanecem_antes_do_limite" },
+    { "id": "REQ-3", "descricao": "A função voltas_de_tres_em_tres deve devolver 1 quando chamada com o limite 2 (o primeiro passo já passa).", "teste": "testa_o_primeiro_passo_ja_passa_do_limite" }
+  ],
+  "expectedTestCount": 3
+}
