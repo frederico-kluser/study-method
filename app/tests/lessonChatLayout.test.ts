@@ -93,7 +93,7 @@
  *     não é uma cópia para teste), então aqui não há texto nenhum: monta-se o
  *     componente REAL com o tema REAL e mede-se o HTML e o CSS aplicados —
  *     microfone FORA do campo, campo pílula que ENCOLHE (item flexível da
- *     linha, piso de 240px), enviar DENTRO na borda direita, o botão de
+ *     linha, piso de 128px), enviar DENTRO na borda direita, o botão de
  *     avanço ("Avançar") NO FIM da linha, à direita do campo, alvos de toque
  *     ≥ 44px, o `disabled` medido NO ELEMENTO e as paradas de tab que o
  *     framer inventa. ONDA-AVANCAR-COMPOSER: os estados do avanço (gate de
@@ -688,7 +688,7 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     );
   });
 
-  it('o campo deixou de ser fullWidth — ele ENCOLHE (item flexível da linha, piso de 240px)', () => {
+  it('o campo deixou de ser fullWidth — ele ENCOLHE (item flexível da linha, piso de 128px)', () => {
     const html = renderComposer();
     assert.ok(
       !html.includes('MuiFormControl-fullWidth'),
@@ -704,11 +704,13 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     assert.match(css, /flex:\s*1 1 auto/, 'o campo é item flexível da linha');
     assert.match(
       css,
-      /min-width:\s*240px/,
-      'e tem PISO de 240px — o abraço do flex nunca o apaga de vez com o avanço em cena',
+      /min-width:\s*128px/,
+      'e tem PISO de 128px — a conta da pior coluna: 44 (mic) + 16 (os dois gaps de ' +
+        "spacing={1}) + ~135 (min-content do \"Avançar\") + 128 = 323 ≤ 331 (a pior coluna). " +
+        'O abraço do flex nunca o apaga de vez com o avanço em cena',
     );
     assert.ok(
-      css.lastIndexOf('min-width:240px') > css.indexOf('min-width:0'),
+      css.lastIndexOf('min-width:128px') > css.indexOf('min-width:0'),
       'o piso vence o min-width:0 do FormControl (declaração posterior no MESMO corpo de regra)',
     );
     const campo = classOfElementWith(html, 'MuiInputBase-root');
