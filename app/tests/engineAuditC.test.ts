@@ -29,8 +29,10 @@
  * O que se prova aqui:
  *   1. auditTrack numa trilha C sintética HONESTA → ZERO violações (e ZERO
  *      A2 de parse) — o probe da revisão, agora verde;
- *   2. o A3 RODA sobre o testsCode normalizado: `decl:var`/`node:DeclStmt` no
- *      test do autor são acusados com linha/coluna DO AUTOR — o consumidor de
+ *   2. o A3 RODA sobre o testsCode normalizado: construção CONTEÚDO fora da
+ *      semente (`node:WhileStmt`/`node:BreakStmt` — a onda 4 perdoou
+ *      `decl:var`/`node:DeclStmt` no RECEPTIVO, junto do envelope de captura)
+ *      no test do autor é acusada com linha/coluna DO AUTOR — o consumidor de
  *      `entrada.receptive` (a semente receptiva de C) em enforcement;
  *   3. a mensagem A2 por linguagem: testsCode de fato quebrado → o DETALHE do
  *      clang, verbatim ("clang reprovou o fonte (1:31): …"), SEM o duplo
@@ -222,15 +224,18 @@ describe('audit C — a trilha honesta não tem violação de parse (o probe da 
   });
 
   it('o A3 continua valendo: chave FORA da semente receptiva de C é violação', () => {
-    // o "nada FALTA" do gatesC em modo gate: o testsCode sem `decl:var` na
-    // semente é cobrado quando o autor o usa (declaração DENTRO do bloco de
-    // teste — no escopo de arquivo clang não emite DeclStmt).
+    // o "nada FALTA" do gatesC em modo gate: o testsCode que usa CONTEÚDO
+    // fora da semente é cobrado quando o autor o usa. ONDA 4: `decl:var`/
+    // `node:DeclStmt` ENTRARAM na semente receptiva (o envelope de captura da
+    // fase SAÍDA declara FILE*/char[] — a fronteira receptivo×produtivo está
+    // afirmada em engineGatesC §"a fronteira do decl:var"), então o
+    // enforcement aqui usa fluxo de controle, que continua CONTEÚDO puro.
     const tests = [
       'int dobro(int x);',
       '',
       'SM_TEST(soma) {',
-      '    int y = 5;',
-      '    checa_int("soma", dobro(y), 5, "soma");',
+      '    while (0) { break; }',
+      '    checa_int("soma", dobro(2), 4, "soma");',
       '}',
     ].join('\n');
     const rep = auditTrack(trilhaC(tests), { mode: 'declared' });
@@ -244,10 +249,10 @@ describe('audit C — a trilha honesta não tem violação de parse (o probe da 
     assert.deepEqual(
       doTests.map((v) => [v.regra, v.construcao, v.linha, v.coluna]),
       [
-        ['A3', 'decl:var', 4, 5],
-        ['A3', 'node:DeclStmt', 4, 5],
+        ['A3', 'node:BreakStmt', 4, 17],
+        ['A3', 'node:WhileStmt', 4, 5],
       ],
-      `A3 em enforcement: a linha 4 é a linha DO AUTOR (int y = 5;), não a do fonte combinado`,
+      `A3 em enforcement: a linha 4 é a linha DO AUTOR (while … break;), não a do fonte combinado`,
     );
     assert.equal(rep.totals.violacoes, 2);
   });

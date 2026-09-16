@@ -578,7 +578,18 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  *      chaves;
  *   3. um `testsCode` real da convenção (`SM_TEST` + `checa_*`), lido com o
  *      `SM_COUNT_PREABULO` que a PRÓPRIA engine usa para parsear testsCode C
- *      (`cCountDeclared`) — 10 chaves no envelope mínimo.
+ *      (`cCountDeclared`) — 10 chaves no envelope mínimo (fase VALOR).
+ *
+ * ONDA 4 DO TRILHA-C (`docs/20-trilha-c.md`, modelo cenário-do-harness) — a
+ * medição foi REPETIDA sobre o envelope que a trilha REAL usa na fase SAÍDA:
+ * `extractAtoms(…, { language: 'c', surface: 'testsCode' })` — a MESMA leitura
+ * do audit — sobre (1) o testsCode dos dois desafios vivos do M1
+ * (`tres-linhas` e `sua-primeira-janela`, 18 chaves cada), (2) o testsCode
+ * `ambos` do template congelado (`skills/trilha-author/references/prova-c.md`
+ * §3, 19 chaves), (3) o `SM_HARNESS_HEADER` (26 chaves) e (4) o TU combinado
+ * do `main` (38 chaves). O delta dos três testsCode contra a semente da onda
+ * 3 é o MESMO conjunto de SEIS chaves — medido, não copiado; ver a seção
+ * "AS SEIS CHAVES DO ENVELOPE DE CAPTURA" abaixo.
  *
  * O PARTIDO que separa as duas tabelas de C é o MESMO do lado Python:
  *
@@ -634,6 +645,56 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  *   - `global:stderr` — o canal ONDE o counter_protocol reporta divergência
  *     (`fprintf(stderr, "FALHOU […] …")`), medido do header.
  *
+ * ── AS SEIS CHAVES DO ENVELOPE DE CAPTURA (onda 4 do trilha-C — MEDIDAS) ────
+ *
+ * A onda 3 mediu o envelope da fase VALOR (`checa_int` direto, sem captura).
+ * A trilha real de C (`docs/20-trilha-c.md`) tem DUAS fases de canal, e a fase
+ * SAÍDA do M1 captura o stdout DENTRO do bloco `SM_TEST` (modelo
+ * cenário-do-harness, `prova-c.md` §3):
+ *
+ *     freopen("sm_saida.tmp", "w", stdout);
+ *     tela();
+ *     fflush(stdout);
+ *
+ *     FILE *f = fopen("sm_saida.tmp", "r");
+ *     char linha[80] = "(nada impresso)";
+ *     fgets(linha, 80, f);
+ *     checa_str("a primeira linha", linha, "ola, tela!\n", "…");
+ *     fclose(f);
+ *
+ * Medido com o extrator REAL (`extractAtoms(…, { language: 'c', surface:
+ * 'testsCode' })` — a leitura do audit) sobre os testsCode dos dois desafios
+ * vivos do M1 e sobre o testsCode `ambos` do template congelado, o delta
+ * contra a semente de 13 chaves é o MESMO conjunto de seis:
+ *
+ *   - `api:freopen` + `api:fgets` + `global:stdout` — a captura e a leitura
+ *     de volta. `stdout` é FREE no escopo (o mesmo critério do
+ *     `global:stderr`, já na semente): o extrator o emite do argumento de
+ *     `freopen`/`fflush`, e o aluno o LÊ em todo desafio de SAÍDA sem
+ *     escrever nenhum dos três.
+ *   - `node:DeclStmt` + `decl:var` — o PAR obrigatório das declarações locais
+ *     do teste (`FILE *f`, `char linha[80]`): o `DeclStmt` é o nó container e
+ *     o `decl:var` é o evento. Entram juntos pela MESMA razão do par
+ *     `node:Assign` + `decl:assign` da semente Python — separar os dois
+ *     obrigaria o autor a declarar a mesma construção duas vezes, e deixar
+ *     só o nó liberaria o evento em silêncio.
+ *   - `node:IncludeDirective` — o `#include <stdio.h>` PRÓPRIO do teste
+ *     (regra 3 do `prova-c.md` §2: sem ele o `countDeclared` vira 0 e a
+ *     dupla-igualdade reprova — o preâmbulo de parse não vê o header do
+ *     harness). O header gerado e o main também emitem a chave, mas o gate
+ *     nunca audita esses dois arquivos; é o testsCode que precisa do perdão.
+ *
+ * E A DECISÃO PEDAGÓGICA DE `decl:var` (o revisor deve contestar esta): o
+ * decl:var é CONTEÚDO — a aula M1 `um-nome-para-um-valor` o ensina
+ * produtivamente — mas o ENVELOPE do teste declara variáveis ANTES da aula 7
+ * (`FILE *f`, `char linha[80]`). O precedente é o `node:TypedefDecl` da onda
+ * 3: entra na faixa RECEPTIVA, e só nela — a solução do aluno que escrever
+ * `decl:var` ANTES da aula que a ensina continua emitindo a chave fora do
+ * produtivo e REPROVANDO no A2 (o produtivo gateia; a isenção é só do
+ * testsCode). Nenhum dos seis vai para `C_STRUCTURAL_ALWAYS_ALLOWED`: a
+ * estrutural é sempre-perdão nas DUAS faixas, e os seis são perdão do HARNESS
+ * — o aluno lê, não escreve.
+ *
  * ── O QUE FICOU FORA DE PROPÓSITO (a parte que o revisor deve contestar) ───
  *
  *   - `node:IndirectCall` — PROIBIÇÃO GLOBAL de C (`C_FORBIDDEN_INVARIANTS`).
@@ -641,20 +702,29 @@ export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
  *     gate NUNCA audita; semente não perdoa o que quebra a decidibilidade.
  *   - `node:IfStmt`, `node:ForStmt`, `node:WhileStmt`, `node:DoStmt`,
  *     `node:ReturnStmt`, `node:BreakStmt`, `node:ContinueStmt`,
- *     `node:DeclStmt`, `node:ArraySubscriptExpr`, `node:InitListExpr`,
+ *     `node:ArraySubscriptExpr`, `node:InitListExpr`,
  *     `node:BinaryOperator`, `node:UnaryOperator`,
  *     `node:CompoundAssignOperator`, `node:UnaryExprOrTypeTraitExpr`,
- *     `node:FloatingLiteral`, `node:CharacterLiteral`, todo `op:*` e
- *     `decl:var` — CONTEÚDO do curso de C (controle de fluxo, operadores,
- *     vetores, variáveis). A diferença para o Python é estrutural: lá o
- *     INVÓLUCRO do teste (`with`/`runpy`/`StringIO`) é harness e o teste é
- *     quem o escreve; aqui os helpers moram no header gerado, que o gate não
- *     audita — o corpo de `checa_*` (cheio de `if`/`++`) nunca vira orçamento
- *     de ninguém. O testsCode que USAR essas construções é o autor exigindo
- *     do aluno o que ele ainda não leu: reprovação legítima, não ruído.
- *   - `node:IncludeDirective` — conteúdo da AULA 1 de C (decisão 5 do
- *     adaptador: "#include" é o primeiro evento de currículo da trilha). O
- *     testsCode que precisa de header declara-o como conteúdo.
+ *     `node:FloatingLiteral`, `node:CharacterLiteral`, todo `op:*` —
+ *     CONTEÚDO do curso de C (controle de fluxo, operadores, vetores). A
+ *     diferença para o Python é estrutural: lá o INVÓLUCRO do teste
+ *     (`with`/`runpy`/`StringIO`) é harness e o teste é quem o escreve; aqui
+ *     os helpers moram no header gerado, que o gate não audita — o corpo de
+ *     `checa_*` (cheio de `if`/`++`) nunca vira orçamento de ninguém. O
+ *     testsCode que USAR essas construções é o autor exigindo do aluno o que
+ *     ele ainda não leu: reprovação legítima, não ruído.
+ *     (`node:DeclStmt`/`decl:var` saíram desta lista na onda 4 — o envelope
+ *     de captura da fase SAÍDA declara variáveis, e as duas entraram na
+ *     semente como RECEPTIVAS com a fronteira documentada acima; `decl:var`
+ *     continua FORA do produtivo, e a solução antecipada continua sendo
+ *     cobrada.)
+ *   - `node:IncludeDirective` saiu desta lista na onda 4 pelo mesmo motivo:
+ *     o testsCode SEMPRE abre com `#include <stdio.h>` próprio (regra 3 do
+ *     `prova-c.md` §2 — sem ele a contagem declarada vira 0), e isso é
+ *     envelope, não escolha do autor. A aula 1 continua ENSINANDO include
+ *     como conteúdo produtivo (decisão 5 do adaptador), e a semente não muda
+ *     o que é ensinado — muda só que o testesCode não nasce violando por causa
+ *     do include que a CONVENÇÃO obriga.
  *
  * E a razão de `node:FunctionDecl` estar na tabela ESTRUTURAL e não aqui: ele
  * NUNCA aparece sem `decl:func` (o extrator atribui `declKind` a todo
@@ -684,6 +754,18 @@ export const C_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'api:getenv',
   'api:strcmp',
   'global:stderr',
+  // AS SEIS do envelope de CAPTURA da fase SAÍDA (onda 4 — medidas dos dois
+  // desafios vivos do M1 e do testsCode `ambos` do template prova-c.md §3;
+  // origem e fronteira de cada uma no comentário "AS SEIS CHAVES DO ENVELOPE
+  // DE CAPTURA", acima). Todas RECEPTIVAS e só receptivas: a solução do aluno
+  // que escrever decl:var/include antes da aula que os ensina continua
+  // reprovando no A2 (o precedente é o node:TypedefDecl da onda 3).
+  'api:freopen',
+  'api:fgets',
+  'global:stdout',
+  'node:DeclStmt',
+  'decl:var',
+  'node:IncludeDirective',
 ] as const;
 
 /**

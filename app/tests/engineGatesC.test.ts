@@ -18,11 +18,13 @@
  *      nenhuma proibição global;
  *   2. a semente foi MEDIDA do harness REAL, não copiada do Python: o teste
  *      roda o extrator C de novo sobre `SM_HARNESS_HEADER`, sobre o TU
- *      combinado header+main e sobre um testsCode da convenção
- *      counter_protocol lido com `SM_COUNT_PREABULO`, e fecha o laço nos DOIS
- *      sentidos — nada FALTA (todo chave do testsCode ⊆ semente ∪ estrutural,
- *      a regra A3) e nada SOBRA (toda chave da semente é emitida pelo
- *      material real);
+ *      combinado header+main, sobre um testsCode da convenção
+ *      counter_protocol lido com `SM_COUNT_PREABULO` (fase VALOR) e sobre o
+ *      testsCode do TEMPLATE de captura da fase SAÍDA (`freopen`/`fgets`/
+ *      sentinel — o envelope que a onda 4 mediu, o mesmo dos desafios vivos
+ *      do M1), e fecha o laço nos DOIS sentidos — nada FALTA (todo chave do
+ *      testsCode ⊆ semente ∪ estrutural, a regra A3) e nada SOBRA (toda
+ *      chave da semente é emitida pelo material real);
  *   3. `deriveTrackBudget` roda numa trilha C sintética SEM lançar, semeia o
  *      axioma de entrada com as tabelas de C, e o orçamento resultante
  *      CONTEM o testsCode e a solução do desafio (as regras A3 e A2 passam
@@ -83,6 +85,36 @@ const TESTS_CODE_C = [
 ].join('\n');
 
 const SOLUTION_C = 'int dobro(int x) {\n    return 2 * x;\n}\n';
+
+/**
+ * O testsCode da fase SAÍDA — o TEMPLATE CONGELADO do modelo
+ * cenário-do-harness (`skills/trilha-author/references/prova-c.md` §2–3, os
+ * dois desafios vivos do M1 de `c-iniciante` o seguem na íntegra): captura do
+ * stdout DENTRO do bloco (`freopen` → chamada → `fflush`), leitura de volta
+ * com `fgets` sobre buffer com sentinel, `checa_str` por linha e `fclose` no
+ * handle de leitura. É ESTE envelope que a onda 4 mediu contra a semente — o
+ * fixture mínimo acima é a fase VALOR, que não captura nada.
+ */
+const TESTS_CODE_SAIDA_C = [
+  '#include <stdio.h>',
+  '',
+  '/* prototipo da funcao do aluno (o teste declara o que exercita) */',
+  'void tela(void);',
+  '',
+  'SM_TEST(tres_linhas_na_ordem) {',
+  '    /* captura: o stdout vira o arquivo sm_saida.tmp */',
+  '    freopen("sm_saida.tmp", "w", stdout);',
+  '    tela();',
+  '    fflush(stdout);',
+  '',
+  '    FILE *f = fopen("sm_saida.tmp", "r");',
+  '    char linha[80] = "(nada impresso)";',
+  '    fgets(linha, 80, f);',
+  '    checa_str("a primeira linha", linha, "ola, tela!\\n",',
+  '              "a primeira coisa impressa e a primeira frase");',
+  '    fclose(f);',
+  '}',
+].join('\n');
 
 /**
  * O TU combinado do `main` do harness: o `sm_main.c` real dá
@@ -148,7 +180,18 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
   const chavesDoHeader = chavesDe(SM_HARNESS_HEADER, 'tests/sm_harness.h');
   const chavesDoMain = chavesDe(tuCombinadoDoMain(), 'tests/sm_main.c');
   const chavesDoTestsCode = chavesDe(`${SM_COUNT_PREABULO}\n${TESTS_CODE_C}`, 'tests/test_solucao.c');
-  const emitidoPeloMaterial = new Set<string>([...chavesDoHeader, ...chavesDoMain, ...chavesDoTestsCode]);
+  // o envelope da fase SAÍDA (o template congelado dos desafios vivos) — é
+  // ELE que a onda 4 mediu contra a semente
+  const chavesDoTestsCodeSaida = chavesDe(
+    `${SM_COUNT_PREABULO}\n${TESTS_CODE_SAIDA_C}`,
+    'tests/test_solucao.c',
+  );
+  const emitidoPeloMaterial = new Set<string>([
+    ...chavesDoHeader,
+    ...chavesDoMain,
+    ...chavesDoTestsCode,
+    ...chavesDoTestsCodeSaida,
+  ]);
 
   it('guardas de sanidade: o material medido é o harness da convenção', () => {
     for (const marca of ['api:fprintf', 'api:strcmp', 'global:stderr', 'node:IncludeDirective']) {
@@ -160,15 +203,32 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     for (const marca of ['api:SM_TEST', 'decl:func', 'node:CallExpr', 'node:IntegerLiteral', 'node:StringLiteral', 'node:TypedefDecl']) {
       assert.ok(chavesDoTestsCode.has(marca), `o testsCode deixou de emitir ${marca}`);
     }
+    // o template de SAÍDA carrega o envelope de captura INTEIRO (medido na
+    // onda 4): as seis chaves que motivaram a extensão da semente
+    for (const marca of [
+      'api:freopen',
+      'api:fgets',
+      'global:stdout',
+      'node:DeclStmt',
+      'decl:var',
+      'node:IncludeDirective',
+    ]) {
+      assert.ok(chavesDoTestsCodeSaida.has(marca), `o testsCode de SAÍDA deixou de emitir ${marca}`);
+    }
   });
 
   it('nada FALTA: toda chave do testsCode está na semente ∪ estrutural (a regra A3)', () => {
-    const fora = [...chavesDoTestsCode].filter((k) => !PERDOADO.has(k));
-    assert.deepEqual(
-      fora,
-      [],
-      `o envelope do teste C emite chave que a semente não perdoa: ${fora.join(' ')}`,
-    );
+    for (const [nome, chaves] of [
+      ['VALOR', chavesDoTestsCode],
+      ['SAÍDA', chavesDoTestsCodeSaida],
+    ] as const) {
+      const fora = [...chaves].filter((k) => !PERDOADO.has(k));
+      assert.deepEqual(
+        fora,
+        [],
+        `o envelope do teste C (${nome}) emite chave que a semente não perdoa: ${fora.join(' ')}`,
+      );
+    }
   });
 
   it('nada SOBRA: toda chave da semente é emitida pelo harness/testsCode REAL', () => {
@@ -184,24 +244,24 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     assert.deepEqual(fora, [], `a tabela estrutural traz chave que nenhum material real emite: ${fora.join(' ')}`);
   });
 
-  it('a fronteira do CONTEÚDO: fluxo, operadores, variável, include, struct/switch/cast e IndirectCall ficam FORA', () => {
+  it('a fronteira do CONTEÚDO: fluxo, operadores, struct/switch/cast e IndirectCall ficam FORA', () => {
     // As declarações de exclusão do comentário de C_HARNESS_RECEPTIVE_SEED,
     // afirmadas: o corpo dos helpers (if/for/++) mora no header GERADO que o
     // gate não audita; o que o testsCode USAR é cobrança legítima. Os cinco
     // kinds novos do §8.2 que são CONTEÚDO (onda 3) também ficam fora — a
     // exceção é o typedef do PRÓPRIO harness, perdoado no receptivo.
+    // (onda 4: `node:DeclStmt`/`decl:var`/`node:IncludeDirective` saíram
+    // desta lista — o envelope de captura da fase SAÍDA os emite, e entraram
+    // na semente como RECEPTIVAS com a fronteira do teste seguinte.)
     for (const chave of [
       'node:IfStmt',
       'node:ForStmt',
       'node:WhileStmt',
       'node:ReturnStmt',
-      'node:DeclStmt',
       'node:BinaryOperator',
       'node:UnaryOperator',
       'op:assign:=',
       'op:binary:*',
-      'decl:var',
-      'node:IncludeDirective',
       // onda 3 (P1–P6, exceto o typedef do harness): conteúdo de M7 e aulas
       'node:RecordDecl',
       'node:MemberExpr',
@@ -211,16 +271,76 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     ]) {
       assert.ok(!PERDOADO.has(chave), `${chave} é CONTEÚDO — não pode estar na semente nem na estrutural`);
     }
-    // a ÚNICA chave nova na semente é o typedef do andaime do harness
-    // (SM_COUNT_PREABULO/SM_HARNESS_HEADER) — só RECEPTIVA: a solução que
-    // escrever typedef continua emitindo a chave fora do produtivo
-    assert.ok(PERDOADO.has('node:TypedefDecl'));
-    assert.ok(C_HARNESS_RECEPTIVE_SEED.includes('node:TypedefDecl'));
-    assert.ok(!C_STRUCTURAL_ALWAYS_ALLOWED.includes('node:TypedefDecl'));
+    // as chaves de HARNESS (typedef da onda 3; as seis do envelope de captura
+    // da onda 4) são RECEPTIVAS e SÓ receptivas — nenhuma entra na estrutural
+    for (const chave of [
+      'node:TypedefDecl',
+      'api:freopen',
+      'api:fgets',
+      'global:stdout',
+      'node:DeclStmt',
+      'decl:var',
+      'node:IncludeDirective',
+    ]) {
+      assert.ok(C_HARNESS_RECEPTIVE_SEED.includes(chave), `${chave} saiu da semente`);
+      assert.ok(
+        !C_STRUCTURAL_ALWAYS_ALLOWED.includes(chave),
+        `${chave} é perdão do HARNESS (receptivo) — nunca sempre-perdão nas duas faixas`,
+      );
+    }
     // proibição global de C: o despacho `sm_fns[i]()` do main emite, mas o
     // gate nunca audita o main — e semente não perdoa o indecidível.
     assert.ok(!PERDOADO.has('node:IndirectCall'));
     assert.ok(chavesDoMain.has('node:IndirectCall'), 'o main deixou de emitir node:IndirectCall');
+  });
+
+  it('a fronteira do decl:var: o TESTE que declara variável passa, a SOLUÇÃO antecipada continua reprovando', () => {
+    // A decisão pedagógica da onda 4, afirmada nos dois sentidos (o precedente
+    // é o node:TypedefDecl da onda 3): decl:var é CONTEÚDO (a aula M1
+    // `um-nome-para-um-valor` o ensina produtivamente), mas o ENVELOPE do
+    // teste declara FILE*/char[] antes da aula — então o perdão é SÓ
+    // receptivo.
+    //
+    // 1) RECEPTIVO: o testsCode com declaração local (o envelope de captura)
+    //    cabe no orçamento receptivo de ENTRADA — não viola A3.
+    const trilha = trilhaC();
+    const { entrada } = deriveTrackBudget(trilha).lessons[0];
+    for (const chave of ['decl:var', 'node:DeclStmt', 'node:IncludeDirective']) {
+      assert.ok(entrada.receptive.has(chave), `o receptivo de entrada não semeou ${chave}`);
+    }
+    const doTestsComVar = chavesDe(`${SM_COUNT_PREABULO}\n${TESTS_CODE_SAIDA_C}`, 'tests/test_solucao.c');
+    const foraA3 = [...doTestsComVar].filter((k) => !entrada.receptive.has(k));
+    assert.deepEqual(foraA3, [], `o testsCode que usa decl:var violou A3: ${foraA3.join(' ')}`);
+
+    // 2) PRODUTIVO: a SOLUÇÃO que declara variável ANTES da aula que ensina
+    //    `var` emite decl:var (+ node:DeclStmt) FORA do produtivo de SAÍDA —
+    //    a aula tem de ENSINAR (declara no introduces) para o desafio abri-la.
+    const SOLUCAO_COM_VAR = 'int dobro(int x) {\n    int y = x * 2;\n    return y;\n}\n';
+    const trilhaVar = trilhaC();
+    (trilhaVar.modules[0].lessons[0].challenges[0] as TrackChallengeSource).solutionCode =
+      SOLUCAO_COM_VAR;
+    const orcVar = deriveTrackBudget(trilhaVar);
+    assert.equal(orcVar.source, 'inferred'); // a teoria do fixture NÃO declara variável
+    const { saida } = orcVar.lessons[0];
+    const daSolucao = chavesDe(SOLUCAO_COM_VAR, 'solucao.c');
+    const foraA2 = [...daSolucao].filter((k) => !saida.productive.has(k));
+    assert.ok(foraA2.includes('decl:var'), `a solução antecipada deveria reprovar em decl:var: ${foraA2.join(' ')}`);
+    assert.ok(
+      foraA2.includes('node:DeclStmt'),
+      `o par obrigatório acompanha: ${foraA2.join(' ')}`,
+    );
+    // e o evento continua gateável: ensinar `var` na teoria abre o orçamento
+    const teoriaComVar = trilhaC({
+      introduces: {
+        productive: ['decl:func', 'decl:var', 'node:DeclStmt', 'node:IncludeDirective', 'node:ReturnStmt', 'op:binary:*', 'node:BinaryOperator', 'node:IntegerLiteral'],
+      },
+    });
+    (teoriaComVar.modules[0].lessons[0].challenges[0] as TrackChallengeSource).solutionCode =
+      SOLUCAO_COM_VAR;
+    const orcEnsina = deriveTrackBudget(teoriaComVar);
+    assert.equal(orcEnsina.source, 'declared');
+    const foraEnsina = [...daSolucao].filter((k) => !orcEnsina.lessons[0].saida.productive.has(k));
+    assert.deepEqual(foraEnsina, [], `a aula que ENSINA var abre o produtivo, e ainda assim: ${foraEnsina.join(' ')}`);
   });
 
   it('a semente NÃO foi copiada do Python: nenhuma chave do runner unittest/node:test', () => {
