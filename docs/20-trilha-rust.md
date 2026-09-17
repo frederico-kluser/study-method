@@ -140,6 +140,29 @@ pela solução de referência e o `format!` é o que o teste força; a assimetri
 fase SAÍDA de Python declarou os 17 desafios não-discriminantes
 ([`16`](16-engine-de-trilha.md) §9.1).
 
+**As assimetrias J5 medidas das ondas 4–5, módulo a módulo.** O padrão é sempre o mesmo: existe um
+desafio que PASSA sem escrever o átomo-alvo (uma resposta igualmente correta que contorna o que a
+aula ensina) e o aviso que o denuncia nunca reprova — a bateria J5 A13–A16 é javascript-only, e a
+discriminação do Rust é medida aula a aula pelo gate de qualidade, não por ela:
+
+- **M4 (`o-dono-do-valor`)**: já contempladas — a discriminação declarada do módulo foi 13/13 e o
+  revisor da onda não listou item nenhum; não há assimetria a acrescentar.
+- **M5 (`emprestar`)** — o átomo-alvo que o desafio deixa de cobrar: aula 2 `emprestar-qualquer-coisa`
+  (`o-nome-do-emprestimo`: `texto.len()` direto passa sem escrever o `&` de `op:unary:&`) · aula 3
+  `ler-pelo-emprestimo` (`a-chamada-que-empresta`: `um.len() + dois.len()` passa sem chamar o helper
+  `tamanho` — o `&` do argumento não é cobrado) · aula 5 `o-emprestimo-mutavel-na-chamada`
+  (`o-emprestimo-na-fila`: `pilha.push_str(letra)` direto passa sem o `&mut` da chamada `empurra`) ·
+  aula 8 `o-emprestimo-morre-junto` (`o-emprestimo-que-acaba`: `texto.len()` direto passa sem a
+  anotação `&str` do `node:ReferenceType`).
+- **M6 (`estruturas`)**: aula 6 `o-metodo-que-muda` (`o-ponto-que-dobra`: devolver `self.x * 2`
+  passa sem o `&mut self` alterar o ponto — o `node:SelfParameter` mutável não é cobrado) · aula 8
+  `a-estampa-do-compilador` (`a-estampa-do-ponto`: `format!` reproduz a estampa à mão
+  (`"Ponto {{ x: {}, y: {} }}"` + os campos), sem `#[derive(Debug)]` nem `{:?}`) · aula 9
+  `comparar-estruturas` (`o-ponto-repetido`: `a.x == b.x && a.y == b.y` passa sem
+  `#[derive(PartialEq)]` — o `==` sobre a struct nunca é cobrado) · aula 11 `o-atalho-do-campo`
+  (`a-estatistica-do-turno`: a forma longa `minimo: minimo, maximo: maximo` passa sem o
+  `node:ShorthandFieldInitializer`).
+
 ### Os fatos da linguagem que governam esta trilha
 
 Todos medidos (fontes: `lang/rust.ts`, `docs/research/06-toolchains.md` ficha Rust, inventário
@@ -245,11 +268,13 @@ deste documento o implementa:
 | `api:derive.<qualquer>` | `node:Attribute` + `node:AttributeItem` |
 | `api:std::collections::<qualquer>` (o `use`) | `node:UseDeclaration` + `node:ScopedIdentifier` |
 | `api:.<método>` (a cadeia de método: `.step_by`, `.clone`, `.len`, `.push_str`, `.to_string`) | `node:FieldExpression` + `node:FieldIdentifier` |
+| `api:<.campo>` (a LEITURA de campo por receptor local: `ponto.x` sobre a struct que o ALUNO montou) | `node:FieldExpression` + `node:FieldIdentifier` — a MESMA mecânica da linha de cadeia de método; NÃO emitem a chave `api:`: `self.campo` (raiz interna) e leitura sobre resultado de chamada (`ponto_de(2, 3).x` — a cadeia PARA no receptor não trivial; `RAIZES_INTERNAS` do extrator) |
 | `api:<Caminho>::<nome>` (o caminho-qualificado de função/const: `String::from`, `HashMap::new`) | `node:ScopedIdentifier` — e `global:<raiz>` quando o receptor/retorno é tipo do prelude (`String::from` também emite `global:String`) |
 | anotação de tipo por nome (`String`, `Vec<i32>`, `HashMap<String, i32>`, `Option<i32>`) | `node:TypeIdentifier` + `node:GenericType` + `node:TypeArguments` — a anotação é derivada da construção que a aula ensina, NUNCA item de `Ensina` |
 
-As duas linhas do `api:` de método e de caminho-qualificado são PARCIAIS na verificação reexecutável:
-`node:FieldExpression` e `node:ScopedIdentifier` entram no `DERIVADAS` do script (o `node:FieldIdentifier`
+As três linhas do `api:` de método, de LEITURA de campo e de caminho-qualificado são PARCIAIS na
+verificação reexecutável: `node:FieldExpression` e `node:ScopedIdentifier` entram no `DERIVADAS` do
+script (o `node:FieldIdentifier`
 já entrava pela linha do struct literal), mas o `global:<raiz>` da linha do caminho-qualificado é
 CONDICIONAL — só emite quando o receptor/retorno é tipo do prelude — e conjunto mecânico nenhum o
 representa sem mentir. A verificação o cobre pelo outro lado: `global:` é eixo fechado, então se a
@@ -340,6 +365,23 @@ O que toda onda de conteúdo copia, aula por aula — o disco já impõe tudo is
    máquina" com ANSI na saída falha o regex de contagem em outra.
 10. **Multi-arquivo** (a partir dos desafios de módulo): `files[]` verbatim + `mod` declarado —
     `node:ModItem` já é semente (o harness `#[cfg(test)] mod tests` o lê).
+11. **Primitivos por CHAVE (a porta de A2 é por chave, `audit.ts:632`)**: a contenção produtiva só
+    conta na solução o que o starter NÃO emite (`solutionCode` × `starterKeys`, por CHAVE) —
+    portanto o starter precisa conter as chaves que a solução emite. Como `node:PrimitiveType`
+    NUNCA é produtivo (por desenho, nenhuma aula o ensina), todo primitivo que a solução emite
+    (`i32`/`usize`/`bool`) precisa estar no starter — é por isso que o starter padrão os traz. O
+    `str` DENTRO do `&str` cobrado é inerente ao átomo: a leitura per-tipo (`str` sem cobrar o
+    `&str`) é insatisfazível na aula da promoção — precedente `mover-ou-emprestar`
+    (M4/M5).
+12. **`use` um por linha**: `use desafio::{a, b};` emite `node:UseList`/`node:ScopedUseList` FORA
+    da semente — os testes usam UM `use desafio::<nome>;` por linha (o `assert_eq!` que
+    referencia cada função importada chega pela semente; o `use` extra não).
+13. **Convenção `role: "consolidation"`**: as consolidações das trilhas rust usam
+    `role: "consolidation"` — fora do enum `['regular', 'integration']` de
+    [`16`](16-engine-de-trilha.md) §3.7 (divergência declarada lá, no parágrafo do valor Python);
+    o loader ignora `role` — a marcação normativa de consolidação é o `cons.` das tabelas de §2 e
+    o `introduces` da lesson.json. 17+ ocorrências já no disco M1–M4 (28 no disco M1–M6 hoje);
+    decisão do dono: convenção aceita para rust.
 
 ### Princípios pedagógicos aplicados (os que Rust muda)
 
@@ -489,7 +531,7 @@ lifetime implícito em escopos simples**.
 |---|---|---|
 | `o-molde-e-o-valor` | `node:StructItem` | M5 `emprestar-o-texto` |
 | `criar-a-partir-do-molde` | `node:StructExpression` | `o-molde-e-o-valor` |
-| `ler-o-campo` | `node:FieldExpression` | `criar-a-partir-do-molde` |
+| `ler-o-campo` | cons. — `node:FieldExpression` em forma nova (a leitura `ponto.x` sobre a struct que o ALUNO montou — não o método de um receptor; a chave já vinha da cadeia de método e é re-declarada aqui como consolidação) | `criar-a-partir-do-molde` |
 | `o-metodo` | `node:ImplItem` | `o-molde-e-o-valor` |
 | `o-self-e-o-valor` | `node:Self` | `o-metodo`, `ler-o-campo` |
 | `o-metodo-que-muda` | cons. — `node:SelfParameter` em forma nova (`&mut self`) | `o-metodo`, M5 `emprestar-para-mudar` |
@@ -589,10 +631,13 @@ api:test api:cfg.test api:assert_eq! api:assert_ne! api:assert!""".split())
 ESTRUTURAL = set("""node:SourceFile node:Identifier node:ExpressionStatement node:Arguments
 node:LineComment node:MacroArg""".split())
 # Derivadas da regra do par (§"A regra do par") — a mesma construção as produz.
-# Inclui as duas linhas do api: de método (`api:.<método>` → node:FieldExpression +
-# node:FieldIdentifier) e de caminho-qualificado (`api:<Caminho>::<nome>` → node:ScopedIdentifier);
-# o `global:<raiz>` condicional dessas linhas NÃO entra aqui (não é representável como derivada
-# incondicional) — o script o cobre pelo VOCAB (eixo fechado) e pelo CONS (origem/consolidação).
+# Inclui as três linhas do api: de método (`api:.<método>` → node:FieldExpression +
+# node:FieldIdentifier), de LEITURA de campo por receptor local (`api:<.campo>` → os MESMOS
+# node:FieldExpression + node:FieldIdentifier — a MESMA mecânica da cadeia de método)
+# e de caminho-qualificado (`api:<Caminho>::<nome>` → node:ScopedIdentifier);
+# o `global:<raiz>` condicional da linha do caminho-qualificado NÃO entra aqui (não é representável
+# como derivada incondicional) — o script o cobre pelo VOCAB (eixo fechado) e pelo CONS
+# (origem/consolidação).
 DERIVADAS = set("""node:BinaryExpression node:IntegerLiteral node:UnaryExpression node:ReferenceExpression
 node:AssignmentExpression node:CompoundAssignmentExpr node:RangeExpression node:LetDeclaration
 node:MutableSpecifier node:ConstItem node:StaticItem node:Parameters node:Parameter
@@ -811,8 +856,8 @@ mesmo padrão publicado). Nunca URL inventada.
 | M2 `decisao` | [`book/ch03-05-control-flow.html`](https://doc.rust-lang.org/book/ch03-05-control-flow.html) · [`rust-by-example/flow_control/if_else.html`](https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html) · [`reference/expressions/operator-expr.html`](https://doc.rust-lang.org/reference/expressions/operator-expr.html) · [`std/primitive.i32.html`](https://doc.rust-lang.org/std/primitive.i32.html) · [`std/primitive.bool.html`](https://doc.rust-lang.org/std/primitive.bool.html) · [`std/keyword.if.html`](https://doc.rust-lang.org/std/keyword.if.html) · [`std/keyword.else.html`](https://doc.rust-lang.org/std/keyword.else.html) |
 | M3 `repeticao` | [`book/ch03-05-control-flow.html`](https://doc.rust-lang.org/book/ch03-05-control-flow.html) · [`rust-by-example/flow_control/loop.html`](https://doc.rust-lang.org/rust-by-example/flow_control/loop.html) · [`rust-by-example/flow_control/for.html`](https://doc.rust-lang.org/rust-by-example/flow_control/for.html) · [`rust-by-example/flow_control/while.html`](https://doc.rust-lang.org/rust-by-example/flow_control/while.html) · [`std/macro.format.html`](https://doc.rust-lang.org/std/macro.format.html) · [`std/keyword.loop.html`](https://doc.rust-lang.org/std/keyword.loop.html) · [`std/keyword.break.html`](https://doc.rust-lang.org/std/keyword.break.html) · [`std/keyword.for.html`](https://doc.rust-lang.org/std/keyword.for.html) · [`std/keyword.while.html`](https://doc.rust-lang.org/std/keyword.while.html) · [`std/ops/struct.Range.html`](https://doc.rust-lang.org/std/ops/struct.Range.html) · [`std/ops/struct.RangeInclusive.html`](https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html) · [`std/iter/trait.Iterator.html`](https://doc.rust-lang.org/std/iter/trait.Iterator.html) · [`std/iter/struct.StepBy.html`](https://doc.rust-lang.org/std/iter/struct.StepBy.html) |
 | M4 `o-dono-do-valor` | [`book/ch04-00-understanding-ownership.html`](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) · [`book/ch04-01-what-is-ownership.html`](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html) · [`rust-by-example/std/str.html`](https://doc.rust-lang.org/rust-by-example/std/str.html) · [`std/keyword.let.html`](https://doc.rust-lang.org/std/keyword.let.html) · [`std/string/struct.String.html`](https://doc.rust-lang.org/std/string/struct.String.html) |
-| M5 `emprestar` | [`book/ch04-02-references-and-borrowing.html`](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html) · [`book/ch04-03-slices.html`](https://doc.rust-lang.org/book/ch04-03-slices.html) |
-| M6 `estruturas` | [`book/ch05-01-defining-structs.html`](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) · [`book/ch05-03-method-syntax.html`](https://doc.rust-lang.org/book/ch05-03-method-syntax.html) · [`rust-by-example/custom_types/structs.html`](https://doc.rust-lang.org/rust-by-example/custom_types/structs.html) |
+| M5 `emprestar` | [`book/ch04-02-references-and-borrowing.html`](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html) · [`book/ch04-03-slices.html`](https://doc.rust-lang.org/book/ch04-03-slices.html) · [`std/primitive.str.html`](https://doc.rust-lang.org/std/primitive.str.html) · [`std/primitive.reference.html`](https://doc.rust-lang.org/std/primitive.reference.html) · [`std/primitive.char.html`](https://doc.rust-lang.org/std/primitive.char.html) · [`rust-by-example/scope/lifetime.html`](https://doc.rust-lang.org/rust-by-example/scope/lifetime.html) |
+| M6 `estruturas` | [`book/ch05-01-defining-structs.html`](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) · [`book/ch05-03-method-syntax.html`](https://doc.rust-lang.org/book/ch05-03-method-syntax.html) · [`rust-by-example/custom_types/structs.html`](https://doc.rust-lang.org/rust-by-example/custom_types/structs.html) · [`std/fmt/trait.Debug.html`](https://doc.rust-lang.org/std/fmt/trait.Debug.html) · [`std/cmp/trait.PartialEq.html`](https://doc.rust-lang.org/std/cmp/trait.PartialEq.html) · [`std/clone/trait.Clone.html`](https://doc.rust-lang.org/std/clone/trait.Clone.html) · [`std/marker/trait.Copy.html`](https://doc.rust-lang.org/std/marker/trait.Copy.html) · [`rust-by-example/hello/print.html`](https://doc.rust-lang.org/rust-by-example/hello/print.html) · [`book/appendix-03-derivable-traits.html`](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html) |
 | M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-the-match-control-flow-construct.html`](https://doc.rust-lang.org/book/ch06-02-the-match-control-flow-construct.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) |
 | M8 `colecoes` | [`book/ch08-00-common-collections.html`](https://doc.rust-lang.org/book/ch08-00-common-collections.html) · [`book/ch08-01-vectors.html`](https://doc.rust-lang.org/book/ch08-01-vectors.html) · [`book/ch08-03-hash-maps.html`](https://doc.rust-lang.org/book/ch08-03-hash-maps.html) · [`std/collections/struct.HashMap.html`](https://doc.rust-lang.org/std/collections/struct.HashMap.html) |
 | todos (harness) | [`cargo/commands/cargo-test.html`](https://doc.rust-lang.org/cargo/commands/cargo-test.html) · [`cargo/guide/project-layout.html`](https://doc.rust-lang.org/cargo/guide/project-layout.html) · [`edition-guide/`](https://doc.rust-lang.org/edition-guide/) · [`rust-by-example/hello.html`](https://doc.rust-lang.org/rust-by-example/hello.html) |
