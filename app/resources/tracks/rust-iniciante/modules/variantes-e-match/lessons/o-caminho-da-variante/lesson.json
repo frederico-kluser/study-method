@@ -25,7 +25,7 @@
     {
       "id": "o-nome-inteiro-da-variante",
       "title": "O nome inteiro da variante",
-      "markdown": "`Vermelho` sozinho não existe: a variante mora DENTRO do conjunto, e o caminho `::` diz a rua e a casa:\n\n```rust\npub fn a_cor_do_pare() -> Cor {\n    Cor::Vermelho\n}\n\npub fn a_cor_do_siga() -> Cor {\n    Cor::Verde\n}\n```\n\n`Cor::Vermelho` lê-se: DENTRO de `Cor`, pegue `Vermelho`. É a mesma mecânica do `Ponto::new` de M6 — caminho-qualificado, agora apontando para uma variante."
+      "markdown": "`Vermelho` sozinho não existe: a variante mora DENTRO do conjunto, e o caminho `::` diz a rua e a casa:\n\n```rust\npub fn a_cor_do_pare() -> Cor {\n    Cor::Vermelho\n}\n\npub fn a_cor_do_siga() -> Cor {\n    Cor::Verde\n}\n```\n\n`Cor::Vermelho` lê-se: DENTRO de `Cor`, pegue `Vermelho`. A FORMA do caminho você já conhece: `a-escolha-fixa` a demonstrou (`Cor::Verde` devolvendo de função) e o desafio da etiqueta a cobrou (`Maturidade::Suave`) — é a mesma mecânica do `Ponto::new` de M6. Esta aula é consolidação: ela APROFUNDA o caminho que já sabe escrever, pondo-o em posições novas — comparação, ramo de `if`, variável."
     },
     {
       "id": "o-caminho-em-todo-lugar",

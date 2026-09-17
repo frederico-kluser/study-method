@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "slug": "um-braco-por-variante",
   "title": "Um braço por variante",
-  "summary": "O braço é PADRÃO => RESPOSTA: o aluno escreve o braço inteiro, pergunta e resposta.",
+  "summary": "O braço é PADRÃO => RESPOSTA: consolidação do braço que a aula anterior pôs na lacuna do aluno — agora o foco é o tipo que TODOS os braços prometem.",
   "difficulty": 4,
-  "role": "regular",
+  "role": "consolidation",
   "targetAtom": "node:MatchArm",
   "concepts": [
     "braco_da_variante"

@@ -15,12 +15,11 @@
   "introduces": {
     "productive": [
       "node:MatchExpression",
-      "node:MatchBlock"
-    ],
-    "receptive": [
+      "node:MatchBlock",
       "node:MatchArm",
       "node:MatchPattern"
-    ]
+    ],
+    "receptive": []
   },
   "introducesTerms": [
     "term:match",

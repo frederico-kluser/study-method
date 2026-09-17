@@ -260,7 +260,7 @@ deste documento o implementa:
 | `node:StructItem` | `node:FieldDeclarationList` + `node:FieldDeclaration` |
 | `node:StructExpression` | `node:FieldInitializerList` + `node:FieldInitializer` + `node:FieldIdentifier` |
 | `node:EnumItem` | `node:EnumVariantList` + `node:EnumVariant` |
-| `node:MatchExpression` | `node:MatchBlock` |
+| `node:MatchExpression` | `node:MatchBlock` + `node:MatchArm` + `node:MatchPattern` — QUALQUER `match` as emite: braços e padrões são a estrutura do match, não construção à parte |
 | `node:MatchArm` | `node:MatchPattern` |
 | `node:ImplItem` | `node:SelfParameter` — SÓ na aula-do-método; depois nada |
 | `node:MutableReference` | `node:MutableSpecifier` + `node:ReferenceType` |
@@ -285,6 +285,16 @@ consolidação legítima (CONS).
 **não têm aula**: acompanham o harness desde a aula 1 (o starter os lê e o aluno os copia) e entram
 no `introduces.receptive` da aula 1 — se o gate os cobrar do lado produtivo, é a aula 1 que os
 declara (decisão do disco; a tabela do contrato não muda).
+
+**⚑ Limitação de medição conhecida — `api:.or_insert` nunca é emitida em cadeia.** O extrator
+para no receptor não-trivial: em `contagem.entry(palavra).or_insert(0)` (o desafio de
+`contar-as-palavras`, M8) o receptor de `.or_insert` é o RESULTADO de `contagem.entry(palavra)`,
+e a emissão da chave `api:` exige receptor local — a mesma mecânica da linha `api:<.campo>`
+acima (`RAIZES_INTERNAS`). Consequência medida: a chave é ENSINADA (produtiva declarada da aula)
+e NÃO medida — o coverage a mostra como 1 excesso informativo no desafio, não como lacuna de
+currículo. É a mesma honestidade da bateria J5 A13–A16 declarada neste contrato: a limitação é
+do EXTRATOR (cadeia sobre resultado de chamada), vale para as duas linguagens com extrator de
+chave `api:` de método e não reprova ninguém — o gate não pode cobrar o que a régua não lê.
 
 ### A semente receptiva do harness Rust
 
@@ -332,6 +342,14 @@ emite `op:unary:-` — a matéria da aula de negação — e NÃO entra na semen
 > pode passar `-3` (o argumento, então, já tem aula). A mesma regra torna o starter padrão legal:
 > `api:todo!`, `pub` (`node:VisibilityModifier`) e `i32` (`node:PrimitiveType`) são RECEPTIVOS na
 > entrada da aula 1 — o starter os usa, e só o DIFF do aluno é checado contra o produtivo.
+
+**⚑ O que o gate NÃO mede: o `statement`.** A regra acima nomeia QUATRO superfícies, mas o audit
+extrai só `challengeSurfaces` = starter/solution/tests — o enunciado (`statement`) nunca passa
+pelo extrator. A promessa `statement ⊆ saída.receptivo` de [`16`](16-engine-de-trilha.md) §3.3
+vale, portanto, por DISCIPLINA DE AUTORIA (a mesma revisão que audita a teoria audita o
+enunciado), não por gate: é uma lacuna pré-existente da ENGINE, não desta trilha, e vale para
+Python também. Nenhum desafio do iniciante a explora — mas declarar a lacuna é o que impede a
+promessa de parecer verificada quando não é.
 
 ### As cláusulas de autoria do harness Rust (obrigatórias a todo desafio)
 
@@ -410,10 +428,10 @@ O que toda onda de conteúdo copia, aula por aula — o disco já impõe tudo is
 | 2 | `decisao` | 12 | 4 | comparações, `&&`, negação unária, `!`, `if`/`else`/`else if` (inclusive como expressão) | decide com ramos, inclusive o `if` que devolve valor |
 | 3 | `repeticao` | 12 | 7 | `loop`/`while`/`for`, intervalos `..`/`..=`, `break` (inclusive devolvendo valor), acumulador mutável | repete com o laço certo e para com o `break` certo |
 | 4 | `o-dono-do-valor` | 13 | 8 | `String`, movimento, `clone`, função que consome/devolve o dono, o que copia, sombreamento, métodos de texto | explica E aplica move: diz ANTES se a linha move, copia ou empresta |
-| 5 | `emprestar` | 13 | 8 | `&str`, `&T`, `&mut T`, deref, a regra do empréstimo, fatia, lifetime implícito em escopo simples | assina funções com `&T`/`&mut T` e aplica a regra sem lutar com o compilador |
-| 6 | `estruturas` | 12 | 5 | struct, literal, campo, `impl`, `&self`/`&mut self`, construtor associado, derives | modela dados com struct e métodos — e o derive certo |
+| 5 | `emprestar` | 13 | 7 | `&str`, `&T`, `&mut T`, deref, a regra do empréstimo, fatia, lifetime implícito em escopo simples | assina funções com `&T`/`&mut T` e aplica a regra sem lutar com o compilador |
+| 6 | `estruturas` | 12 | 4 | struct, literal, campo, `impl`, `&self`/`&mut self`, construtor associado, derives | modela dados com struct e métodos — e o derive certo |
 | 7 | `variantes-e-match` | 13 | 7 | enum próprio, `match` exaustivo, variantes que carregam valor, `Option`/`Result`, `unwrap`/`expect`, `parse` | resolve ausência e falha com enum — e sabe quando o `unwrap` é aceitável |
-| 8 | `colecoes` | 13 | 6 | `Vec`, `HashMap`, o padrão `entry`, o laço que empresta a coleção | guarda e consulta coleções que crescem, dentro das regras de dono |
+| 8 | `colecoes` | 13 | 5 | `Vec`, `HashMap`, o padrão `entry`, o laço que empresta a coleção | guarda e consulta coleções que crescem, dentro das regras de dono |
 
 **Não existe fronteira intermediária dentro do iniciante** — o júnior-Rust é a fronteira única (fim
 do M8), porque em Rust o que separa "sei escrever função" de "sei escrever programa" é exatamente o
@@ -555,9 +573,9 @@ erro próprio já existe), combinadores (`map`/`unwrap_or_else` — exigem closu
 | Aula | Ensina | Presume |
 |---|---|---|
 | `a-escolha-fixa` | `node:EnumItem` | M6 `o-molde-e-o-valor` |
-| `o-caminho-da-variante` | cons. — `node:ScopedIdentifier` em forma nova (`Cor::Vermelho` — o caminho da variante) | `a-escolha-fixa` |
-| `o-casamento` | `node:MatchExpression` | `o-caminho-da-variante` |
-| `um-braco-por-variante` | `node:MatchArm` | `o-casamento` |
+| `o-caminho-da-variante` | cons. — `node:ScopedIdentifier` em forma nova (caminhos em posições novas — comparação, ramo de `if`, variável; a FORMA do caminho já foi demonstrada em `a-escolha-fixa` e cobrada no desafio da etiqueta) | `a-escolha-fixa` |
+| `o-casamento` | `node:MatchExpression` — o match INTEIRO sai da lacuna do aluno (o starter só entrega o corpo pendente; braços e padrões entram como derivadas do mapa e a aula 4 consolida o braço) | `o-caminho-da-variante` |
+| `um-braco-por-variante` | cons. — `node:MatchArm` em forma nova (o tipo que TODOS os braços prometem — braço numérico, inclusive o negativo) | `o-casamento` |
 | `o-braco-que-sobra` | cons. — `node:MatchArm` em forma nova (o `_` — e por que o `match` é EXAUSTIVO) | `um-braco-por-variante` |
 | `a-variante-que-carrega` | `node:TupleStructPattern` | `a-escolha-fixa` |
 | `casar-o-que-carrega` | cons. — `node:TupleStructPattern` em forma nova (extrair o valor no braço) | `a-variante-que-carrega`, `o-casamento` |
@@ -566,7 +584,7 @@ erro próprio já existe), combinadores (`map`/`unwrap_or_else` — exigem closu
 | `a-resposta-que-pode-falhar` | `global:Ok`, `global:Err` | `a-caixa-que-pode-vir-vazia` |
 | `casar-a-resposta` | cons. — `node:TupleStructPattern` em forma nova (`Ok(v)` e `Err(e)`) | `a-resposta-que-pode-falhar`, `casar-o-que-carrega` |
 | `a-porta-rapida` | `api:.unwrap`, `api:.expect` | `casar-a-caixa` |
-| `converter-texto-em-numero` | `api:.parse` | `a-porta-rapida`, M4 `o-texto-que-e-dono` |
+| `converter-texto-em-numero` | `api:.parse` — integration (a aula que fecha o módulo: o texto cru entra, o `Result` que o `parse` devolve sai casado pelo match das aulas 10–11 — composição do módulo inteiro) | `a-porta-rapida`, M4 `o-texto-que-e-dono` |
 
 #### Módulo 8 — `colecoes` (13 aulas)
 
@@ -642,7 +660,7 @@ DERIVADAS = set("""node:BinaryExpression node:IntegerLiteral node:UnaryExpressio
 node:AssignmentExpression node:CompoundAssignmentExpr node:RangeExpression node:LetDeclaration
 node:MutableSpecifier node:ConstItem node:StaticItem node:Parameters node:Parameter
 node:FieldDeclarationList node:FieldDeclaration node:FieldInitializerList node:FieldInitializer
-node:FieldIdentifier node:FieldExpression node:EnumVariantList node:EnumVariant node:MatchBlock node:MatchPattern
+node:FieldIdentifier node:FieldExpression node:EnumVariantList node:EnumVariant node:MatchBlock node:MatchArm node:MatchPattern
 node:SelfParameter node:ReferenceType node:MacroInvocation node:TokenTree node:Attribute
 node:AttributeItem node:UseDeclaration node:ScopedIdentifier node:TypeIdentifier node:GenericType
 node:TypeArguments""".split())
@@ -737,11 +755,11 @@ uma decisão, não um esquecimento. As chaves de eixo fechado que o iniciante N�
 | `global:Eq/PartialOrd/Ord/Hash/Default/From/Into/TryFrom/TryInto/FromStr/ToOwned/ToString/AsRef/AsMut/Sized/Unpin/Drop` | intermediário/avançado | traits do prelude — cada um com aula no curso onde a questão dele nasce |
 | `global:i8/i16/i64/i128/u8/u16/u32/u64/u128/f32/f64/char/isize/bool/str/alloc/core` | **receptivo por leitura, sem aula produtiva** | a família de tipos aparece em teoria (`bool`/`str` desde a aula 1, no `&str` e nas comparações; e no `usize` dos índices); o tipo em posição de assinatura é `node:PrimitiveType`, receptivo desde a aula 1 |
 | `global:self`, `global:Self`, `node:Super`, `node:ModItem` (produtivo no intermediário) | intermediário (`o-codigo-em-modulos`) | `mod`/`use` próprios são conteúdo de organização de código |
-| `global:std`, `api:std::io`, `api:std::io::stdout` | intermediário (E/S de verdade) | entrada do teclado exige `std::io`; o iniciante não tem canal de entrada |
+| `global:std`, `api:std::io`, `api:std::io::stdout` | intermediário (E/S de verdade) | entrada do teclado exige `std::io`; o iniciante não tem canal de entrada — **⚑ `global:std`, porém, é PRODUTIVA de fato no iniciante: emitida juntamente com o `use std::collections::HashMap` de `trazer-o-mapa` (M8), na emissão tripla medida (`api:std::collections::HashMap` + `api:std::collections` + `global:std`); produtiva pela cláusula do par, estágio nominal mantido** |
 | `node:ForeignMod` | **PROIBIDO SEMPRE** (`RS_FORBIDDEN_INVARIANTS`) | `extern "C"` quebra a decidibilidade e é a brecha da forja — o FFI está fora de TODA a cadeia, não só do iniciante |
 | `node:TupleType` | fora da cadeia v1 | alias de tupla sem tupla-expressão não é evento de currículo; a tupla-expressão/desestruturação entra como dívida de corpus (abaixo) |
 | `node:TypeCastExpression` (o `as`) | intermediário | conversão explícita entre tipos numéricos, depois da família de inteiros |
-| `api:std::collections` (a raiz) | avançado | o módulo inteiro das coleções, com a medição |
+| `api:std::collections` (a raiz) | avançado | o módulo inteiro das coleções, com a medição — **⚑ mas a chave é PRODUTIVA de fato no iniciante: emitida juntamente com o `use std::collections::HashMap` de `trazer-o-mapa` (M8), na emissão tripla medida; produtiva pela cláusula do par ("o conjunto conta como UM item"), estágio nominal (avançado) mantido** |
 
 **Dívidas de corpus (declaro porque o gate é fail-closed e as acha sozinho).** O inventário é
 GERADO do corpus; construções que o corpus não usa ainda têm chaves que o EXTRATOR emite mas o
@@ -858,6 +876,6 @@ mesmo padrão publicado). Nunca URL inventada.
 | M4 `o-dono-do-valor` | [`book/ch04-00-understanding-ownership.html`](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) · [`book/ch04-01-what-is-ownership.html`](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html) · [`rust-by-example/std/str.html`](https://doc.rust-lang.org/rust-by-example/std/str.html) · [`std/keyword.let.html`](https://doc.rust-lang.org/std/keyword.let.html) · [`std/string/struct.String.html`](https://doc.rust-lang.org/std/string/struct.String.html) |
 | M5 `emprestar` | [`book/ch04-02-references-and-borrowing.html`](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html) · [`book/ch04-03-slices.html`](https://doc.rust-lang.org/book/ch04-03-slices.html) · [`std/primitive.str.html`](https://doc.rust-lang.org/std/primitive.str.html) · [`std/primitive.reference.html`](https://doc.rust-lang.org/std/primitive.reference.html) · [`std/primitive.char.html`](https://doc.rust-lang.org/std/primitive.char.html) · [`rust-by-example/scope/lifetime.html`](https://doc.rust-lang.org/rust-by-example/scope/lifetime.html) |
 | M6 `estruturas` | [`book/ch05-01-defining-structs.html`](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) · [`book/ch05-03-method-syntax.html`](https://doc.rust-lang.org/book/ch05-03-method-syntax.html) · [`rust-by-example/custom_types/structs.html`](https://doc.rust-lang.org/rust-by-example/custom_types/structs.html) · [`std/fmt/trait.Debug.html`](https://doc.rust-lang.org/std/fmt/trait.Debug.html) · [`std/cmp/trait.PartialEq.html`](https://doc.rust-lang.org/std/cmp/trait.PartialEq.html) · [`std/clone/trait.Clone.html`](https://doc.rust-lang.org/std/clone/trait.Clone.html) · [`std/marker/trait.Copy.html`](https://doc.rust-lang.org/std/marker/trait.Copy.html) · [`rust-by-example/hello/print.html`](https://doc.rust-lang.org/rust-by-example/hello/print.html) · [`book/appendix-03-derivable-traits.html`](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html) |
-| M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-the-match-control-flow-construct.html`](https://doc.rust-lang.org/book/ch06-02-the-match-control-flow-construct.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) |
+| M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-match.html`](https://doc.rust-lang.org/book/ch06-02-match.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) |
 | M8 `colecoes` | [`book/ch08-00-common-collections.html`](https://doc.rust-lang.org/book/ch08-00-common-collections.html) · [`book/ch08-01-vectors.html`](https://doc.rust-lang.org/book/ch08-01-vectors.html) · [`book/ch08-03-hash-maps.html`](https://doc.rust-lang.org/book/ch08-03-hash-maps.html) · [`std/collections/struct.HashMap.html`](https://doc.rust-lang.org/std/collections/struct.HashMap.html) |
 | todos (harness) | [`cargo/commands/cargo-test.html`](https://doc.rust-lang.org/cargo/commands/cargo-test.html) · [`cargo/guide/project-layout.html`](https://doc.rust-lang.org/cargo/guide/project-layout.html) · [`edition-guide/`](https://doc.rust-lang.org/edition-guide/) · [`rust-by-example/hello.html`](https://doc.rust-lang.org/rust-by-example/hello.html) |

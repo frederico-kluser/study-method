@@ -60,6 +60,14 @@ impl Ponto {
 }
 
 // ── enums, traits, mod, tipo alias ──────────────────────────────────────────
+// ── a variante que carrega: a lista ORDENADA de campos da variante de tupla ─
+// `Alguma(i32)` é o `ordered_field_declaration_list` — a lista de campos
+// ANÔNIMOS (ordenados, não nomeados) que só existe em variante que carrega.
+enum Vale {
+    Nada,
+    Alguma(i32),
+}
+
 enum Cor {
     Vermelho,
     Azul,
