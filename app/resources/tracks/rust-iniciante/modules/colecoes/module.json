@@ -17,5 +17,6 @@
     "consultar-o-mapa",
     "contar-as-palavras",
     "o-analisador-de-votos"
-  ]
+  ],
+  "challenge": "colecoes"
 }

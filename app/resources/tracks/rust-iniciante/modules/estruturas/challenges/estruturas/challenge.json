@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "estruturas",
+  "title": "A ficha do turno",
+  "concept": "composicao_das_estruturas",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# A ficha do turno\n\nFecho do módulo: o turno do jogador vira uma ficha. O molde `Ficha` e as assinaturas já estão no arquivo — e a estampa do compilador (`#[derive(Debug)]`) vem de graça no molde, porque derive é coisa que o teste NÃO observa: o que ele olha é o valor que a ficha devolve.\n\nTrês corpos de aluno:\n\n1. `soma(&mut self, ganhou)` — o método que MUDA: `self.pontos = self.pontos + ganhou;` — a conta fora do `format!`;\n2. `anota(mut self, ganhou) -> Ficha` — o método que COMPÕE: chama o `soma` por dentro (`self.soma(ganhou);`) e devolve o `self` mudado;\n3. `linha(&self) -> String` — o método que LÊ: `format!(\"{} tem {} pontos\", self.nome, self.pontos)`.\n\nE o `turno` costura tudo numa CORRENTE: `Ficha { nome, pontos: base }.anota(ganhou).linha()` — monta a peça (o atalho do campo), anota e devolve a linha.\n\n- `turno(String::from(\"ana\"), 10, 5)` devolve `ana tem 15 pontos`;\n- o teste monta a ficha do bo na mão, muda o placar com o `soma` e pergunta pela `linha` — a mutação fica VISTA;\n- o teste também anota a ficha da ana pelo `anota` — o `self` dono volta como ficha nova.\n\nMolde, método que muda, método que lê, atalho do campo e `format!` — o módulo inteiro numa corrente.",
+  "starterCode": "#[derive(Debug)]\npub struct Ficha {\n    pub nome: String,\n    pub pontos: i32,\n}\n\nimpl Ficha {\n    pub fn soma(&mut self, ganhou: i32) {\n        todo!()\n    }\n\n    pub fn anota(mut self, ganhou: i32) -> Ficha {\n        todo!()\n    }\n\n    pub fn linha(&self) -> String {\n        todo!()\n    }\n}\n\npub fn turno(nome: String, base: i32, ganhou: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug)]\npub struct Ficha {\n    pub nome: String,\n    pub pontos: i32,\n}\n\nimpl Ficha {\n    pub fn soma(&mut self, ganhou: i32) {\n        self.pontos = self.pontos + ganhou;\n    }\n\n    pub fn anota(mut self, ganhou: i32) -> Ficha {\n        self.soma(ganhou);\n        self\n    }\n\n    pub fn linha(&self) -> String {\n        format!(\"{} tem {} pontos\", self.nome, self.pontos)\n    }\n}\n\npub fn turno(nome: String, base: i32, ganhou: i32) -> String {\n    Ficha { nome, pontos: base }.anota(ganhou).linha()\n}\n",
+  "testsCode": "use desafio::Ficha;\nuse desafio::turno;\n\n#[test]\nfn testa_o_turno_da_ana() {\n    assert_eq!(turno(String::from(\"ana\"), 10, 5), \"ana tem 15 pontos\");\n}\n\n#[test]\nfn testa_a_ficha_do_bo_depois_do_ganho() {\n    let mut ficha = Ficha { nome: String::from(\"bo\"), pontos: 12 };\n    desafio::Ficha::soma(&mut ficha, 8);\n    assert_eq!(desafio::Ficha::linha(&ficha), \"bo tem 20 pontos\");\n}\n\n#[test]\nfn testa_a_ficha_da_ana_anotada() {\n    let ficha = desafio::Ficha::anota(Ficha { nome: String::from(\"ana\"), pontos: 10 }, 5);\n    assert_eq!(desafio::Ficha::linha(&ficha), \"ana tem 15 pontos\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "turno(String::from(\"ana\"), 10, 5) monta a ficha pelo atalho do campo, anota os pontos na corrente e devolve \"ana tem 15 pontos\".",
+      "teste": "testa_o_turno_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O método soma(&mut self) muda o placar da ficha (12 + 8) e o método linha(&self) devolve \"bo tem 20 pontos\" — a mutação fica vista pelo teste.",
+      "teste": "testa_a_ficha_do_bo_depois_do_ganho"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "O método anota(mut self) chama o soma por dentro, devolve a ficha mudada e a linha dela é \"ana tem 15 pontos\".",
+      "teste": "testa_a_ficha_da_ana_anotada"
+    }
+  ],
+  "expectedTestCount": 3
+}

@@ -8,10 +8,12 @@
  * NADA disso: todo bloco de código da aula saía cinza chapado.
  *
  * ─── "WITHERED TECHNOLOGY" (docs/ux-redesign.md §1) ───────────────────────
- * Nenhuma dependência nova. `@lezer/highlight`, `@codemirror/lang-python`,
- * `@codemirror/lang-rust`, `@codemirror/lang-javascript`,
- * `@codemirror/lang-json` e
- * `@codemirror/lang-markdown` já são dependências DECLARADAS em package.json —
+ * Uma dependência nova, declarada: `@codemirror/lang-rust` ENTROU como
+ * dependência nova na onda 2.2 (onda2-editor-rust — o realce dedicado rust/rs),
+ * e este módulo passou a consumi-la também. As demais (`@lezer/highlight`,
+ * `@codemirror/lang-python`, `@codemirror/lang-javascript`,
+ * `@codemirror/lang-json` e `@codemirror/lang-markdown`) já eram
+ * dependências DECLARADAS em package.json antes —
  * o editor CodeMirror as usa para colorir o buffer. Aqui a MESMA gramática é
  * usada de um jeito novo: o `parser` da linguagem roda direto sobre uma string
  * e `highlightTree` devolve as faixas coloridas. Sem `EditorView`, sem estado,

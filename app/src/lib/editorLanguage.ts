@@ -6,11 +6,13 @@
  * exige que toda importação esteja no include). O wrapper `src/components/cm/
  * language.ts` reexporta estes símbolos para a UI (componente do renderer).
  *
- * SEM dependência nova: usa apenas os pacotes de linguagem já presentes
- * (@codemirror/lang-*). Idiomas sem parser dedicado (go, c, shell,
- * text…) caem num fallback documentado — `javascript` básico sem TS/JSX —
- * porque compartilham a sintaxe de chaves/identificadores, o que ainda dá
- * realce útil sob o tema Dracula sem adicionar pacote.
+ * Uma dependência nova, declarada: `@codemirror/lang-rust` entrou como
+ * dependência nova na onda 2.2 (onda2-editor-rust) e é usada aqui, junto dos
+ * pacotes de linguagem que JÁ estavam na base (@codemirror/lang-javascript,
+ * lang-python, lang-json, lang-markdown). Idiomas sem parser dedicado (go, c,
+ * shell, text…) caem num fallback documentado — `javascript` básico sem
+ * TS/JSX — porque compartilham a sintaxe de chaves/identificadores, o que
+ * ainda dá realce útil sob o tema Dracula sem adicionar pacote.
  */
 import type { Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
