@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────────
-// Verificação executável Ensina × Presume do docs/20-trilha-c.md (onda 2).
+// Verificação executável Ensina × Presume do docs/20-trilha-c.md (onda 2;
+// inventário re-congelado na onda 4 contra o adaptador medido das ondas 3–4).
 //
 // Node puro (sem libs). Uso:  node tools/check-trilha-c.mjs [caminho-do-doc]
 //
@@ -13,16 +14,20 @@
 //            (a regra do par; chaves marcadas "derivada:" não contam — mapa
 //            de derivadas declarado no doc, §"A regra do par")
 //   A6     — aula produtiva que não introduz nenhuma construção sem o marcador
-//            `[pendente: …]` (as pendências são input da onda 3 — docs/20 §8.2)
+//            `[pendente: …]` (mecanismo mantido; a espinha da onda 4 está SEM
+//            células pendentes — docs/20 §8.2)
 //   ESTRUTURA — 7 módulos com 21+12+13+15+21+16+17 = 115 aulas, numeradas 1..N
 //
 // FONTE DA VERDADE DO INVENTÁRIO (conferida olho nu nesta execução; se o
 // adaptador mudar, atualize AQUI e o §8 do docs/20 juntos):
-//   - app/electron/main/engine/lang/c.ts          → cInventory() (28 kinds),
+//   - app/electron/main/engine/lang/c.ts          → cInventory() (34 kinds),
 //     cConstructKey() (eixos node:/decl:/op:/global:/api:) e
 //     C_DEFAULT_RUNTIME = 'cc-c11'
 //   - app/electron/main/engine/vocab/c/extract_ast.py → _EMITIDOS,
-//     _familia_do_operador (_OPS_ATRIBUICAO/_OPS_LOGICOS/_OPS_UPDATE)
+//     _TRANSPARENTES, _familia_do_operador + os guards de tagUsed/macro
+//   - app/electron/main/engine/atomKeys.ts        → C_HARNESS_RECEPTIVE_SEED
+//     (19 chaves, medida nas ondas 3–4 — a semente NÃO é vocabulário de
+//     `Ensina`; o que ela perdoa é envelope do harness)
 // O inventário completo e o status de cada chave estão no §8 do docs/20
 // (congelado) — este script é o guard executável do mesmo contrato.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,13 +43,17 @@ const docPath = process.argv[2]
   : join(repoRoot, 'docs', '20-trilha-c.md');
 
 // ── O inventário CONGELADO (fonte: cInventory() de lang/c.ts) ────────────────
+// 34 kinds — os 28 da onda 2 + os 6 medidos na onda 3 (RecordDecl, MemberExpr,
+// TypedefDecl, ConditionalOperator, SwitchStmt, CStyleCastExpr). Se o
+// adaptador mudar, atualize AQUI e o §8 do docs/20 juntos.
 const NODE_KINDS = [
-  'ApiRef', 'ArraySubscriptExpr', 'BinaryOperator', 'BreakStmt', 'CallExpr',
-  'CharacterLiteral', 'CompoundAssignOperator', 'CompoundStmt', 'ContinueStmt',
-  'DeclRefExpr', 'DeclStmt', 'DoStmt', 'FloatingLiteral', 'ForStmt',
-  'FunctionDecl', 'GlobalRef', 'IfStmt', 'IncludeDirective', 'IndirectCall',
-  'InitListExpr', 'IntegerLiteral', 'ParmVarDecl', 'ReturnStmt', 'StringLiteral',
-  'UnaryExprOrTypeTraitExpr', 'UnaryOperator', 'VarDecl', 'WhileStmt',
+  'ApiRef', 'ArraySubscriptExpr', 'BinaryOperator', 'BreakStmt', 'CStyleCastExpr',
+  'CallExpr', 'CharacterLiteral', 'CompoundAssignOperator', 'CompoundStmt',
+  'ConditionalOperator', 'ContinueStmt', 'DeclRefExpr', 'DeclStmt', 'DoStmt',
+  'FloatingLiteral', 'ForStmt', 'FunctionDecl', 'GlobalRef', 'IfStmt',
+  'IncludeDirective', 'IndirectCall', 'InitListExpr', 'IntegerLiteral', 'MemberExpr',
+  'ParmVarDecl', 'RecordDecl', 'ReturnStmt', 'StringLiteral', 'SwitchStmt',
+  'TypedefDecl', 'UnaryExprOrTypeTraitExpr', 'UnaryOperator', 'VarDecl', 'WhileStmt',
 ];
 
 // Fonte: cConstructKey() (c.ts) + _familia_do_operador (extract_ast.py).
