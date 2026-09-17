@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tela",
+  "title": "O carrinho da feira",
+  "concept": "composicao_da_tela",
+  "difficulty": 4,
+  "language": "rust",
+  "outputChannel": "retorno",
+  "statement": "# O carrinho da feira\n\nFecho do módulo: a feira inteira numa crate — a função pequena que calcula a compra, e a função grande que recebe, acumula com nome, mostra na tela e devolve o texto montado.\n\nDuas funções, as duas `pub`:\n\n1. `valor_da_compra(preco, qtd)` devolve a conta da compra — o preço vezes a quantidade;\n2. `carrinho(preco1, qtd1, preco2, qtd2)` monta a NOTA das duas compras, nesta ordem:\n   - fixe a taxa da sacola uma única vez: `const TAXA: i32 = 5;`;\n   - o `total` começa como a PRIMEIRA compra — chame `valor_da_compra`;\n   - emende a segunda compra com uma reatribuição (`total = total + ...`, chamando de novo);\n   - some a taxa com `+=`;\n   - mostre `carrinho fechado` na tela com `println!`;\n   - devolva a nota montada com `format!` — a última expressão do corpo, sem `;`.\n\nFormato exato da nota, com o encaixe direto dos nomes: `{qtd1} x {preco1} + {qtd2} x {preco2} + {TAXA} = {total}` — para `carrinho(4, 3, 2, 10)` a nota é `3 x 4 + 10 x 2 + 5 = 37`.\n\nHonestidade da tela: o `println!` é matéria do módulo e fica na solução — mas o teste NÃO consegue vê-lo; ele confere só o VALOR devolvido. O mesmo vale para os nomes internos: as etapas acima são o caminho do módulo, cada uma é uma aula dele, e quem fecha o desafio é a conta — os testes chamam com duas feiras diferentes, e uma nota só não basta.\n\nSe o compilador reclamar, leia o erro dele com calma — é a última aula do módulo. Este desafio não ensina nada novo: ele compõe o módulo inteiro.",
+  "starterCode": "pub fn valor_da_compra(preco: i32, qtd: i32) -> i32 {\n    todo!()\n}\n\npub fn carrinho(preco1: i32, qtd1: i32, preco2: i32, qtd2: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn valor_da_compra(preco: i32, qtd: i32) -> i32 {\n    preco * qtd\n}\n\npub fn carrinho(preco1: i32, qtd1: i32, preco2: i32, qtd2: i32) -> String {\n    const TAXA: i32 = 5;\n    let mut total = valor_da_compra(preco1, qtd1);\n    total = total + valor_da_compra(preco2, qtd2);\n    total += TAXA;\n    println!(\"carrinho fechado\");\n    format!(\"{qtd1} x {preco1} + {qtd2} x {preco2} + {TAXA} = {total}\")\n}\n",
+  "testsCode": "use desafio::valor_da_compra;\nuse desafio::carrinho;\n\n#[test]\nfn testa_a_compra_de_tres_por_quatro() {\n    assert_eq!(valor_da_compra(4, 3), 12);\n}\n\n#[test]\nfn testa_a_compra_de_dois_por_dez() {\n    assert_eq!(valor_da_compra(2, 10), 20);\n}\n\n#[test]\nfn testa_o_carrinho_da_primeira_feira() {\n    assert_eq!(carrinho(4, 3, 2, 10), \"3 x 4 + 10 x 2 + 5 = 37\");\n}\n\n#[test]\nfn testa_o_carrinho_da_segunda_feira() {\n    assert_eq!(carrinho(1, 5, 1, 5), \"5 x 1 + 5 x 1 + 5 = 15\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "valor_da_compra(4, 3) deve devolver 12 — o preço vezes a quantidade.", "teste": "testa_a_compra_de_tres_por_quatro" },
+    { "id": "REQ-2", "descricao": "valor_da_compra(2, 10) deve devolver 20 — o preço vezes a quantidade.", "teste": "testa_a_compra_de_dois_por_dez" },
+    { "id": "REQ-3", "descricao": "carrinho(4, 3, 2, 10) deve devolver \"3 x 4 + 10 x 2 + 5 = 37\" — a nota das duas compras com a taxa da sacola.", "teste": "testa_o_carrinho_da_primeira_feira" },
+    { "id": "REQ-4", "descricao": "carrinho(1, 5, 1, 5) deve devolver \"5 x 1 + 5 x 1 + 5 = 15\" — a nota das duas compras com a taxa da sacola.", "teste": "testa_o_carrinho_da_segunda_feira" }
+  ],
+  "expectedTestCount": 4,
+  "sources": [
+    { "title": "How Functions Work — The Rust Programming Language", "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html", "description": "O capítulo oficial das funções — o molde das duas funções deste fecho." },
+    { "title": "Variables and Mutability — The Rust Programming Language", "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html", "description": "O capítulo oficial do let, do mut e do const — a ligação que o carrinho usa." },
+    { "title": "Macro println! — a referência oficial do std", "url": "https://doc.rust-lang.org/std/macro.println.html", "description": "A macro que escreve a linha na tela — a tela do módulo." }
+  ]
+}

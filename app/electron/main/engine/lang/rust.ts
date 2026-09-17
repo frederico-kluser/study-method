@@ -14,9 +14,9 @@
  * `cargo test` é zero-install, `assert_eq!` mostra `left`/`right`, e os DOIS
  * fatos medidos que este adaptador codifica — ver RS_FAILURE_POLICY e
  * RS_TEST_COMMAND). Fonte NORMATIVA de conteúdo: o contrato da trilha
- * `rust-iniciante` (docs/19) ainda não existe — o VOCABULÁRIO de atom keys
- * deste adaptador (`vocab/atoms.rust.json`, gerado) é o que o contrato vai
- * citar; cada chave é previsível e estável por desenho.
+ * `rust-iniciante` é `docs/20-trilha-rust.md` — o VOCABULÁRIO de atom keys
+ * deste adaptador (`vocab/atoms.rust.json`, gerado) é o inventário fechado
+ * que o contrato cita; cada chave é previsível e estável por desenho.
  *
  * ─── AS SETE DECISÕES DESTE ARQUIVO ───────────────────────────────────────
  *

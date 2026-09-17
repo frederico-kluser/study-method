@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "repeticao",
+  "title": "O treino da semana",
+  "concept": "composicao_da_repeticao",
+  "difficulty": 5,
+  "language": "rust",
+  "outputChannel": "retorno",
+  "statement": "# O treino da semana\n\nFecho do módulo: a semana de treino inteira — o `for` que percorre o intervalo, o `while` que acumula até a meta, e o `loop` que para com o `break` que devolve.\n\nTrês funções, as três `pub`:\n\n1. `soma_dos_dias(dias)` — no dia `d` o treino corre `d` quilômetros (o dia 1 corre 1, o dia 2 corre 2…). Percorra o intervalo `1..=dias` com `for` e devolva o total acumulado;\n2. `treinos_ate_a_meta(meta, por_treino)` — cada treino soma `por_treino` quilômetros (sempre de 1 ou mais). Com `while`, devolva quantos treinos o corpo precisa para a meta ser ALCANÇADA — o treino que ultrapassa também conta (o uma-vez-a-mais do módulo);\n3. `dobras_ate_passar(distancia)` — a esteira dobra a distância a cada treino (`atual = atual * 2`, com a distância de 1 ou mais). Com `loop`, devolva com o `break` de VALOR quantas dobras até passar de `100`.\n\nOs acumuladores e contadores são `let mut` que crescem com `+=`; nada nasce pronto sem laço. Honestidade do laço: o teste confere o RESULTADO devolvido e não vê qual laço rodou — por isso o enunciado pede cada laço PELO NOME, e a solução de referência usa exatamente o laço pedido em cada função. Este desafio não ensina nada novo — ele compõe o módulo inteiro.",
+  "starterCode": "pub fn soma_dos_dias(dias: i32) -> i32 {\n    todo!()\n}\n\npub fn treinos_ate_a_meta(meta: i32, por_treino: i32) -> i32 {\n    todo!()\n}\n\npub fn dobras_ate_passar(distancia: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_dos_dias(dias: i32) -> i32 {\n    let mut total = 0;\n    for dia in 1..=dias {\n        total += dia;\n    }\n    total\n}\n\npub fn treinos_ate_a_meta(meta: i32, por_treino: i32) -> i32 {\n    let mut acumulado = 0;\n    let mut treinos = 0;\n    while acumulado < meta {\n        acumulado += por_treino;\n        treinos += 1;\n    }\n    treinos\n}\n\npub fn dobras_ate_passar(distancia: i32) -> i32 {\n    let mut atual = distancia;\n    let mut dobras = 0;\n    loop {\n        atual = atual * 2;\n        dobras += 1;\n        if atual > 100 {\n            break dobras;\n        }\n    }\n}\n",
+  "testsCode": "use desafio::soma_dos_dias;\nuse desafio::treinos_ate_a_meta;\nuse desafio::dobras_ate_passar;\n\n#[test]\nfn testa_a_semana_de_tres_dias() {\n    assert_eq!(soma_dos_dias(3), 6);\n}\n\n#[test]\nfn testa_a_semana_de_dez_dias() {\n    assert_eq!(soma_dos_dias(10), 55);\n}\n\n#[test]\nfn testa_a_meta_atingida_com_sobra() {\n    assert_eq!(treinos_ate_a_meta(10, 3), 4);\n}\n\n#[test]\nfn testa_a_meta_atingida_de_batida() {\n    assert_eq!(treinos_ate_a_meta(9, 3), 3);\n}\n\n#[test]\nfn testa_as_dobras_do_dez() {\n    assert_eq!(dobras_ate_passar(10), 4);\n}\n\n#[test]\nfn testa_as_dobras_do_um() {\n    assert_eq!(dobras_ate_passar(1), 7);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "soma_dos_dias(3) deve devolver 6 — o for no intervalo 1..=3 acumulando dia a dia.", "teste": "testa_a_semana_de_tres_dias" },
+    { "id": "REQ-2", "descricao": "soma_dos_dias(10) deve devolver 55 — o for no intervalo 1..=10 acumulando dia a dia.", "teste": "testa_a_semana_de_dez_dias" },
+    { "id": "REQ-3", "descricao": "treinos_ate_a_meta(10, 3) deve devolver 4 — o while roda uma vez a mais para ULTRAPASSAR a meta (3+3+3+3).", "teste": "testa_a_meta_atingida_com_sobra" },
+    { "id": "REQ-4", "descricao": "treinos_ate_a_meta(9, 3) deve devolver 3 — o while para na batida exata da meta (3+3+3).", "teste": "testa_a_meta_atingida_de_batida" },
+    { "id": "REQ-5", "descricao": "dobras_ate_passar(10) deve devolver 4 — o loop dobra 10 até passar de 100 (20, 40, 80, 160) e o break devolve a contagem.", "teste": "testa_as_dobras_do_dez" },
+    { "id": "REQ-6", "descricao": "dobras_ate_passar(1) deve devolver 7 — o loop dobra 1 até passar de 100 (2, 4, 8, 16, 32, 64, 128).", "teste": "testa_as_dobras_do_um" }
+  ],
+  "expectedTestCount": 6,
+  "sources": [
+    { "title": "The Rust Book — Control Flow (cap. 3.5)", "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html", "description": "O capítulo oficial dos laços — loop, while e for no mesmo capítulo do módulo." },
+    { "title": "Rust by Example — For Loops and Range", "url": "https://doc.rust-lang.org/rust-by-example/flow_control/for.html", "description": "Os exemplos oficiais do for com intervalos — o 1..=dias do treino." },
+    { "title": "std — a palavra-chave break", "url": "https://doc.rust-lang.org/std/keyword.break.html", "description": "A referência oficial do break — inclusive o break que devolve valor do loop." }
+  ]
+}

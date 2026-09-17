@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "decisao",
+  "title": "A torre de controle",
+  "concept": "composicao_da_decisao",
+  "difficulty": 4,
+  "language": "rust",
+  "outputChannel": "retorno",
+  "statement": "# A torre de controle\n\nFecho do módulo: a torre que DECIDE se o drone voa — o `if` que vira valor, a fila de ramos e as comparações todas juntas.\n\nA função `voo(modo_eco, bateria)` devolve o veredito da torre:\n\n1. o limite do voo nasce de uma decisão: `let limite = if modo_eco { 20 } else { 50 };` — o `if` como EXPRESSÃO que vira valor (no modo eco a caixa é mais baixa);\n2. a fila de ramos decide o veredito, nesta ordem:\n   - bateria `== 0` → `bateria 0: carregue antes de voar`;\n   - bateria `< 0` → `bateria -7: carga invalida` (carga negativa não existe);\n   - bateria `> limite` → `bateria 60: voo liberado`;\n   - NÃO está no modo eco E ainda tem mais de `20` → `bateria 30: so no modo eco`;\n   - nos demais casos → `bateria 10: recarregue`;\n3. cada ramo monta o próprio texto com `format!` — a carga aparece com o sinal que entrou (o negativo do módulo aparece no veredito).\n\nO teste confere o texto DEVOLVIDO; a decisão inteira acontece antes dele — e cada veredito sai de um ramo diferente, então a fila tem de estar inteira e na ordem. Este desafio não ensina nada novo — ele compõe o módulo inteiro.",
+  "starterCode": "pub fn voo(modo_eco: bool, bateria: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn voo(modo_eco: bool, bateria: i32) -> String {\n    let limite = if modo_eco { 20 } else { 50 };\n    if bateria == 0 {\n        format!(\"bateria {bateria}: carregue antes de voar\")\n    } else if bateria < 0 {\n        format!(\"bateria {bateria}: carga invalida\")\n    } else if bateria > limite {\n        format!(\"bateria {bateria}: voo liberado\")\n    } else if !modo_eco && bateria > 20 {\n        format!(\"bateria {bateria}: so no modo eco\")\n    } else {\n        format!(\"bateria {bateria}: recarregue\")\n    }\n}\n",
+  "testsCode": "use desafio::voo;\n\n#[test]\nfn testa_a_bateria_sem_carga() {\n    assert_eq!(voo(false, 0), \"bateria 0: carregue antes de voar\");\n}\n\n#[test]\nfn testa_a_bateria_negativa() {\n    assert_eq!(voo(false, -7), \"bateria -7: carga invalida\");\n}\n\n#[test]\nfn testa_o_voo_liberado_fora_do_eco() {\n    assert_eq!(voo(false, 60), \"bateria 60: voo liberado\");\n}\n\n#[test]\nfn testa_o_voo_liberado_no_eco() {\n    assert_eq!(voo(true, 30), \"bateria 30: voo liberado\");\n}\n\n#[test]\nfn testa_o_voo_que_somente_o_eco_aceita() {\n    assert_eq!(voo(false, 30), \"bateria 30: so no modo eco\");\n}\n\n#[test]\nfn testa_a_bateria_abaixo_do_minimo() {\n    assert_eq!(voo(true, 10), \"bateria 10: recarregue\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "voo(false, 0) deve devolver \"bateria 0: carregue antes de voar\" — a carga zerada, o primeiro ramo.", "teste": "testa_a_bateria_sem_carga" },
+    { "id": "REQ-2", "descricao": "voo(false, -7) deve devolver \"bateria -7: carga invalida\" — o negativo do módulo no veredito.", "teste": "testa_a_bateria_negativa" },
+    { "id": "REQ-3", "descricao": "voo(false, 60) deve devolver \"bateria 60: voo liberado\" — acima do limite de fora do eco (50).", "teste": "testa_o_voo_liberado_fora_do_eco" },
+    { "id": "REQ-4", "descricao": "voo(true, 30) deve devolver \"bateria 30: voo liberado\" — acima do limite do eco (20), decidido pelo if que vira valor.", "teste": "testa_o_voo_liberado_no_eco" },
+    { "id": "REQ-5", "descricao": "voo(false, 30) deve devolver \"bateria 30: so no modo eco\" — o ramo do E e da negação.", "teste": "testa_o_voo_que_somente_o_eco_aceita" },
+    { "id": "REQ-6", "descricao": "voo(true, 10) deve devolver \"bateria 10: recarregue\" — o senão que sobra depois da fila.", "teste": "testa_a_bateria_abaixo_do_minimo" }
+  ],
+  "expectedTestCount": 6,
+  "sources": [
+    { "title": "The Rust Book — Control Flow (cap. 3.5)", "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html", "description": "O capítulo oficial do if/else e das expressões de decisão — a fila de ramos da torre." },
+    { "title": "Rust by Example — if/else", "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html", "description": "Exemplos oficiais executáveis de if, else e else if — e do if que devolve valor." },
+    { "title": "std — a palavra-chave if", "url": "https://doc.rust-lang.org/std/keyword.if.html", "description": "A referência oficial do if como expressão — o limite que nasce de uma decisão." }
+  ]
+}
