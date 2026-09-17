@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta-do-pedido-fechado",
+  "title": "A etiqueta do pedido fechado",
+  "concept": "casar_extraido",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A etiqueta do pedido fechado\n\nA lanchonete imprime a etiqueta de cada pedido. O conjunto `Pedido` já existe no arquivo: `Aberto` é a variante vazia; `Fechado(i32)` carrega o número da comanda.\n\nComplete o corpo de `a_etiqueta_do` com um match de dois braços:\n\n- o braço de `Pedido::Fechado(n)` extrai o número e devolve `format!(\"comanda: {}\", n)`;\n- o braço de `Pedido::Aberto` devolve a String `\"sem comanda\"`.\n\n- `a_etiqueta_do(Pedido::Fechado(12))` devolve `comanda: 12`;\n- `a_etiqueta_do(Pedido::Aberto)` devolve `sem comanda`.\n\nO padrão extrai; a resposta usa o que foi extraído.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Pedido {\n    Aberto,\n    Fechado(i32),\n}\n\npub fn a_etiqueta_do(pedido: Pedido) -> String {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Pedido {\n    Aberto,\n    Fechado(i32),\n}\n\npub fn a_etiqueta_do(pedido: Pedido) -> String {\n    match pedido {\n        Pedido::Fechado(n) => format!(\"comanda: {}\", n),\n        Pedido::Aberto => String::from(\"sem comanda\"),\n    }\n}\n",
+  "testsCode": "use desafio::a_etiqueta_do;\nuse desafio::Pedido;\n\n#[test]\nfn testa_a_etiqueta_da_comanda_doze() {\n    assert_eq!(a_etiqueta_do(Pedido::Fechado(12)), String::from(\"comanda: 12\"));\n}\n\n#[test]\nfn testa_a_etiqueta_do_pedido_aberto() {\n    assert_eq!(a_etiqueta_do(Pedido::Aberto), String::from(\"sem comanda\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O braço de Pedido::Fechado(n) extrai o número e a etiqueta da comanda 12 é \"comanda: 12\".",
+      "teste": "testa_a_etiqueta_da_comanda_doze"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço de Pedido::Aberto devolve \"sem comanda\".",
+      "teste": "testa_a_etiqueta_do_pedido_aberto"
+    }
+  ],
+  "expectedTestCount": 2
+}

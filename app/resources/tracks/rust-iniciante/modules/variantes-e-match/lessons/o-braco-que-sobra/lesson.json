@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-braco-que-sobra",
+  "title": "O braço que sobra",
+  "summary": "O padrão `_` é o braço que cobre tudo o que os braços de cima não casaram.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:MatchArm",
+  "concepts": [
+    "braco_sobra"
+  ],
+  "prerequisites": [
+    "um-braco-por-variante"
+  ],
+  "introduces": {
+    "productive": [
+      "node:MatchArm",
+      "node:MatchPattern"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-braco-que-cobre-o-resto",
+      "title": "O braço que cobre o resto",
+      "markdown": "O `_` é o padrão que casa com QUALQUER coisa — o braço que sobra responde a tudo o que chegou de cima:\n\n```rust\npub fn o_peso_da(tecla: Tecla) -> i32 {\n    match tecla {\n        Tecla::Numero => 0,\n        Tecla::Letra => 1,\n        _ => -1,\n    }\n}\n```\n\nO `Seta` não tem braço próprio — mas o conjunto continua exaustivo: o `_` responde por ele. Casos nomeados em cima, tudo-o-resto embaixo."
+    },
+    {
+      "id": "o-sobra-vem-por-ultimo",
+      "title": "O sobra vem por último",
+      "markdown": "O match testa os braços DE CIMA PARA BAIXO e para no primeiro que casa. Um `_` no meio engoliria tudo — as linhas de baixo virariam código morto, e o compilador avisa `unreachable pattern`.\n\nPor isso a regra: primeiro os casos NOMEADOS, o `_` por último. Ele não é \"o resto das variantes\" — é \"o resto de tudo\": qualquer valor que tenha sobrado."
+    },
+    {
+      "id": "o-sobra-nao-guarda-valor",
+      "title": "O sobra não guarda valor",
+      "markdown": "O `_` não dá nome ao valor que casou — ele descarta. É o braço do \"não me importa o que chegou, a resposta é esta\":\n\n```rust\npub fn a_porta_da(tecla: Tecla) -> bool {\n    match tecla {\n        Tecla::Numero => true,\n        _ => false,\n    }\n}\n```\n\nDuas linhas cobrem um conjunto de quatro variantes: a nomeada e a que sobra."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-sobrecobre-tudo-o-que-resta",
+      "sectionId": "o-braco-que-cobre-o-resto",
+      "statement": "O padrão `_` casa com qualquer valor que tenha sobrado depois dos braços de cima.",
+      "question": "O match tem braços para `Numero` e `Letra`, e um `_` por último. A `Seta` chega. O que acontece?",
+      "options": [
+        "Cai no `_` e devolve a resposta dele",
+        "A compilação reprova: faltou o braço da Seta",
+        "O programa trava ao ver a Seta",
+        "A Setea volta ao começo do match"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `_` é o resto: exaustividade garantida sem braço nomeado para cada caso.",
+      "optionRationales": [
+        "Isso: de cima para baixo, nenhum nomeou a Seta — o `_` casou.",
+        "O `_` cumpre a exaustividade por você: o compilador aceita.",
+        "Não há trava: o match é uma escolha entre linhas, não uma espera.",
+        "O match não repete: cai no primeiro padrão que casar e devolve."
+      ]
+    },
+    {
+      "id": "o-sobra-deve-ser-o-ultimo",
+      "sectionId": "o-sobra-vem-por-ultimo",
+      "statement": "O `_` vem por último: o match testa de cima para baixo e para no primeiro casamento.",
+      "question": "O que acontece com um match que começa com `_ =>` e tem outros braços depois?",
+      "options": [
+        "Os outros braços viram código morto — o compilador avisa",
+        "O compilador ordena os braços antes de rodar",
+        "O `_` só casa com valores especiais",
+        "Nada: a ordem dos braços é indiferente"
+      ],
+      "answerIndex": 0,
+      "feedback": "De cima para baixo, o primeiro casamento vence: `_` primeiro engole tudo.",
+      "optionRationales": [
+        "Isso: o aviso `unreachable patterns` nomeia as linhas que nunca rodam.",
+        "O compilador não reordena braços: a ordem que você escreveu é a ordem do teste.",
+        "O `_` casa com qualquer valor — nenhum é \"especial\" para ele.",
+        "A ordem é EXATAMENTE o que decide: casou, para."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Match — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/match.html",
+      "description": "Os exemplos oficiais de match: um braço por variante e o _ que cobre o resto."
+    }
+  ],
+  "challenges": [
+    "o-rotulo-do-teclado"
+  ]
+}

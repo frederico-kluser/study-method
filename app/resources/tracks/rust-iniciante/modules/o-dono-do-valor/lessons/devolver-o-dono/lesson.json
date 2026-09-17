@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-o-dono",
+  "title": "Devolver o dono",
+  "summary": "A função que CRIA a String e a devolve: o dono sai pelo retorno.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "devolver_dono"
+  ],
+  "prerequisites": [
+    "a-caixa-que-consome"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-dono-volta",
+      "title": "O dono volta",
+      "markdown": "A função pode CRIAR a `String` dentro dela e entregar o dono a quem chamou:\n\n```rust\npub fn fabricar() -> String {\n    let etiqueta = String::from(\"CX-42\");\n    etiqueta\n}\n```\n\nA última expressão é a `String` — o dono sai pelo retorno e continua vivo lá fora, agora em nome de quem chamou."
+    },
+    {
+      "id": "entra-dono-sai-dono",
+      "title": "Entra dono, sai dono",
+      "markdown": "Combinando as duas aulas: a função que RECEBE `String` consome (o dono entra), e a que DEVOLVE `String` entrega um dono novo. Movimento para dentro, movimento para fora.\n\nO `-> String` na assinatura é a promessa do dono que volta — a caixa cruza a fronteira da função sem se copiar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-retorno-entrega-o-dono",
+      "sectionId": "o-dono-volta",
+      "statement": "A função que cria a String e a devolve entrega o dono a quem chamou.",
+      "question": "Depois de `let etiqueta = fabricar();`, quem é o dono da String?",
+      "options": [
+        "A variável etiqueta, lá fora",
+        "A função fabricar",
+        "Ninguém: o dono morreu no retorno",
+        "O String::from"
+      ],
+      "answerIndex": 0,
+      "feedback": "O retorno move o dono para fora: quem recebeu é o dono novo.",
+      "optionRationales": [
+        "O dono saiu pelo retorno e ficou com a variável que recebeu.",
+        "A função acabou — o dono dela foi entregue no retorno.",
+        "O dono não morre no retorno: ele MUDA de dono.",
+        "O String::from entregou o dono ao let dentro da função; o retorno seguiu o caminho."
+      ]
+    },
+    {
+      "id": "a-promessa-do-retorno",
+      "sectionId": "entra-dono-sai-dono",
+      "statement": "O -> String na assinatura promete um dono saindo da função.",
+      "question": "O que `-> String` na assinatura promete?",
+      "options": [
+        "A função devolve uma String dona",
+        "A função imprime um String",
+        "A função consome uma String",
+        "A função não devolve nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O tipo de retorno é a promessa do dono que sai.",
+      "optionRationales": [
+        "O retorno é uma String: um dono novo cruza a fronteira da função.",
+        "Imprimir é o println! — o tipo de retorno fala de valor devolvido.",
+        "Consumir aparece no PARÂMETRO (String de entrada), não no retorno.",
+        "Sem retorno o tipo é (); -> String promete exatamente um dono."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "a-fabrica-de-etiquetas"
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirar-do-fim",
+  "title": "Tirar do fim",
+  "summary": "O pop tira o ÚLTIMO valor da lista e o traz dentro da caixa Option — Some quando tinha, None quando não tinha.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.pop",
+  "concepts": [
+    "tirar_do_fim"
+  ],
+  "prerequisites": [
+    "guardar-mais-um"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.pop",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-pop-tira-do-fim",
+      "title": "O pop tira do fim",
+      "markdown": "O `.pop` tira o ÚLTIMO valor da lista e o devolve — a lista encolhe de um em um, pelo fim:\n\n```rust\nlet mut pilha = vec![1, 2, 3];\nlet ultimo = pilha.pop();\n```\n\n`ultimo` fica com a caixa que traz o `3` — e a pilha fica `[1, 2]`."
+    },
+    {
+      "id": "a-caixa-que-volta",
+      "title": "A caixa que volta",
+      "markdown": "O pop devolve `Option<i32>` — a MESMA caixa do M7: `Some(3)` quando tinha valor, `None` quando a lista estava vazia:\n\n```rust\nlet mut vazia = vec![];\nlet nada = vazia.pop();\n```\n\n`nada` fica com `None` — tirar de uma lista vazia não panica: o pop RESPONDE com a caixa vazia, e o match de sempre abre o que vier."
+    },
+    {
+      "id": "quem-tira-muda",
+      "title": "Quem tira muda a lista",
+      "markdown": "Tirar é mudar: a pilha nasce com `let mut`, ou chega por `&mut` — o mesmo empréstimo do push. Cada pop tira UM valor do fim, e a lista encolhe uma peça:\n\n```rust\npub fn entrega(pilha: &mut Vec<i32>) -> Option<i32> {\n    pilha.pop()\n}\n```\n\nA função devolve a caixa inteira — o `Option` que o pop trouxe."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "pop-devolve-o-ultimo",
+      "sectionId": "o-pop-tira-do-fim",
+      "statement": "O pop tira o ÚLTIMO valor e o devolve na caixa: [1, 2, 3] com pop entrega Some(3).",
+      "question": "O que `pilha.pop()` devolve sobre `vec![1, 2, 3]`?",
+      "options": [
+        "Some(3) — o último, embalado na caixa",
+        "Some(1) — o pop tira do começo",
+        "3 direto, sem caixa nenhuma",
+        "Nada — o pop não devolve valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pop tira do FIM: o 3 sai, embalado na caixa Some(3).",
+      "optionRationales": [
+        "O fim da pilha é o último valor — e ele volta dentro da Option.",
+        "O começo é o .remove de outro capítulo — o pop é do fim.",
+        "O pop não troca: ele tira o último.",
+        "O pop devolve SEMPRE a caixa Option — vazio ou não."
+      ]
+    },
+    {
+      "id": "vazio-e-none",
+      "sectionId": "a-caixa-que-volta",
+      "statement": "Pop em lista vazia devolve None — a caixa vazia, sem pânico nenhum.",
+      "question": "O que `vec![].pop()` devolve?",
+      "options": [
+        "None — a caixa vazia, sem pânico",
+        "Panica — não há o que tirar",
+        "0 — lista vazia vale zero",
+        "Some(0) — o zero de nascença"
+      ],
+      "answerIndex": 0,
+      "feedback": "Lista vazia: o pop devolve None — a caixa que o M7 abriu com o match.",
+      "optionRationales": [
+        "A caixa é a resposta do pop ao vazio: None, sem pânico.",
+        "O colchete panica fora da faixa; o pop responde com a caixa.",
+        "Zero é um valor — o pop de lista vazia não devolve valor nenhum.",
+        "Não há zero de nascença: o vazio é None."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "a-pilha-que-entrega"
+  ]
+}

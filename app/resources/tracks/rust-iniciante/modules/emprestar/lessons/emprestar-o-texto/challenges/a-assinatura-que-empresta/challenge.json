@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-assinatura-que-empresta",
+  "title": "A assinatura que empresta",
+  "concept": "emprestar_o_texto",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A assinatura que empresta\n\nA função `tamanho` deve medir o texto que chega EMPRESTADO: o parâmetro é `&str` — o texto só passa pela função, sem dono.\n\n- `tamanho(\"Ana\")` devolve `3`;\n- `tamanho(\"bom dia\")` devolve `7`.\n\nO esqueleto traz o parâmetro como `String` dono — troque a assinatura para receber o texto emprestado e meça com `.len`.",
+  "starterCode": "pub fn tamanho(texto: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn tamanho(texto: &str) -> usize {\n    texto.len()\n}\n",
+  "testsCode": "use desafio::tamanho;\n\n#[test]\nfn testa_o_tamanho_da_ana() {\n    assert_eq!(tamanho(\"Ana\"), 3);\n}\n\n#[test]\nfn testa_o_tamanho_do_bom_dia() {\n    assert_eq!(tamanho(\"bom dia\"), 7);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "tamanho deve receber o texto emprestado (&str) e devolver 3 para \"Ana\".",
+      "teste": "testa_o_tamanho_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "tamanho deve receber o texto emprestado (&str) e devolver 7 para \"bom dia\".",
+      "teste": "testa_o_tamanho_do_bom_dia"
+    }
+  ],
+  "expectedTestCount": 2
+}

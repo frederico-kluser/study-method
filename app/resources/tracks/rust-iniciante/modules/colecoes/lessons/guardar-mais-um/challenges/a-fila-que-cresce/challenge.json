@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-fila-que-cresce",
+  "title": "A fila que cresce",
+  "concept": "guardar_mais_um",
+  "language": "rust",
+  "statement": "# A fila que cresce\n\nA função `guarde` recebe a fila para MUDAR e um valor para entrar:\n\n1. escreva o corpo de `guarde`: o `.push` põe o `n` no fim da fila;\n2. quem chama empresta a fila com `&mut` — a permissão para mudar já é do empréstimo (M5).\n\n- com `fila` em `[2, 4]`, `guarde(&mut fila, 6)` deixa a fila com `6` na posição `2`;\n- dois pushes seguidos crescem a fila duas vezes — o `.len` responde `3`.\n\nO push muda no lugar: quem chama continua dono da fila.\n",
+  "starterCode": "pub fn guarde(fila: &mut Vec<i32>, n: i32) {\n    todo!()\n}\n",
+  "solutionCode": "pub fn guarde(fila: &mut Vec<i32>, n: i32) {\n    fila.push(n);\n}\n",
+  "testsCode": "use desafio::guarde;\n\n#[test]\nfn testa_o_guarde_no_fim_da_fila() {\n    let mut fila = vec![2, 4];\n    guarde(&mut fila, 6);\n    assert_eq!(fila[2], 6);\n}\n\n#[test]\nfn testa_a_fila_cresceu_duas_vezes() {\n    let mut fila = vec![2];\n    guarde(&mut fila, 4);\n    guarde(&mut fila, 6);\n    assert_eq!(fila.len(), 3);\n    assert_eq!(fila[0], 2);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "guarde(&mut fila, 6) põe o 6 no fim: fila[2] == 6 depois do push.",
+      "teste": "testa_o_guarde_no_fim_da_fila"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Dois pushes seguidos crescem a fila de 1 para 3: fila.len() == 3, com o 2 intacto em fila[0].",
+      "teste": "testa_a_fila_cresceu_duas_vezes"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 3
+}

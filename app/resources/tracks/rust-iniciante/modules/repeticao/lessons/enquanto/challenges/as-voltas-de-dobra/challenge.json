@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "as-voltas-de-dobra",
+  "title": "As voltas de dobra",
+  "concept": "enquanto",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# As voltas de dobra\n\nO `while` pergunta antes de cada volta: enquanto a condição aguenta, o corpo roda — quando ela vira `false`, o laço acaba.\n\nEscreva uma função `voltas_de_dobra` que recebe a `meta` e conta quantas dobras o total precisa para chegar lá:\n\n1. comece com o `total` em `1` e as `voltas` em `0`;\n2. enquanto o total ainda é menor que a meta:\n   - faça o total dobrar (`total = total * 2`);\n   - conte mais uma volta;\n3. quando a condição virar `false`, o laço acaba sozinho — devolva as voltas.\n\n`voltas_de_dobra(8)` devolve `3`: o total faz `1`, `2`, `4` — e a dobra para `8` já não é menor que a meta. `voltas_de_dobra(1)` devolve `0`: a pergunta `1 < 1` vale `false` logo na porta.",
+  "starterCode": "pub fn voltas_de_dobra(meta: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn voltas_de_dobra(meta: i32) -> i32 {\n    let mut total = 1;\n    let mut voltas = 0;\n    while total < meta {\n        total = total * 2;\n        voltas += 1;\n    }\n    voltas\n}\n",
+  "testsCode": "use desafio::voltas_de_dobra;\n\n#[test]\nfn testa_as_voltas_ate_a_meta_oito() {\n    assert_eq!(voltas_de_dobra(8), 3);\n}\n\n#[test]\nfn testa_a_meta_que_ja_esta_atingida() {\n    assert_eq!(voltas_de_dobra(1), 0);\n}\n\n#[test]\nfn testa_as_voltas_ate_a_meta_sete() {\n    assert_eq!(voltas_de_dobra(7), 3);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função voltas_de_dobra deve devolver 3 quando chamada com a meta 8 (1, 2, 4 — três dobras até o 8).", "teste": "testa_as_voltas_ate_a_meta_oito" },
+    { "id": "REQ-2", "descricao": "A função voltas_de_dobra deve devolver 0 quando chamada com a meta 1 — o total já chegou e o laço nem roda.", "teste": "testa_a_meta_que_ja_esta_atingida" },
+    { "id": "REQ-3", "descricao": "A função voltas_de_dobra deve devolver 3 quando chamada com a meta 7 (o total passa para 8 e a condição vira false).", "teste": "testa_as_voltas_ate_a_meta_sete" }
+  ],
+  "expectedTestCount": 3
+}

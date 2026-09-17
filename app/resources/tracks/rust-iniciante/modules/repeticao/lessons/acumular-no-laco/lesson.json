@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "acumular-no-laco",
+  "title": "Acumular no laço",
+  "summary": "O acumulador é o nome que junta os valores das voltas — e o if de dentro decide o que entra.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "op:assign:+=",
+  "concepts": [
+    "acumulador"
+  ],
+  "prerequisites": [
+    "contar-ate",
+    "somar-no-lugar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:assign:+="
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:acumulador"
+  ],
+  "theory": [
+    {
+      "id": "a-caixinha-que-junta",
+      "title": "A caixinha que junta",
+      "markdown": "O **acumulador** é o nome que junta os valores das voltas: começa em `0` e cresce uma porção por volta. O `+=` é o gesto dele:\n\n```rust\npub fn soma_dos_grandes(limite: i32, cota: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        if n > cota {\n            soma += n;\n        }\n    }\n    soma\n}\n```\n\n`soma_dos_grandes(5, 2)` devolve `7`: das voltas `0`, `1`, `2`, `3` e `4`, só `3` e `4` passam da cota — e é só o que a caixinha junta."
+    },
+    {
+      "id": "o-acumulador-que-escolhe",
+      "title": "O acumulador que escolhe",
+      "markdown": "O `if` de dentro é quem decide o que ENTRA na caixinha: a condição vira `true`, o `+=` roda; vira `false`, a volta passa em branco:\n\n```rust\npub fn soma_dos_grandes(limite: i32, cota: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        if n > cota {\n            soma += n;\n        }\n    }\n    soma\n}\n```\n\n`soma_dos_grandes(3, 10)` devolve `0`: nenhum número do intervalo passa da cota — as três voltas passam em branco, e a caixinha continua em `0`."
+    },
+    {
+      "id": "o-mais-igual-agora-no-laco",
+      "title": "O +=, agora dentro do laço",
+      "markdown": "O `+=` já é seu desde o M1 (`total += 5;` somava no lugar, uma vez). A forma nova desta aula é o RITMO: dentro do laço, o `+=` roda volta a volta, e o acumulador guarda o resultado de TODAS as voltas, não de uma:\n\n```rust\npub fn soma_dos_grandes(limite: i32, cota: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        if n > cota {\n            soma += n;\n        }\n    }\n    soma\n}\n```\n\n`soma_dos_grandes(4, 1)` devolve `5`: a caixinha junta `2` na primeira rodada do teste e `3` na segunda — `2 + 3`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-acumulador-e-a-caixinha",
+      "statement": "O acumulador é o nome que junta os valores das voltas: começa em 0 e cresce com o += a cada rodada que entra.",
+      "question": "O que é o acumulador em `soma_dos_grandes`?",
+      "options": [
+        "o nome `soma`, que começa em 0 e junta os valores das voltas com +=",
+        "o intervalo `0..limite`",
+        "a condição `n > cota`",
+        "o número da vez `n`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O acumulador é o `let mut soma = 0;` — cada volta que entra acrescenta a sua porção com `+=`.",
+      "sectionId": "a-caixinha-que-junta",
+      "optionRationales": [
+        "A caixinha é o nome mutável que junta — e o `+=` é o gesto de cada porção.",
+        "O intervalo é o fornecedor dos números da vez — não junta nada.",
+        "A condição é o filtro — ela decide o que entra, não guarda.",
+        "O `n` é o número da vez — ele É o valor que entra na caixinha."
+      ]
+    },
+    {
+      "id": "o-if-decide-o-que-entra",
+      "statement": "O if de dentro do laço decide o que entra no acumulador — a volta que falha no teste passa em branco.",
+      "question": "Por que `soma_dos_grandes(3, 10)` devolve 0?",
+      "options": [
+        "porque nenhum número do intervalo passa da cota — nenhuma rodada entra",
+        "porque a soma começa em 0 e ninguém a toca",
+        "porque o intervalo 0..3 está vazio",
+        "porque o if troca a soma por 0"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com a cota em 10, os números 0, 1 e 2 falham no teste — as voltas passam em branco e a caixinha fica em 0.",
+      "sectionId": "o-acumulador-que-escolhe",
+      "optionRationales": [
+        "O filtro é quem reprova todas as rodadas: nenhuma condição vira `true`.",
+        "A soma COMEÇA em 0, mas o `+=` dentro do laço a tocaria — só não roda volta nenhuma.",
+        "O intervalo 0..3 tem três números — o que não roda é o corpo do `if`.",
+        "O `if` não troca nada: ele apenas decide se o `+=` roda."
+      ]
+    },
+    {
+      "id": "o-ritmo-de-todas-as-voltas",
+      "statement": "A forma nova é o ritmo: o += roda volta a volta, e o acumulador guarda o resultado de TODAS as voltas.",
+      "question": "O que o `+=` dentro do laço faz que o `+=` do M1 não fazia?",
+      "options": [
+        "roda volta a volta, acumulando o resultado de todas as rodadas",
+        "soma números maiores",
+        "troca o valor sem let mut",
+        "devolve o resultado para o teste"
+      ],
+      "answerIndex": 0,
+      "feedback": "No M1 o `+=` somava uma vez; no laço, ele roda a cada volta — e a caixinha guarda o total de todas.",
+      "sectionId": "o-mais-igual-agora-no-laco",
+      "optionRationales": [
+        "O ritmo é a forma nova: uma porção por volta, acumulada até o fim do intervalo.",
+        "O tamanho do número não muda o gesto — o `+=` soma do mesmo jeito.",
+        "O `let mut` continua obrigatório — sem `mut` o compilador recusa a troca.",
+        "Devolver valor é papel da última expressão da função — não do `+=`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do laço — o corpo que roda volta a volta."
+    },
+    {
+      "title": "Rust by Example — Loops and Labels",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/loop.html",
+      "description": "Os exemplos oficiais de laços e de contagem de voltas."
+    },
+    {
+      "title": "std — o Range, o intervalo de um laço",
+      "url": "https://doc.rust-lang.org/std/ops/struct.Range.html",
+      "description": "O intervalo que fornece os números da vez ao for."
+    }
+  ],
+  "challenges": [
+    "o-sorteio-dos-grandes"
+  ]
+}

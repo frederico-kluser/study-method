@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-aberta",
+  "title": "A caixa aberta",
+  "concept": "consumo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A caixa aberta\n\nA função `abrir` recebe a caixa como `String` — e a CONSUME: quem chama perde o dono. Ela devolve o aviso de abertura:\n\n- `abrir(String::from(\"verde\"))` devolve `[verde] aberta`;\n- `abrir(String::from(\"azul\"))` devolve `[azul] aberta`.\n\nMonte o aviso com o `format!` — dentro da função, o parâmetro é dono de verdade.",
+  "starterCode": "pub fn abrir(caixa: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn abrir(caixa: String) -> String {\n    format!(\"[{}] aberta\", caixa)\n}\n",
+  "testsCode": "use desafio::abrir;\n\n#[test]\nfn testa_a_caixa_verde() {\n    assert_eq!(abrir(String::from(\"verde\")), \"[verde] aberta\");\n}\n\n#[test]\nfn testa_a_caixa_azul() {\n    assert_eq!(abrir(String::from(\"azul\")), \"[azul] aberta\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "abrir deve devolver o aviso \"[verde] aberta\" para a caixa verde recebida por valor.",
+      "teste": "testa_a_caixa_verde"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "abrir deve devolver o aviso \"[azul] aberta\" para a caixa azul recebida por valor.",
+      "teste": "testa_a_caixa_azul"
+    }
+  ],
+  "expectedTestCount": 2
+}

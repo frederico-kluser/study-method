@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-que-passa-do-teto",
+  "title": "A soma que passa do teto",
+  "concept": "parar_no_meio",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A soma que passa do teto\n\nAlgumas corridas não têm linha de chegada: o laço roda até que ALGUMA coisa dentro dele mande parar. Aqui o `break` é a matéria — e ele interrompe no meio do corpo.\n\nEscreva uma função `soma_ate_passar` que recebe o `teto` e soma os números 1, 2, 3, … até que a soma ultrapasse o teto:\n\n1. comece com a soma em `0` e o número da vez `n` em `1`;\n2. a cada volta, primeiro some `n` na soma;\n3. se a soma passou do teto, mande parar com o `break` — as voltas seguintes não existem;\n4. senão, faça `n` subir 1 e volte;\n5. depois do laço, devolva a soma que estourou o teto.\n\n`soma_ate_passar(10)` devolve `15`: 1 + 2 + 3 + 4 = 10 ainda não passa; com o 5, a soma vira 15 — e para.",
+  "starterCode": "pub fn soma_ate_passar(teto: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_ate_passar(teto: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        soma += n;\n        if soma > teto {\n            break;\n        }\n        n += 1;\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_ate_passar;\n\n#[test]\nfn testa_a_soma_que_passa_de_dez() {\n    assert_eq!(soma_ate_passar(10), 15);\n}\n\n#[test]\nfn testa_a_soma_que_passa_de_zero() {\n    assert_eq!(soma_ate_passar(0), 1);\n}\n\n#[test]\nfn testa_a_soma_que_passa_de_dois() {\n    assert_eq!(soma_ate_passar(2), 3);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_ate_passar deve devolver 15 quando chamada com o teto 10 (1 + 2 + 3 + 4 + 5).", "teste": "testa_a_soma_que_passa_de_dez" },
+    { "id": "REQ-2", "descricao": "A função soma_ate_passar deve devolver 1 quando chamada com o teto 0 — a primeira soma já passa.", "teste": "testa_a_soma_que_passa_de_zero" },
+    { "id": "REQ-3", "descricao": "A função soma_ate_passar deve devolver 3 quando chamada com o teto 2 (1 não passa; 3 passa).", "teste": "testa_a_soma_que_passa_de_dois" }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-peso-da-balanca",
+  "title": "O peso da balança",
+  "concept": "braco_da_variante",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O peso da balança\n\nA balança de dois pratos responde com um número: prato positivo pesa mais, prato negativo pesa menos. O conjunto `Prato` já existe no arquivo.\n\nComplete o corpo de `o_peso_do` com um match de DOIS braços que você escreve por inteiro — padrão, `=>` e resposta:\n\n- o braço de `Prato::Cheio` devolve `2`;\n- o braço de `Prato::Vazio` devolve `-2`.\n\nO match é exaustivo: dois braços cobrem as duas variantes. E os dois braços prometem o mesmo tipo — o `i32` que a função devolve.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Prato {\n    Cheio,\n    Vazio,\n}\n\npub fn o_peso_do(prato: Prato) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Prato {\n    Cheio,\n    Vazio,\n}\n\npub fn o_peso_do(prato: Prato) -> i32 {\n    match prato {\n        Prato::Cheio => 2,\n        Prato::Vazio => -2,\n    }\n}\n",
+  "testsCode": "use desafio::o_peso_do;\nuse desafio::Prato;\n\n#[test]\nfn testa_o_peso_do_prato_cheio() {\n    assert_eq!(o_peso_do(Prato::Cheio), 2);\n}\n\n#[test]\nfn testa_o_peso_do_prato_vazio() {\n    assert_eq!(o_peso_do(Prato::Vazio), -2);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O braço de Prato::Cheio no match devolve 2 e o match é exaustivo.",
+      "teste": "testa_o_peso_do_prato_cheio"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço de Prato::Vazio no match devolve -2.",
+      "teste": "testa_o_peso_do_prato_vazio"
+    }
+  ],
+  "expectedTestCount": 2
+}

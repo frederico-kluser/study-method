@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-numero-que-sobrevive",
+  "title": "O número que sobrevive",
+  "concept": "copia_vs_move",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O número que sobrevive\n\nA função `duplica_o_valor` recebe `n`, faz uma CÓPIA dele numa ligação nova e devolve a soma do original com a cópia:\n\n- `duplica_o_valor(7)` devolve `14`;\n- `duplica_o_valor(6)` devolve `12`.\n\nNúmero COPIA: os dois nomes ficam vivos e a soma fecha. Com `String`, essa mesma linha seria o erro `E0382`.",
+  "starterCode": "pub fn duplica_o_valor(n: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn duplica_o_valor(n: i32) -> i32 {\n    let copia = n;\n    n + copia\n}\n",
+  "testsCode": "use desafio::duplica_o_valor;\n\n#[test]\nfn testa_a_duplicacao_de_sete() {\n    assert_eq!(duplica_o_valor(7), 14);\n}\n\n#[test]\nfn testa_a_duplicacao_de_seis() {\n    assert_eq!(duplica_o_valor(6), 12);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "duplica_o_valor(7) deve devolver 14 — a soma do original com a cópia.",
+      "teste": "testa_a_duplicacao_de_sete"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "duplica_o_valor(6) deve devolver 12 — a soma do original com a cópia.",
+      "teste": "testa_a_duplicacao_de_seis"
+    }
+  ],
+  "expectedTestCount": 2
+}

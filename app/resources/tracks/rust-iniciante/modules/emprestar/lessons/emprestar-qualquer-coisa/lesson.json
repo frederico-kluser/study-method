@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "emprestar-qualquer-coisa",
+  "title": "Emprestar qualquer coisa",
+  "summary": "O & na frente do valor cria o empréstimo: um nome que aponta para a caixa do dono.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:unary:&",
+  "concepts": [
+    "emprestar_qualquer_coisa"
+  ],
+  "prerequisites": [
+    "emprestar-o-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:&",
+      "node:ReferenceExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-e-cria-o-emprestimo",
+      "title": "O & cria o empréstimo",
+      "markdown": "O `&` na frente de um VALOR cria o empréstimo — a referência: um nome que aponta para a caixa do dono, sem mover nada:\n\n```rust\npub fn mede_o_emprestimo(texto: String) -> usize {\n    let emprestado = &texto;\n    emprestado.len()\n}\n```\n\nO `texto` continua com o dono; `emprestado` é só a ponta que lê. Duas caixas de nome, uma caixa de verdade."
+    },
+    {
+      "id": "ler-pela-ponta",
+      "title": "Ler pela ponta",
+      "markdown": "Por `emprestado` a função lê o MESMO texto — o `.len` mede o conteúdo da caixa apontada:\n\n```rust\npub fn mede_o_emprestimo(texto: String) -> usize {\n    let emprestado = &texto;\n    emprestado.len()\n}\n```\n\n`mede_o_emprestimo(String::from(\"bom dia\"))` devolve `7` — o texto nunca saiu de casa; a medida passou pela ponta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-e-nao-move",
+      "sectionId": "o-e-cria-o-emprestimo",
+      "statement": "O & cria a referência: um nome novo que aponta para a mesma caixa, sem mover.",
+      "question": "O que `let emprestado = &texto;` faz com o texto?",
+      "options": [
+        "Nada se move: nasce uma ponta que aponta para ele",
+        "Ele muda de dono",
+        "Ele é copiado para uma caixa nova",
+        "Ele é apagado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O & empresta: a caixa é a mesma, a ponta é nova.",
+      "optionRationales": [
+        "A referência aponta; o dono segue com a caixa.",
+        "Mudança de dono é o move — o & é justamente não-fazer isso.",
+        "Copiar duplicaria a caixa; a referência não cria caixa.",
+        "Apagar é o fim do escopo do dono, não de um empréstimo."
+      ]
+    },
+    {
+      "id": "pela-ponta-le-o-mesmo",
+      "sectionId": "ler-pela-ponta",
+      "statement": "Pela referência lê-se o mesmo texto: o len medido pela ponta é o do dono.",
+      "question": "Quanto vale `emprestado.len()` depois de `let emprestado = &texto;` com `texto` em \"bom dia\"?",
+      "options": [
+        "7 — é o mesmo texto",
+        "0 — a ponta está vazia",
+        "1 — a ponta é um texto",
+        "9 — a ponta tem dono extra"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ponta abre a caixa apontada: o len é do conteúdo.",
+      "optionRationales": [
+        "O emprestado aponta para o texto original — mede 7.",
+        "A ponta não tem conteúdo próprio; ela aponta.",
+        "A referência não é texto — é a ponta para o texto.",
+        "Nada se soma: a caixa é a mesma de sempre."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "o-nome-do-emprestimo"
+  ]
+}

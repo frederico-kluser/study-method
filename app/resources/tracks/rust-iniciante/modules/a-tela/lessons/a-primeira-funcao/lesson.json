@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-funcao",
+  "title": "A primeira função",
+  "summary": "Uma função que devolve o dobro.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "funcao"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem",
+      "node:Parameters",
+      "node:Parameter",
+      "node:IntegerLiteral",
+      "op:binary:*",
+      "node:BinaryExpression"
+    ],
+    "receptive": [
+      "node:VisibilityModifier",
+      "node:PrimitiveType",
+      "node:UnaryExpression",
+      "op:unary:-",
+      "api:todo!"
+    ]
+  },
+  "theory": [
+    {
+      "id": "uma-funcao-e-so",
+      "title": "Uma função, e só",
+      "markdown": "A sua primeira função recebe um número e devolve o dobro dele.\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\nO `*` no corpo é a multiplicação — a expressão binária `x * 2`.\n\nChamada com `2`, ela devolve `4`:\n\n```text\ndobro(2) == 4\n```\n\nE o `-` na frente de um número é a NEGAÇÃO (o operador unário): o dobro de um número negativo também fecha.\n\n```rust\ndobro(-3)\n```\n\nChamada com `-3`, ela devolve `-6` — hoje a negação é só LEITURA: o desafio cobra o dobro com números positivos."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-funcao-devolve",
+      "statement": "A função recebe um número, multiplica por 2 e devolve o resultado.",
+      "question": "O que `dobro(5)` devolve?",
+      "options": [
+        "10",
+        "5",
+        "25",
+        "2"
+      ],
+      "answerIndex": 0,
+      "feedback": "O corpo é `x * 2`: o `x` recebido, multiplicado por 2.",
+      "sectionId": "uma-funcao-e-so"
+    }
+  ],
+  "sources": [
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial das funções: declaração, parâmetros e o valor que a função devolve."
+    },
+    {
+      "title": "Hello, World! — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
+      "description": "O primeiro programa em Rust, do site oficial de exemplos."
+    }
+  ],
+  "challenges": [
+    "dobre-o-numero"
+  ]
+}

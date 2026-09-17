@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-que-consome",
+  "title": "A caixa que consome",
+  "summary": "Um parâmetro String é CONSUMIDO pela função: quem chama perde o dono.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "consumo"
+  ],
+  "prerequisites": [
+    "o-movimento",
+    "chamar-a-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-parametro-dono",
+      "title": "O parâmetro dono",
+      "markdown": "Um parâmetro `String` entra na função POR VALOR: a função vira a dona dele — e quem chamou perde a caixa:\n\n```rust\npub fn abrir(caixa: String) -> String {\n    format!(\"[{}] aberta\", caixa)\n}\n```\n\nDentro da função, `caixa` é dono de verdade: ela pode usar, devolver ou deixar morrer no fim do corpo."
+    },
+    {
+      "id": "quem-chama-perde",
+      "title": "Quem chama perde",
+      "markdown": "Passe uma `String` para uma função assim e ela se foi: a chamada CONSOME a caixa. É o mesmo movimento da ligação nova — a passagem de argumento também move o valor.\n\nSe quem chama ainda precisa da caixa depois da chamada, o `.clone` resolve ANTES: manda a cópia e guarda o original."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-chamada-consome",
+      "sectionId": "quem-chama-perde",
+      "statement": "Um parâmetro String é consumido pela função: quem chama perde o dono.",
+      "question": "Depois de chamar `abrir(caixa)`, o que acontece com a variável `caixa` de quem chamou?",
+      "options": [
+        "Está movida: não pode mais ser usada",
+        "Continua dona",
+        "Vira String vazia",
+        "Virou cópia"
+      ],
+      "answerIndex": 0,
+      "feedback": "A passagem de argumento move: o dono passou para o parâmetro da função.",
+      "optionRationales": [
+        "O valor foi movido para dentro da função; usar caixa depois é E0382.",
+        "Quem chama perdeu o dono na chamada — a função é a dona agora.",
+        "A caixa não esvazia: ela MUDA de dono.",
+        "Sem clone não há cópia — o valor se moveu."
+      ]
+    },
+    {
+      "id": "dentro-e-dono",
+      "sectionId": "o-parametro-dono",
+      "statement": "Dentro da função, o parâmetro String é dono de verdade.",
+      "question": "Dentro de `abrir`, quem é o dono da `String` recebida?",
+      "options": [
+        "O parâmetro caixa",
+        "Quem chamou",
+        "Ninguém",
+        "O format!"
+      ],
+      "answerIndex": 0,
+      "feedback": "O parâmetro entrou por valor: dentro da função ele é o dono.",
+      "optionRationales": [
+        "A função recebeu o valor por parâmetro e virou a dona dele.",
+        "Quem chamou perdeu o dono no momento da chamada.",
+        "A String tem dono: dentro da função, é o parâmetro.",
+        "O format! só lê os valores que recebe — não vira dono deles."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "Understanding Ownership — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html",
+      "description": "O capítulo oficial do dono do valor: a visão geral antes do detalhe."
+    }
+  ],
+  "challenges": [
+    "a-caixa-aberta"
+  ]
+}

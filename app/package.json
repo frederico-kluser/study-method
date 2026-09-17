@@ -26,6 +26,7 @@
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-rust": "^6.0.2",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.5",
     "@emotion/react": "^11.14.0",
@@ -61,8 +62,10 @@
     "sherpa-onnx-node": "^1.13.5",
     "sql.js": "^1.14.2",
     "systeminformation": "^5.23.0",
+    "tree-sitter-rust": "^0.24.0",
     "typescript": "~5.8.2",
     "unified": "^11.0.5",
+    "web-tree-sitter": "^0.25.10",
     "zod": "^3.25.76"
   },
   "devDependencies": {

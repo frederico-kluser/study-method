@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "parar-com-valor",
+  "title": "Parar com valor",
+  "summary": "O break pode carregar um valor: break quadrado; — e o valor do laço inteiro é esse.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:BreakExpression",
+  "concepts": [
+    "break_com_valor"
+  ],
+  "prerequisites": [
+    "parar-no-meio",
+    "dar-nome-ao-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:BreakExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-pare-que-leva-um-presente",
+      "title": "O PARE que leva um presente",
+      "markdown": "O `break` pode carregar um valor: escreva o valor logo depois dele — `break quadrado;` — e o laço inteiro VALE esse valor:\n\n```rust\npub fn primeiro_quadrado_apos(teto: i32) -> i32 {\n    let mut n = 1;\n    loop {\n        let quadrado = n * n;\n        if quadrado > teto {\n            break quadrado;\n        }\n        n += 1;\n    }\n}\n```\n\nA função procura o primeiro quadrado que passa do teto: `primeiro_quadrado_apos(10)` devolve `16` — os quadrados `1`, `4`, `9` ficam abaixo do teto, e o `16` é o primeiro que passa."
+    },
+    {
+      "id": "o-laco-vira-valor",
+      "title": "O laço vira valor",
+      "markdown": "O valor que o `break` carrega é o valor do LAÇO inteiro — e se o laço é a última expressão do corpo da função, ele é o que a função devolve (a aula `o-corpo-e-uma-expressao`):\n\n```rust\npub fn primeiro_quadrado_apos(teto: i32) -> i32 {\n    let mut n = 1;\n    loop {\n        let quadrado = n * n;\n        if quadrado > teto {\n            break quadrado;\n        }\n        n += 1;\n    }\n}\n```\n\nRepare no que NÃO existe: nenhuma linha depois do laço. O `break quadrado;` já leva a resposta para fora — lá a resposta vinha depois; aqui ela VIAJA no `break`."
+    },
+    {
+      "id": "a-busca-que-termina-quando-acha",
+      "title": "A busca que termina quando acha",
+      "markdown": "Um laço de BUSCA não tem número de voltas previsto: ele roda até achar. O `break` com valor é o jeito dele dizer: achei — e aqui está:\n\n```rust\npub fn primeiro_quadrado_apos(teto: i32) -> i32 {\n    let mut n = 1;\n    loop {\n        let quadrado = n * n;\n        if quadrado > teto {\n            break quadrado;\n        }\n        n += 1;\n    }\n}\n```\n\n`primeiro_quadrado_apos(0)` devolve `1`: o primeiro quadrado já passa do teto — a busca acha na primeira volta. E `primeiro_quadrado_apos(25)` devolve `36`: o `25` não PASSA de `25`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-break-carrega-o-valor",
+      "statement": "O break pode carregar um valor: break quadrado; interrompe o laço E entrega o valor do quadrado.",
+      "question": "O que faz `break quadrado;`?",
+      "options": [
+        "interrompe o laço e faz o laço inteiro valer o valor de `quadrado`",
+        "interrompe o laço e apaga o valor de `quadrado`",
+        "soma `quadrado` em um acumulador",
+        "interrompe só a volta atual, como o break sem valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `break` com valor interrompe E entrega: o valor do laço inteiro passa a ser o valor carregado.",
+      "sectionId": "o-pare-que-leva-um-presente",
+      "optionRationales": [
+        "É o PARE com presente: sai do laço levando o valor — o laço vale o que o break carregou.",
+        "O valor não se apaga — ele VIAJA para fora do laço no break.",
+        "Somar em acumulador é papel do `+=` — o break não soma.",
+        "O break sem valor só interrompe; o com valor interrompe E entrega o valor."
+      ]
+    },
+    {
+      "id": "o-laco-vira-a-resposta",
+      "statement": "Se o laço é a última expressão do corpo, o valor que o break carrega é o que a função devolve.",
+      "question": "Por que `primeiro_quadrado_apos` não tem linha nenhuma depois do laço?",
+      "options": [
+        "porque o break quadrado já leva a resposta para fora — o laço É a resposta",
+        "porque a função não devolve nada",
+        "porque o quadrado precisa ficar dentro do laço",
+        "porque as linhas depois do laço não compilam"
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço é a última expressão do corpo — e o valor que o `break` carrega é o valor do laço: a resposta já viajou.",
+      "sectionId": "o-laco-vira-valor",
+      "optionRationales": [
+        "O valor do break é o valor do laço; o laço é a última expressão — logo, é o devolvido.",
+        "A função devolve `i32` — o valor chega pelo break dentro do laço.",
+        "O `quadrado` até nasce dentro do laço — e é justamente ele que sai pelo break.",
+        "Linhas depois do laço compilam normalmente — é que aqui não são necessárias."
+      ]
+    },
+    {
+      "id": "a-busca-acha-ou-continua",
+      "statement": "No laço de busca, a volta que acha interrompe com o valor; as que não acham, seguem procurando.",
+      "question": "Em `primeiro_quadrado_apos(0)`, o que acontece na primeira volta?",
+      "options": [
+        "o quadrado 1 passa do teto 0 e o break leva o 1 para fora",
+        "o laço roda três voltas antes de achar",
+        "o n vai para 0 e o laço acaba sem valor",
+        "o break devolve 0, porque o teto é 0"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro quadrado (`1 * 1`) já passa do teto `0`: a busca acha na primeira volta — e o break leva o `1`.",
+      "sectionId": "a-busca-que-termina-quando-acha",
+      "optionRationales": [
+        "A primeira volta já acha: `1 > 0` é `true` e o break entrega o `1`.",
+        "Com o teto 0, a primeira volta já acha — as voltas de busca só existem quando não achou.",
+        "O `n` começa em 1 e a busca devolve o QUADRADO — nunca 0.",
+        "O break carrega o ACHADO (o quadrado), não o teto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Rust by Example — Loops and Labels",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/loop.html",
+      "description": "Os exemplos oficiais do loop — inclusive o break que devolve um valor."
+    },
+    {
+      "title": "std — a palavra-chave break",
+      "url": "https://doc.rust-lang.org/std/keyword.break.html",
+      "description": "A página oficial da palavra-chave break."
+    },
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do loop — e do break com valor."
+    }
+  ],
+  "challenges": [
+    "o-primeiro-quadrado-que-passa"
+  ]
+}

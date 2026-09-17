@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "enquanto",
+  "title": "Enquanto",
+  "summary": "O while pergunta ANTES de cada volta: a condição manda, e quando ela vira false o laço acaba.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:WhileExpression",
+  "concepts": [
+    "enquanto"
+  ],
+  "prerequisites": [
+    "parar-no-meio"
+  ],
+  "introduces": {
+    "productive": [
+      "node:WhileExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-pergunta-que-vem-antes",
+      "title": "A pergunta que vem antes",
+      "markdown": "O `while` pergunta ANTES de cada volta: a condição vale `true`, roda; vale `false`, o laço acaba — sem rodar nem uma vez:\n\n```rust\npub fn voltas_de_dobra(meta: i32) -> i32 {\n    let mut total = 1;\n    let mut voltas = 0;\n    while total < meta {\n        total = total * 2;\n        voltas += 1;\n    }\n    voltas\n}\n```\n\n`voltas_de_dobra(8)` devolve `3`: o total dobra `1`, `2`, `4` — três voltas — e para em `8`, porque `8 < 8` é `false`."
+    },
+    {
+      "id": "enquanto-a-condicao-aguenta",
+      "title": "Enquanto a condição aguenta",
+      "markdown": "A condição é reavaliada a CADA volta: `total < meta` vale `true`, o corpo roda; o total dobra; a pergunta é feita de novo:\n\n```rust\npub fn voltas_de_dobra(meta: i32) -> i32 {\n    let mut total = 1;\n    let mut voltas = 0;\n    while total < meta {\n        total = total * 2;\n        voltas += 1;\n    }\n    voltas\n}\n```\n\nCom a meta `7`, as voltas são as mesmas três: `1`, `2`, `4` — e o total dobra para `8`, que já não é `< 7`. Por isso `voltas_de_dobra(7)` também devolve `3`."
+    },
+    {
+      "id": "o-guarda-na-porta",
+      "title": "O guarda na porta",
+      "markdown": "O `loop` das aulas passadas roda primeiro e decide DEPOIS (o `break` dentro do corpo). O `while` é o contrário: o guarda fica na PORTA e pergunta antes de deixar entrar:\n\n```rust\npub fn voltas_de_dobra(meta: i32) -> i32 {\n    let mut total = 1;\n    let mut voltas = 0;\n    while total < meta {\n        total = total * 2;\n        voltas += 1;\n    }\n    voltas\n}\n```\n\n`voltas_de_dobra(1)` devolve `0`: a pergunta `1 < 1` vale `false` logo na porta — o corpo não roda nem uma vez. Quando a pergunta da parada cabe na condição, o laço é `while`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-pergunta-antes-da-volta",
+      "statement": "O while pergunta antes de cada volta — condição false, o laço acaba sem rodar o corpo.",
+      "question": "O que faz o `while` antes de cada volta?",
+      "options": [
+        "pergunta se a condição vale true — se não vale, o laço acaba",
+        "dobra o total",
+        "conta mais uma volta no contador",
+        "roda o corpo e depois confere"
+      ],
+      "answerIndex": 0,
+      "feedback": "A pergunta vem antes da volta: `true` roda o corpo; `false` encerra o laço ali mesmo.",
+      "sectionId": "a-pergunta-que-vem-antes",
+      "optionRationales": [
+        "O `while` é a pergunta antes da volta — é isso que o nome quer dizer: enquanto…",
+        "Dobrar é o que o CORPO faz nesta corrida — a pergunta é do `while`.",
+        "Contar a volta é papel do contador no corpo — a pergunta vem antes disso.",
+        "Rodar e depois conferir é o jeito do `loop` com `break` — o `while` pergunta antes."
+      ]
+    },
+    {
+      "id": "a-condicao-e-reavaliada",
+      "statement": "A condição do while é reavaliada a cada volta — o laço acaba no instante em que ela vira false.",
+      "question": "Em `voltas_de_dobra(7)`, por que o laço para com o total em 8?",
+      "options": [
+        "porque 8 < 7 é false — a condição virou false e o laço acabou",
+        "porque 8 é a meta exata e o laço parou nela",
+        "porque o contador chegou a três voltas e o laço respeita o número",
+        "porque o total dobra para sempre e alguém cortou"
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição `total < meta` com `8 < 7` vale `false` — o laço encerra ali, mesmo passando da meta.",
+      "sectionId": "enquanto-a-condicao-aguenta",
+      "optionRationales": [
+        "A condição vale `false`: o `while` encerra a corrida na porta, sem rodar mais volta.",
+        "O total PASSOU da meta (8 > 7) — o que parou o laço foi a condição, não a meta exata.",
+        "O `while` não tem contador de voltas — quem conta é o código no corpo.",
+        "O total para de dobrar justamente porque a condição virou `false`."
+      ]
+    },
+    {
+      "id": "o-guarda-na-porta",
+      "statement": "Quando a pergunta da parada cabe na condição, o laço é while — o guarda fica na porta, não dentro do corpo.",
+      "question": "Qual a diferença do `while` para o `loop` com `break`?",
+      "options": [
+        "o while pergunta ANTES da volta; o loop com break decide DENTRO do corpo",
+        "o while repete para sempre e o loop tem fim",
+        "o while não aceita contador mutável",
+        "não há diferença: os dois rodam sempre o mesmo número de voltas"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `while` é o `loop` com o juiz na porta: a pergunta vem antes de cada volta — e pode negar a primeira.",
+      "sectionId": "o-guarda-na-porta",
+      "optionRationales": [
+        "É a diferença de posição: pergunta na porta (`while`) ou decisão no meio do corpo (`break`).",
+        "É o contrário: o `loop` é que repete para sempre — o `while` acaba quando a condição vira `false`.",
+        "O `while` aceita `let mut` como qualquer laço — o contador é do corpo.",
+        "Há diferença: com a condição `false` logo na porta, o `while` roda zero voltas — o `loop` roda pelo menos uma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do while — a repetição com condição."
+    },
+    {
+      "title": "Rust by Example — While",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/while.html",
+      "description": "Os exemplos oficiais do while."
+    },
+    {
+      "title": "std — a palavra-chave while",
+      "url": "https://doc.rust-lang.org/std/keyword.while.html",
+      "description": "A página oficial da palavra-chave while."
+    }
+  ],
+  "challenges": [
+    "as-voltas-de-dobra"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-sorteio-dos-grandes",
+  "title": "O sorteio dos grandes",
+  "concept": "acumulador",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O sorteio dos grandes\n\nO acumulador é a caixinha que junta os valores das voltas — e o `if` de dentro é quem decide o que entra.\n\nEscreva uma função `soma_dos_grandes` que recebe o `limite` e a `cota` e soma, do intervalo `0..limite`, só os números que passam da cota:\n\n1. comece com o acumulador `soma` em `0`;\n2. para cada `n` no intervalo `0..limite`:\n   - se `n` for maior que a `cota`, some `n` no acumulador;\n   - senão, a volta passa em branco;\n3. depois do laço, devolva a soma.\n\n`soma_dos_grandes(5, 2)` devolve `7`: só `3` e `4` passam da cota. E `soma_dos_grandes(3, 10)` devolve `0`: ninguém passa, todas as voltas passam em branco.",
+  "starterCode": "pub fn soma_dos_grandes(limite: i32, cota: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_dos_grandes(limite: i32, cota: i32) -> i32 {\n    let mut soma = 0;\n    for n in 0..limite {\n        if n > cota {\n            soma += n;\n        }\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_dos_grandes;\n\n#[test]\nfn testa_os_grandes_com_cota_dois() {\n    assert_eq!(soma_dos_grandes(5, 2), 7);\n}\n\n#[test]\nfn testa_os_grandes_com_cota_um() {\n    assert_eq!(soma_dos_grandes(4, 1), 5);\n}\n\n#[test]\nfn testa_quando_ninguem_passa_da_cota() {\n    assert_eq!(soma_dos_grandes(3, 10), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_dos_grandes deve devolver 7 quando chamada com limite 5 e cota 2 (3 + 4).", "teste": "testa_os_grandes_com_cota_dois" },
+    { "id": "REQ-2", "descricao": "A função soma_dos_grandes deve devolver 5 quando chamada com limite 4 e cota 1 (2 + 3).", "teste": "testa_os_grandes_com_cota_um" },
+    { "id": "REQ-3", "descricao": "A função soma_dos_grandes deve devolver 0 quando chamada com limite 3 e cota 10 — ninguém passa da cota.", "teste": "testa_quando_ninguem_passa_da_cota" }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar",
+  "title": "Somar",
+  "summary": "O `+` junta dois valores e a função devolve o que a conta deu.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "op:binary:+",
+  "concepts": [
+    "soma"
+  ],
+  "prerequisites": [
+    "a-primeira-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:+",
+      "node:BinaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-sinal-de-mais",
+      "title": "O sinal de mais",
+      "markdown": "A aula passada multiplicou; agora some. O `+` lê o valor de cada lado e produz um novo valor:\n\n```rust\npub fn soma(a: i32, b: i32) -> i32 {\n    a + b\n}\n```\n\nChamada com `2` e `3`, ela devolve `5`. Repare no formato: os dois valores chegam como parâmetros, e a expressão `a + b` é o que a função devolve."
+    },
+    {
+      "id": "os-espacos-sao-decoracao",
+      "title": "Os espaços são decoração",
+      "markdown": "O espaço em volta do `+` é só para ler melhor. Estas duas linhas fazem a mesma coisa:\n\n```rust\na + b\na+b\n```\n\nO costume em Rust é deixar um espaço de cada lado do operador — quem lê o seu código depois vai agradecer."
+    },
+    {
+      "id": "somar-valores-grandes",
+      "title": "Somar valores grandes",
+      "markdown": "O tamanho do número não muda nada — quem faz a conta é o computador:\n\n```rust\npub fn soma(a: i32, b: i32) -> i32 {\n    a + b\n}\n```\n\nChamada com `1200` e `45`, ela devolve `1245`. Vale a pena escrever a conta em vez de escrever o resultado pronto: você para de errar e para de conferir."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-mais-produz-valor",
+      "statement": "O `+` lê os dois valores ao lado dele e produz um novo valor.",
+      "question": "O que `soma(2, 3)` devolve, com o corpo `a + b`?",
+      "options": [
+        "5",
+        "23",
+        "a + b",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `+` faz a conta dos dois valores recebidos e a função devolve o resultado.",
+      "sectionId": "o-sinal-de-mais"
+    },
+    {
+      "id": "espacos-nao-mudam-a-conta",
+      "statement": "Os espaços em volta do operador não mudam o resultado.",
+      "question": "`a+b` e `a + b` produzem valores diferentes?",
+      "options": [
+        "Não: os espaços são só para leitura.",
+        "Sim: sem espaços a conta falha.",
+        "Sim: sem espaços o resultado dobra.",
+        "Sim: os espaços invertem a ordem."
+      ],
+      "answerIndex": 0,
+      "feedback": "Espaço é decoração; a conta é a mesma.",
+      "sectionId": "os-espacos-sao-decoracao"
+    }
+  ],
+  "sources": [
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial das funções, onde a aritmética aparece no corpo."
+    },
+    {
+      "title": "Hello, World! — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
+      "description": "Os exemplos oficiais de primeira aritmética em Rust."
+    }
+  ],
+  "challenges": [
+    "some-dois-numeros"
+  ]
+}

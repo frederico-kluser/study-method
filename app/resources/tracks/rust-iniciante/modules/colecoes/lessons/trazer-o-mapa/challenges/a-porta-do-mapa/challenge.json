@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-porta-do-mapa",
+  "title": "A porta do mapa",
+  "concept": "trazer_o_mapa",
+  "language": "rust",
+  "statement": "# A porta do mapa\n\nO mapa chega antes do conteúdo: traga o `HashMap` para o arquivo e deixe a porta aberta:\n\n1. escreva o `use` do mapa na primeira linha do arquivo, antes de tudo: `use std::collections::HashMap;`;\n2. escreva a função `le_mapa`, que já espera o mapa que as próximas aulas vão encher — a assinatura recebe `&HashMap<String, String>` e o corpo monta a frase com o `.len` que você já conhece;\n3. complete `rotulo`, que responde o endereço completo do mapa.\n\n- `rotulo()` devolve `std::collections::HashMap`;\n- `rotulo().len()` devolve `25` — o endereço completo cabe num nome só.\n",
+  "starterCode": "pub fn rotulo() -> String {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn le_mapa(nomes: &HashMap<String, String>) -> String {\n    format!(\"{} nomes no mapa\", nomes.len())\n}\n\npub fn rotulo() -> String {\n    String::from(\"std::collections::HashMap\")\n}\n",
+  "testsCode": "use desafio::rotulo;\n\n#[test]\nfn testa_o_rotulo_do_mapa() {\n    assert_eq!(rotulo(), \"std::collections::HashMap\");\n}\n\n#[test]\nfn testa_o_endereco_de_25_letras() {\n    assert_eq!(rotulo().len(), 25);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O arquivo traz o HashMap com use std::collections::HashMap; e rotulo() devolve \"std::collections::HashMap\".",
+      "teste": "testa_o_rotulo_do_mapa"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "rotulo().len() responde 25 — o endereço completo tem 25 caracteres.",
+      "teste": "testa_o_endereco_de_25_letras"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 3
+}

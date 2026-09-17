@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-lista-contada",
+  "title": "A lista contada",
+  "concept": "quantos_tem",
+  "language": "rust",
+  "statement": "# A lista contada\n\nA função `quantos` recebe a lista emprestada e responde QUANTOS valores tem:\n\n- `quantos(&vec![2, 4, 6])` devolve `3`;\n- `quantos(&vec![])` devolve `0`.\n\nO retorno é `usize`, o tipo do tamanho. Os testes cobram a lista cheia e a vazia — o tamanho tem de vir da lista recebida, não de um número fixo.\n",
+  "starterCode": "pub fn quantos(fila: &Vec<i32>) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn quantos(fila: &Vec<i32>) -> usize {\n    fila.len()\n}\n",
+  "testsCode": "use desafio::quantos;\n\n#[test]\nfn testa_a_fila_de_tres() {\n    assert_eq!(quantos(&vec![2, 4, 6]), 3);\n}\n\n#[test]\nfn testa_a_fila_vazia() {\n    assert_eq!(quantos(&vec![]), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "quantos(&vec![2, 4, 6]) devolve o tamanho da lista: 3.",
+      "teste": "testa_a_fila_de_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "quantos(&vec![]) devolve 0 — a lista vazia tem tamanho zero.",
+      "teste": "testa_a_fila_vazia"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 2
+}

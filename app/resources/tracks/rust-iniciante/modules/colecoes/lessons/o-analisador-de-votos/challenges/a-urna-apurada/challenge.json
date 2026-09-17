@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-urna-apurada",
+  "title": "A urna apurada",
+  "concept": "o_analisador_de_votos",
+  "language": "rust",
+  "statement": "# A urna apurada\n\nFecho do módulo: a função `apuramento` recebe a lista dos votos e devolve o resultado da ana em TEXTO:\n\n1. abra a contagem com `HashMap::new`;\n2. percorra os votos por valor e acumule com o padrão entry;\n3. pergunte ao mapa com `.get(\"ana\")` e abra a caixa com o `match` — ausente é `0`;\n4. monte a frase: `format!(\"ana: {} votos\", da_ana)`.\n\n- `apuramento(vec![\"ana\", \"bo\", \"ana\"])` — com os votos como `String` — devolve `ana: 2 votos`;\n- sem voto da ana (`vec![\"bo\"]`), devolve `ana: 0 votos`;\n- urna vazia devolve `ana: 0 votos`.\n\nLista + mapa + caixa + texto: o programa inteiro do módulo.\n",
+  "starterCode": "use std::collections::HashMap;\n\npub fn apuramento(votos: Vec<String>) -> String {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn apuramento(votos: Vec<String>) -> String {\n    let mut contagem = HashMap::new();\n    for voto in votos {\n        *contagem.entry(voto).or_insert(0) += 1;\n    }\n    let da_ana = match contagem.get(\"ana\") {\n        Some(n) => *n,\n        None => 0,\n    };\n    format!(\"ana: {} votos\", da_ana)\n}\n",
+  "testsCode": "use desafio::apuramento;\n\n#[test]\nfn testa_a_ana_com_dois_votos() {\n    let votos = vec![String::from(\"ana\"), String::from(\"bo\"), String::from(\"ana\")];\n    assert_eq!(apuramento(votos), \"ana: 2 votos\");\n}\n\n#[test]\nfn testa_a_ana_sem_voto_nenhum() {\n    let votos = vec![String::from(\"bo\")];\n    assert_eq!(apuramento(votos), \"ana: 0 votos\");\n}\n\n#[test]\nfn testa_a_urna_vazia() {\n    let votos = vec![];\n    assert_eq!(apuramento(votos), \"ana: 0 votos\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "apuramento conta com Vec + HashMap (padrão entry) e devolve \"ana: 2 votos\" para [ana, bo, ana].",
+      "teste": "testa_a_ana_com_dois_votos"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Sem voto da ana, o get devolve None e o apuramento devolve \"ana: 0 votos\".",
+      "teste": "testa_a_ana_sem_voto_nenhum"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Urna vazia: o mapa fica vazio e o apuramento devolve \"ana: 0 votos\".",
+      "teste": "testa_a_urna_vazia"
+    }
+  ],
+  "expectedTestCount": 3,
+  "difficulty": 5
+}

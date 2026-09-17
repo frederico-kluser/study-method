@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "comparar-estruturas",
+  "title": "Comparar estruturas",
+  "summary": "O derive(PartialEq) ensina o == ao molde: peça por peça, campo por campo.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:derive.PartialEq",
+  "concepts": [
+    "derive_partialeq"
+  ],
+  "prerequisites": [
+    "a-estampa-do-compilador"
+  ],
+  "introduces": {
+    "productive": [
+      "api:derive.PartialEq",
+      "node:Attribute",
+      "node:AttributeItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-pede-a-igualdade",
+      "title": "O derive que ensina o ==",
+      "markdown": "Comparar dois pontos com `==` só compila se o molde souber igualar — e quem ensina é o derive:\n\n```rust\n#[derive(Debug, PartialEq)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\n`PartialEq` na lista do derive: o compilador gera o `==` campo por campo."
+    },
+    {
+      "id": "o-igual-campo-por-campo",
+      "title": "O igual campo por campo",
+      "markdown": "Com o derive, o `==` responde: todos os campos iguais?\n\n```rust\npub fn iguais(a: Ponto, b: Ponto) -> bool {\n    a == b\n}\n```\n\n`iguais(ponto_de(2, 3), ponto_de(2, 3))` devolve `true`; `iguais(ponto_de(2, 3), ponto_de(3, 2))` devolve `false` — o `x` de um é o `y` do outro."
+    },
+    {
+      "id": "sem-o-derive-o-compilador-recusa",
+      "title": "Sem o derive, o compilador recusa",
+      "markdown": "Sem `PartialEq`, o `a == b` não compila:\n\n```text\nerro: binary operation `==` cannot be applied to type `Ponto`\n```\n\nA comparação de struct não é de graça: é o derive que a entrega."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-partialeq-esta-na-lista",
+      "sectionId": "o-pede-a-igualdade",
+      "statement": "O PartialEq entra na lista do derive, junto dos outros traits.",
+      "question": "Como a struct ganha o `==`?",
+      "options": [
+        "Com #[derive(Debug, PartialEq)] acima do molde",
+        "Escrevendo fn igual(a: Ponto, b: Ponto) -> bool solta",
+        "Comparando campo por campo na função que usa o ==",
+        "Com #[equal] acima da struct"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `==` da struct vem do derive: `#[derive(Debug, PartialEq)]`.",
+      "optionRationales": [
+        "O derive reúne os traits: o PartialEq ensina o igual.",
+        "A função solta não ensina o == — a comparação entre pontos continua sem ele.",
+        "O == compara os campos DEPOIS de o derive ensiná-lo; sozinho não compila.",
+        "equal não é trait do prelude; o nome é PartialEq."
+      ]
+    },
+    {
+      "id": "o-igual-e-total",
+      "sectionId": "o-igual-campo-por-campo",
+      "statement": "Com o derive, o == responde verdadeiro só quando TODOS os campos são iguais.",
+      "question": "`iguais(ponto_de(2, 3), ponto_de(3, 2))` devolve o quê?",
+      "options": [
+        "false — o x de um não é o x do outro",
+        "true — os dois têm os mesmos números",
+        "false — porque structs nunca são iguais",
+        "true — porque o == soma os campos"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `==` é campo por campo: `x` = 2 contra `x` = 3 já reprova — `false`.",
+      "optionRationales": [
+        "Todos os campos têm de bater: 2 ≠ 3 no primeiro campo.",
+        "Os números são os MESMOS, mas nos campos TROCADOS — não é igual.",
+        "Com o derive, structs iguais campo por campo SÃO iguais.",
+        "O == não soma: compara campo por campo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "std::cmp::PartialEq — a referência oficial do trait",
+      "url": "https://doc.rust-lang.org/std/cmp/trait.PartialEq.html",
+      "description": "A referência do PartialEq: o igual campo por campo que o derive gera."
+    },
+    {
+      "title": "Derivable Traits — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/appendix-03-derivable-traits.html",
+      "description": "O apêndice oficial dos traits deriváveis — o que cada derive ensina ao compilador."
+    }
+  ],
+  "challenges": [
+    "o-ponto-repetido"
+  ]
+}

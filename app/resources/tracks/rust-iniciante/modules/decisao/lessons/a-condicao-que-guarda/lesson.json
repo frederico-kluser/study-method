@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-condicao-que-guarda",
+  "title": "A condição que guarda",
+  "summary": "A comparação pode nascer direto dentro de um let: o nome guarda a resposta da pergunta.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "op:compare:==",
+  "concepts": [
+    "a_condicao_que_guarda"
+  ],
+  "prerequisites": [
+    "o-se-que-devolve"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:=="
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-resposta-com-nome",
+      "title": "A resposta com nome",
+      "markdown": "A resposta de uma comparação é um valor de verdade como outro qualquer — pode nascer DIRETO dentro de um `let`:\n\n```rust\npub fn a_soma_confere(a: i32, b: i32, palpite: i32) -> bool {\n    let soma = a + b;\n    let acertou = palpite == soma;\n    acertou\n}\n```\n\n`acertou` guarda a resposta da pergunta *o palpite é igual à soma?* — `true` ou `false` — e a função devolve o nome."
+    },
+    {
+      "id": "de-cima-para-baixo",
+      "title": "De cima para baixo",
+      "markdown": "O `let` de cima alimenta a pergunta de baixo: `soma` é resolvida primeiro, e a comparação usa o nome dela. Rust lê as ligações de cima para baixo, uma por vez:\n\n```rust\npub fn a_soma_confere(a: i32, b: i32, palpite: i32) -> bool {\n    let soma = a + b;\n    let acertou = palpite == soma;\n    acertou\n}\n```\n\nTrocar as duas linhas de ordem não compila: na hora da pergunta, `soma` ainda não existiria."
+    },
+    {
+      "id": "do-nome-ao-if",
+      "title": "Do nome ao if",
+      "markdown": "A resposta com nome entra em qualquer decisão — inclusive como a condição do `if`:\n\n```rust\npub fn o_aviso(a: i32, b: i32, palpite: i32) -> i32 {\n    let acertou = a + b == palpite;\n    if acertou {\n        1\n    } else {\n        0\n    }\n}\n```\n\nA condição do `if` é um NOME que já guarda a resposta — a pergunta foi feita uma vez, lá em cima."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "comparacao-no-let",
+      "statement": "Uma comparação pode nascer direto no let: o nome guarda a resposta true ou false da pergunta.",
+      "question": "O que o nome `acertou` guarda em `let acertou = palpite == soma;`?",
+      "options": [
+        "a resposta da comparação — true ou false",
+        "a diferença entre os dois números",
+        "a soma dos dois números",
+        "um texto com o resultado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O == responde true ou false, e é essa resposta que o let guarda em acertou.",
+      "sectionId": "a-resposta-com-nome",
+      "optionRationales": [
+        "O let guarda a resposta da pergunta — um valor de verdade, true ou false.",
+        "Comparação não calcula diferença; ela só responde true ou false.",
+        "A soma está no let de cima (soma); acertou guarda a RESPOSTA da pergunta.",
+        "A resposta é um valor de verdade puro — nunca um texto."
+      ]
+    },
+    {
+      "id": "de-cima-para-baixo",
+      "statement": "Rust lê as ligações de cima para baixo: um nome só pode ser usado depois do let que o criou.",
+      "question": "Por que `soma` precisa vir antes da linha que compara?",
+      "options": [
+        "porque a comparação usa o nome que a linha de cima criou",
+        "porque soma é sempre o maior valor",
+        "porque o let mut exige a ordem",
+        "porque == só lê linhas de baixo"
+      ],
+      "answerIndex": 0,
+      "feedback": "A pergunta usa o nome soma — e nome só existe depois do seu let.",
+      "sectionId": "de-cima-para-baixo",
+      "optionRationales": [
+        "Usar um nome antes do let que o cria é erro de compilação — a ordem é essa.",
+        "A ordem não tem nada a ver com tamanho de valor: é sobre quem existe primeiro.",
+        "O let mut não entra na história — as duas ligações são let comuns.",
+        "A regra é simples: o let de cima alimenta a linha de baixo."
+      ]
+    },
+    {
+      "id": "nome-como-condicao",
+      "statement": "O nome que guarda a resposta pode virar a condição inteira do if — a pergunta foi feita uma vez.",
+      "question": "No `o_aviso`, o que vai entre o `if` e as chaves?",
+      "options": [
+        "o nome acertou, que já guarda a resposta",
+        "a comparação escrita de novo",
+        "a soma dos números",
+        "o palpite"
+      ],
+      "answerIndex": 0,
+      "feedback": "A pergunta foi feita no let; o if só lê a resposta guardada no nome.",
+      "sectionId": "do-nome-ao-if",
+      "optionRationales": [
+        "if acertou { ... }: a condição é o nome, e a resposta já está guardada nele.",
+        "Repetir a comparação funcionaria, mas o formato da aula é o nome pronto.",
+        "A soma já virou parte da resposta guardada em acertou.",
+        "O palpite sozinho não decide nada — quem decide é a resposta guardada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    }
+  ],
+  "challenges": [
+    "a-soma-confere"
+  ]
+}

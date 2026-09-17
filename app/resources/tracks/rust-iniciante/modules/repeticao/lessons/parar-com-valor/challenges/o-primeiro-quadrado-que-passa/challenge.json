@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-primeiro-quadrado-que-passa",
+  "title": "O primeiro quadrado que passa",
+  "concept": "break_com_valor",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O primeiro quadrado que passa\n\nO `break` pode carregar um valor — e o laço de BUSCA é o lugar dele: roda até achar e sai levando a resposta.\n\nEscreva uma função `primeiro_quadrado_apos` que recebe o `teto` e devolve o primeiro quadrado (um número vezes ele mesmo) que passa do teto:\n\n1. comece com o `n` em `1`;\n2. dentro do `loop`, calcule o quadrado da volta (`n * n`) num nome próprio;\n3. se o quadrado passa do teto, mande parar COM VALOR: `break quadrado;`;\n4. senão, faça o `n` subir 1 e volte;\n5. o laço é a última expressão do corpo — o valor que o `break` carrega é o que a função devolve.\n\n`primeiro_quadrado_apos(10)` devolve `16`: os quadrados `1`, `4`, `9` ficam abaixo do teto. E `primeiro_quadrado_apos(25)` devolve `36`: o `25` não PASSA de `25`.",
+  "starterCode": "pub fn primeiro_quadrado_apos(teto: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn primeiro_quadrado_apos(teto: i32) -> i32 {\n    let mut n = 1;\n    loop {\n        let quadrado = n * n;\n        if quadrado > teto {\n            break quadrado;\n        }\n        n += 1;\n    }\n}\n",
+  "testsCode": "use desafio::primeiro_quadrado_apos;\n\n#[test]\nfn testa_o_primeiro_quadrado_passando_de_dez() {\n    assert_eq!(primeiro_quadrado_apos(10), 16);\n}\n\n#[test]\nfn testa_o_primeiro_quadrado_passando_de_vinte_e_cinco() {\n    assert_eq!(primeiro_quadrado_apos(25), 36);\n}\n\n#[test]\nfn testa_o_primeiro_quadrado_passando_do_zero() {\n    assert_eq!(primeiro_quadrado_apos(0), 1);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função primeiro_quadrado_apos deve devolver 16 quando chamada com o teto 10 (1, 4 e 9 não passam; 16 passa).", "teste": "testa_o_primeiro_quadrado_passando_de_dez" },
+    { "id": "REQ-2", "descricao": "A função primeiro_quadrado_apos deve devolver 36 quando chamada com o teto 25 (25 não PASSA de 25; 36 passa).", "teste": "testa_o_primeiro_quadrado_passando_de_vinte_e_cinco" },
+    { "id": "REQ-3", "descricao": "A função primeiro_quadrado_apos deve devolver 1 quando chamada com o teto 0 — o primeiro quadrado já passa.", "teste": "testa_o_primeiro_quadrado_passando_do_zero" }
+  ],
+  "expectedTestCount": 3
+}

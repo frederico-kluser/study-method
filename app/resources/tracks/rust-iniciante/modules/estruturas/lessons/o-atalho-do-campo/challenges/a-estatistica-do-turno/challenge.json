@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-estatistica-do-turno",
+  "title": "A estatística do turno",
+  "concept": "atalho_campo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A estatística do turno\n\nO painel do turno resume cada rodada em uma ESTATÍSTICA: o menor e o maior placar. O molde `Estatistica` já está no arquivo.\n\nO construtor `estatistica` recebe `minimo` e `maximo` — os MESMOS nomes dos campos. Escreva o corpo usando o ATALHO do campo: a peça enche com `Estatistica { minimo, maximo }`.\n\n- `estatistica(2, 9).minimo` devolve `2`;\n- `estatistica(2, 9).maximo` devolve `9`.\n\nO atalho vale porque o parâmetro tem o MESMO nome do campo.",
+  "starterCode": "pub struct Estatistica {\n    pub minimo: i32,\n    pub maximo: i32,\n}\n\npub fn estatistica(minimo: i32, maximo: i32) -> Estatistica {\n    todo!()\n}\n",
+  "solutionCode": "pub struct Estatistica {\n    pub minimo: i32,\n    pub maximo: i32,\n}\n\npub fn estatistica(minimo: i32, maximo: i32) -> Estatistica {\n    Estatistica { minimo, maximo }\n}\n",
+  "testsCode": "use desafio::estatistica;\n\n#[test]\nfn testa_o_minimo_da_estatistica_dois_por_nove() {\n    assert_eq!(estatistica(2, 9).minimo, 2);\n}\n\n#[test]\nfn testa_o_maximo_da_estatistica_dois_por_nove() {\n    assert_eq!(estatistica(2, 9).maximo, 9);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "estatistica(2, 9) monta a peça com o atalho e o campo minimo vale 2.",
+      "teste": "testa_o_minimo_da_estatistica_dois_por_nove"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "estatistica(2, 9) monta a peça com o atalho e o campo maximo vale 9.",
+      "teste": "testa_o_maximo_da_estatistica_dois_por_nove"
+    }
+  ],
+  "expectedTestCount": 2
+}

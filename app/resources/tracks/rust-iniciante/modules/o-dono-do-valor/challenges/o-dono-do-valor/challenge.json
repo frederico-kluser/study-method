@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dono-do-valor",
+  "title": "O crachá do evento",
+  "concept": "composicao_do_dono",
+  "difficulty": 5,
+  "language": "rust",
+  "outputChannel": "retorno",
+  "statement": "# O crachá do evento\n\nFecho do módulo: a história inteira do DONO num crachá só — ler sem levar, copiar para preservar, mover para consumir, crescer o que é seu e devolver um dono novo.\n\nA função `cracha(nome: String)` recebe a caixa e devolve o crachá montado:\n\n1. `letras` nasce do `.len` — o tamanho LÊ o nome sem levar o dono dele;\n2. a `frente` nasce do `.clone` — a cópia que preserva o nome exatamente como entrou;\n3. o `verso` recebe o nome por MOVIMENTO (`let mut verso = nome;`) — depois desta linha o nome não existe mais, e o verso cresce com `.push_str(\" | acesso liberado\")`;\n4. o `rotulo` nasce de `String::from(\"CRACHA\")` e vira o cabeçalho com a soma de textos (`rotulo + \" do evento\"`) — o `+` MOVE a caixa da esquerda;\n5. o `format!` com vários `{}` encaixa o cabeçalho, a frente, o número de letras e o verso — e o crachá montado sai pelo retorno, dono novo.\n\nFormato exato, para `nome = \"Ana\"`: `CRACHA do evento: Ana (3 letras) - verso: Ana | acesso liberado` — a frente é a cópia intocada, o verso é o nome que cresceu.\n\nHonestidade do dono: o teste só vê a string final — ele não assiste ao movimento nem ao clone. Quem garante a história é a referência e o enunciado: cada passo acima é uma aula do módulo, na ordem em que ele ensinou. Os testes entregam a caixa de dois jeitos (`String::from` e o `\"...\".to_string()` da fatia que vira dono) e com nomes de tamanhos diferentes — uma string só não basta. Este desafio não ensina nada novo: ele compõe o módulo inteiro.",
+  "starterCode": "pub fn cracha(nome: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn cracha(nome: String) -> String {\n    let letras = nome.len();\n    let frente = nome.clone();\n    let mut verso = nome;\n    verso.push_str(\" | acesso liberado\");\n    let rotulo = String::from(\"CRACHA\");\n    let cabecalho = rotulo + \" do evento\";\n    format!(\"{cabecalho}: {frente} ({letras} letras) - verso: {verso}\")\n}\n",
+  "testsCode": "use desafio::cracha;\n\n#[test]\nfn testa_o_cracha_da_ana() {\n    assert_eq!(cracha(String::from(\"Ana\")), \"CRACHA do evento: Ana (3 letras) - verso: Ana | acesso liberado\");\n}\n\n#[test]\nfn testa_o_cracha_do_luiz() {\n    let apelido = \"Luiz\";\n    assert_eq!(cracha(apelido.to_string()), \"CRACHA do evento: Luiz (4 letras) - verso: Luiz | acesso liberado\");\n}\n\n#[test]\nfn testa_o_cracha_da_sol() {\n    let apelido = \"Sol\";\n    assert_eq!(cracha(apelido.to_string()), \"CRACHA do evento: Sol (3 letras) - verso: Sol | acesso liberado\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "cracha(String::from(\"Ana\")) deve devolver \"CRACHA do evento: Ana (3 letras) - verso: Ana | acesso liberado\" — frente intacta (clone) e verso crescido (push_str).", "teste": "testa_o_cracha_da_ana" },
+    { "id": "REQ-2", "descricao": "cracha(\"Luiz\".to_string()) deve devolver \"CRACHA do evento: Luiz (4 letras) - verso: Luiz | acesso liberado\" — o nome conta 4 letras.", "teste": "testa_o_cracha_do_luiz" },
+    { "id": "REQ-3", "descricao": "cracha(\"Sol\".to_string()) deve devolver \"CRACHA do evento: Sol (3 letras) - verso: Sol | acesso liberado\" — outro nome, outra contagem, mesmo formato.", "teste": "testa_o_cracha_da_sol" }
+  ],
+  "expectedTestCount": 3,
+  "sources": [
+    { "title": "What Is Ownership? — The Rust Programming Language", "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html", "description": "O capítulo oficial do dono, do movimento e do escopo — a história que o crachá conta." },
+    { "title": "struct String — a referência oficial do std", "url": "https://doc.rust-lang.org/std/string/struct.String.html", "description": "A documentação oficial do String: from, clone, len, push_str — as portas do crachá." },
+    { "title": "Understanding Ownership — The Rust Programming Language", "url": "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html", "description": "O capítulo-mãe do módulo — dono antes de empréstimo, a ordem do currículo." }
+  ]
+}

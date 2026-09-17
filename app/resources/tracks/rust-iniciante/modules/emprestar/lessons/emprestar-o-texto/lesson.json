@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "emprestar-o-texto",
+  "title": "Emprestar o texto",
+  "summary": "A assinatura com &str recebe o texto emprestado: a função lê, mas não é dona.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:ReferenceType",
+  "concepts": [
+    "emprestar_o_texto"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono",
+    "o-tamanho-do-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ReferenceType"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-assinatura-que-empresta",
+      "title": "A assinatura que empresta",
+      "markdown": "A função abaixo não quer o dono: quer LER o texto e medir. O `&` na frente do tipo na assinatura é a promessa de empréstimo — o `str` é o texto cru:\n\n```rust\npub fn tamanho(texto: &str) -> usize {\n    texto.len()\n}\n```\n\nEm `tamanho(\"Ana\")`, quem chama empresta o texto; a função mede e devolve o número. Nada foi copiado e nada foi movido."
+    },
+    {
+      "id": "o-dono-fica-onde-esta",
+      "title": "O dono fica onde está",
+      "markdown": "O `&str` da assinatura não move nada: quem chama continua com o texto. A função lê, mede e devolve:\n\n```rust\npub fn tamanho(texto: &str) -> usize {\n    texto.len()\n}\n```\n\nO literal `\"Ana\"` já nasce emprestado — não tem dono próprio para perder. E se o texto mora num `String`, dá para emprestá-lo também: é a lição da próxima aula."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-e-promete-emprestimo",
+      "sectionId": "a-assinatura-que-empresta",
+      "statement": "O &str da assinatura é o texto emprestado: a função lê e devolve.",
+      "question": "Em `texto: &str`, o que o `&` promete?",
+      "options": [
+        "Que o texto chega emprestado: a função só lê",
+        "Que o texto é dono da função",
+        "Que o texto será copiado",
+        "Que o texto tem 4 letras"
+      ],
+      "answerIndex": 0,
+      "feedback": "O & na frente do tipo é o empréstimo: o texto só passa.",
+      "optionRationales": [
+        "&str é o texto emprestado — a função lê, mede e devolve.",
+        "Quem empresta é o chamador; a função nunca vira dona.",
+        "Não há cópia: o empréstimo aponta para o texto original.",
+        "O tamanho é papel do len; o & fala de dono."
+      ]
+    },
+    {
+      "id": "o-dono-nao-se-move",
+      "sectionId": "o-dono-fica-onde-esta",
+      "statement": "Assinar com &str não move o texto: quem chama continua com ele.",
+      "question": "Depois de `tamanho(\"Ana\")`, o que acontece com o texto?",
+      "options": [
+        "Nada — ele segue com quem o emprestou",
+        "Ele muda de dono",
+        "Ele vira um String",
+        "Ele é apagado da memória"
+      ],
+      "answerIndex": 0,
+      "feedback": "Empréstimo não move: o texto fica em casa.",
+      "optionRationales": [
+        "A função só leu; o texto nunca saiu do lugar.",
+        "Mudar de dono é o move — o empréstimo é o contrário.",
+        "Um String dono é o String::from — não nasce de um &str.",
+        "Apagar seria o fim do dono; o empréstimo não mata ninguém."
+      ]
+    },
+    {
+      "id": "o-literal-ja-e-emprestado",
+      "sectionId": "o-dono-fica-onde-esta",
+      "statement": "O literal \"Ana\" já é o texto emprestado: cabe direto num parâmetro &str.",
+      "question": "Por que `tamanho(\"Ana\")` compila com o parâmetro em `&str`?",
+      "options": [
+        "Porque o literal já é o texto emprestado",
+        "Porque todo texto é um String",
+        "Porque o & é opcional em Rust",
+        "Porque o Ana é um número"
+      ],
+      "answerIndex": 0,
+      "feedback": "O literal mora no programa e não tem dono móvel: já entra emprestado.",
+      "optionRationales": [
+        "O literal é o próprio texto cru — o &str o recebe de graça.",
+        "String é a caixa dona; o literal é o texto emprestado.",
+        "O & nunca é opcional: a assinatura pede o empréstimo.",
+        "Ana é texto; o tamanho 3 é quem é número."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive str — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "O texto cru emprestado: fatias, len e chars, lidos sem dono."
+    },
+    {
+      "title": "Rust by Example — std & str: strings",
+      "url": "https://doc.rust-lang.org/rust-by-example/std/str.html",
+      "description": "Exemplos oficiais executáveis de String, fatias e percurso de texto."
+    }
+  ],
+  "challenges": [
+    "a-assinatura-que-empresta"
+  ]
+}

@@ -89,6 +89,42 @@ describe('highlightCodeLines — a primeira linha da AULA 1 sai colorida', () =>
       assert.equal(hasHighlightGrammar(lang), true, lang);
     }
   });
+
+  it('rust e rs (tags reais das cercas de teoria) têm gramática DEDICADA', () => {
+    // As duas grafias que a engine emite (RS_THEORY_FENCE_TAGS) compartilham o
+    // mesmo parser — o CodeBlock chama highlightCodeLines(code, lang) com a tag
+    // da cerca, então ambas caem no caminho idêntico do bloco da aula.
+    for (const lang of ['rust', 'rs']) {
+      assert.equal(hasHighlightGrammar(lang), true, lang);
+      const [line] = highlightCodeLines('fn main() { let n: i32 = 42; }', lang);
+      assert.ok(line);
+      assert.deepEqual(
+        line.map((t) => [t.text, t.role]),
+        [
+          ['fn', 'keyword'],
+          [' ', null],
+          ['main', 'function'],
+          ['(', 'operator'],
+          [')', 'operator'],
+          [' ', null],
+          ['{', 'operator'],
+          [' ', null],
+          ['let', 'keyword'],
+          [' ', null],
+          ['n', 'variable'],
+          [': ', null],
+          ['i32', 'type'],
+          [' ', null],
+          ['=', 'operator'],
+          [' ', null],
+          ['42', 'number'],
+          [';', 'operator'],
+          [' ', null],
+          ['}', 'operator'],
+        ],
+      );
+    }
+  });
 });
 
 describe('o texto nunca é alterado pelo highlight', () => {

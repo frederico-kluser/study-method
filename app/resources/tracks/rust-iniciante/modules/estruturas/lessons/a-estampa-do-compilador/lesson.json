@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-estampa-do-compilador",
+  "title": "A estampa do compilador",
+  "summary": "O derive(Debug) entrega a estampa pronta: {:?} imprime a struct inteira.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:derive.Debug",
+  "concepts": [
+    "derive_debug"
+  ],
+  "prerequisites": [
+    "o-molde-e-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "api:derive.Debug",
+      "node:Attribute",
+      "node:AttributeItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-atributo-acima-do-molde",
+      "title": "O atributo acima do molde",
+      "markdown": "Uma linha ACIMA do molde pede ao compilador a estampa:\n\n```rust\n#[derive(Debug)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\n`#[derive(Debug)]` é um ATRIBUTO: o compilador gera o código de depuração da struct — sem você escrever linha nenhuma dele."
+    },
+    {
+      "id": "os-dois-pontos-de-interrogacao",
+      "title": "Os dois pontos de interrogação",
+      "markdown": "O `{}` não sabe mostrar struct. O `{:?}` mostra a ESTAMPA do Debug:\n\n```rust\npub fn mostra(p: Ponto) -> String {\n    format!(\"{:?}\", p)\n}\n```\n\n`mostra(ponto_de(2, 3))` devolve `Ponto { x: 2, y: 3 }`: o nome do molde e campo por campo."
+    },
+    {
+      "id": "sem-derive-sem-estampa",
+      "title": "Sem derive, sem estampa",
+      "markdown": "Com `{:?}` sobre um molde SEM o Debug, o compilador recusa:\n\n```rust\n// sem #[derive(Debug)] na struct:\n// erro: Ponto doesn't implement Debug\n```\n\nA estampa não nasce sozinha: é o atributo que a pede. Sem ele, `{:?}` não compila."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-derive-e-atributo",
+      "sectionId": "o-atributo-acima-do-molde",
+      "statement": "O derive é um atributo acima do molde que pede ao compilador a estampa.",
+      "question": "Onde se escreve `#[derive(Debug)]`?",
+      "options": [
+        "Na linha acima da struct",
+        "Dentro da struct, junto dos campos",
+        "Dentro da função mostra",
+        "No arquivo de teste"
+      ],
+      "answerIndex": 0,
+      "feedback": "O atributo fica ACIMA do molde — é ele quem pede o Debug ao compilador.",
+      "optionRationales": [
+        "Atributo fica acima do item a que pertence — logo acima da struct.",
+        "Campos são dados; atributos não moram entre eles.",
+        "O {:?} é da chamada; o derive é da struct.",
+        "O derive pertence ao molde, não ao teste."
+      ]
+    },
+    {
+      "id": "os-dois-pontos-mostram-a-struct",
+      "sectionId": "os-dois-pontos-de-interrogacao",
+      "statement": "O {:?} imprime a estampa do Debug: nome do molde e campo por campo.",
+      "question": "O que `format!(\"{:?}\", p)` devolve para `ponto_de(2, 3)`?",
+      "options": [
+        "Ponto { x: 2, y: 3 }",
+        "2, 3",
+        "Ponto",
+        "x: 2"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `{:?}` mostra a estampa completa: `Ponto { x: 2, y: 3 }`.",
+      "optionRationales": [
+        "A estampa tem o nome do molde e todos os campos, na ordem da declaração.",
+        "Só os valores não é a estampa — falta o molde e os nomes dos campos.",
+        "Só o nome do molde não é a estampa — os campos também aparecem.",
+        "Falta o molde e o y: a estampa traz tudo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "std::fmt::Debug — a referência oficial do trait",
+      "url": "https://doc.rust-lang.org/std/fmt/trait.Debug.html",
+      "description": "A referência do Debug: o {:?} e a estampa que o derive gera."
+    },
+    {
+      "title": "Printing — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/hello/print.html",
+      "description": "Os exemplos oficiais de formato: {} para Display e {:?} para Debug."
+    }
+  ],
+  "challenges": [
+    "a-estampa-do-ponto"
+  ]
+}

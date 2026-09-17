@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-mochila-vazia",
+  "title": "A mochila vazia",
+  "concept": "o_mapa_vazio",
+  "language": "rust",
+  "statement": "# A mochila vazia\n\nA função `mochila` abre o mapa do estoque — vazio, como todo mapa nasce:\n\n- `mochila().len()` devolve `0` — nenhuma chave dentro;\n- duas mochilas abertas seguem independentes — as duas nascem do mesmo tamanho: zero.\n\nO corpo é o `HashMap::new` — e o tipo do mapa está na assinatura: `HashMap<String, i32>`.\n",
+  "starterCode": "use std::collections::HashMap;\n\npub fn mochila() -> HashMap<String, i32> {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn mochila() -> HashMap<String, i32> {\n    HashMap::new()\n}\n",
+  "testsCode": "use desafio::mochila;\n\n#[test]\nfn testa_a_mochila_nasce_vazia() {\n    assert_eq!(mochila().len(), 0);\n}\n\n#[test]\nfn testa_as_duas_mochilas_nascem_iguais() {\n    let a = mochila();\n    let b = mochila();\n    assert_eq!(a.len(), b.len());\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "mochila() devolve o mapa construído com HashMap::new, com tamanho 0.",
+      "teste": "testa_a_mochila_nasce_vazia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Duas chamadas de mochila() produzem dois mapas independentes, ambos com tamanho 0.",
+      "teste": "testa_as_duas_mochilas_nascem_iguais"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 2
+}

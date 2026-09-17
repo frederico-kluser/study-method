@@ -6,15 +6,18 @@
  * exige que toda importação esteja no include). O wrapper `src/components/cm/
  * language.ts` reexporta estes símbolos para a UI (componente do renderer).
  *
- * SEM dependência nova: usa apenas os pacotes de linguagem já presentes
- * (@codemirror/lang-*). Idiomas sem parser dedicado (go, rust, c, shell,
- * text…) caem num fallback documentado — `javascript` básico sem TS/JSX —
- * porque compartilham a sintaxe de chaves/identificadores, o que ainda dá
- * realce útil sob o tema Dracula sem adicionar pacote.
+ * Uma dependência nova, declarada: `@codemirror/lang-rust` entrou como
+ * dependência nova na onda 2.2 (onda2-editor-rust) e é usada aqui, junto dos
+ * pacotes de linguagem que JÁ estavam na base (@codemirror/lang-javascript,
+ * lang-python, lang-json, lang-markdown). Idiomas sem parser dedicado (go, c,
+ * shell, text…) caem num fallback documentado — `javascript` básico sem
+ * TS/JSX — porque compartilham a sintaxe de chaves/identificadores, o que
+ * ainda dá realce útil sob o tema Dracula sem adicionar pacote.
  */
 import type { Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
+import { rust } from '@codemirror/lang-rust';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 
@@ -35,6 +38,7 @@ const NONE: readonly Extension[] = [];
 
 const JS_ONLY: readonly Extension[] = [javascript()];
 const TSX: readonly Extension[] = [javascript({ typescript: true, jsx: true })];
+const RUST: readonly Extension[] = [rust()];
 
 /**
  * Tabela ext → linguagem. Normalizamos a ext (sem `.`, lowercase). Extensões
@@ -48,13 +52,13 @@ const LANGUAGE_BY_EXT: Readonly<Record<string, EditorLanguageInfo>> = {
   ts: { label: 'TypeScript', extensions: TSX },
   tsx: { label: 'TypeScript (TSX)', extensions: TSX },
   py: { label: 'Python', extensions: [python()] },
+  rust: { label: 'Rust', extensions: RUST },
+  rs: { label: 'Rust', extensions: RUST },
   json: { label: 'JSON', extensions: [json()] },
   md: { label: 'Markdown', extensions: [markdown()] },
   markdown: { label: 'Markdown', extensions: [markdown()] },
   // Fallback genérico (JS básico) para idiomas sem parser dedicado:
   go: { label: 'Go', extensions: JS_ONLY, fallback: true },
-  rs: { label: 'Rust', extensions: JS_ONLY, fallback: true },
-  rust: { label: 'Rust', extensions: JS_ONLY, fallback: true },
   c: { label: 'C', extensions: JS_ONLY, fallback: true },
   h: { label: 'C', extensions: JS_ONLY, fallback: true },
   cpp: { label: 'C++', extensions: JS_ONLY, fallback: true },

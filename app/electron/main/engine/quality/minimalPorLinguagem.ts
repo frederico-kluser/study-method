@@ -9,6 +9,8 @@
  *   javascript  ->  `quality/minimal.ts`        (`export function` + `return`)
  *   python      ->  `quality/minimalPython.ts`  (`print` e `def`, indentado)
  *   c           ->  `quality/minimalC.ts`       (protótipo do teste + `checa_*`)
+ *   rust        ->  `quality/minimalRust.ts`    (assinatura do starter com o
+ *                                    corpo trocado — o tipo já está lá)
  *
  * ─── POR QUE ESTE ARQUIVO EXISTE (o defeito MEDIDO que ele fecha) ──────────
  *
@@ -36,6 +38,7 @@ import type { ProverDeDesafio } from '../phases/f9Verifier';
 import { sintetizarCodigoMinimo, type MinimalCtx, type MinimalVerdict } from './minimal';
 import { sintetizarCodigoMinimoC } from './minimalC';
 import { sintetizarCodigoMinimoPython } from './minimalPython';
+import { sintetizarCodigoMinimoRust } from './minimalRust';
 
 /** Quem sintetiza a solução mínima de cada linguagem. */
 export type SintetizadorMinimo = (
@@ -52,6 +55,7 @@ export const SINTETIZADOR_POR_LINGUAGEM: Readonly<Record<string, SintetizadorMin
   javascript: sintetizarCodigoMinimo,
   python: sintetizarCodigoMinimoPython,
   c: sintetizarCodigoMinimoC,
+  rust: sintetizarCodigoMinimoRust,
 };
 
 /** As linguagens que TÊM sintetizador de código mínimo, em ordem estável. */

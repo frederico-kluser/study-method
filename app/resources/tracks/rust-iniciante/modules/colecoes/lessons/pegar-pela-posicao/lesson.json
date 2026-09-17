@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegar-pela-posicao",
+  "title": "Pegar pela posição",
+  "summary": "A forma nova do colchete: v[2] abre a lista e entrega o valor da posição 2 — direto.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "node:IndexExpression",
+  "concepts": [
+    "pegar_pela_posicao"
+  ],
+  "prerequisites": [
+    "a-lista-que-cresce",
+    "a-fatia-do-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IndexExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-colchete-no-vec",
+      "title": "O colchete no Vec",
+      "markdown": "O colchete que abriu o texto (M5) abre a LISTA do mesmo jeito — a forma nova é indexar o `Vec` que o aluno montou:\n\n```rust\nlet fila = vec![5, 6, 7];\nlet meio = fila[1];\n```\n\n`meio` fica com `6` — a posição 1 da fila, começando do zero."
+    },
+    {
+      "id": "a-posicao-comeca-no-zero",
+      "title": "A posição começa no zero",
+      "markdown": "A primeira posição é a `0`: em `[5, 6, 7]`, a `fila[0]` é o `5`. A última posição é a de trás do tamanho — numa fila de tamanho `3`, a última é a `2`:\n\n```rust\nlet fila = vec![5, 6, 7];\nlet primeira = fila[0];\nlet ultima = fila[2];\n```\n\nO zero é a origem: posições de `0` até o tamanho menos um."
+    },
+    {
+      "id": "fora-da-faixa-panica",
+      "title": "Fora da faixa, panica",
+      "markdown": "O colchete devolve o valor DIRETO — sem caixa nenhuma no meio. A conta dele é curta: se a posição existe, o valor sai; se não existe, o programa PANICA:\n\n```rust\nlet fila = vec![5, 6, 7];\nlet meio = fila[1];\n```\n\nAdiante, no mapa, você vai ver o caminho mais cuidadoso — o que devolve uma caixa `Option` e deixa o programa responder em vez de panicar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-colchete-entrega-direto",
+      "sectionId": "o-colchete-no-vec",
+      "statement": "O colchete entrega o valor DIRETO: fila[1] sobre [5, 6, 7] é 6, sem caixa no meio.",
+      "question": "O que `fila[1]` devolve sobre `vec![5, 6, 7]`?",
+      "options": [
+        "O valor 6, direto",
+        "Uma caixa Option com o 6",
+        "O valor 5 — a posição 1 é a primeira",
+        "O tamanho da fila"
+      ],
+      "answerIndex": 0,
+      "feedback": "O colchete devolve o valor direto da posição — sem caixa nenhuma.",
+      "optionRationales": [
+        "A posição 1 é a segunda peça: o 6 sai direto.",
+        "A caixa é do get, que vem adiante — o colchete não embrulha.",
+        "A posição começa no zero: a 0 é o 5, a 1 é o 6.",
+        "O tamanho é do .len — o colchete devolve o valor."
+      ]
+    },
+    {
+      "id": "fora-da-faixa",
+      "sectionId": "fora-da-faixa-panica",
+      "statement": "O colchete panica quando a posição não existe — ele devolve o valor direto ou panica, nunca caixa vazia.",
+      "question": "O que acontece com `fila[10]` numa fila de tamanho 3?",
+      "options": [
+        "O programa panica — a posição 10 não existe",
+        "Devolve 0 — posição que falta vale zero",
+        "Devolve uma caixa None",
+        "Devolve o último valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "Fora da faixa é pânico: o colchete promete o valor, não a caixa.",
+      "optionRationales": [
+        "Sem valor naquela posição, o programa panica — e o erro aponta o índice.",
+        "Não existe valor padrão: a posição que falta panica.",
+        "A caixa None é do get — o colchete é direto.",
+        "O último é a posição 2 — a 10 não existe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "o-colchete-da-lista"
+  ]
+}

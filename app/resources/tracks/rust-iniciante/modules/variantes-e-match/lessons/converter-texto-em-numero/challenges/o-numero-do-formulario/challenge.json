@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-numero-do-formulario",
+  "title": "O número do formulário",
+  "concept": "converter_parse",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O número do formulário\n\nO formulário do caixa chega com a idade escrita em TEXTO — e o sistema precisa dela como número. A função `o_idade_de` recebe a `String` do formulário e devolve o `i32`.\n\nComplete o corpo em três passos, com o texto real do `parse`:\n\n1. `let tentativa = idade.parse();` — a tentativa de leitura;\n2. `let numero = tentativa.unwrap();` — abrir a resposta pela porta rápida;\n3. devolver o `numero`.\n\n- `o_idade_de(String::from(\"42\"))` devolve `42`;\n- `o_idade_de(String::from(\"7\"))` devolve `7`.\n\nO `parse` produz a RESPOSTA (`Result`) — e o `unwrap` a abre, porque o formulário deste desafio só recebe número válido.\n",
+  "starterCode": "pub fn o_idade_de(idade: String) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_idade_de(idade: String) -> i32 {\n    let tentativa = idade.parse();\n    let numero = tentativa.unwrap();\n    numero\n}\n",
+  "testsCode": "use desafio::o_idade_de;\n\n#[test]\nfn testa_a_idade_do_formulario_quarenta_e_dois() {\n    assert_eq!(o_idade_de(String::from(\"42\")), 42);\n}\n\n#[test]\nfn testa_a_idade_do_formulario_sete() {\n    assert_eq!(o_idade_de(String::from(\"7\")), 7);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A String \"42\" vira o número 42: idade.parse() produz a resposta e unwrap a abre.",
+      "teste": "testa_a_idade_do_formulario_quarenta_e_dois"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A String \"7\" vira o número 7 pelo mesmo caminho.",
+      "teste": "testa_a_idade_do_formulario_sete"
+    }
+  ],
+  "expectedTestCount": 2
+}

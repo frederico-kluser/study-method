@@ -167,8 +167,10 @@ describe('requirements (python) — a bijeção pelo NOME DO MÉTODO', {
 describe('requirements — o despachante por linguagem (fail-closed)', () => {
   it('a tabela diz QUEM tem derivação escrita, e é explícita', () => {
     // onda C: 'c' entrou (a derivação SM_TEST/checa_* de
-    // `engine/quality/requirements.ts`) — a ordenação é a do `Object.keys().sort()`.
-    assert.deepEqual([...LINGUAGENS_COM_REQUIREMENTS], ['c', 'javascript', 'python']);
+    // `engine/quality/requirements.ts`); RUST entrou com o `#[test] fn …` (a
+    // derivação dele é provada em `tests/engineLangRust.test.ts`) — a ordenação
+    // é a do `Object.keys().sort()`.
+    assert.deepEqual([...LINGUAGENS_COM_REQUIREMENTS], ['c', 'javascript', 'python', 'rust']);
   });
 
   it('Python que NÃO parseia LANÇA — nunca um conjunto vazio silencioso', {

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-campo-que-faltava",
+  "title": "O campo que faltava",
+  "concept": "molde_struct",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O campo que faltava\n\nA fábrica de pontos mandou o molde INCOMPLETO: ele só declara o campo `x` — mas o pedido pede pontos do plano, que têm `x` E `y`.\n\nComplete o molde com o campo `pub y: i32` e complete a função `ponto_de` para montar o ponto com o `x` e o `y` que chegam:\n\n- `ponto_de(2, 3)` é a peça com `x` = `2` e `y` = `3`;\n- `ponto_de(-4, 5)` é a peça com `x` = `-4` e `y` = `5`.\n\nO molde declara QUAIS campos todo ponto tem; a peça enche cada campo com o valor que chega.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x }\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n",
+  "testsCode": "use desafio::ponto_de;\n\n#[test]\nfn testa_o_y_do_ponto_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).y, 3);\n}\n\n#[test]\nfn testa_o_x_do_ponto_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).x, 2);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O molde do Ponto declara o campo pub y: i32 e ponto_de(2, 3) monta a peça com y valendo 3.",
+      "teste": "testa_o_y_do_ponto_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "ponto_de(2, 3) monta a peça com o campo x valendo 2.",
+      "teste": "testa_o_x_do_ponto_dois_por_tres"
+    }
+  ],
+  "expectedTestCount": 2
+}

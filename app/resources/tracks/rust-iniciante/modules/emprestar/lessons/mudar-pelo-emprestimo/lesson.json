@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "mudar-pelo-emprestimo",
+  "title": "Mudar pelo empréstimo",
+  "summary": "O *r abre a caixa apontada: *r = *r + valor lê, soma e escreve no dono de fora.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "op:unary:*",
+  "concepts": [
+    "mudar_pelo_emprestimo"
+  ],
+  "prerequisites": [
+    "emprestar-para-mudar",
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:*",
+      "node:UnaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-deref-abre-a-caixa",
+      "title": "O deref abre a caixa",
+      "markdown": "Um `&mut i32` é uma ponta que aponta para o número. Para LER o número ou ESCREVER nele, a ponta abre com `*` — o deref:\n\n```rust\npub fn soma_no_lugar(r: &mut i32, valor: i32) -> i32 {\n    *r = *r + valor;\n    *r\n}\n```\n\nEm `*r`, o `*` é o gesto de abrir a caixa apontada: o que está do lado de lá."
+    },
+    {
+      "id": "a-mudanca-e-do-dono",
+      "title": "A mudança é do dono de fora",
+      "markdown": "`*r = *r + valor` lê o número apontado, soma e ESCREVE de volta — e o dono de fora vê a mesma mudança:\n\n```rust\npub fn soma_no_lugar(r: &mut i32, valor: i32) -> i32 {\n    *r = *r + valor;\n    *r\n}\n```\n\nCom `placar` em `10`, `soma_no_lugar(&mut placar, 5)` devolve `15` — e o `placar` de fora também está em `15`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-asterisco-abre",
+      "sectionId": "o-deref-abre-a-caixa",
+      "statement": "O * abre a caixa apontada pela referência: é o deref.",
+      "question": "O que `*r` faz numa linha `*r = *r + valor;`?",
+      "options": [
+        "Abre a caixa apontada para ler e escrever o número",
+        "Multiplica r por 2",
+        "Cria uma referência nova",
+        "Apaga o valor antigo"
+      ],
+      "answerIndex": 0,
+      "feedback": "O * é o deref: abre a ponta até o conteúdo.",
+      "optionRationales": [
+        "*r lê o conteúdo da caixa e a atribuição escreve nele.",
+        "O * aqui não é multiplicação: é o deref unário.",
+        "Criar referência é o & — o * é o contrário.",
+        "Nada se apaga: o valor é substituído pela soma."
+      ]
+    },
+    {
+      "id": "o-dono-ve-a-mudanca",
+      "sectionId": "a-mudanca-e-do-dono",
+      "statement": "Mudar pelo empréstimo muda o número do dono de fora.",
+      "question": "Após `soma_no_lugar(&mut placar, 5)` com `placar` em `10`, quanto vale o `placar`?",
+      "options": [
+        "15 — a escrita atravessou a ponta",
+        "10 — ficou intacto",
+        "5 — só o valor somado",
+        "0 — foi apagado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O *r = escreveu na caixa do chamador.",
+      "optionRationales": [
+        "A ponta apontava para o placar: a escrita ficou nele.",
+        "Intacto seria leitura sem escrita.",
+        "5 é o valor do argumento, não o placar.",
+        "O placar não se apaga — ele soma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    }
+  ],
+  "challenges": [
+    "o-valor-que-muda-la-dentro"
+  ]
+}

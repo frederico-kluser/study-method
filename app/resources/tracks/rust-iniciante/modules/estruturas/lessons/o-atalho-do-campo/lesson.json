@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-atalho-do-campo",
+  "title": "O atalho do campo",
+  "summary": "Quando a variável tem o nome do campo, a peça enche com Molde { campo }.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:ShorthandFieldInitializer",
+  "concepts": [
+    "atalho_campo"
+  ],
+  "prerequisites": [
+    "criar-a-partir-do-molde"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ShorthandFieldInitializer"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-nome-que-se-repete",
+      "title": "O nome que se repete",
+      "markdown": "A peça longa repete o nome duas vezes — uma do campo, outra da variável:\n\n```rust\nEstatistica { minimo: minimo, maximo: maximo };\n```\n\nQuando o VALOR tem o MESMO nome do campo, o par é atalho: escreva uma vez só:\n\n```rust\nEstatistica { minimo, maximo };\n```\n\nAs duas peças são idênticas — o atalho é forma, não conteúdo."
+    },
+    {
+      "id": "o-construtor-com-atalho",
+      "title": "O construtor com atalho",
+      "markdown": "O construtor é o lugar onde o atalho brilha — os parâmetros têm os nomes dos campos:\n\n```rust\npub fn estatistica(minimo: i32, maximo: i32) -> Estatistica {\n    Estatistica { minimo, maximo }\n}\n```\n\nO parâmetro `minimo` enche o campo `minimo` pelo nome: campo e valor se encontram sem repetição."
+    },
+    {
+      "id": "quando-o-atalho-nao-cabe",
+      "title": "Quando o atalho não cabe",
+      "markdown": "O atalho exige o MESMO nome — nome diferente volta à forma longa:\n\n```rust\nlet menor = 2;\nlet saida = Estatistica { minimo: menor, maximo };\n```\n\n`minimo: menor` é a forma longa: o campo `minimo` recebe a variável `menor`. O `maximo` segue de atalho."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-atalho-e-o-mesmo-nome",
+      "sectionId": "o-nome-que-se-repete",
+      "statement": "O atalho vale quando a variável tem EXATAMENTE o nome do campo.",
+      "question": "Com o parâmetro `minimo: i32`, qual peça usa o atalho?",
+      "options": [
+        "Estatistica { minimo }",
+        "Estatistica { minimo: minimo, minimo: minimo }",
+        "Estatistica { menor }",
+        "Estatistica(minimo)"
+      ],
+      "answerIndex": 0,
+      "feedback": "O atalho é o nome uma vez só: `Estatistica { minimo }`.",
+      "optionRationales": [
+        "Campo e valor com o mesmo nome: o nome aparece uma vez.",
+        "Repetir o par é a forma longa com redundância — não é o atalho.",
+        "menor não é o nome do campo — o atalho não casa.",
+        "Sem chaves não há campos: a peça cita o molde com chaves."
+      ]
+    },
+    {
+      "id": "os-dois-formas-na-mesma-peca",
+      "sectionId": "quando-o-atalho-nao-cabe",
+      "statement": "Atalho e forma longa convivem na MESMA peça.",
+      "question": "Com `let menor = 2;`, o que é `Estatistica { minimo: menor, maximo }`?",
+      "options": [
+        "Uma peça com o campo minimo recebendo a variável menor e o campo maximo recebendo a variável maximo",
+        "Um erro: o atalho tem de valer para todos os campos",
+        "Uma peça com dois campos chamados minimo",
+        "A declaração do molde Estatistica"
+      ],
+      "answerIndex": 0,
+      "feedback": "O atalho é por campo: `minimo: menor` é longo, `maximo` é atalho — os dois juntos compilam.",
+      "optionRationales": [
+        "Cada campo escolhe a sua forma: o que casa por nome usa o atalho.",
+        "Não há obrigação de uniformidade: formas diferentes convivem.",
+        "Cada campo aparece UMA vez; o longo recebe o menor.",
+        "É uma PEÇA: a declaração usa a palavra struct."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "O capítulo oficial do atalho: field init shorthand quando os nomes casam."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "Os exemplos oficiais de criação de struct."
+    }
+  ],
+  "challenges": [
+    "a-estatistica-do-turno"
+  ]
+}

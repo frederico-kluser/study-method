@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-recibo-do-dono",
+  "title": "O recibo do dono",
+  "concept": "construtor_frase",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O recibo do dono\n\nFecho do módulo: a função `recibo` recebe o nome (`String`), as peças e o preço, calcula o total e monta a frase com o `format!` de VÁRIOS buracos:\n\n- `recibo(String::from(\"Ana\"), 3, 5)` devolve `Ana levou 3 pecas por 15`;\n- `recibo(String::from(\"Bia\"), 2, 7)` devolve `Bia levou 2 pecas por 14`.\n\nO total nasce de uma conta (`pecas * preco`) numa ligação nova; cada `{}` ocupa a vaga de um valor, na ordem. Este desafio não ensina nada novo — ele compõe o módulo.",
+  "starterCode": "pub fn recibo(nome: String, pecas: i32, preco: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn recibo(nome: String, pecas: i32, preco: i32) -> String {\n    let total = pecas * preco;\n    format!(\"{} levou {} pecas por {}\", nome, pecas, total)\n}\n",
+  "testsCode": "use desafio::recibo;\n\n#[test]\nfn testa_o_recibo_da_ana() {\n    assert_eq!(recibo(String::from(\"Ana\"), 3, 5), \"Ana levou 3 pecas por 15\");\n}\n\n#[test]\nfn testa_o_recibo_da_bia() {\n    assert_eq!(recibo(String::from(\"Bia\"), 2, 7), \"Bia levou 2 pecas por 14\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "recibo(\"Ana\", 3, 5) deve devolver \"Ana levou 3 pecas por 15\" — com o total computado (pecas * preco).",
+      "teste": "testa_o_recibo_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "recibo(\"Bia\", 2, 7) deve devolver \"Bia levou 2 pecas por 14\" — com o total computado (pecas * preco).",
+      "teste": "testa_o_recibo_da_bia"
+    }
+  ],
+  "expectedTestCount": 2
+}

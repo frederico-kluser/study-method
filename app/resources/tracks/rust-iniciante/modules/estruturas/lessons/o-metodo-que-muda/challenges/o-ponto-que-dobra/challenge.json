@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ponto-que-dobra",
+  "title": "O ponto que dobra",
+  "concept": "metodo_mutavel",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O ponto que dobra\n\nO esqueleto do método já está no impl — e o receptor dele é o `&mut self`: a forma nova que deixa MUDAR a peça.\n\nEscreva o corpo de `dobrar_x`: dobre o `x` da peça (a atribuição em `self.x`) e devolva o valor dobrado:\n\n- `ponto_de(2, 3).dobrar_x()` devolve `4`;\n- `ponto_de(3, 1).dobrar_x()` devolve `6`.\n\nO empréstimo mutável agora mora no receptor: `self.x = self.x * 2;` — e o valor novo é o retorno.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\nimpl Ponto {\n    pub fn dobrar_x(&mut self) -> i32 {\n        todo!()\n    }\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\nimpl Ponto {\n    pub fn dobrar_x(&mut self) -> i32 {\n        self.x = self.x * 2;\n        self.x\n    }\n}\n",
+  "testsCode": "use desafio::ponto_de;\n\n#[test]\nfn testa_o_x_dobrado_do_ponto_dois_por_tres() {\n    assert_eq!(ponto_de(2, 3).dobrar_x(), 4);\n}\n\n#[test]\nfn testa_o_x_dobrado_do_ponto_tres_por_um() {\n    assert_eq!(ponto_de(3, 1).dobrar_x(), 6);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O método dobrar_x com &mut self muda self.x e devolve 4 para o ponto (2, 3).",
+      "teste": "testa_o_x_dobrado_do_ponto_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O método dobrar_x com &mut self muda self.x e devolve 6 para o ponto (3, 1).",
+      "teste": "testa_o_x_dobrado_do_ponto_tres_por_um"
+    }
+  ],
+  "expectedTestCount": 2
+}

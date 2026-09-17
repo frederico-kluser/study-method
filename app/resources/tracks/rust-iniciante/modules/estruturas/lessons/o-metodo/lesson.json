@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-metodo",
+  "title": "O método",
+  "summary": "Funções do molde moram no impl; o &self no parâmetro é o receptor da chamada.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:ImplItem",
+  "concepts": [
+    "metodo_impl"
+  ],
+  "prerequisites": [
+    "o-molde-e-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ImplItem",
+      "node:SelfParameter"
+    ],
+    "receptive": [
+      "node:Self"
+    ]
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-impl-guarda-as-funcoes-do-molde",
+      "title": "O impl guarda as funções do molde",
+      "markdown": "Funções que PERTENCEM ao molde moram num bloco `impl` — e a que pede a peça traz o `&self`:\n\n```rust\nimpl Ponto {\n    pub fn area(&self) -> i32 {\n        self.x * self.y\n    }\n}\n```\n\nO `impl Ponto { … }` diz: estas funções são do molde `Ponto`. O `&self` no parâmetro é o RECEPTOR: a peça que pediu a conta."
+    },
+    {
+      "id": "o-metodo-vem-depois-do-ponto",
+      "title": "O método vem depois do ponto",
+      "markdown": "Quem chama é a peça — o método vem depois do ponto, como os métodos de texto:\n\n```rust\npub fn area_dobrada(p: Ponto) -> i32 {\n    ponto_de(p.x * 2, p.y * 2).area()\n}\n```\n\n`ponto_de(2, 3).area()` devolve `6`: montou a peça e perguntou a área NELA mesma."
+    },
+    {
+      "id": "self-e-o-receptor",
+      "title": "O self é o receptor",
+      "markdown": "Dentro do método, `self` é a peça que pediu a chamada — os campos dela se leem com o ponto:\n\n```rust\nimpl Ponto {\n    pub fn area(&self) -> i32 {\n        self.x * self.y\n    }\n}\n```\n\n`self.x` é o x DA PEÇA que chamou: a mesma leitura de campo, agora pelo dono da chamada."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-impl-e-a-casa-do-metodo",
+      "sectionId": "o-impl-guarda-as-funcoes-do-molde",
+      "statement": "Funções do molde moram no bloco impl, com o &self como receptor.",
+      "question": "Onde a função `area` se declara para pertencer ao molde `Ponto`?",
+      "options": [
+        "Dentro de impl Ponto { … }, com &self no parâmetro",
+        "No topo do arquivo, solta, com o nome area_ponto",
+        "Dentro da struct Ponto, entre os campos",
+        "Num arquivo separado, sem ligação com o molde"
+      ],
+      "answerIndex": 0,
+      "feedback": "O método mora no `impl` do molde, e o `&self` é o receptor da chamada.",
+      "optionRationales": [
+        "O impl agrupa as funções do molde; o &self marca quem as chama.",
+        "Função solta não pertence ao molde — método é outra coisa.",
+        "A struct declara CAMPOS; as funções ficam no impl.",
+        "O vínculo com o molde é o bloco impl."
+      ]
+    },
+    {
+      "id": "a-chamada-e-da-peca",
+      "sectionId": "o-metodo-vem-depois-do-ponto",
+      "statement": "O método é chamado pela peça: vem depois do ponto.",
+      "question": "Como a peça `ponto_de(2, 3)` pede a sua área?",
+      "options": [
+        "ponto_de(2, 3).area()",
+        "area(ponto_de(2, 3))",
+        "Ponto::area(2, 3)",
+        "area::ponto_de(2, 3)"
+      ],
+      "answerIndex": 0,
+      "feedback": "O método vem depois do ponto: a peça chama a função que é dela.",
+      "optionRationales": [
+        "O receptor vem antes do ponto; o método, depois — igual aos métodos de texto.",
+        "area(…) é função solta — método é do receptor.",
+        "O caminho :: é da função associada; o método vem do receptor.",
+        "Os nomes estão invertidos: o receptor é a peça."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Method Syntax — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-03-method-syntax.html",
+      "description": "O capítulo oficial do impl, do método e do self receptor."
+    },
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "A struct que os métodos atendem."
+    }
+  ],
+  "challenges": [
+    "a-area-do-ponto"
+  ]
+}

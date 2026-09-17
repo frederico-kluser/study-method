@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ponto-repetido",
+  "title": "O ponto repetido",
+  "concept": "derive_partialeq",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O ponto repetido\n\nO controle de qualidade recebe dois pontos e pergunta: são o MESMO ponto? Comparar structs com `==` só compila se o molde souber igualar — e quem ensina é o derive.\n\nDuas linhas de aluno:\n\n1. acima do molde, escreva `#[derive(Debug, PartialEq)]` — o `PartialEq` ensina o `==` campo por campo;\n2. no corpo de `iguais`, devolva `a == b`.\n\n- `iguais(ponto_de(2, 3), ponto_de(2, 3))` devolve `true`;\n- `iguais(ponto_de(2, 3), ponto_de(3, 2))` devolve `false` — os números trocaram de campo.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn iguais(a: Ponto, b: Ponto) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn iguais(a: Ponto, b: Ponto) -> bool {\n    a == b\n}\n",
+  "testsCode": "use desafio::iguais;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_os_dois_pontos_iguais() {\n    assert_eq!(iguais(ponto_de(2, 3), ponto_de(2, 3)), true);\n}\n\n#[test]\nfn testa_os_dois_pontos_trocados() {\n    assert_eq!(iguais(ponto_de(2, 3), ponto_de(3, 2)), false);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A struct Ponto tem #[derive(PartialEq)] e iguais(ponto_de(2, 3), ponto_de(2, 3)) devolve true.",
+      "teste": "testa_os_dois_pontos_iguais"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "iguais(ponto_de(2, 3), ponto_de(3, 2)) devolve false: o == compara campo por campo.",
+      "teste": "testa_os_dois_pontos_trocados"
+    }
+  ],
+  "expectedTestCount": 2
+}

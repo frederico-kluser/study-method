@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "quantos-tem",
+  "title": "Quantos tem",
+  "summary": "A forma nova do .len: o MESMO tamanho que o texto responde, agora sobre a lista.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "api:.len",
+  "concepts": [
+    "quantos_tem"
+  ],
+  "prerequisites": [
+    "guardar-mais-um",
+    "o-tamanho-do-texto"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.len"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-mesmo-len",
+      "title": "O mesmo .len",
+      "markdown": "O texto respondeu o tamanho dele com `.len` (M4). A lista responde com o MESMO `.len` — a chave é a mesma, o receptor é que mudou:\n\n```rust\nlet fila = vec![2, 4, 6];\nlet n = fila.len();\n```\n\n`n` fica com `3` — o tamanho da lista, peça por peça."
+    },
+    {
+      "id": "o-tamanho-e-usize",
+      "title": "O tamanho é usize",
+      "markdown": "O `.len` devolve `usize` — o tipo das posições e dos índices. A assinatura da função que responde o tamanho devolve `usize` também:\n\n```rust\npub fn quantos(fila: &Vec<i32>) -> usize {\n    fila.len()\n}\n```\n\nA lista chega emprestada (`&`) — o tamanho se lê pelo empréstimo, sem gastar a lista."
+    },
+    {
+      "id": "vazia-e-zero",
+      "title": "Vazia é zero",
+      "markdown": "A lista vazia responde `0` — o `.len` NUNCA panica: ele conta o que tem, mesmo quando é nada:\n\n```rust\nlet vazia = vec![];\nlet n = vazia.len();\n```\n\n`n` fica com `0`. O tamanho é a pergunta segura da coleção — o colchete é que panica fora da faixa, como você viu na M5."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-len-da-lista",
+      "sectionId": "o-mesmo-len",
+      "statement": "O .len que o texto usou responde o tamanho da lista: [2, 4, 6] tem 3.",
+      "question": "O que `vec![2, 4, 6].len()` devolve?",
+      "options": [
+        "3 — o número de valores dentro",
+        "6 — o maior valor da lista",
+        "12 — a soma dos valores",
+        "2 — o último valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O .len conta os valores: três valores, três.",
+      "optionRationales": [
+        "O tamanho é a CONTAGEM de peças — 2, 4 e 6 são três.",
+        "O maior valor é 6, mas o .len não olha valores: conta posições.",
+        "Somar é outra operação — a aula da soma vem depois.",
+        "O último valor é o 6 — e o .len não devolve valores."
+      ]
+    },
+    {
+      "id": "vazia-responde-zero",
+      "sectionId": "vazia-e-zero",
+      "statement": "A lista vazia responde 0 — o .len nunca panica, mesmo com a lista sem nada.",
+      "question": "O que `vec![].len()` devolve?",
+      "options": [
+        "0 — a lista vazia não tem nada dentro",
+        "Pânico — não há o que contar",
+        "1 — a caixa em si conta como uma",
+        "Um erro de compilação"
+      ],
+      "answerIndex": 0,
+      "feedback": "Vazia é tamanho zero: a pergunta é segura até quando a resposta é 0.",
+      "optionRationales": [
+        "O .len devolve sempre um número — vazio é 0.",
+        "Quem panica é o colchete fora da faixa; o .len nunca.",
+        "A caixa não é item: o .len conta os valores de dentro.",
+        "Compila e devolve 0 — usize é o tipo do tamanho."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "a-lista-contada"
+  ]
+}

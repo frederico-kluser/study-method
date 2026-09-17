@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "estruturas",
+  "title": "Estruturas",
+  "order": 6,
+  "lessons": [
+    "o-molde-e-o-valor",
+    "criar-a-partir-do-molde",
+    "ler-o-campo",
+    "o-metodo",
+    "o-self-e-o-valor",
+    "o-metodo-que-muda",
+    "o-construtor",
+    "a-estampa-do-compilador",
+    "comparar-estruturas",
+    "copiar-a-estrutura",
+    "o-atalho-do-campo",
+    "o-inventario"
+  ],
+  "challenge": "estruturas"
+}

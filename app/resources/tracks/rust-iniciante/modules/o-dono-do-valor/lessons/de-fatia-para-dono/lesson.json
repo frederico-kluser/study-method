@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "de-fatia-para-dono",
+  "title": "De fatia para dono",
+  "summary": "O .to_string cria um String dono a partir do texto emprestado que a função recebe.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.to_string",
+  "concepts": [
+    "to_string"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.to_string"
+    ],
+    "receptive": [
+      "node:ReferenceType"
+    ]
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-texto-que-so-passa",
+      "title": "O texto que só passa",
+      "markdown": "Nem todo texto chega com dono: a assinatura abaixo recebe um texto EMPRESTADO — o `&str`, uma fatia de texto que só passa por aqui:\n\n```rust\npub fn para_dono(fatia: &str) -> String {\n    fatia.to_string()\n}\n```\n\nO `&` na frente do tipo diz \"leia, mas não é seu\". A regra completa do empréstimo tem módulo próprio — o `emprestar`; aqui o `&str` é só o texto que entra sem caixa."
+    },
+    {
+      "id": "virar-dono",
+      "title": "Virar dono",
+      "markdown": "O `.to_string` faz o texto emprestado virar um `String` DONO — uma caixa nova com o mesmo conteúdo, cuja dona é quem recebe:\n\n```rust\npub fn para_dono(fatia: &str) -> String {\n    fatia.to_string()\n}\n```\n\nA fatia continua com quem a emprestou; a caixa nova é sua. É a conversa fatia → dono: o texto que só passa ganha uma casa."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-e-promete-emprestimo",
+      "sectionId": "o-texto-que-so-passa",
+      "statement": "O &str da assinatura é um texto emprestado: só passa, sem dono.",
+      "question": "Em `fatia: &str`, o que o `&` promete?",
+      "options": [
+        "Um texto emprestado: a função só lê",
+        "Um texto dono",
+        "Uma cópia",
+        "O número de bytes"
+      ],
+      "answerIndex": 0,
+      "feedback": "O & marca o empréstimo: o texto passa, mas não pertence à função.",
+      "optionRationales": [
+        "&str é o texto emprestado — a função lê e devolve.",
+        "Dono é o String; o &str empresta.",
+        "Não há cópia no empréstimo: é o próprio texto, emprestado.",
+        "Bytes é papel do len; o & fala de dono."
+      ]
+    },
+    {
+      "id": "to-string-vira-dono",
+      "sectionId": "virar-dono",
+      "statement": "O .to_string cria um String dono a partir do texto emprestado.",
+      "question": "O que `fatia.to_string()` devolve?",
+      "options": [
+        "Um String DONO com o mesmo conteúdo",
+        "A mesma fatia",
+        "A fatia em maiúsculas",
+        "O tamanho da fatia"
+      ],
+      "answerIndex": 0,
+      "feedback": "O to_string dá casa ao texto: nasce a caixa dona.",
+      "optionRationales": [
+        "A caixa nova é String dona, com o conteúdo da fatia.",
+        "O retorno é outro valor: uma caixa nova, não a fatia.",
+        "to_string não transforma letras — só dá dono ao texto.",
+        "Tamanho é o len; o to_string devolve texto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct String — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/string/struct.String.html",
+      "description": "A documentação oficial do String: from, clone, len, push_str e to_string."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    },
+    {
+      "title": "Rust by Example — Literals & operators: strings",
+      "url": "https://doc.rust-lang.org/rust-by-example/std/str.html",
+      "description": "Exemplos oficiais executáveis de String e fatias de texto."
+    }
+  ],
+  "challenges": [
+    "a-fatia-que-vira-dono"
+  ]
+}

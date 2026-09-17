@@ -43,6 +43,17 @@ describe('languageForExt', () => {
     assert.equal(sh.fallback, true);
   });
 
+  it('rust/rs têm parser DEDICADO (@codemirror/lang-rust), não fallback JS', () => {
+    for (const ext of ['rust', 'rs', '.RS']) {
+      const info = languageForExt(ext);
+      assert.equal(info.label, 'Rust', ext);
+      assert.equal(info.fallback, undefined, ext);
+      assert.ok(info.extensions.length > 0, ext);
+    }
+    // E não é o fallback JS: as extensões vêm do pacote próprio, não de javascript().
+    assert.notEqual(languageForExt('rs').extensions, languageForExt('js').extensions);
+  });
+
   it('extensão desconhecida/de vazio → fallback texto puro', () => {
     assert.equal(languageForExt('unknownxyz').fallback, true);
     assert.equal(languageForExt('').label, 'Texto puro');
@@ -51,6 +62,7 @@ describe('languageForExt', () => {
   it('línguas com parser dedicado retornam extensões não-vazias', () => {
     assert.ok(languageForExt('py').extensions.length > 0);
     assert.ok(languageForExt('md').extensions.length > 0);
+    assert.ok(languageForExt('rs').extensions.length > 0);
   });
 });
 
@@ -59,6 +71,7 @@ describe('extensionsForFilename', () => {
     assert.equal(extensionsForFilename('src/main.py').length, 1);
     // texto puro (sem parser) ainda tem extensão da tabela para .md
     assert.ok(extensionsForFilename('a.md').length >= 1);
+    assert.equal(extensionsForFilename('src/lib.rs').length, 1);
   });
   it('arquivo sem extensão → texto puro (0 extensões)', () => {
     assert.equal(extensionsForFilename('README').length, 0);

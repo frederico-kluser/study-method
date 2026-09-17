@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-pacote-que-troca-de-dono",
+  "title": "O pacote que troca de dono",
+  "concept": "movimento",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O pacote que troca de dono\n\nA função `transferir` recebe o pacote como `String` e o MOV para uma ligação nova antes de devolver:\n\n- `transferir(String::from(\"pacote azul\"))` devolve `pacote azul`;\n- `transferir(String::from(\"pacote verde\"))` devolve `pacote verde`.\n\nMonte a ligação que move — `let recebido = remetente;` — e deixe a última expressão entregar o dono novo.",
+  "starterCode": "pub fn transferir(remetente: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn transferir(remetente: String) -> String {\n    let recebido = remetente;\n    recebido\n}\n",
+  "testsCode": "use desafio::transferir;\n\n#[test]\nfn testa_o_pacote_azul_troca_de_dono() {\n    assert_eq!(transferir(String::from(\"pacote azul\")), \"pacote azul\");\n}\n\n#[test]\nfn testa_o_pacote_verde_troca_de_dono() {\n    assert_eq!(transferir(String::from(\"pacote verde\")), \"pacote verde\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "transferir deve devolver o pacote azul recebido, movido para uma ligação nova.",
+      "teste": "testa_o_pacote_azul_troca_de_dono"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "transferir deve devolver o pacote verde recebido, movido para uma ligação nova.",
+      "teste": "testa_o_pacote_verde_troca_de_dono"
+    }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-contador-mutavel",
+  "title": "O contador mutável",
+  "summary": "O contador é o let mut que o laço muda volta a volta — e pode haver mais de um no mesmo laço.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "decl:let-mut",
+  "concepts": [
+    "contador_mutavel"
+  ],
+  "prerequisites": [
+    "enquanto",
+    "mudar-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let-mut"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:contador"
+  ],
+  "theory": [
+    {
+      "id": "o-nome-que-o-laco-muda",
+      "title": "O nome que o laço muda",
+      "markdown": "O **contador** é o `let mut` que o laço muda volta a volta. Sem o `mut`, a troca é recusada — o compilador guarda a promessa do nome fixo:\n\n```rust\npub fn voltas_de_tres_em_tres(limite: i32) -> i32 {\n    let mut conta = 0;\n    let mut passo = 0;\n    while passo < limite {\n        passo += 3;\n        conta += 1;\n    }\n    conta\n}\n```\n\nO `passo` sobe de 3 em 3 e é quem decide o fim; o `conta` sobe de 1 em 1 e é quem anota as voltas. `voltas_de_tres_em_tres(10)` devolve `4`: os passos `3`, `6`, `9` e `12` — quatro trocas de cada nome."
+    },
+    {
+      "id": "os-dois-juizes-do-mesmo-laco",
+      "title": "Os dois juízes do mesmo laço",
+      "markdown": "Neste laço há DOIS nomes mutáveis com papéis diferentes: o `passo` pergunta (é a condição do `while`) e o `conta` responde (é o devolvido):\n\n```rust\npub fn voltas_de_tres_em_tres(limite: i32) -> i32 {\n    let mut conta = 0;\n    let mut passo = 0;\n    while passo < limite {\n        passo += 3;\n        conta += 1;\n    }\n    conta\n}\n```\n\nCom o limite `9`, a última volta é a que leva o passo a `9` — e a pergunta `9 < 9` vale `false`: `voltas_de_tres_em_tres(9)` devolve `3`."
+    },
+    {
+      "id": "comecar-do-zero",
+      "title": "Começar do zero",
+      "markdown": "Os dois contadores começam em `0` — a volta nenhuma ainda aconteceu, e o zero é a marca disso. A primeira troca acontece dentro da primeira volta, depois da pergunta:\n\n```rust\npub fn voltas_de_tres_em_tres(limite: i32) -> i32 {\n    let mut conta = 0;\n    let mut passo = 0;\n    while passo < limite {\n        passo += 3;\n        conta += 1;\n    }\n    conta\n}\n```\n\nA ordem importa: o `while` pergunta primeiro e só depois o corpo troca os dois nomes. `voltas_de_tres_em_tres(2)` devolve `1`: o zero passa no teste, e a primeira troca já derruba o laço."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-contador-e-o-let-mut",
+      "statement": "O contador é o let mut que o laço muda volta a volta — sem o mut, a troca é recusada pelo compilador.",
+      "question": "O que é o contador em `voltas_de_tres_em_tres`?",
+      "options": [
+        "os dois `let mut`: o passo, que muda a condição, e o conta, que anota as voltas",
+        "o número 3 do passo",
+        "a condição do while",
+        "o valor que a função devolve"
+      ],
+      "answerIndex": 0,
+      "feedback": "Contador é nome mutável que o laço muda: aqui são dois — o `passo` (a pergunta) e o `conta` (a resposta).",
+      "sectionId": "o-nome-que-o-laco-muda",
+      "optionRationales": [
+        "Os dois `let mut` são os contadores: cada um muda a sua casa por volta.",
+        "O 3 é a GRANDEZA do passo — o contador é o nome mutável, não a constante.",
+        "A condição é a pergunta (`passo < limite`) — o contador é o nome que a condição lê.",
+        "O devolvido é o `conta` no fim — o contador é o `let mut` que o laço muda."
+      ]
+    },
+    {
+      "id": "os-dois-papeis",
+      "statement": "Dois contadores no mesmo laço podem ter papéis diferentes: um pergunta (a condição), o outro responde (o devolvido).",
+      "question": "Em `voltas_de_tres_em_tres`, qual contador decide quando o laço acaba?",
+      "options": [
+        "o passo — ele é a condição do while",
+        "o conta — ele devolve o valor",
+        "os dois, na mesma hora",
+        "o limite — ele também é mutável"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `passo` é a condição: quando `passo < limite` vira `false`, o laço acaba. O `conta` só anota.",
+      "sectionId": "os-dois-juizes-do-mesmo-laco",
+      "optionRationales": [
+        "O `passo` é lido pela condição a cada volta — é ele quem decide o fim.",
+        "O `conta` é o devolvido — quem decide é a condição que lê o `passo`.",
+        "Cada um tem o papel dele: o `passo` pergunta, o `conta` anota.",
+        "O `limite` é o parâmetro da função — ele não muda dentro do laço."
+      ]
+    },
+    {
+      "id": "comeca-no-zero",
+      "statement": "Os contadores começam em 0 — a volta nenhuma ainda aconteceu, e o zero é a marca disso.",
+      "question": "Por que os dois contadores começam em 0?",
+      "options": [
+        "porque nenhuma volta aconteceu ainda — o zero é a marca do começo",
+        "porque 0 é maior que o limite",
+        "porque o while exige começar do zero",
+        "porque o conta é subtraído no fim"
+      ],
+      "answerIndex": 0,
+      "feedback": "O zero diz: nada ainda. A primeira troca (`passo += 3; conta += 1;`) acontece DENTRO da primeira volta.",
+      "sectionId": "comecar-do-zero",
+      "optionRationales": [
+        "O começo é o estado vazio: zero voltas, zero passos dados.",
+        "Começar acima do limite faria o laço nem rodar — não é o caso aqui.",
+        "O `while` não exige nada do valor inicial — o zero é a escolha didática.",
+        "Ninguém subtrai no fim — o `conta` só sobe de 1 em 1."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do while — o laço com contador à mão."
+    },
+    {
+      "title": "Rust by Example — While",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/while.html",
+      "description": "Os exemplos oficiais do while com contador."
+    },
+    {
+      "title": "std — a palavra-chave while",
+      "url": "https://doc.rust-lang.org/std/keyword.while.html",
+      "description": "A página oficial da palavra-chave while."
+    }
+  ],
+  "challenges": [
+    "os-passos-de-tres-em-tres"
+  ]
+}

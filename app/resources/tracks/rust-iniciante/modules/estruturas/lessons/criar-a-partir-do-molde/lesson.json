@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "slug": "criar-a-partir-do-molde",
+  "title": "Criar a partir do molde",
+  "summary": "A peça nasce com o nome do molde e as chaves: campo por campo, sem sobra e sem falta.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:StructExpression",
+  "concepts": [
+    "struct_expression"
+  ],
+  "prerequisites": [
+    "o-molde-e-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:StructExpression",
+      "node:FieldInitializerList",
+      "node:FieldInitializer",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-peca-usa-o-nome-do-molde",
+      "title": "A peça usa o nome do molde",
+      "markdown": "Para criar um valor, escreva o NOME do molde e, entre chaves, campo por campo:\n\n```rust\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n```\n\n`Ponto { x: x, y: y }` lê-se: um valor do molde `Ponto`, com o campo `x` recebendo o valor `x` e o campo `y` recebendo o valor `y`."
+    },
+    {
+      "id": "sem-sobra-e-sem-falta",
+      "title": "Sem sobra e sem falta",
+      "markdown": "A peça enche TODOS os campos do molde — nem um a mais, nem um a menos:\n\n```rust\nPonto { x: 2, y: 3 }; // certo\nPonto { x: 2 }; // falta o y\nPonto { x: 2, y: 3, z: 4 }; // o z não é campo\n```\n\nO compilador cobra nos dois erros: `missing field y` na falta, e `no field z` na sobra."
+    },
+    {
+      "id": "o-mesmo-molde-duas-pecas",
+      "title": "O mesmo molde, duas peças",
+      "markdown": "Cada peça é um valor novo — o molde é o mesmo, os valores não:\n\n```rust\npub fn origem() -> Ponto {\n    Ponto { x: 0, y: 0 }\n}\n\npub fn eixo_x() -> Ponto {\n    Ponto { x: 1, y: 0 }\n}\n```\n\n`origem()` e `eixo_x()` são duas peças do MESMO molde `Ponto` — e nenhuma interfere na outra."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-peca-cita-o-molde",
+      "sectionId": "a-peca-usa-o-nome-do-molde",
+      "statement": "A peça começa pelo NOME do molde e enche os campos entre chaves.",
+      "question": "O que `Ponto { x: x, y: y }` faz?",
+      "options": [
+        "Cria um valor do molde Ponto com os campos x e y recebendo os valores x e y",
+        "Declara o molde Ponto de novo",
+        "Chama a função Ponto",
+        "Compara dois pontos"
+      ],
+      "answerIndex": 0,
+      "feedback": "É a PEÇA: o nome do molde abre a construção, e campo por campo recebe o seu valor.",
+      "optionRationales": [
+        "O nome do molde + chaves é a forma de criar o valor; cada campo: valor enche um campo.",
+        "A declaração usa a palavra struct — a peça usa só o nome.",
+        "Ponto não é função solta: é molde, e a peça usa chaves.",
+        "Comparação é `==`, não chaves com campos."
+      ]
+    },
+    {
+      "id": "todo-campo-presente",
+      "sectionId": "sem-sobra-e-sem-falta",
+      "statement": "A peça enche TODOS os campos do molde — falta e sobra são erro de compilação.",
+      "question": "Com o molde `Ponto { pub x: i32, pub y: i32 }`, o que falta em `Ponto { x: 2 }`?",
+      "options": [
+        "O campo y — a peça tem de encher todos os campos",
+        "Um ponto e vírgula",
+        "A palavra struct na frente",
+        "Nada — a peça está completa"
+      ],
+      "answerIndex": 0,
+      "feedback": "A peça tem de encher TODOS os campos do molde: sem o `y`, o compilador cobra `missing field y`.",
+      "optionRationales": [
+        "Todo campo do molde tem de estar na peça — o compilador cobra a falta.",
+        "O ponto e vírgula não resolve: o problema é o CAMPO ausente.",
+        "A peça nunca leva a palavra struct — o problema é o campo ausente.",
+        "Está incompleta: o y não recebeu valor nenhum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "O capítulo oficial da peça: criar instâncias com campo por campo (field init shorthand incluído)."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "Os exemplos oficiais de criação de struct."
+    }
+  ],
+  "challenges": [
+    "montar-o-ponto"
+  ]
+}

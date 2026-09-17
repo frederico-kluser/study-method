@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-confere",
+  "title": "A soma confere",
+  "concept": "a_condicao_que_guarda",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A soma confere\n\nA função `a_soma_confere` recebe três números: dois que serão somados e um palpite do resultado.\n\nEla devolve `true` quando o palpite é IGUAL à soma — e `false` quando não é.\n\nEm DUAS ligações com `let`: primeiro `soma`, depois `acertou` (a comparação direto no `let`). A última linha devolve o nome.\n\nOs testes chamam com palpite certo e com palpite errado.",
+  "starterCode": "pub fn a_soma_confere(a: i32, b: i32, palpite: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn a_soma_confere(a: i32, b: i32, palpite: i32) -> bool {\n    let soma = a + b;\n    let acertou = palpite == soma;\n    acertou\n}\n",
+  "testsCode": "use desafio::a_soma_confere;\n\n#[test]\nfn testa_o_palpite_cinco_confere_a_soma() {\n    assert_eq!(a_soma_confere(2, 3, 5), true);\n}\n\n#[test]\nfn testa_o_palpite_quatro_nao_confere() {\n    assert_eq!(a_soma_confere(2, 3, 4), false);\n}\n\n#[test]\nfn testa_soma_zerada_com_palpite_zero_confere() {\n    assert_eq!(a_soma_confere(0, 0, 0), true);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "Com 2, 3 e palpite 5, a função deve devolver true — o palpite é igual à soma.",
+      "teste": "testa_o_palpite_cinco_confere_a_soma"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Com 2, 3 e palpite 4, a função deve devolver false — a soma é 5.",
+      "teste": "testa_o_palpite_quatro_nao_confere"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "Com 0, 0 e palpite 0, a função deve devolver true — a soma zerada confere.",
+      "teste": "testa_soma_zerada_com_palpite_zero_confere"
+    }
+  ],
+  "expectedTestCount": 3
+}

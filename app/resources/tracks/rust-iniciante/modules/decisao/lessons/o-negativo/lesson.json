@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-negativo",
+  "title": "O negativo",
+  "summary": "O - na frente do número vira cobrança: a partir daqui os testes podem passar -3.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:unary:-",
+  "concepts": [
+    "o_negativo"
+  ],
+  "prerequisites": [
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:-",
+      "node:UnaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-menos-que-vira-trabalho",
+      "title": "O menos que vira trabalho",
+      "markdown": "Na primeira aula da trilha você LEU o `-` na frente de um número: `dobro(-3)`. Hoje ele entra no que você ESCREVE. O `-` unário, colado na frente do número, inverte o sinal dele:\n\n```rust\npub fn oposto(x: i32) -> i32 {\n    -x\n}\n```\n\n`oposto(3)` devolve `-3` — e `oposto(-3)` devolve `3`."
+    },
+    {
+      "id": "a-aula-1-ja-leu",
+      "title": "A aula 1 já lia",
+      "markdown": "A primeira função da trilha recebia o número e devolvia o dobro:\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\n`dobro(-3)` devolve `-6` — a aula 1 já mostrava essa leitura. O que muda agora é o lugar do `-`: ele saiu da teoria e entrou no que a trilha COBRA — os testes daqui para a frente chamam funções com `-3`."
+    },
+    {
+      "id": "o-zero-nao-troca",
+      "title": "O zero não troca",
+      "markdown": "O zero é o único número que é o próprio oposto: `-0` é `0`. Só os números que têm sinal é que trocam de lado:\n\n```rust\npub fn oposto(x: i32) -> i32 {\n    -x\n}\n```\n\n`oposto(0)` devolve `0` — o zero não tem sinal para inverter."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-menos-unario-inverte",
+      "statement": "O - unário, colado na frente de um número, inverte o sinal dele.",
+      "question": "O que `oposto(3)` devolve?",
+      "options": [
+        "-3",
+        "3",
+        "0",
+        "6"
+      ],
+      "answerIndex": 0,
+      "feedback": "O - unário inverte o sinal: o oposto de 3 é -3.",
+      "sectionId": "o-menos-que-vira-trabalho",
+      "optionRationales": [
+        "O - unário na frente de 3 inverte o sinal — devolve -3.",
+        "3 é o valor que ENTROU; o que sai é o sinal invertido dele.",
+        "O zero não entra na história: oposto(0) é que devolve 0.",
+        "6 seria o dobro de 3 — o oposto não multiplica, só inverte o sinal."
+      ]
+    },
+    {
+      "id": "inverte-o-invertido",
+      "statement": "Inverter o sinal de um número negativo devolve o positivo correspondente.",
+      "question": "O que `oposto(-3)` devolve?",
+      "options": [
+        "3",
+        "-3",
+        "0",
+        "-6"
+      ],
+      "answerIndex": 0,
+      "feedback": "-(-3) volta para o lado positivo: o oposto de -3 é 3.",
+      "sectionId": "o-menos-que-vira-trabalho",
+      "optionRationales": [
+        "O oposto de -3 é o 3 — a inversão devolve o número ao lado positivo.",
+        "-3 é o valor que ENTROU; o oposto troca o sinal dele.",
+        "Só o zero é o próprio oposto — -3 tem oposto 3.",
+        "-6 seria o dobro de -3; o oposto não multiplica nada."
+      ]
+    },
+    {
+      "id": "zero-nao-troca",
+      "statement": "O zero é o próprio oposto: -0 é 0.",
+      "question": "O que `oposto(0)` devolve?",
+      "options": [
+        "0",
+        "-1",
+        "um erro de compilação",
+        "o texto \"-0\""
+      ],
+      "answerIndex": 0,
+      "feedback": "O zero não tem sinal para inverter: o oposto de 0 é o próprio 0.",
+      "sectionId": "o-zero-nao-troca",
+      "optionRationales": [
+        "O zero é o único número que não muda de lado: oposto(0) é 0.",
+        "-1 não tem nada a ver: o oposto não subtrai um.",
+        "Inverter o sinal do zero compila perfeitamente — e devolve o próprio 0.",
+        "O resultado é um número, nunca um texto — oposto devolve i32."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "The Rust Reference — Operator expressions",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores de comparação, lógicos e unários."
+    },
+    {
+      "title": "std — o tipo i32",
+      "url": "https://doc.rust-lang.org/std/primitive.i32.html",
+      "description": "A página oficial do tipo inteiro assinado usado nas assinaturas das funções."
+    }
+  ],
+  "challenges": [
+    "o-oposto-do-numero"
+  ]
+}

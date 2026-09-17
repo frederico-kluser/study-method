@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-abscissa-do-ponto",
+  "title": "A abscissa do ponto",
+  "concept": "ler_campo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A abscissa do ponto\n\nNo plano, a ABSCISSA de um ponto é o seu `x` — o valor que corre no eixo horizontal.\n\nEscreva a função `abscissa`: ela recebe a peça e devolve o campo `x` dela:\n\n- `abscissa(ponto_de(2, 3))` devolve `2`;\n- `abscissa(ponto_de(-4, 5))` devolve `-4`;\n- `abscissa(ponto_de(0, 9))` devolve `0`.\n\nO campo se lê com o ponto: `p.x` — a peça entregou o campo dela.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    p.x\n}\n",
+  "testsCode": "use desafio::abscissa;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_a_abscissa_do_ponto_dois_por_tres() {\n    assert_eq!(abscissa(ponto_de(2, 3)), 2);\n}\n\n#[test]\nfn testa_a_abscissa_do_ponto_negativo_quatro_por_cinco() {\n    assert_eq!(abscissa(ponto_de(-4, 5)), -4);\n}\n\n#[test]\nfn testa_a_abscissa_do_ponto_zero_por_nove() {\n    assert_eq!(abscissa(ponto_de(0, 9)), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "abscissa(ponto_de(2, 3)) devolve o campo x do ponto: 2.",
+      "teste": "testa_a_abscissa_do_ponto_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "abscissa(ponto_de(-4, 5)) devolve o campo x do ponto: -4.",
+      "teste": "testa_a_abscissa_do_ponto_negativo_quatro_por_cinco"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "abscissa(ponto_de(0, 9)) devolve o campo x do ponto: 0.",
+      "teste": "testa_a_abscissa_do_ponto_zero_por_nove"
+    }
+  ],
+  "expectedTestCount": 3
+}

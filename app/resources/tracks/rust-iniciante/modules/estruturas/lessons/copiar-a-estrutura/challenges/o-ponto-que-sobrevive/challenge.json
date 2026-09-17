@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ponto-que-sobrevive",
+  "title": "O ponto que sobrevive",
+  "concept": "derive_clone_copy",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O ponto que sobrevive\n\nA struct `Ponto` ainda MOVE: `let copia = p;` mata o `p` — e usar `p.x` na linha seguinte é o E0382.\n\nFaça a struct SOBREVIVER à cópia:\n\n1. complete a linha do atributo para `#[derive(Debug, PartialEq, Clone, Copy)]`;\n2. escreva o corpo de `dobra_e_devolve`: copie a peça (`let copia = p;`) e devolva `p.x + copia.x` — o `p` tem de continuar vivo depois da cópia.\n\n- `dobra_e_devolve(ponto_de(2, 3))` devolve `4`;\n- `dobra_e_devolve(ponto_de(0, 0))` devolve `0`.\n\nO `Copy` é o que deixa a peça pequena copiar em vez de mover.",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn dobra_e_devolve(p: Ponto) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq, Clone, Copy)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn dobra_e_devolve(p: Ponto) -> i32 {\n    let copia = p;\n    p.x + copia.x\n}\n",
+  "testsCode": "use desafio::dobra_e_devolve;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_o_ponto_dois_por_tres_sobrevive_a_copia() {\n    assert_eq!(dobra_e_devolve(ponto_de(2, 3)), 4);\n}\n\n#[test]\nfn testa_o_ponto_origem_sobrevive_a_copia() {\n    assert_eq!(dobra_e_devolve(ponto_de(0, 0)), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A struct Ponto deriva Clone e Copy, e dobra_e_devolve(ponto_de(2, 3)) devolve 4 com o p vivo depois da cópia.",
+      "teste": "testa_o_ponto_dois_por_tres_sobrevive_a_copia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "dobra_e_devolve(ponto_de(0, 0)) devolve 0.",
+      "teste": "testa_o_ponto_origem_sobrevive_a_copia"
+    }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "emprestar",
+  "title": "A fila do balcão",
+  "concept": "composicao_do_emprestimo",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# A fila do balcão\n\nFecho do módulo: o balcão chama a próxima pessoa. A função `chama` recebe o nome para LER (o empréstimo morre junto — o dono nunca sai do lugar), a fila para MUDAR (um só mutável por vez) e quantos chegaram:\n\n1. mova a fila pelo deref: `*fila = *fila + chegaram;` — e leia o valor novo pelo mesmo deref;\n2. percorra o nome letra por letra e conte os espaços: `for letra in nome.chars()` — quando `letra.to_string() == \" \"`, some `1` em `espacos`;\n3. recorte a assinatura do nome: `let sigla = &nome[0..2];` — o pedaço emprestado do começo;\n4. monte a etiqueta com os valores FORA do `format!`: `format!(\"{} entrou na fila {} (espacos: {})\", sigla, *fila, espacos)`.\n\n- `chama(\"ana\", &mut fila, 2)` com `fila` em `4` devolve `an entrou na fila 6 (espacos: 0)` — e a `fila` fica `6`;\n- `chama(&dono, &mut fila, 3)` com `dono = String::from(\"bo clara\")` devolve `bo entrou na fila 3 (espacos: 1)` — a assinatura que aceita `&str` empresta o `&String` do dono do mesmo jeito.\n\nO nome é lido por empréstimo (muitos podem ler), a fila é mudada pelo único empréstimo mutável: a regra do empréstimo inteira numa função.",
+  "starterCode": "pub fn chama(nome: &str, fila: &mut i32, chegaram: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn chama(nome: &str, fila: &mut i32, chegaram: i32) -> String {\n    *fila = *fila + chegaram;\n    let mut espacos = 0;\n    for letra in nome.chars() {\n        if letra.to_string() == \" \" {\n            espacos += 1;\n        }\n    }\n    let sigla = &nome[0..2];\n    format!(\"{} entrou na fila {} (espacos: {})\", sigla, *fila, espacos)\n}\n",
+  "testsCode": "use desafio::chama;\n\n#[test]\nfn testa_a_fila_da_ana() {\n    let mut fila = 4;\n    assert_eq!(chama(\"ana\", &mut fila, 2), \"an entrou na fila 6 (espacos: 0)\");\n    assert_eq!(fila, 6);\n}\n\n#[test]\nfn testa_a_fila_do_bo_e_da_clara() {\n    let mut fila = 0;\n    let dono = String::from(\"bo clara\");\n    assert_eq!(chama(&dono, &mut fila, 3), \"bo entrou na fila 3 (espacos: 1)\");\n    assert_eq!(fila, 3);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "chama(\"ana\", &mut fila, 2) com fila em 4 soma pelo deref (a fila vira 6), recorta a sigla \"an\", conta 0 espaços e devolve \"an entrou na fila 6 (espacos: 0)\".",
+      "teste": "testa_a_fila_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "chama aceita o &String do dono (String::from(\"bo clara\")) como &str, soma 3 pelo deref, conta 1 espaço no nome e devolve \"bo entrou na fila 3 (espacos: 1)\", deixando a fila em 3.",
+      "teste": "testa_a_fila_do_bo_e_da_clara"
+    }
+  ],
+  "expectedTestCount": 2
+}

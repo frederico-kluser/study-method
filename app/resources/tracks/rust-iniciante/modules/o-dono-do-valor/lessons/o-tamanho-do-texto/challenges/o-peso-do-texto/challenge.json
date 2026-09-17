@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-peso-do-texto",
+  "title": "O peso do texto",
+  "concept": "tamanho_texto",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O peso do texto\n\nA função `peso` recebe o texto como `String` e devolve o TAMANHO dele — o que o `.len` responde:\n\n- `peso(String::from(\"abc\"))` devolve `3`;\n- `peso(String::from(\"casa\"))` devolve `4`.\n\nO retorno é `usize`, o tipo do tamanho. Os testes cobram dois textos diferentes — o tamanho tem de vir do texto recebido, não de um número fixo.",
+  "starterCode": "pub fn peso(texto: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn peso(texto: String) -> usize {\n    texto.len()\n}\n",
+  "testsCode": "use desafio::peso;\n\n#[test]\nfn testa_o_peso_de_abc() {\n    assert_eq!(peso(String::from(\"abc\")), 3);\n}\n\n#[test]\nfn testa_o_peso_de_casa() {\n    assert_eq!(peso(String::from(\"casa\")), 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "peso deve devolver 3 para o texto \"abc\" — o tamanho vindo do .len.",
+      "teste": "testa_o_peso_de_abc"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "peso deve devolver 4 para o texto \"casa\" — o tamanho vindo do .len.",
+      "teste": "testa_o_peso_de_casa"
+    }
+  ],
+  "expectedTestCount": 2
+}

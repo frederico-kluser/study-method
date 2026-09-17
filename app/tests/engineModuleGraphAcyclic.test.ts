@@ -47,9 +47,9 @@
  * grafo de `engine/**`. A varredura encontrou DOIS outros ciclos, PRÉ-
  * EXISTENTES e fora do escopo desta correção (nenhum dos dois envolve
  * `phases/` nem `modes/`, e nenhum foi introduzido por esta onda):
- *   - `lang/registry.ts ↔ lang/javascript.ts` (e `↔ python.ts`, `↔
- *     typescript.ts`) — o registry importa cada adaptador de linguagem e cada
- *     adaptador importa tipos do registry de volta;
+ *   - `lang/registry.ts ↔ lang/javascript.ts` (e `↔ python.ts`, `↔ rust.ts`,
+ *     `↔ typescript.ts`) — o registry importa cada adaptador de linguagem e
+ *     cada adaptador importa tipos do registry de volta;
  *   - `exec/proofs.ts ↔ exec/typesCheck.ts`.
  * Este teste os DECLARA na ALLOWLIST abaixo (por NOME do par de arquivos, não
  * por trivial "ignora tudo") e falha se QUALQUER ciclo fora dela aparecer —
@@ -185,6 +185,7 @@ const CICLOS_PERMITIDOS = new Set<string>(
   [
     ['lang/registry.ts', 'lang/javascript.ts'],
     ['lang/registry.ts', 'lang/python.ts'],
+    ['lang/registry.ts', 'lang/rust.ts'],
     ['lang/registry.ts', 'lang/typescript.ts'],
     // ONDA C: o par do quarto adaptador — o mesmo benigno dos três acima.
     ['lang/registry.ts', 'lang/c.ts'],

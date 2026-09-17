@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-inclusiva",
+  "title": "A soma inclusiva",
+  "concept": "ate_inclusive",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A soma inclusiva\n\nO `..=` inclui o fim: o intervalo `1..=limite` entrega 1, 2, 3, … até o limite — COM ele.\n\nEscreva uma função `soma_de_1_ate` que recebe o `limite` e soma os números de 1 até o limite, inclusive:\n\n1. comece com a soma em `0`;\n2. para cada `n` no intervalo `1..=limite`, some `n` na soma;\n3. depois do laço, devolva a soma.\n\n`soma_de_1_ate(4)` devolve `10` (1 + 2 + 3 + 4). Se o intervalo fosse `1..limite`, a soma seria `6` — o fim ficou de fora. E `soma_de_1_ate(0)` devolve `0`: o intervalo `1..=0` é vazio.",
+  "starterCode": "pub fn soma_de_1_ate(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_de_1_ate(limite: i32) -> i32 {\n    let mut soma = 0;\n    for n in 1..=limite {\n        soma += n;\n    }\n    soma\n}\n",
+  "testsCode": "use desafio::soma_de_1_ate;\n\n#[test]\nfn testa_a_soma_inclusiva_ate_quatro() {\n    assert_eq!(soma_de_1_ate(4), 10);\n}\n\n#[test]\nfn testa_a_soma_inclusiva_ate_um() {\n    assert_eq!(soma_de_1_ate(1), 1);\n}\n\n#[test]\nfn testa_o_intervalo_invertido_e_vazio() {\n    assert_eq!(soma_de_1_ate(0), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função soma_de_1_ate deve devolver 10 quando chamada com 4 (1 + 2 + 3 + 4, com o fim incluído).", "teste": "testa_a_soma_inclusiva_ate_quatro" },
+    { "id": "REQ-2", "descricao": "A função soma_de_1_ate deve devolver 1 quando chamada com 1 — o intervalo 1..=1 tem só o 1.", "teste": "testa_a_soma_inclusiva_ate_um" },
+    { "id": "REQ-3", "descricao": "A função soma_de_1_ate deve devolver 0 quando chamada com 0 — o intervalo 1..=0 é vazio.", "teste": "testa_o_intervalo_invertido_e_vazio" }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-placar-final",
+  "title": "O placar final",
+  "concept": "o_placar",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# O placar final\n\nFecho do módulo: a função `atualiza` recebe o nome para LER, o placar para MUDAR e os pontos ganhos:\n\n1. escreva no placar pelo deref: `*pontos = *pontos + ganhou;`;\n2. dê o nome `total` ao valor novo: `let total = *pontos;` — a conta fora do `format!`;\n3. monte a frase com dois buracos: `format!(\"{} tem {} pontos\", nome, total)`.\n\nCom `pontos` em `10`, `atualiza(\"Ana\", &mut pontos, 5)` devolve `Ana tem 15 pontos` — e o `pontos` fica `15`.",
+  "starterCode": "pub fn atualiza(nome: &str, pontos: &mut i32, ganhou: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn atualiza(nome: &str, pontos: &mut i32, ganhou: i32) -> String {\n    *pontos = *pontos + ganhou;\n    let total = *pontos;\n    format!(\"{} tem {} pontos\", nome, total)\n}\n",
+  "testsCode": "use desafio::atualiza;\n\n#[test]\nfn testa_o_placar_da_ana() {\n    let mut pontos = 10;\n    assert_eq!(atualiza(\"Ana\", &mut pontos, 5), \"Ana tem 15 pontos\");\n    assert_eq!(pontos, 15);\n}\n\n#[test]\nfn testa_o_placar_do_bo() {\n    let mut pontos = 2;\n    assert_eq!(atualiza(\"Bo\", &mut pontos, 3), \"Bo tem 5 pontos\");\n    assert_eq!(pontos, 5);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "atualiza deve somar pelo deref, montar a frase com format! e devolver \"Ana tem 15 pontos\", deixando o placar em 15.",
+      "teste": "testa_o_placar_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "atualiza deve somar pelo deref, montar a frase com format! e devolver \"Bo tem 5 pontos\", deixando o placar em 5.",
+      "teste": "testa_o_placar_do_bo"
+    }
+  ],
+  "expectedTestCount": 2
+}

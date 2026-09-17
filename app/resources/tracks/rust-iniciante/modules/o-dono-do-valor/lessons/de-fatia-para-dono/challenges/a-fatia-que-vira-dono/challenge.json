@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-fatia-que-vira-dono",
+  "title": "A fatia que vira dono",
+  "concept": "to_string",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A fatia que vira dono\n\nA função `para_dono` recebe o texto EMPRESTADO — a assinatura é `fatia: &str` — e devolve um `String` DONO com o mesmo conteúdo, criado com `.to_string`:\n\n- `para_dono(\"Ana\")` devolve `Ana`;\n- `para_dono(\"sol\")` devolve `sol`.\n\nA fatia só passa pela função; a caixa nova é a dona que sai.",
+  "starterCode": "pub fn para_dono(fatia: &str) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn para_dono(fatia: &str) -> String {\n    fatia.to_string()\n}\n",
+  "testsCode": "use desafio::para_dono;\n\n#[test]\nfn testa_a_fatia_da_ana() {\n    assert_eq!(para_dono(\"Ana\"), \"Ana\");\n}\n\n#[test]\nfn testa_a_fatia_do_sol() {\n    assert_eq!(para_dono(\"sol\"), \"sol\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "para_dono deve devolver o String dono \"Ana\" a partir da fatia emprestada, com .to_string.",
+      "teste": "testa_a_fatia_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "para_dono deve devolver o String dono \"sol\" a partir da fatia emprestada, com .to_string.",
+      "teste": "testa_a_fatia_do_sol"
+    }
+  ],
+  "expectedTestCount": 2
+}

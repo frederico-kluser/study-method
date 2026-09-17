@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-idade-anotada",
+  "title": "A idade anotada",
+  "concept": "guardar_no_mapa",
+  "language": "rust",
+  "statement": "# A idade anotada\n\nA função `anota` recebe o mapa das idades para MUDAR, o nome e a idade:\n\n1. o corpo é o `.insert` de sempre: a chave é o `nome`, o valor é a `idade`;\n2. quem chama empresta o mapa com `&mut` — e a chave SE MOVE para dentro do mapa.\n\n- `anota(&mut idades, String::from(\"ana\"), 9)` deixa `idades[\"ana\"]` em `9`;\n- anotar `\"bo\"` com `4` e depois com `5` deixa `idades[\"bo\"]` em `5` — o último insert manda.\n\nO mapa guarda o par: chave dona, valor atrás da porta.\n",
+  "starterCode": "use std::collections::HashMap;\n\npub fn anota(idades: &mut HashMap<String, i32>, nome: String, idade: i32) {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn anota(idades: &mut HashMap<String, i32>, nome: String, idade: i32) {\n    idades.insert(nome, idade);\n}\n",
+  "testsCode": "use desafio::anota;\nuse std::collections::HashMap;\n\n#[test]\nfn testa_a_idade_da_ana() {\n    let mut idades = HashMap::new();\n    anota(&mut idades, String::from(\"ana\"), 9);\n    assert_eq!(idades[\"ana\"], 9);\n}\n\n#[test]\nfn testa_o_valor_trocado() {\n    let mut idades = HashMap::new();\n    anota(&mut idades, String::from(\"bo\"), 4);\n    anota(&mut idades, String::from(\"bo\"), 5);\n    assert_eq!(idades[\"bo\"], 5);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "anota(&mut idades, String::from(\"ana\"), 9) guarda o par: idades[\"ana\"] == 9.",
+      "teste": "testa_a_idade_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Anotar \"bo\" com 4 e depois com 5 troca o valor: idades[\"bo\"] == 5.",
+      "teste": "testa_o_valor_trocado"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 3
+}

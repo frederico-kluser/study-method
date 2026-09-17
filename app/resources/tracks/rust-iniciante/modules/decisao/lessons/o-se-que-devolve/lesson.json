@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-se-que-devolve",
+  "title": "O se que devolve",
+  "summary": "O if é uma expressão: guardado num let, ele vira o valor do ramo que rodou.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:IfExpression",
+  "concepts": [
+    "o_se_que_devolve"
+  ],
+  "prerequisites": [
+    "se-senao",
+    "dar-nome-ao-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IfExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-if-vira-valor",
+      "title": "O if vira valor",
+      "markdown": "Até aqui o `if` dava ORDEM (`maior = b;`). Ele também pode dar VALOR: no lugar do valor de um `let`, o `if` é uma expressão — e o valor dele é o do ramo que rodou:\n\n```rust\npub fn o_maior_dos_dois(a: i32, b: i32) -> i32 {\n    let maior = if a > b {\n        a\n    } else {\n        b\n    };\n    maior\n}\n```\n\nO ramo que rodar entrega o seu valor para o `let` — e o `;` fecha a ligação."
+    },
+    {
+      "id": "sem-ponto-e-virgula-no-ramo",
+      "title": "Sem ponto e vírgula no ramo",
+      "markdown": "Os ramos do `if` de valor não levam `;`: o `a` sozinho é a EXPRESSÃO do ramo. O `;` do fim é da ligação (`let ... ;`), não dos ramos:\n\n```rust\npub fn o_maior_dos_dois(a: i32, b: i32) -> i32 {\n    let maior = if a > b {\n        a\n    } else {\n        b\n    };\n    maior\n}\n```\n\nÉ a máquina do corpo-expressão da aula `o-corpo-e-uma-expressao`, agora dentro do `if`."
+    },
+    {
+      "id": "os-dois-ramos-concordam",
+      "title": "Os dois ramos concordam",
+      "markdown": "Os dois ramos precisam ser do MESMO tipo — dois números, ou dois textos. Um número num ramo e um texto no outro não compila: o `let` não saberia o que guardar:\n\n```rust\npub fn a_etiqueta(nota: i32) -> i32 {\n    let etiqueta = if nota > 5 {\n        1\n    } else {\n        0\n    };\n    etiqueta\n}\n```\n\nDois números, um tipo — a ligação recebe um `i32` de qualquer ramo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "if-expressao-da-valor",
+      "statement": "O if é uma expressão: guardado num let, ele vira o valor do ramo que rodou.",
+      "question": "Em `let maior = if a > b { a } else { b };`, o que o `let` recebe?",
+      "options": [
+        "o valor do ramo que rodou",
+        "os dois valores",
+        "sempre o a",
+        "sempre o b"
+      ],
+      "answerIndex": 0,
+      "feedback": "O if é uma expressão: o ramo que roda entrega o valor, e o let guarda esse valor.",
+      "sectionId": "o-if-vira-valor",
+      "optionRationales": [
+        "Exatamente um ramo roda — e o valor dele é o que o let guarda.",
+        "Só um ramo roda por vez; o let recebe um valor só.",
+        "a só chega ao let se a condição a > b for true.",
+        "b só chega ao let pelo ramo do else."
+      ]
+    },
+    {
+      "id": "ramo-sem-ponto-e-virgula",
+      "statement": "Os ramos do if de valor não levam ; — a última linha do ramo é a expressão que vira valor.",
+      "question": "Por que os ramos não têm `;` no fim?",
+      "options": [
+        "porque a última linha do ramo é a expressão que vira valor",
+        "porque ; dá erro de sintaxe dentro de if",
+        "porque os ramos são comentários",
+        "porque o let já tem o seu ;"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com ; a linha viraria instrução e o ramo não teria valor — sem ; ela é expressão.",
+      "sectionId": "sem-ponto-e-virgula-no-ramo",
+      "optionRationales": [
+        "A máquina do corpo-expressão: ; mata o valor — e o ramo precisa entregar um.",
+        "; sozinho não é erro de sintaxe em if — o problema é que ele MATA o valor.",
+        "Ramos são código de verdade, não comentário — por isso precisam de valor.",
+        "O ; do let existe e fecha a ligação — mas ele não pode estar no ramo."
+      ]
+    },
+    {
+      "id": "ramos-do-mesmo-tipo",
+      "statement": "Os dois ramos precisam ser do mesmo tipo: número com número, texto com texto.",
+      "question": "O que acontece se um ramo devolve número e o outro devolve texto?",
+      "options": [
+        "não compila: os ramos precisam ser do mesmo tipo",
+        "compila e escolhe o número",
+        "compila e escolhe o texto",
+        "o if devolve zero"
+      ],
+      "answerIndex": 0,
+      "feedback": "O let receberia dois tipos diferentes — o compilador recusa a ligação.",
+      "sectionId": "os-dois-ramos-concordam",
+      "optionRationales": [
+        "Um tipo único por if-expressão: os ramos têm que concordar.",
+        "Não existe escolha silenciosa — a discordância de tipo é erro de compilação.",
+        "Texto também não é escolhido: os dois ramos precisam combinar.",
+        "Zero não aparece de lugar nenhum — o problema é de tipo, não de valor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    }
+  ],
+  "challenges": [
+    "o-se-que-vira-valor"
+  ]
+}

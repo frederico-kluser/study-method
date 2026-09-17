@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-rotulo-do-teclado",
+  "title": "O rótulo do teclado",
+  "concept": "braco_sobra",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O rótulo do teclado\n\nO teclado de teste do laboratório tem quatro teclas, mas o rótulo na tela só muda para UMA delas. O conjunto `Tecla` já existe no arquivo.\n\nComplete o corpo de `o_rotulo_da` com um match de DOIS braços:\n\n- um braço nomeado para `Tecla::Enter`, devolvendo a String `\"processa\"`;\n- um braço que sobra com `_`, devolvendo a String `\"ignora\"` — ele responde por `Volume`, `Brilho` e `Bloqueio` de uma vez.\n\nO `_` vem por último: os casos nomeados em cima, o resto embaixo.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Tecla {\n    Enter,\n    Volume,\n    Brilho,\n    Bloqueio,\n}\n\npub fn o_rotulo_da(tecla: Tecla) -> String {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Tecla {\n    Enter,\n    Volume,\n    Brilho,\n    Bloqueio,\n}\n\npub fn o_rotulo_da(tecla: Tecla) -> String {\n    match tecla {\n        Tecla::Enter => String::from(\"processa\"),\n        _ => String::from(\"ignora\"),\n    }\n}\n",
+  "testsCode": "use desafio::o_rotulo_da;\nuse desafio::Tecla;\n\n#[test]\nfn testa_o_rotulo_da_tecla_enter() {\n    assert_eq!(o_rotulo_da(Tecla::Enter), String::from(\"processa\"));\n}\n\n#[test]\nfn testa_o_rotulo_da_tecla_volume() {\n    assert_eq!(o_rotulo_da(Tecla::Volume), String::from(\"ignora\"));\n}\n\n#[test]\nfn testa_o_rotulo_da_tecla_bloqueio() {\n    assert_eq!(o_rotulo_da(Tecla::Bloqueio), String::from(\"ignora\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O braço nomeado de Tecla::Enter devolve a String \"processa\" no match de o_rotulo_da.",
+      "teste": "testa_o_rotulo_da_tecla_enter"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço que sobra (_) devolve a String \"ignora\" para as demais teclas, como Volume e Bloqueio.",
+      "teste": "testa_o_rotulo_da_tecla_volume"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "O braço que sobra (_) responde por Bloqueio com a String \"ignora\".",
+      "teste": "testa_o_rotulo_da_tecla_bloqueio"
+    }
+  ],
+  "expectedTestCount": 3
+}

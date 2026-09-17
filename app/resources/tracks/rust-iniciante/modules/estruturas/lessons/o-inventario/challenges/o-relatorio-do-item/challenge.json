@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-relatorio-do-item",
+  "title": "O relatório do item",
+  "concept": "relatorio_estruturado",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# O relatório do item\n\nO relatório do inventário descreve cada item numa LINHA: `parafuso: 30 unidades`. O molde `Item` e o construtor `item_do` já estão no arquivo.\n\nFaltam duas peças de aluno:\n\n1. o `impl Item` com o método `linha(&self) -> String`, que devolve `format!(\"{}: {} unidades\", self.nome, self.quantidade)`;\n2. o corpo de `relatorio_de`: monte a peça com os valores recebidos e chame o `linha` NELA — `Item { nome, quantidade }.linha()` — sem variável no meio.\n\n- `relatorio_de(String::from(\"parafuso\"), 30)` devolve `parafuso: 30 unidades`;\n- `relatorio_de(String::from(\"porca\"), 12)` devolve `porca: 12 unidades`.\n\nMolde, construtor, método e format! — o inventário completo numa função.",
+  "starterCode": "pub struct Item {\n    pub nome: String,\n    pub quantidade: i32,\n}\n\npub fn item_do(nome: String, quantidade: i32) -> Item {\n    Item { nome, quantidade }\n}\n\nimpl Item {\n    // escreva o método aqui\n}\n\npub fn relatorio_de(nome: String, quantidade: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub struct Item {\n    pub nome: String,\n    pub quantidade: i32,\n}\n\npub fn item_do(nome: String, quantidade: i32) -> Item {\n    Item { nome, quantidade }\n}\n\nimpl Item {\n    pub fn linha(&self) -> String {\n        format!(\"{}: {} unidades\", self.nome, self.quantidade)\n    }\n}\n\npub fn relatorio_de(nome: String, quantidade: i32) -> String {\n    Item { nome, quantidade }.linha()\n}\n",
+  "testsCode": "use desafio::relatorio_de;\n\n#[test]\nfn testa_o_relatorio_do_parafuso() {\n    assert_eq!(relatorio_de(String::from(\"parafuso\"), 30), \"parafuso: 30 unidades\");\n}\n\n#[test]\nfn testa_o_relatorio_da_porca() {\n    assert_eq!(relatorio_de(String::from(\"porca\"), 12), \"porca: 12 unidades\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O método linha no impl Item devolve \"nome: N unidades\" e relatorio_de(String::from(\"parafuso\"), 30) devolve \"parafuso: 30 unidades\".",
+      "teste": "testa_o_relatorio_do_parafuso"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "relatorio_de(String::from(\"porca\"), 12) devolve \"porca: 12 unidades\".",
+      "teste": "testa_o_relatorio_da_porca"
+    }
+  ],
+  "expectedTestCount": 2
+}

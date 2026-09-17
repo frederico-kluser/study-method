@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-limite-do-laco",
+  "title": "O limite do laço",
+  "summary": "A borda do laço é frágil: mudar o ponto de partida de 1 casa roda o laço uma vez a mais (ou a menos).",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:WhileExpression",
+  "concepts": [
+    "o_limite_do_laco"
+  ],
+  "prerequisites": [
+    "enquanto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:WhileExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-ponto-de-partida-muda-a-conta",
+      "title": "O ponto de partida muda a conta",
+      "markdown": "O mesmo corte (`n < limite`) conta diferente conforme o ponto de partida. Começando do `0`, o laço roda uma vez para CADA número de `0` até antes do limite:\n\n```rust\npub fn voltas_comecando_do_zero(limite: i32) -> i32 {\n    let mut voltas = 0;\n    let mut n = 0;\n    while n < limite {\n        voltas += 1;\n        n += 1;\n    }\n    voltas\n}\n```\n\n`voltas_comecando_do_zero(5)` devolve `5`: as voltas do `0`, do `1`, do `2`, do `3` e do `4`."
+    },
+    {
+      "id": "comecar-do-um-e-uma-volta-a-menos",
+      "title": "Começar do 1 é uma volta a menos",
+      "markdown": "O MESMO corte, com o `n` começando do `1`, roda uma volta a MENOS — o `0` ficou de fora e com ele uma rodada inteira:\n\n```rust\npub fn voltas_do_intervalo(limite: i32) -> i32 {\n    let mut voltas = 0;\n    let mut n = 1;\n    while n < limite {\n        voltas += 1;\n        n += 1;\n    }\n    voltas\n}\n```\n\n`voltas_do_intervalo(5)` devolve `4`: as voltas do `1`, do `2`, do `3` e do `4`. Trocar o ponto de partida de `0` para `1` trocou a resposta de `5` para `4` — contar uma vez a menos é o erro clássico do laço."
+    },
+    {
+      "id": "confira-as-bordas",
+      "title": "Confira as bordas",
+      "markdown": "As bordas são onde o laço engana: limite `0`, limite `1` e limite `2`. No desafio:\n\n```rust\npub fn voltas_do_intervalo(limite: i32) -> i32 {\n    let mut voltas = 0;\n    let mut n = 1;\n    while n < limite {\n        voltas += 1;\n        n += 1;\n    }\n    voltas\n}\n```\n\n`voltas_do_intervalo(1)` devolve `0` (a pergunta `1 < 1` vale `false` logo na porta); `voltas_do_intervalo(2)` devolve `1` (só a volta do `1`); e `voltas_do_intervalo(0)` devolve `0` (`1 < 0` é `false`). Se a conta esperada é `limite` menos um, as três bordas confirmam: `0`, `1`, `0`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-ponto-de-partida-muda-a-conta",
+      "statement": "O mesmo corte n < limite conta diferente conforme o ponto de partida: do 0, limite voltas; do 1, limite menos uma.",
+      "question": "`voltas_comecando_do_zero(5)` devolve 5. O que `voltas_do_intervalo(5)` (começando do 1, mesmo corte) devolve?",
+      "options": [
+        "4 — uma volta a menos, porque o 0 ficou de fora",
+        "5 — o corte não muda nada",
+        "6 — começar mais tarde deixa o laço mais tempo",
+        "1 — só a primeira volta conta"
+      ],
+      "answerIndex": 0,
+      "feedback": "Começar do `1` tira o `0` da corrida — e com ele, uma rodada: `5` vira `4`.",
+      "sectionId": "o-ponto-de-partida-muda-a-conta",
+      "optionRationales": [
+        "O `0` era uma rodada inteira: sem ele, a conta cai de 5 para 4.",
+        "O corte é o mesmo, mas o ponto de partida mudou — e a conta muda com ele.",
+        "Começar mais tarde ENCATA o laço, nunca o estica.",
+        "Todas as voltas contam — só a do zero desapareceu."
+      ]
+    },
+    {
+      "id": "o-erro-classico-do-laco",
+      "statement": "Contar uma vez a mais (ou a menos) é o erro clássico do laço — a borda é onde ele mora.",
+      "question": "Qual a origem mais comum do laço que roda uma vez a mais?",
+      "options": [
+        "a borda: o ponto de partida ou o corte do laço mal conferidos",
+        "o acumulador que soma rápido demais",
+        "o let mut que troca o valor duas vezes",
+        "o for, que sempre roda uma vez a mais"
+      ],
+      "answerIndex": 0,
+      "feedback": "A borda é a fonte do deslize: um `0` ou um `<` no lugar errado e a corrida ganha (ou perde) uma volta.",
+      "sectionId": "comecar-do-um-e-uma-volta-a-menos",
+      "optionRationales": [
+        "É na borda que a conta desliza: partida e corte decidem quantas voltas existem.",
+        "O acumulador soma o que a corrida manda — ele não cria voltas.",
+        "O `let mut` troca quando o corpo manda — a quantidade de voltas é da condição.",
+        "O `for` segue o intervalo exato — é o laço com borda escrita, não a mais."
+      ]
+    },
+    {
+      "id": "as-bordas-confirmam",
+      "statement": "Confira as bordas antes de confiar no laço: limite 0, limite 1 e limite 2 contam a história inteira.",
+      "question": "Por que conferir `voltas_do_intervalo(1)` e `voltas_do_intervalo(2)` ajuda?",
+      "options": [
+        "porque são as bordas: a primeira pergunta false e a primeira volta — onde o deslize aparece",
+        "porque são os únicos valores que o laço aceita",
+        "porque o teste sempre usa 1 e 2",
+        "porque limites pequenos rodam mais rápido"
+      ],
+      "answerIndex": 0,
+      "feedback": "As bordas são as voltas em que o laço começa (ou nem começa): o deslize de uma rodada aparece primeiro ali.",
+      "sectionId": "confira-as-bordas",
+      "optionRationales": [
+        "Na borda está a primeira decisão da condição — o erro de uma rodada se mostra ali.",
+        "O laço aceita qualquer limite — as bordas são onde a CONTA engana, não onde o laço recusa.",
+        "O teste escolhe os casos — a borda é a ferramenta do AUTOR, não do teste.",
+        "A velocidade não é o motivo — a borda é onde o deslize aparece."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do while — o laço com a condição na borda."
+    },
+    {
+      "title": "Rust by Example — While",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/while.html",
+      "description": "Os exemplos oficiais do while com o corte no limite."
+    },
+    {
+      "title": "std — a palavra-chave while",
+      "url": "https://doc.rust-lang.org/std/keyword.while.html",
+      "description": "A página oficial da palavra-chave while."
+    }
+  ],
+  "challenges": [
+    "as-voltas-do-intervalo"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dobro-do-dobro",
+  "title": "O dobro do dobro",
+  "concept": "chamar_funcao",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# O dobro do dobro\n\nO arquivo já traz a função `dobro`, pronta. Escreva uma função `dobro_do_dobro` que recebe um número e devolve o dobro DO DOBRO dele.\n\nNão refaça a conta: CHAME a função `dobro` que já existe — duas vezes.",
+  "starterCode": "pub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n\npub fn dobro_do_dobro(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n\npub fn dobro_do_dobro(x: i32) -> i32 {\n    dobro(dobro(x))\n}\n",
+  "testsCode": "use desafio::dobro_do_dobro;\n\n#[test]\nfn testa_o_dobro_do_dobro_de_dois() {\n    assert_eq!(dobro_do_dobro(2), 8);\n}\n\n#[test]\nfn testa_o_dobro_do_dobro_de_cinco() {\n    assert_eq!(dobro_do_dobro(5), 20);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função dobro_do_dobro deve devolver 8 quando chamada com 2.", "teste": "testa_o_dobro_do_dobro_de_dois" },
+    { "id": "REQ-2", "descricao": "A função dobro_do_dobro deve devolver 20 quando chamada com 5.", "teste": "testa_o_dobro_do_dobro_de_cinco" }
+  ],
+  "expectedTestCount": 2
+}

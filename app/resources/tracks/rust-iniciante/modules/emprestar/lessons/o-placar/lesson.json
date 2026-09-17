@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-placar",
+  "title": "O placar",
+  "summary": "O fecho do módulo: a função que recebe &mut i32, atualiza pelo deref e monta o texto do placar.",
+  "difficulty": 5,
+  "role": "integration",
+  "targetAtom": "op:unary:*",
+  "concepts": [
+    "o_placar"
+  ],
+  "prerequisites": [
+    "mudar-pelo-emprestimo",
+    "a-mensagem-montada"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:*",
+      "node:UnaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-placar-que-atravessa-a-chamada",
+      "title": "O placar que atravessa a chamada",
+      "markdown": "O placar é um número do chamador — a função recebe a ponta mutável e atualiza pelo deref:\n\n```rust\npub fn atualiza(nome: &str, pontos: &mut i32, ganhou: i32) -> String {\n    *pontos = *pontos + ganhou;\n    let total = *pontos;\n    format!(\"{} tem {} pontos\", nome, total)\n}\n```\n\nO `*pontos` escreve no dono; o `total` já sai da conta numa ligação própria para o `format!` montar a frase."
+    },
+    {
+      "id": "tudo-junto-nada-novo",
+      "title": "Tudo junto, nada novo",
+      "markdown": "Este desafio é o FECHO do módulo: o `&str` na assinatura, o `&mut` emprestado na chamada, o deref escrevendo e o `format!` montando o texto:\n\n```rust\npub fn atualiza(nome: &str, pontos: &mut i32, ganhou: i32) -> String {\n    *pontos = *pontos + ganhou;\n    let total = *pontos;\n    format!(\"{} tem {} pontos\", nome, total)\n}\n```\n\nCom `pontos` em `10`, `atualiza(\"Ana\", &mut pontos, 5)` devolve `Ana tem 15 pontos` — e o placar fica `15`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-conta-fora-do-format",
+      "sectionId": "o-placar-que-atravessa-a-chamada",
+      "statement": "A conta do placar sai numa ligação própria; o format! só encaixa valores prontos.",
+      "question": "Por que o `total` nasce num `let` antes do `format!`?",
+      "options": [
+        "Porque o format! encaixa valores prontos — a conta fica na ligação",
+        "Porque o format! não aceita números",
+        "Porque o total precisa ser String",
+        "Porque o * não funciona dentro do format!"
+      ],
+      "answerIndex": 0,
+      "feedback": "A conta é do let; o buraco do format! recebe o valor já pronto.",
+      "optionRationales": [
+        "O padrão do módulo: calcula no let, encaixa no format!.",
+        "O format! aceita números — a questão é onde a conta mora.",
+        "O total é número mesmo; o buraco o transforma em texto.",
+        "O * até funciona fora — mas o padrão limpo é a ligação própria."
+      ]
+    },
+    {
+      "id": "fecho-nao-ensina-nada",
+      "sectionId": "tudo-junto-nada-novo",
+      "statement": "O desafio de fechamento não ensina nada novo: compõe o que o módulo ensinou.",
+      "question": "O que é NOVO no desafio `o-placar-final`?",
+      "options": [
+        "Nada — ele compõe o que o módulo ensinou",
+        "O *",
+        "O &mut",
+        "O format!"
+      ],
+      "answerIndex": 0,
+      "feedback": "É o fecho: a construção é a soma das aulas do módulo.",
+      "optionRationales": [
+        "Tudo já tem aula — a prova é compor a ponta, o deref e a frase.",
+        "O * é da aula mudar-pelo-emprestimo, deste módulo.",
+        "O &mut é da aula emprestar-para-mudar, deste módulo.",
+        "O format! é da aula a-mensagem-montada, do módulo 1."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    },
+    {
+      "title": "Macro format! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.format.html",
+      "description": "A macro oficial que monta um texto e o devolve como valor."
+    }
+  ],
+  "challenges": [
+    "o-placar-final"
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "slug": "ler-o-campo",
+  "title": "Ler o campo",
+  "summary": "A forma nova de ler o campo da própria struct: p.x é o valor do campo x da peça p.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:FieldExpression",
+  "concepts": [
+    "ler_campo"
+  ],
+  "prerequisites": [
+    "criar-a-partir-do-molde"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FieldExpression",
+      "api:.x"
+    ],
+    "receptive": [
+      "api:.y"
+    ]
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-campo-se-le-com-o-ponto",
+      "title": "O campo se lê com o ponto",
+      "markdown": "O valor montado tem os campos — e cada campo se lê com o PONTO:\n\n```rust\npub fn abscissa(p: Ponto) -> i32 {\n    p.x\n}\n```\n\n`p.x` é o valor do campo `x` da peça `p`. A forma é a mesma que você já lê nas cadeias de método (`texto.len()`) — a FORMA NOVA aqui é ler o campo da struct que o aluno montou: `ponto.x` sobre struct própria, e não o método de um receptor."
+    },
+    {
+      "id": "um-campo-por-leitura",
+      "title": "Um campo por leitura",
+      "markdown": "Cada leitura entrega UM campo:\n\n```rust\npub fn soma_dos_eixos(p: Ponto) -> i32 {\n    p.x + p.y\n}\n```\n\n`soma_dos_eixos(ponto_de(2, 3))` devolve `5`: leu o `x`, leu o `y`, somou. O campo é lido quantas vezes quiser."
+    },
+    {
+      "id": "a-leitura-nao-gasta-a-peca",
+      "title": "A leitura não gasta a peça",
+      "markdown": "Ler o campo NÃO move a peça: ela continua no nome, pronta para a próxima leitura:\n\n```rust\npub fn os_dois_eixos(p: Ponto) -> i32 {\n    let x = p.x;\n    let y = p.y;\n    x + y\n}\n```\n\nDuas leituras, uma peça: `p` segue inteira depois das duas linhas — diferente do que acontece com uma `String` que se move."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-ponto-abre-a-peca",
+      "sectionId": "o-campo-se-le-com-o-ponto",
+      "statement": "O campo se lê com o ponto: p.x é o valor do campo x da peça p.",
+      "question": "Como se lê o valor do campo `x` guardado em `p`?",
+      "options": [
+        "p.x",
+        "x(p)",
+        "p->x",
+        "p[x]"
+      ],
+      "answerIndex": 0,
+      "feedback": "O ponto abre a peça e entrega o campo: `p.x`.",
+      "optionRationales": [
+        "O ponto é a porta do campo — o nome depois dele é o campo lido.",
+        "x(p) é chamada de função; campo se lê com o ponto.",
+        "A seta é de outras linguagens; em Rust é ponto.",
+        "Colchetes são índice de coleção; campo é ponto."
+      ]
+    },
+    {
+      "id": "leituras-somam",
+      "sectionId": "um-campo-por-leitura",
+      "statement": "Cada leitura entrega um campo; as leituras se combinam como valores.",
+      "question": "O que `ponto_de(2, 3).x + ponto_de(2, 3).y` devolve?",
+      "options": [
+        "5",
+        "2",
+        "3",
+        "6"
+      ],
+      "answerIndex": 0,
+      "feedback": "Lê o `x` (2) e o `y` (3) e soma: `5`.",
+      "optionRationales": [
+        "Dois campos lidos, um por leitura: 2 + 3 = 5.",
+        "É o x sozinho — o y também foi lido.",
+        "É o y sozinho — o x também foi lido.",
+        "Somou mal: as leituras dão 5, não 6."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "O capítulo oficial da leitura: o campo se lê com o ponto."
+    },
+    {
+      "title": "Structs — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/structs.html",
+      "description": "Os exemplos oficiais de acesso a campo de struct."
+    }
+  ],
+  "challenges": [
+    "a-abscissa-do-ponto"
+  ]
+}

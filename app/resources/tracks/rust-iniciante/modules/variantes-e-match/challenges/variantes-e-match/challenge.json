@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "variantes-e-match",
+  "title": "O bilhete do formulário",
+  "concept": "composicao_das_variantes",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# O bilhete do formulário\n\nFecho do módulo: o formulário do cinema chega com a poltrona em TEXTO — e o bilhete sai CLASSIFICADO. O enum `Fileira` já está no arquivo (`Frente(i32)` carrega a poltrona; `Fundo` não carrega nada). Faltam três corpos:\n\n1. `lugar_da(poltrona)` — o casamento do enum: poltrona `< 10` é `Fileira::Frente(poltrona)`, senão `Fileira::Fundo` — um braço por variante, os dois;\n2. `caixa_da(texto) -> Option<i32>` — a caixa que pode vir vazia: `match texto.parse()` — `Ok(n)` abre com `Some(n)`, `Err(_)` devolve `None`;\n3. `bilhete(texto)` — a costura: `Some(poltrona)` casa de novo com `lugar_da(poltrona)` — `Fileira::Frente(n)` vira `format!(\"frente: poltrona {}\", n)`, `Fileira::Fundo` vira `String::from(\"fundo\")`; `None` vira `String::from(\"numero invalido\")`.\n\n- `bilhete(String::from(\"7\"))` devolve `frente: poltrona 7`;\n- `bilhete(String::from(\"19\"))` devolve `fundo`;\n- `bilhete(String::from(\"abc\"))` devolve `numero invalido`;\n- `caixa_da(String::from(\"4\"))` devolve `Some(4)` e `caixa_da(String::from(\"x\"))` devolve `None`;\n- o formulário válido também abre pela porta rápida: `caixa_da(String::from(\"4\")).unwrap()` é `4` — o `unwrap` é aceitável quando quem abre sabe que a caixa não vem vazia.\n\nTexto cru entra, `Result` casado, `Option` casado, enum próprio casado: o match exaustivo do módulo inteiro.",
+  "starterCode": "pub enum Fileira {\n    Frente(i32),\n    Fundo,\n}\n\npub fn lugar_da(poltrona: i32) -> Fileira {\n    todo!()\n}\n\npub fn caixa_da(texto: String) -> Option<i32> {\n    todo!()\n}\n\npub fn bilhete(texto: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub enum Fileira {\n    Frente(i32),\n    Fundo,\n}\n\npub fn lugar_da(poltrona: i32) -> Fileira {\n    if poltrona < 10 {\n        Fileira::Frente(poltrona)\n    } else {\n        Fileira::Fundo\n    }\n}\n\npub fn caixa_da(texto: String) -> Option<i32> {\n    match texto.parse() {\n        Ok(n) => Some(n),\n        Err(_) => None,\n    }\n}\n\npub fn bilhete(texto: String) -> String {\n    match caixa_da(texto) {\n        Some(poltrona) => match lugar_da(poltrona) {\n            Fileira::Frente(n) => format!(\"frente: poltrona {}\", n),\n            Fileira::Fundo => String::from(\"fundo\"),\n        },\n        None => String::from(\"numero invalido\"),\n    }\n}\n",
+  "testsCode": "use desafio::bilhete;\nuse desafio::caixa_da;\n\n#[test]\nfn testa_o_bilhete_da_poltrona_sete() {\n    assert_eq!(bilhete(String::from(\"7\")), \"frente: poltrona 7\");\n}\n\n#[test]\nfn testa_o_bilhete_da_poltrona_dezenove() {\n    assert_eq!(bilhete(String::from(\"19\")), \"fundo\");\n}\n\n#[test]\nfn testa_o_bilhete_do_texto_quebrado() {\n    assert_eq!(bilhete(String::from(\"abc\")), \"numero invalido\");\n}\n\n#[test]\nfn testa_a_caixa_da_poltrona_quatro() {\n    assert_eq!(caixa_da(String::from(\"4\")), Some(4));\n}\n\n#[test]\nfn testa_a_caixa_do_texto_quebrado() {\n    assert_eq!(caixa_da(String::from(\"x\")), None);\n}\n\n#[test]\nfn testa_a_porta_rapida_do_formulario_valido() {\n    assert_eq!(caixa_da(String::from(\"4\")).unwrap(), 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "lugar_da(7) casa a variante que carrega: Fileira::Frente(7), e bilhete(String::from(\"7\")) devolve \"frente: poltrona 7\".",
+      "teste": "testa_o_bilhete_da_poltrona_sete"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "lugar_da(19) casa a variante vazia: Fileira::Fundo, e bilhete(String::from(\"19\")) devolve \"fundo\".",
+      "teste": "testa_o_bilhete_da_poltrona_dezenove"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "O texto quebrado abre a caixa vazia: bilhete(String::from(\"abc\")) devolve \"numero invalido\".",
+      "teste": "testa_o_bilhete_do_texto_quebrado"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "caixa_da(String::from(\"4\")) casa o Ok com Some(4) — a caixa cheia.",
+      "teste": "testa_a_caixa_da_poltrona_quatro"
+    },
+    {
+      "id": "REQ-5",
+      "descricao": "caixa_da(String::from(\"x\")) casa o Err(_) com None — a caixa vazia.",
+      "teste": "testa_a_caixa_do_texto_quebrado"
+    },
+    {
+      "id": "REQ-6",
+      "descricao": "Pela porta rápida, caixa_da(String::from(\"4\")).unwrap() é 4 — o unwrap do formulário que o teste sabe válido.",
+      "teste": "testa_a_porta_rapida_do_formulario_valido"
+    }
+  ],
+  "expectedTestCount": 6
+}

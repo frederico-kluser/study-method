@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-corpo-que-devolve",
+  "title": "O corpo que devolve",
+  "concept": "corpo_expressao",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O corpo que devolve\n\nEscreva uma função `triplo` que recebe um número e devolve o triplo dele.\n\nRegra da aula: a última linha do corpo é a expressão devolvida — escreva a conta SEM `;` no fim. Um `;` a mais mata o valor e o desafio não compila.",
+  "starterCode": "pub fn triplo(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn triplo(x: i32) -> i32 {\n    x * 3\n}\n",
+  "testsCode": "use desafio::triplo;\n\n#[test]\nfn testa_o_triplo_de_quatro() {\n    assert_eq!(triplo(4), 12);\n}\n\n#[test]\nfn testa_o_triplo_de_sete() {\n    assert_eq!(triplo(7), 21);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função triplo(4) deve devolver 12.", "teste": "testa_o_triplo_de_quatro" },
+    { "id": "REQ-2", "descricao": "A função triplo(7) deve devolver 21.", "teste": "testa_o_triplo_de_sete" }
+  ],
+  "expectedTestCount": 2
+}

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-analisador-de-votos",
+  "title": "O analisador de votos",
+  "summary": "O programa inteiro do módulo: a lista dos votos, o mapa da contagem, o get com o match e o texto do resultado.",
+  "difficulty": 5,
+  "role": "integration",
+  "targetAtom": "api:std::collections::HashMap",
+  "concepts": [
+    "o_analisador_de_votos"
+  ],
+  "prerequisites": [
+    "guardar-no-mapa",
+    "percorrer-a-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:std::collections::HashMap"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-composicao-do-modulo",
+      "title": "A composição do módulo",
+      "markdown": "O módulo ensinou as peças; o programa é o ENCADEAMENTO delas:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut contagem = HashMap::new();\nfor voto in votos {\n    *contagem.entry(voto).or_insert(0) += 1;\n}\n```\n\nA lista dos votos entra por valor, o laço entrega cada voto dono de si, e o padrão entry acumula no mapa — as aulas da lista e do mapa, numa função só."
+    },
+    {
+      "id": "a-pergunta-do-apuramento",
+      "title": "A pergunta do apuramento",
+      "markdown": "Quantos votos a ana tem? O `.get` pergunta sem arriscar pânico, e o `match` abre a caixa — ausente é zero:\n\n```rust\nlet da_ana = match contagem.get(\"ana\") {\n    Some(n) => *n,\n    None => 0,\n};\n```\n\nA urna sem voto da ana NÃO panica: o braço `None` responde `0` — a decisão que o programa toma, não o colchete."
+    },
+    {
+      "id": "o-resultado-e-texto",
+      "title": "O resultado é texto",
+      "markdown": "O apuramento termina em FRASE — o `format!` monta o resultado com os números que o mapa respondeu:\n\n```rust\nformat!(\"ana: {} votos\", da_ana)\n```\n\nLista (M8), mapa (M8), caixa (M7), texto (M1): o programa inteiro do módulo numa função."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-pipeline-da-urna",
+      "sectionId": "a-composicao-do-modulo",
+      "statement": "O analisador encadeia as peças do módulo: lista de votos, mapa da contagem, padrão entry.",
+      "question": "Qual a ordem do encadeamento no analisador?",
+      "options": [
+        "A lista entra por valor, o entry acumula no mapa",
+        "O mapa nasce cheio e a lista o esvazia",
+        "O format! roda primeiro, o mapa depois",
+        "O colchete conta cada voto, um pânico por vez"
+      ],
+      "answerIndex": 0,
+      "feedback": "Lista → padrão entry → mapa: a contagem é o laço alimentando o mapa.",
+      "optionRationales": [
+        "O laço por valor entrega os votos; o entry acumula cada um.",
+        "O mapa nasce vazio e CRESCE — a lista é a entrada, não o contrário.",
+        "O texto é o ÚLTIMO passo — depois da contagem.",
+        "Pânico nenhum: o padrão entry e o get são as perguntas seguras."
+      ]
+    },
+    {
+      "id": "ausente-e-zero",
+      "sectionId": "a-pergunta-do-apuramento",
+      "statement": "Ausente é zero: o get devolve None e o braço None do match responde 0 — sem pânico.",
+      "question": "Na urna sem voto da ana, o que o `match contagem.get(\"ana\")` devolve?",
+      "options": [
+        "0 — o braço None responde zero",
+        "Panica — a chave não existe",
+        "Some(0) — a urna guarda um zero",
+        "None — e o programa para"
+      ],
+      "answerIndex": 0,
+      "feedback": "O get devolve None; o braço None diz: ausente é 0.",
+      "optionRationales": [
+        "A decisão é do match: sem voto, a resposta do apuramento é 0.",
+        "O pânico é do colchete — o get devolve a caixa.",
+        "A urna não guarda zero: o None do get vira 0 no braço.",
+        "O match cobre os dois braços — o programa segue."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-urna-apurada"
+  ]
+}

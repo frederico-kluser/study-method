@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-espacos-do-texto",
+  "title": "Os espaços do texto",
+  "concept": "percorrer_o_texto",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# Os espaços do texto\n\nA função `conta_espacos` deve percorrer a frase letra por letra e contar os espaços:\n\n1. comece com o total em `0`;\n2. para cada `letra` em `frase.chars()`, compare `letra.to_string()` com `\" \"`;\n3. quando for espaço, some `1` no total;\n4. devolva o total.\n\n`conta_espacos(\"bom dia\")` devolve `1`; `conta_espacos(\"um dois tres\")` devolve `2`; `conta_espacos(\"sol\")` devolve `0`.",
+  "starterCode": "pub fn conta_espacos(frase: &str) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn conta_espacos(frase: &str) -> usize {\n    let mut total = 0;\n    for letra in frase.chars() {\n        if letra.to_string() == \" \" {\n            total += 1;\n        }\n    }\n    total\n}\n",
+  "testsCode": "use desafio::conta_espacos;\n\n#[test]\nfn testa_os_espacos_do_bom_dia() {\n    assert_eq!(conta_espacos(\"bom dia\"), 1);\n}\n\n#[test]\nfn testa_os_espacos_do_um_dois_tres() {\n    assert_eq!(conta_espacos(\"um dois tres\"), 2);\n}\n\n#[test]\nfn testa_os_espacos_do_sol() {\n    assert_eq!(conta_espacos(\"sol\"), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "conta_espacos deve percorrer com .chars e devolver 1 para \"bom dia\".",
+      "teste": "testa_os_espacos_do_bom_dia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "conta_espacos deve percorrer com .chars e devolver 2 para \"um dois tres\".",
+      "teste": "testa_os_espacos_do_um_dois_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "conta_espacos deve percorrer com .chars e devolver 0 para \"sol\".",
+      "teste": "testa_os_espacos_do_sol"
+    }
+  ],
+  "expectedTestCount": 3
+}

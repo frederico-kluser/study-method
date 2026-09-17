@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-embarque-do-aviao",
+  "title": "O embarque do avião",
+  "concept": "result_resposta",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O embarque do avião\n\nO balcão do aeroporto emite o bilhete de embarque — ou recusa, com o motivo. A função já tem a assinatura; complete o corpo:\n\n- poltrona negativa: `Err` carregando a String `\"poltrona negativa\"`;\n- poltrona 0 ou maior: `Ok` carregando o número da poltrona.\n\nPara conferir, o arquivo traz `o_bilhete_da`, o conferente de respostas: ele abre o `Result` e imprime o bilhete (`bilhete: <n>`) ou o motivo da recusa. Os testes passam a SUA resposta por ele:\n\n- `o_bilhete_da(o_embarque_de(12))` devolve `bilhete: 12`;\n- `o_bilhete_da(o_embarque_de(-3))` devolve `poltrona negativa`.\n\nO `Result<i32, String>` carrega o bilhete OU o motivo — as duas variantes carregam.\n",
+  "starterCode": "pub fn o_bilhete_da(resposta: Result<i32, String>) -> String {\n    match resposta {\n        Ok(n) => format!(\"bilhete: {}\", n),\n        Err(motivo) => motivo,\n    }\n}\n\npub fn o_embarque_de(poltrona: i32) -> Result<i32, String> {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_bilhete_da(resposta: Result<i32, String>) -> String {\n    match resposta {\n        Ok(n) => format!(\"bilhete: {}\", n),\n        Err(motivo) => motivo,\n    }\n}\n\npub fn o_embarque_de(poltrona: i32) -> Result<i32, String> {\n    if poltrona < 0 {\n        Err(String::from(\"poltrona negativa\"))\n    } else {\n        Ok(poltrona)\n    }\n}\n",
+  "testsCode": "use desafio::o_bilhete_da;\nuse desafio::o_embarque_de;\n\n#[test]\nfn testa_o_bilhete_da_poltrona_doze() {\n    assert_eq!(o_bilhete_da(o_embarque_de(12)), String::from(\"bilhete: 12\"));\n}\n\n#[test]\nfn testa_o_bilhete_da_poltrona_negativa() {\n    assert_eq!(o_bilhete_da(o_embarque_de(-3)), String::from(\"poltrona negativa\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "Com poltrona não-negativa, o_embarque_de monta o Ok com o número: o_bilhete_da(o_embarque_de(12)) responde \"bilhete: 12\".",
+      "teste": "testa_o_bilhete_da_poltrona_doze"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Com poltrona negativa, o_embarque_de devolve Err carregando o motivo: o_bilhete_da responde \"poltrona negativa\".",
+      "teste": "testa_o_bilhete_da_poltrona_negativa"
+    }
+  ],
+  "expectedTestCount": 2
+}

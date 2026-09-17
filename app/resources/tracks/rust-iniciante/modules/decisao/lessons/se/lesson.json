@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "se",
+  "title": "Se",
+  "summary": "O if executa um bloco só quando a condição é true — sem parênteses, com chaves.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:IfExpression",
+  "concepts": [
+    "se"
+  ],
+  "prerequisites": [
+    "comparar-numeros"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IfExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-bloco-que-decide",
+      "title": "O bloco que decide",
+      "markdown": "O `if` executa um bloco SÓ quando a condição vale `true`. A condição fica SEM parênteses; as chaves são obrigatórias:\n\n```rust\npub fn o_maior(a: i32, b: i32) -> i32 {\n    let mut maior = a;\n    if b > a {\n        maior = b;\n    }\n    maior\n}\n```\n\n`maior` começa valendo `a`; se `b` for maior, o bloco troca o valor. No fim, `maior` guarda o maior dos dois."
+    },
+    {
+      "id": "quando-e-false-nada-acontece",
+      "title": "Quando é false, nada acontece",
+      "markdown": "Quando a condição é `false`, o bloco do `if` é pulado inteiro — e o programa continua depois dele:\n\n```rust\npub fn o_maior(a: i32, b: i32) -> i32 {\n    let mut maior = a;\n    if b > a {\n        maior = b;\n    }\n    maior\n}\n```\n\n`o_maior(3, 2)`: a condição é `false`, o bloco não roda, e `maior` fica com o `a` que já tinha — que é justamente o maior."
+    },
+    {
+      "id": "a-condicao-e-uma-pergunta",
+      "title": "A condição é uma pergunta",
+      "markdown": "O que fica entre o `if` e as chaves é uma comparação — a matéria das aulas de `>` e `<`:\n\n```rust\npub fn deu_destaque(nota: i32) -> bool {\n    let mut destaque = false;\n    if nota > 8 {\n        destaque = true;\n    }\n    destaque\n}\n```\n\n`nota > 8` é a condição; `destaque = true;` é a consequência — com o `;` de instrução, porque a ordem não devolve valor."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "if-sem-parenteses",
+      "statement": "Em Rust a condição do if fica sem parênteses e o bloco é sempre entre chaves.",
+      "question": "Como fica a decisão com if em Rust?",
+      "options": [
+        "if nota > 8 { ... } — sem parênteses, com chaves",
+        "if (nota > 8) sem chaves",
+        "if (nota > 8) { ... } — com parênteses e chaves",
+        "if nota > 8 then ... end"
+      ],
+      "answerIndex": 0,
+      "feedback": "Rust dispensa os parênteses da condição e EXIGE as chaves do bloco.",
+      "sectionId": "o-bloco-que-decide",
+      "optionRationales": [
+        "A forma de Rust é if condição { ... }: parênteses dispensados, chaves obrigatórias.",
+        "Sem chaves o if não compila — o bloco é obrigatório em Rust.",
+        "Os parênteses até compilam com aviso, mas a forma da linguagem é sem eles.",
+        "Rust não tem then/end — o bloco é chaves, e acabou."
+      ]
+    },
+    {
+      "id": "false-pula-o-bloco",
+      "statement": "Quando a condição é false, o bloco do if é pulado inteiro e o programa continua.",
+      "question": "Se a condição do `if` é `false`, o que acontece com o bloco?",
+      "options": [
+        "é pulado inteiro e o programa segue depois dele",
+        "roda pela metade",
+        "o programa para com erro",
+        "roda de trás para frente"
+      ],
+      "answerIndex": 0,
+      "feedback": "Condição false: o bloco inteiro é pulado — o programa segue na linha seguinte ao if.",
+      "sectionId": "quando-e-false-nada-acontece",
+      "optionRationales": [
+        "O if pulou o bloco e o programa seguiu — é exatamente esse o papel dele.",
+        "Blocos rodam inteiros ou não rodam; não existe metade.",
+        "Condição false é decisão normal, não erro — o programa continua.",
+        "Não existe ordem invertida: o bloco ou roda inteiro ou não roda."
+      ]
+    },
+    {
+      "id": "o-maior-com-if",
+      "statement": "No o_maior, o maior começa valendo o primeiro número e o if troca quando o segundo é maior.",
+      "question": "Em `o_maior(2, 3)`, o que o `if` faz?",
+      "options": [
+        "troca maior para 3, porque 3 > 2 é true",
+        "nada, porque 2 já é o valor",
+        "troca maior para 2",
+        "devolve um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "b > a é 3 > 2, que é true — o bloco roda e maior passa a valer 3.",
+      "sectionId": "o-bloco-que-decide",
+      "optionRationales": [
+        "A condição 3 > 2 é true, o bloco roda e maior vira o 3.",
+        "A condição é true (3 é maior que 2) — o bloco roda e troca o valor.",
+        "maior passa a valer b, que é 3 — não 2.",
+        "if com comparação de números compila sem problema nenhum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "std — a palavra-chave if",
+      "url": "https://doc.rust-lang.org/std/keyword.if.html",
+      "description": "A página oficial da palavra-chave if e do seu papel de expressão."
+    }
+  ],
+  "challenges": [
+    "o-maior-dos-dois"
+  ]
+}

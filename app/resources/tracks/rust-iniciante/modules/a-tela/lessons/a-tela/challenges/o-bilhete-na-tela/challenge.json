@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-bilhete-na-tela",
+  "title": "O bilhete na tela",
+  "concept": "tela",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O bilhete na tela\n\nEscreva uma função `bilhete` que recebe um número de assento e:\n\n1. mostra na tela a linha `assento: 12` (com o número recebido);\n2. devolve o bilhete montado — o MESMO texto, como valor.\n\nMostre E devolva: a linha do `println!` é para a pessoa ler, o `String` devolvido é o que o teste confere.",
+  "starterCode": "pub fn bilhete(assento: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn bilhete(assento: i32) -> String {\n    println!(\"assento: {assento}\");\n    format!(\"assento: {assento}\")\n}\n",
+  "testsCode": "use desafio::bilhete;\n\n#[test]\nfn testa_o_bilhete_do_assento_doze() {\n    assert_eq!(bilhete(12), \"assento: 12\");\n}\n\n#[test]\nfn testa_o_bilhete_do_assento_sete() {\n    assert_eq!(bilhete(7), \"assento: 7\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função bilhete(12) deve devolver o texto \"assento: 12\" (e mostrar a linha na tela).", "teste": "testa_o_bilhete_do_assento_doze" },
+    { "id": "REQ-2", "descricao": "A função bilhete(7) deve devolver o texto \"assento: 7\" (e mostrar a linha na tela).", "teste": "testa_o_bilhete_do_assento_sete" }
+  ],
+  "expectedTestCount": 2
+}

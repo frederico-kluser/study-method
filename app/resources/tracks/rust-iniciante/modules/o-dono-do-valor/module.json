@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dono-do-valor",
+  "title": "O dono do valor",
+  "order": 4,
+  "lessons": [
+    "o-texto-que-e-dono",
+    "copiar-em-vez-de-mover",
+    "o-movimento",
+    "a-caixa-que-consome",
+    "devolver-o-dono",
+    "o-que-copia-e-o-que-move",
+    "reusar-o-nome",
+    "o-tamanho-do-texto",
+    "juntar-textos",
+    "crescer-o-texto",
+    "de-fatia-para-dono",
+    "a-funcao-que-transforma",
+    "o-construtor-de-frase"
+  ],
+  "challenge": "o-dono-do-valor"
+}

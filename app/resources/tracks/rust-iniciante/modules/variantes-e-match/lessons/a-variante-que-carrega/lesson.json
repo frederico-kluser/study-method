@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-variante-que-carrega",
+  "title": "A variante que carrega",
+  "summary": "A variante pode CARREGAR um valor: `Vale(i32)` declara o que traz; `Vale(valor)` no braço nomeia o que chegou.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:TupleStructPattern",
+  "concepts": [
+    "variante_que_carrega"
+  ],
+  "prerequisites": [
+    "a-escolha-fixa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:TupleStructPattern"
+    ],
+    "receptive": [
+      "node:OrderedFieldDeclarationList"
+    ]
+  },
+  "introducesTerms": [
+    "term:padrão"
+  ],
+  "theory": [
+    {
+      "id": "a-variante-que-traz-um-valor",
+      "title": "A variante que traz um valor",
+      "markdown": "Uma variante não precisa ser vazia: ela pode CARREGAR um valor — e o tipo do que carrega entra na declaração, entre parênteses:\n\n```rust\npub enum Brinde {\n    Nada,\n    Vale(i32),\n}\n```\n\nO conjunto tem DUAS formas de brinde: `Nada` (vazia, como as das aulas de cima) e `Vale` (carrega um `i32`). Montar o valor que carrega é a variante com o valor dentro: `Vale(30)`."
+    },
+    {
+      "id": "o-padrao-que-nomeia-o-que-chega",
+      "title": "O padrão que nomeia o que chega",
+      "markdown": "No braço, o padrão `Vale(valor)` CASA com a variante e NOMEIA o valor que ela carrega:\n\n```rust\npub fn o_valor_do(brinde: Brinde) -> i32 {\n    match brinde {\n        Brinde::Vale(valor) => valor,\n        Brinde::Nada => 0,\n    }\n}\n```\n\nA variante carrega o valor; o padrão extrai: dentro da resposta, `valor` é o `i32` que chegou — uma variável como qualquer outra."
+    },
+    {
+      "id": "as-duas-formas-no-mesmo-conjunto",
+      "title": "As duas formas no mesmo conjunto",
+      "markdown": "A variante vazia continua existindo ao lado da que carrega — e cada uma tem o seu braço:\n\n```rust\npub fn a_ficha_do(brinde: Brinde) -> i32 {\n    match brinde {\n        Brinde::Vale(valor) => valor * 2,\n        Brinde::Nada => 0,\n    }\n}\n```\n\nO padrão da vazia é só o caminho; o da que carrega tem o nome do valor dentro. Dois braços, dois casamentos."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-variante-pode-carregar",
+      "sectionId": "a-variante-que-traz-um-valor",
+      "statement": "A variante pode carregar um valor; o tipo do que carrega entra entre parênteses na declaração.",
+      "question": "Na declaração `Vale(i32)`, o que o `i32` entre parênteses declara?",
+      "options": [
+        "O tipo do valor que a variante Vale carrega",
+        "O número de variantes do conjunto",
+        "O valor inicial da variante",
+        "O tipo do conjunto Brinde"
+      ],
+      "answerIndex": 0,
+      "feedback": "A variante declara o que carrega: cada `Vale` carrega UM i32.",
+      "optionRationales": [
+        "Isso: `Vale(i32)` é a forma da variante — um Vale qualquer carrega um i32.",
+        "A lista de variantes fica fora, uma por linha; os parênteses são do conteúdo.",
+        "A declaração diz a FORMA, não um valor pronto: o valor é de cada peça.",
+        "O tipo do conjunto é `Brinde`; o `i32` é o conteúdo desta variante."
+      ]
+    },
+    {
+      "id": "o-padrao-nomeia-o-que-chega",
+      "sectionId": "o-padrao-que-nomeia-o-que-chega",
+      "statement": "No braço, o padrão `Vale(valor)` casa com a variante e nomeia o valor carregado.",
+      "question": "No braço `Brinde::Vale(valor) => valor`, o que é o `valor` do lado direito?",
+      "options": [
+        "O valor carregado pela variante, nomeado pelo padrão",
+        "O nome da variante",
+        "Um valor fixo, sempre zero",
+        "O conjunto inteiro, desmontado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O padrão extrai: casou com Vale, o que ela carregava passa a se chamar `valor`.",
+      "optionRationales": [
+        "Isso: casar com `Vale(valor)` é extrair — o conteúdo chega com o nome do padrão.",
+        "`valor` não é variante nenhuma: é o nome dado ao conteúdo carregado.",
+        "O valor vem da peça montada (`Vale(30)` traz 30) — não é constante.",
+        "O padrão casou com a VARIANTE e tirou o conteúdo — não o conjunto todo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining an Enum — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html",
+      "description": "O capítulo oficial do enum: as variantes, os valores que elas carregam e o Option como caixa."
+    },
+    {
+      "title": "Enums — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/enum.html",
+      "description": "Os exemplos oficiais de enum: declaração, variantes e caminhos."
+    }
+  ],
+  "challenges": [
+    "o-vale-do-brinde"
+  ]
+}

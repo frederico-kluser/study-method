@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "repetir-para-sempre",
+  "title": "Repetir para sempre",
+  "summary": "O loop repete o bloco de novo e de novo, sem perguntar nada — e o break é quem deixa o laço.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:LoopExpression",
+  "concepts": [
+    "laco_loop"
+  ],
+  "prerequisites": [
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "node:LoopExpression",
+      "node:BreakExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-laco-que-nao-pergunta-nada",
+      "title": "O laço que não pergunta nada",
+      "markdown": "O `loop` repete o bloco de novo e de novo, sem perguntar nada. Ele não tem condição: entra, roda o bloco, volta ao começo:\n\n```rust\npub fn ate_tres() -> i32 {\n    let mut conta = 0;\n    loop {\n        conta += 1;\n        if conta == 3 {\n            break;\n        }\n    }\n    conta\n}\n```\n\n`ate_tres()` devolve `3`: a conta sobe uma unidade por volta, e o `break` interrompe o laço quando chega em 3. O `break` é o PARE do laço — ele é a matéria da próxima aula; aqui ele já vem no esqueleto, porque sem ele o laço não sai nunca."
+    },
+    {
+      "id": "sem-o-pare-ninguem-sai",
+      "title": "Sem o PARE, ninguém sai",
+      "markdown": "Um laço sem o `break` não acaba nunca: roda a volta, volta ao começo, roda de novo — para sempre. Tire o `break` do `ate_tres` e o programa fica preso dentro dele: nenhuma linha depois do laço roda, e nenhum teste devolve. As três linhas que decidem a saída são sempre estas:\n\n```rust\npub fn ate_tres() -> i32 {\n    let mut conta = 0;\n    loop {\n        conta += 1;\n        if conta == 3 {\n            break;\n        }\n    }\n    conta\n}\n```\n\nO `if` é quem decide O MOMENTO do `break`: a condição vira `true`, o bloco roda, e o laço interrompe ali mesmo."
+    },
+    {
+      "id": "a-corrida-que-soma-ate-o-limite",
+      "title": "A corrida que soma até o limite",
+      "markdown": "O desafio soma os números de 1 até o limite recebido. A soma é o acumulador: começa em `0` e junta um número por volta; a condição do `if` é quem manda parar:\n\n```rust\npub fn soma_ate(limite: i32) -> i32 {\n    let mut soma = 0;\n    let mut n = 1;\n    loop {\n        if n > limite {\n            break;\n        }\n        soma += n;\n        n += 1;\n    }\n    soma\n}\n```\n\n`soma_ate(4)` devolve `10`: as voltas somam 1, 2, 3 e 4 — e param no instante em que `n` passa do limite. Depois do laço, a última expressão do corpo devolve a soma."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-laco-nao-pergunta-nada",
+      "statement": "O loop repete o bloco de novo e de novo, sem perguntar nada — quem faz ele acabar é o break.",
+      "question": "O que o `loop` faz que o `if` não faz?",
+      "options": [
+        "repete o bloco de novo e de novo, sem perguntar nada",
+        "decide entre dois caminhos",
+        "troca o valor de uma variável",
+        "devolve um valor para o teste"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `loop` é a repetição pura: entra, roda, volta ao começo — a saída é o `break`.",
+      "sectionId": "o-laco-que-nao-pergunta-nada",
+      "optionRationales": [
+        "O `loop` roda a volta e volta ao começo, quantas vezes for preciso — a repetição é dele.",
+        "Decidir entre caminhos é o papel do `if` — o `loop` repete.",
+        "Trocar o valor é papel do `=` e do `+=` dentro do corpo — não do laço em si.",
+        "Devolver valor é papel da última expressão do corpo — o `loop` apenas repete."
+      ]
+    },
+    {
+      "id": "o-break-e-o-pare",
+      "statement": "Sem o break, o laço não acaba nunca — o programa fica preso dentro dele.",
+      "question": "O que acontece se nenhum `break` interromper o `loop`?",
+      "options": [
+        "o laço repete para sempre e nada depois dele roda",
+        "o laço para sozinho depois de 10 voltas",
+        "o laço devolve o valor da última volta",
+        "o compilador recusa o laço"
+      ],
+      "answerIndex": 0,
+      "feedback": "`loop` sem `break` é repetição infinita: o programa fica preso e as linhas seguintes nunca rodam.",
+      "sectionId": "sem-o-pare-ninguem-sai",
+      "optionRationales": [
+        "O `loop` não tem condição de fim: sem o `break` ele repete para sempre.",
+        "O `loop` não conta voltas sozinho — quem manda é o código dentro dele.",
+        "Devolver valor no fim é papel da última expressão — e ela nunca é alcançada sem o `break`.",
+        "O laço compila direitinho — o problema acontece quando o programa roda."
+      ]
+    },
+    {
+      "id": "o-if-decide-o-momento",
+      "statement": "No laço, o if é quem decide o momento do break: a condição vira true e o laço interrompe ali.",
+      "question": "Em `soma_ate`, quem decide quando o laço para?",
+      "options": [
+        "o if dentro do laço: quando `n` passa do limite, ele roda o break",
+        "o loop, que conta as voltas e para sozinho",
+        "o let mut soma, quando a soma fica grande",
+        "o teste, que manda o laço parar"
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição `n > limite` vira `true`, o bloco do `if` roda e o `break` interrompe o laço na hora.",
+      "sectionId": "a-corrida-que-soma-ate-o-limite",
+      "optionRationales": [
+        "O `if` é o juiz dentro do laço: condição `true`, `break` imediato.",
+        "O `loop` não tem juiz nenhum — por isso ele repete sem perguntar nada.",
+        "A soma é o acumulador: ela junta valores, não decide a parada.",
+        "O teste roda DEPOIS — quem decide dentro do programa é o código."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do loop, do while e do for — e do break."
+    },
+    {
+      "title": "Rust by Example — Loops and Labels",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/loop.html",
+      "description": "Os exemplos oficiais do loop — a repetição sem fim e o break."
+    },
+    {
+      "title": "std — a palavra-chave loop",
+      "url": "https://doc.rust-lang.org/std/keyword.loop.html",
+      "description": "A página oficial da palavra-chave loop."
+    }
+  ],
+  "challenges": [
+    "a-primeira-volta"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "mudar-dentro-do-laco",
+  "title": "Mudar dentro do laço",
+  "summary": "A forma nova do laço que MUDA: for x in fila sobre a lista &mut — cada item chega para escrever.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:ForExpression",
+  "concepts": [
+    "mudar_dentro_do_laco"
+  ],
+  "prerequisites": [
+    "percorrer-a-lista",
+    "mudar-pelo-emprestimo"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-laco-que-pede-para-mudar",
+      "title": "O laço que pede para mudar",
+      "markdown": "O laço que só lê empresta com `&`; o laço que MUDA recebe a lista mutável — o `&mut` vem na assinatura, e cada volta entrega uma gaveta para escrever:\n\n```rust\npub fn dobre_todos(fila: &mut Vec<i32>) {\n    for x in fila {\n        *x = *x * 2;\n    }\n}\n```\n\nO laço corre DENTRO do empréstimo mutável — quem chama emprestou com `&mut fila`."
+    },
+    {
+      "id": "o-item-chega-para-mudar",
+      "title": "O item chega para mudar",
+      "markdown": "No laço mutável, cada `x` chega como `&mut i32` — a GAVETA aberta do valor. O deref escreve dentro:\n\n```rust\npub fn dobre_todos(fila: &mut Vec<i32>) {\n    for x in fila {\n        *x = *x * 2;\n    }\n}\n```\n\n`*x = *x * 2` lê o valor, dobra, e escreve de volta na MESMA peça — a lista muda no lugar."
+    },
+    {
+      "id": "a-regra-do-emprestimo-no-laco",
+      "title": "A regra do empréstimo no laço",
+      "markdown": "A regra do M5 vale dentro do laço inteiro: um `&mut` por vez, sem leitor ao lado. Enquanto o laço mutável corre, a lista está EMPRESTADA para mudar — quem tentasse ler a fila no meio do laço brigaria com o compilador.\n\nO laço termina, o empréstimo volta, e a lista segue dona de si."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-laco-mutavel-recebe-gavetas",
+      "sectionId": "o-laco-que-pede-para-mudar",
+      "statement": "O laço sobre a lista mutável entrega cada item como &mut — o deref escreve dentro da peça.",
+      "question": "No laço `for x in fila` sobre uma `&mut Vec<i32>`, o que é `x`?",
+      "options": [
+        "Uma gaveta &mut i32 para escrever no valor",
+        "Uma cópia do valor — a lista não muda",
+        "O tamanho restante da fila",
+        "Um Option com o valor dentro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço mutável entrega a gaveta: *x escreve na peça original.",
+      "optionRationales": [
+        "É o &mut do empréstimo para mudar — o deref escreve.",
+        "Escrever na gaveta muda a lista — por isso ela veio &mut.",
+        "O += não exige ponteiro: quem chega é a gaveta mutável.",
+        "A caixa é do pop e do get — aqui chega a gaveta direta."
+      ]
+    },
+    {
+      "id": "um-mut-por-vez",
+      "sectionId": "a-regra-do-emprestimo-no-laco",
+      "statement": "A regra do empréstimo vale no laço: um &mut por vez, sem leitor ao lado.",
+      "question": "Enquanto `for x in fila` corre sobre a `&mut fila`, quem pode ler a fila?",
+      "options": [
+        "Ninguém — o empréstimo mutável é exclusivo",
+        "Qualquer leitor, enquanto não escrever",
+        "Só o próprio laço e um clone",
+        "Todos — a leitura nunca briga"
+      ],
+      "answerIndex": 0,
+      "feedback": "Um &mut OU muitos & — nunca os dois: durante o laço mutável, a fila é exclusiva.",
+      "optionRationales": [
+        "É a regra do M5: o &mut quer a lista só para ele.",
+        "Leitor ao lado do &mut é o briga que o compilador trava.",
+        "Clone é cópia nova — não é leitor da fila original.",
+        "Ler durante o &mut é o briga que o compilador reprova."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "o-soma-um-em-cada"
+  ]
+}

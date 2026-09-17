@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-fatia-do-texto",
+  "title": "A fatia do texto",
+  "summary": "O intervalo dentro dos colchetes recorta a fatia emprestada: &frase[0..ate] é um pedaço do mesmo texto.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:IndexExpression",
+  "concepts": [
+    "a_fatia_do_texto"
+  ],
+  "prerequisites": [
+    "emprestar-o-texto",
+    "contar-ate"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IndexExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-colchete-que-recorta",
+      "title": "O colchete que recorta",
+      "markdown": "Os colchetes com um intervalo recortam o texto — e o `&` na frente entrega o PEDAÇO emprestado:\n\n```rust\npub fn recorta(frase: &str, ate: usize) -> &str {\n    &frase[0..ate]\n}\n```\n\nEm `&frase[0..ate]`, o intervalo `0..ate` escolhe as letras e o `&` empresta só o recorte."
+    },
+    {
+      "id": "a-fatia-nao-copia-nada",
+      "title": "A fatia não copia nada",
+      "markdown": "O recorte é o MESMO texto de fora — nada é copiado, nada é movido:\n\n```rust\npub fn recorta(frase: &str, ate: usize) -> &str {\n    &frase[0..ate]\n}\n```\n\n`recorta(\"bom dia\", 3)` devolve `bom`: as três primeiras letras, emprestadas da frase original. A contagem de casas começa no zero — como o intervalo do laço `for`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-intervalo-escolhe",
+      "sectionId": "o-colchete-que-recorta",
+      "statement": "O colchete com o intervalo escolhe o pedaço; o & empresta o recorte.",
+      "question": "Em `&frase[0..ate]`, o que o intervalo `0..ate` faz?",
+      "options": [
+        "Escolhe as casas do recorte — do zero até antes do ate",
+        "Copia as letras",
+        "Inverte a frase",
+        "Conta as letras"
+      ],
+      "answerIndex": 0,
+      "feedback": "O intervalo marca começo e fim; o & empresta o recorte.",
+      "optionRationales": [
+        "0..ate escolhe as casas — o fim fica de fora, como no for.",
+        "Copiar é o clone; a fatia não copia nada.",
+        "Inverter não é papel do intervalo.",
+        "Contar é o len — o intervalo recorta."
+      ]
+    },
+    {
+      "id": "a-fatia-e-o-mesmo-texto",
+      "sectionId": "a-fatia-nao-copia-nada",
+      "statement": "A fatia é o mesmo texto emprestado: nada é copiado.",
+      "question": "O que `recorta(\"bom dia\", 3)` cria de novo?",
+      "options": [
+        "Nada — é um pedaço do texto original, emprestado",
+        "Uma cópia de 3 letras",
+        "Um String dono",
+        "Uma frase nova"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fatia aponta para o original: o recorte não tem caixa própria.",
+      "optionRationales": [
+        "O & empresta o pedaço — o texto mora na frase de fora.",
+        "Cópia seria duplicar; a fatia apenas aponta.",
+        "String dono seria o to_string — a fatia é mais pobre que isso.",
+        "A frase nova não existe: o recorte vive na original."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Slices — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-03-slices.html",
+      "description": "O capítulo oficial das fatias: o pedaço emprestado de um texto e o intervalo que o recorta."
+    },
+    {
+      "title": "primitive str — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "O texto cru emprestado: fatias, len e chars, lidos sem dono."
+    },
+    {
+      "title": "Rust by Example — std & str: strings",
+      "url": "https://doc.rust-lang.org/rust-by-example/std/str.html",
+      "description": "Exemplos oficiais executáveis de String, fatias e percurso de texto."
+    }
+  ],
+  "challenges": [
+    "o-pedaco-do-comeco"
+  ]
+}

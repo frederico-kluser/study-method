@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-emprestimo-que-acaba",
+  "title": "O empréstimo que acaba",
+  "concept": "emprestimo_morre_junto",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O empréstimo que acaba\n\nA função `resposta` empresta o texto DENTRO do escopo e devolve a medida — o empréstimo morre junto com o escopo, sem anotação nenhuma:\n\n1. crie a fatia emprestada com anotação: `let fatia: &str = &texto;`;\n2. meça com `fatia.len()` e devolva a medida.\n\n`resposta(String::from(\"bom dia\"))` devolve `7`; `resposta(String::from(\"sol\"))` devolve `3`. O `texto` nunca saiu de casa — o acordo implícito foi cumprido.",
+  "starterCode": "pub fn resposta(texto: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn resposta(texto: String) -> usize {\n    let fatia: &str = &texto;\n    fatia.len()\n}\n",
+  "testsCode": "use desafio::resposta;\n\n#[test]\nfn testa_a_resposta_do_bom_dia() {\n    assert_eq!(resposta(String::from(\"bom dia\")), 7);\n}\n\n#[test]\nfn testa_a_resposta_do_sol() {\n    assert_eq!(resposta(String::from(\"sol\")), 3);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "resposta deve medir pela fatia emprestada com anotação &str e devolver 7 para \"bom dia\", sem anotar lifetime.",
+      "teste": "testa_a_resposta_do_bom_dia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "resposta deve medir pela fatia emprestada com anotação &str e devolver 3 para \"sol\", sem anotar lifetime.",
+      "teste": "testa_a_resposta_do_sol"
+    }
+  ],
+  "expectedTestCount": 2
+}

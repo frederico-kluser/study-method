@@ -236,6 +236,13 @@ aula**. É a mesma regra que a Exercism escreve três vezes com escopos delibera
 stub e exemplar podem usar recursos introduzidos pelo exercício ou por seus pré-requisitos; os testes
 só pelos **pré-requisitos**.
 
+> ⚑ **O que o `audit` implementa hoje desta regra — declarado, não resolvido em silêncio.** O
+> extrator do audit roda sobre `challengeSurfaces` = **starter/solution/tests** (e a `theory` da
+> aula) — o `statement` NÃO passa pelo extrator, então a linha `atomos(statement) ⊆
+> budget_SAIDA(N).receptive` vale por **disciplina de autoria** (a revisão que audita a teoria
+> audita o enunciado), não por gate. Lacuna registrada pela fabricação do `rust-iniciante`
+> ([`20-trilha-rust.md`](20-trilha-rust.md) §⚑ (d)); vale para todas as linguagens.
+
 ### 3.4 Conceito, aula e as duas arestas do grafo
 
 Um **conceito** é o nó do grafo; uma **aula** é a unidade de entrega. Não são a mesma coisa e não
@@ -530,6 +537,14 @@ orçamento):
 ### 5.3 O extrator
 
 Implementado em `app/electron/main/engine/extract.ts`, sobre o **compilador do TypeScript**.
+
+⚑ **O extrator é POR LINGUAGEM** (`lang/registry.ts`): a interface `LanguageAdapter` registra um
+adaptador por linguagem — `javascript`/`typescript` (TS compiler), `python` (`vocab/py/`,
+subprocesso `python3`) e **`rust`** (`lang/rust.ts` + `vocab/rs/`, parser tree-sitter WASM por
+subprocesso, inventário `vocab/atoms.rust.json`, 190 chaves). A engine é multilíngue; o contrato de
+conteúdo da cadeia Rust (iniciante → intermediário → avançado → especialista) é o
+[`20-trilha-rust.md`](20-trilha-rust.md). Os gates desta seção valem para TODAS as linguagens sem
+exceção.
 
 A escolha é medida, não estética: `acorn`, `eslint-visitor-keys`, `esquery`, `eslint-scope` e
 `globals` **não existem** em `app/node_modules`, nem transitivamente; `typescript@5.8.3` existe como

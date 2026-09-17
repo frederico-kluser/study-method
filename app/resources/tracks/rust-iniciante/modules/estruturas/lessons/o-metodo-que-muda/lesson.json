@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-metodo-que-muda",
+  "title": "O método que muda",
+  "summary": "A forma nova do self-receptor: &mut self, o método que muda o valor dele.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:SelfParameter",
+  "concepts": [
+    "metodo_mutavel"
+  ],
+  "prerequisites": [
+    "o-metodo",
+    "emprestar-para-mudar"
+  ],
+  "introduces": {
+    "productive": [
+      "node:SelfParameter"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-self-que-deixa-mudar",
+      "title": "O self que deixa mudar",
+      "markdown": "O `&self` deixa LER a peça. Para MUDAR, o receptor pede o `mut`:\n\n```rust\nimpl Ponto {\n    pub fn dobrar_x(&mut self) -> i32 {\n        self.x = self.x * 2;\n        self.x\n    }\n}\n```\n\nO `&mut self` é a forma nova do self-receptor: o mesmo empréstimo mutável que você já assina nas funções, agora no método."
+    },
+    {
+      "id": "mudar-e-devolver",
+      "title": "Mudar e devolver",
+      "markdown": "O método muda o campo e devolve o valor novo:\n\n```rust\nimpl Ponto {\n    pub fn dobrar_x(&mut self) -> i32 {\n        self.x = self.x * 2;\n        self.x\n    }\n}\n```\n\n`ponto_de(2, 3).dobrar_x()` devolve `4`: o `x` da peça dobrou, e o valor dobrado é o retorno."
+    },
+    {
+      "id": "sem-mut-nao-muda",
+      "title": "Sem mut, não muda",
+      "markdown": "Com `&self`, a atribuição NÃO compila — o receptor é só de leitura:\n\n```rust\nimpl Ponto {\n    pub fn tentativa(&self) -> i32 {\n        self.x = 9; // erro de compilação\n        9\n    }\n}\n```\n\nO compilador recusa: `cannot assign to self.x`. Para mudar, o receptor pede `mut`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-mut-no-receptor",
+      "sectionId": "o-self-que-deixa-mudar",
+      "statement": "O método que muda o valor pede &mut self no receptor.",
+      "question": "Qual é a assinatura do método que muda o `x` da peça?",
+      "options": [
+        "pub fn dobrar_x(&mut self)",
+        "pub fn dobrar_x(&self)",
+        "pub fn dobrar_x(self)",
+        "pub fn dobrar_x(mut)"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `&mut self` é o receptor que deixa mudar — o empréstimo mutável no método.",
+      "optionRationales": [
+        "O mut no receptor libera a mudança dos campos.",
+        "O &self é só de leitura: a atribuição não compila.",
+        "O self sem & não é a forma de método que muda.",
+        "O mut vai no receptor, não solto na assinatura."
+      ]
+    },
+    {
+      "id": "a-mudanca-e-no-campo",
+      "sectionId": "mudar-e-devolver",
+      "statement": "O método muda o campo da peça e pode devolver o valor novo.",
+      "question": "Em `ponto_de(2, 3).dobrar_x()`, o que o `x` da peça vira?",
+      "options": [
+        "4 — o campo dobrou dentro da peça",
+        "2 — o método não pode mudar o campo",
+        "3 — só o y contou",
+        "9 — o método zera antes de dobrar"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com `&mut self`, `self.x = self.x * 2` muda o campo da própria peça: de 2 para 4.",
+      "optionRationales": [
+        "O empréstimo mutável no receptor alcança o campo: 2 × 2 = 4.",
+        "Pode sim — é exatamente o que o &mut self libera.",
+        "A mudança é no x, não no y.",
+        "Não zera nada: a linha do método é self.x = self.x * 2."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Method Syntax — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-03-method-syntax.html",
+      "description": "O capítulo oficial do método com &mut self."
+    },
+    {
+      "title": "Defining Structs — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch05-01-defining-structs.html",
+      "description": "A struct cujos campos o método muda."
+    }
+  ],
+  "challenges": [
+    "o-ponto-que-dobra"
+  ]
+}

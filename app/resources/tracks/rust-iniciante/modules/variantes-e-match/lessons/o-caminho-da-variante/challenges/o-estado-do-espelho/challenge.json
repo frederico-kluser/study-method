@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-estado-do-espelho",
+  "title": "O estado do espelho",
+  "concept": "caminho_da_variante",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O estado do espelho\n\nO espelho do ateliê tem três estados de conservação. O molde já existe no arquivo: o enum `Estado` com as variantes `Novo`, `Riscado` e `Quebrado`.\n\nComplete as três funções, cada uma devolvendo a variante certa PELO CAMINHO `Estado::…`:\n\n- `estado_da_colo` devolve `Novo`;\n- `estado_da_vitrine` devolve `Riscado`;\n- `estado_do_fundo_do_bau` devolve `Quebrado`.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Estado {\n    Novo,\n    Riscado,\n    Quebrado,\n}\n\npub fn estado_da_colo() -> Estado {\n    todo!()\n}\n\npub fn estado_da_vitrine() -> Estado {\n    todo!()\n}\n\npub fn estado_do_fundo_do_bau() -> Estado {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Estado {\n    Novo,\n    Riscado,\n    Quebrado,\n}\n\npub fn estado_da_colo() -> Estado {\n    Estado::Novo\n}\n\npub fn estado_da_vitrine() -> Estado {\n    Estado::Riscado\n}\n\npub fn estado_do_fundo_do_bau() -> Estado {\n    Estado::Quebrado\n}\n",
+  "testsCode": "use desafio::estado_da_colo;\nuse desafio::estado_da_vitrine;\nuse desafio::estado_do_fundo_do_bau;\nuse desafio::Estado;\n\n#[test]\nfn testa_o_estado_da_colo() {\n    assert_eq!(estado_da_colo(), Estado::Novo);\n}\n\n#[test]\nfn testa_o_estado_da_vitrine() {\n    assert_eq!(estado_da_vitrine(), Estado::Riscado);\n}\n\n#[test]\nfn testa_o_estado_do_fundo_do_bau() {\n    assert_eq!(estado_do_fundo_do_bau(), Estado::Quebrado);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "estado_da_colo devolve a variante Novo pelo caminho Estado::Novo.",
+      "teste": "testa_o_estado_da_colo"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "estado_da_vitrine devolve a variante Riscado pelo caminho Estado::Riscado.",
+      "teste": "testa_o_estado_da_vitrine"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "estado_do_fundo_do_bau devolve a variante Quebrado pelo caminho Estado::Quebrado.",
+      "teste": "testa_o_estado_do_fundo_do_bau"
+    }
+  ],
+  "expectedTestCount": 3
+}

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "reatribuir",
+  "title": "Reatribuir",
+  "summary": "O `=` sozinho TROCA o valor guardado num nome `mut` — o nome continua, o valor de dentro muda.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:assign:=",
+  "concepts": [
+    "reatribuir"
+  ],
+  "prerequisites": [
+    "mudar-o-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "op:assign:=",
+      "node:AssignmentExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-igual-que-troca",
+      "title": "O igual que troca",
+      "markdown": "A promessa do `let mut` agora vira ação. O `=` escreve um valor novo POR CIMA do que o nome guardava:\n\n```rust\npub fn avancar() -> i32 {\n    let mut passos = 1;\n    passos = 4;\n    passos\n}\n```\n\nA linha do `=` é a reatribuição: `passos` deixou de valer `1` e passou a valer `4`."
+    },
+    {
+      "id": "criar-nao-e-trocar",
+      "title": "Criar não é trocar",
+      "markdown": "Duas linhas parecidas, papéis diferentes:\n\n```rust\nlet mut passos = 1;\npassos = 4;\n```\n\nA primeira linha CRIA o nome (`let` na frente); a segunda TROCA o valor de um nome que já existe (sem `let`). Escrever `let` de novo não troca — cria OUTRO nome em cima do antigo."
+    },
+    {
+      "id": "a-troca-exige-mut",
+      "title": "A troca exige mut",
+      "markdown": "A reatribuição só compila em nome criado com `let mut` — é a promessa da aula passada sendo cobrada.\n\n```rust\nlet mut passos = 1;\npassos = 4;\n```\n\nSe o nome foi criado sem `mut`, o `=` vira erro do `rustc` — e o erro aponta exatamente a linha da troca."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "igual-sozinho-troca",
+      "statement": "O `=` sem `let` troca o valor guardado num nome que já existe.",
+      "question": "Depois de `let mut passos = 1;` e `passos = 4;`, quanto vale `passos`?",
+      "options": [
+        "4",
+        "1",
+        "5",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A reatribuição escreve o valor novo por cima do antigo.",
+      "sectionId": "o-igual-que-troca"
+    },
+    {
+      "id": "let-cria-igual-troca",
+      "statement": "`let` cria um nome novo; `=` sozinho troca o valor de um nome existente.",
+      "question": "Qual linha TROCA o valor de `passos` que já existe?",
+      "options": [
+        "passos = 4;",
+        "let passos = 4;",
+        "let mut passos = 4;",
+        "mut passos = 4;"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem `let`, o `=` reatribui; com `let`, cria outro nome.",
+      "sectionId": "criar-nao-e-trocar"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial da mutabilidade: trocar o valor de um nome mutável."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial das funções, onde a reatribuição acontece."
+    }
+  ],
+  "challenges": [
+    "o-valor-novo"
+  ]
+}

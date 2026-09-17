@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-porta-rapida",
+  "title": "A porta rápida",
+  "summary": "unwrap abre a caixa sem casar e PANICA se vier vazia; expect abre com o seu motivo escrito.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.unwrap",
+  "concepts": [
+    "unwrap_expect"
+  ],
+  "prerequisites": [
+    "casar-a-caixa"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.unwrap",
+      "api:.expect"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:panic",
+    "term:unwrap"
+  ],
+  "theory": [
+    {
+      "id": "abrir-sem-casar",
+      "title": "Abrir sem casar",
+      "markdown": "O `match` é a porta CERTA; o `unwrap` é a porta RÁPIDA — ele abre a caixa numa linha e devolve o conteúdo:\n\n```rust\npub fn o_dobro_garantido(n: i32) -> i32 {\n    let caixa = o_dobro_de(n);\n    caixa.unwrap()\n}\n```\n\nSe a caixa veio cheia, `unwrap` entrega o conteúdo direto. Se veio VAZIA, ele PANICA: o programa para na hora, com a mensagem `called Option::unwrap() on a None value`."
+    },
+    {
+      "id": "a-mensagem-e-sua",
+      "title": "A mensagem é sua",
+      "markdown": "O `expect` é o `unwrap` com a SUA frase no pânico — quem ler o travamento entende o porquê:\n\n```rust\npub fn o_dobro_com_motivo(n: i32) -> i32 {\n    let caixa = o_dobro_de(n);\n    caixa.expect(\"o leite do dia precisa ser positivo\")\n}\n```\n\nA frase entre parênteses aparece na mensagem de pânico. É a diferença entre o programa dizer \"deu ruim\" e dizer \"o leite do dia precisa ser positivo\"."
+    },
+    {
+      "id": "quando-a-porta-e-legitima",
+      "title": "Quando a porta rápida é legítima",
+      "markdown": "A porta rápida tem lugar, e é RESTRITO: protótipo, teste, ou o caso em que você JÁ provou antes que a caixa não vem vazia — e o compilador não consegue ver a prova.\n\nObrigatório quando existe é o caminho de cima: o `match` responde aos dois lados sem aposta. Em código entregue a usuários, `unwrap` numa caixa que pode vir vazia é o travamento esperando o dia errado."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-unwrap-apanica-na-vazia",
+      "sectionId": "abrir-sem-casar",
+      "statement": "unwrap devolve o conteúdo da caixa cheia; na vazia, ele panica.",
+      "question": "O que `caixa.unwrap()` faz quando a caixa veio `None`?",
+      "options": [
+        "Panica: o programa para com a mensagem de caixa vazia",
+        "Devolve 0",
+        "Devolve None",
+        "Fica esperando a caixa encher"
+      ],
+      "answerIndex": 0,
+      "feedback": "O unwrap APOSTA que a caixa veio cheia; na vazia, a aposta vira pânico.",
+      "optionRationales": [
+        "Isso: o pânico é o preço da porta rápida — sem braço para o vazio.",
+        "Rust não substitui ausência por número: 0 teria de ser a SUA decisão.",
+        "Devolver None seria devolver uma caixa vazia — o i32 prometido não existe.",
+        "Não há espera: a decisão foi tomada na compilação."
+      ]
+    },
+    {
+      "id": "o-expect-explica-o-panico",
+      "sectionId": "a-mensagem-e-sua",
+      "statement": "expect é o unwrap com a sua mensagem no pânico.",
+      "question": "Qual é a diferença entre `caixa.unwrap()` e `caixa.expect(\"sem leite\")`?",
+      "options": [
+        "O expect escreve a sua frase na mensagem do pânico",
+        "O expect devolve None em vez de panicar",
+        "O unwrap funciona em Result e o expect não",
+        "Nenhuma: as duas formas são idênticas"
+      ],
+      "answerIndex": 0,
+      "feedback": "As duas panican na vazia; o expect controla a FRASE que o pânico mostra.",
+      "optionRationales": [
+        "Isso: a frase entra na mensagem — quem lê o travamento entende o motivo.",
+        "As duas panican: o expect não salva o programa, só explica.",
+        "Tanto unwrap quanto expect existem em Option e em Result.",
+        "Existe: uma mostra a mensagem padrão, a outra mostra a sua."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Option<T> — std::option::Option",
+      "url": "https://doc.rust-lang.org/std/option/enum.Option.html",
+      "description": "A página do enum Option: as variantes Some(T) e None e o tipo dentro do diamante."
+    },
+    {
+      "title": "Option — std::option",
+      "url": "https://doc.rust-lang.org/std/option/",
+      "description": "A documentação oficial do Option: o enum de ausência, com Some e None."
+    }
+  ],
+  "challenges": [
+    "a-porta-do-dobro-garantido"
+  ]
+}

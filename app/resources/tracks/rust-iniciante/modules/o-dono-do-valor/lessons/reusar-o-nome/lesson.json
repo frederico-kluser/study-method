@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "slug": "reusar-o-nome",
+  "title": "Reusar o nome",
+  "summary": "Sombrear: um let de novo sobre o mesmo nome — o nome agora aponta para o valor novo.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "decl:let",
+  "concepts": [
+    "sombreamento"
+  ],
+  "prerequisites": [
+    "o-movimento"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-nome-troca-de-valor",
+      "title": "O nome troca de valor",
+      "markdown": "Um `let` de novo sobre o mesmo nome SOMBREIA o valor antigo — o nome agora aponta para o valor novo:\n\n```rust\nlet nota = 6;\nlet nota = nota + 1;\n```\n\nNa direita, `nota` ainda vale `6` (o valor antigo); depois da linha, `nota` vale `7`. Não é reatribuição: é uma ligação NOVA com o mesmo nome."
+    },
+    {
+      "id": "sombrear-nao-precisa-de-mut",
+      "title": "Sombrear não precisa de mut",
+      "markdown": "O sombreamento funciona sem `mut` — cada `let` cria a ligação própria dele. O valor sombreado continua existindo até o fim do escopo; só o NOME aponta para o último.\n\nPara trocar o valor DA MESMA ligação, aí sim `let mut` e o `=` — a aula `mudar-o-valor`. Sombrear é outra porta para o mesmo nome."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-direita-le-o-antigo",
+      "sectionId": "o-nome-troca-de-valor",
+      "statement": "No let de novo, a direita ainda lê o valor antigo do nome.",
+      "question": "No `let nota = nota + 1;`, quanto vale o `nota` DA DIREITA?",
+      "options": [
+        "O valor antigo de nota",
+        "O valor novo",
+        "Zero",
+        "Erro de compilação"
+      ],
+      "answerIndex": 0,
+      "feedback": "A direita é calculada ANTES da nova ligação: lá o nome ainda vale o valor antigo.",
+      "optionRationales": [
+        "A nova ligação só existe depois da linha; a direita lê o antigo.",
+        "O valor novo só passa a valer a partir da linha seguinte.",
+        "Nada zera o nome — a direita lê o valor que já estava lá.",
+        "Sombrear compila: é uma ligação nova com o mesmo nome."
+      ]
+    },
+    {
+      "id": "sombreamento-sem-mut",
+      "sectionId": "sombrear-nao-precisa-de-mut",
+      "statement": "Sombrear não precisa de mut: cada let cria uma ligação nova.",
+      "question": "O sombreamento exige `let mut`?",
+      "options": [
+        "Não: cada let cria uma ligação nova",
+        "Sim, sempre",
+        "Só para String",
+        "Só dentro de função"
+      ],
+      "answerIndex": 0,
+      "feedback": "O let de novo é uma ligação própria — mut é para TROCAR o valor da mesma ligação.",
+      "optionRationales": [
+        "Sombrear é criar outra ligação; mut só é preciso para reatribuir na mesma.",
+        "mut é da reatribuição; o sombreamento dispensa.",
+        "A regra vale para qualquer tipo: o let de novo é sempre ligação nova.",
+        "A regra não depende de onde o let está — é do let mesmo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Palavra-chave let — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/keyword.let.html",
+      "description": "A referência oficial da ligação local — o let que move e o let que sombreia."
+    },
+    {
+      "title": "What Is Ownership? — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html",
+      "description": "O capítulo oficial do dono, do movimento e do escopo que mata a caixa."
+    }
+  ],
+  "challenges": [
+    "a-etiqueta-que-sobrescreve"
+  ]
+}

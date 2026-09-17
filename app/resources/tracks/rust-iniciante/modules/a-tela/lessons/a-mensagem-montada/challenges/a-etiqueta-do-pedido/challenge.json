@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta-do-pedido",
+  "title": "A etiqueta do pedido",
+  "concept": "mensagem_montada",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A etiqueta do pedido\n\nEscreva uma função `etiqueta` que recebe dois números — o código do pedido e a quantidade — e monta a etiqueta dele.\n\nA etiqueta tem este formato exato: primeiro o código, depois a quantidade, separados por ` x `:\n\n`pedido 7 x 3`\n\nMonte o texto com `format!` e devolva ele — a etiqueta é um valor.",
+  "starterCode": "pub fn etiqueta(pedido: i32, qtd: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn etiqueta(pedido: i32, qtd: i32) -> String {\n    format!(\"pedido {pedido} x {qtd}\")\n}\n",
+  "testsCode": "use desafio::etiqueta;\n\n#[test]\nfn testa_a_etiqueta_do_pedido_sete() {\n    assert_eq!(etiqueta(7, 3), \"pedido 7 x 3\");\n}\n\n#[test]\nfn testa_a_etiqueta_do_pedido_doze() {\n    assert_eq!(etiqueta(12, 1), \"pedido 12 x 1\");\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função etiqueta(7, 3) deve devolver o texto \"pedido 7 x 3\".", "teste": "testa_a_etiqueta_do_pedido_sete" },
+    { "id": "REQ-2", "descricao": "A função etiqueta(12, 1) deve devolver o texto \"pedido 12 x 1\".", "teste": "testa_a_etiqueta_do_pedido_doze" }
+  ],
+  "expectedTestCount": 2
+}

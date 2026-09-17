@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "laco-dentro-de-laco",
+  "title": "Laço dentro de laço",
+  "summary": "Para cada volta de fora, o laço de dentro roda inteiro — a grade é o laço aninhado.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:ForExpression",
+  "concepts": [
+    "laco_aninhado"
+  ],
+  "prerequisites": [
+    "contar-ate"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-volta-de-fora-e-a-de-dentro",
+      "title": "A volta de fora e a volta de dentro",
+      "markdown": "Quando um `for` mora dentro de outro, para CADA volta de fora o laço de dentro roda inteiro:\n\n```rust\npub fn soma_da_grade(linhas: i32, colunas: i32) -> i32 {\n    let mut soma = 0;\n    for i in 0..linhas {\n        for j in 0..colunas {\n            soma += i * j;\n        }\n    }\n    soma\n}\n```\n\nNa primeira volta de fora (`i` = 0), o laço de dentro corre por todas as colunas; na segunda (`i` = 1), corre de novo — e assim por diante. `soma_da_grade(3, 4)` devolve `18`: a grade 3×4 tem doze células, e cada uma contribui com `i * j`."
+    },
+    {
+      "id": "a-grade-e-o-laco-de-dentro",
+      "title": "A grade e o laço de dentro",
+      "markdown": "Uma grade é o retrato do laço aninhado: linha por linha (o laço de fora), coluna por coluna (o laço de dentro):\n\n```rust\npub fn soma_da_grade(linhas: i32, colunas: i32) -> i32 {\n    let mut soma = 0;\n    for i in 0..linhas {\n        for j in 0..colunas {\n            soma += i * j;\n        }\n    }\n    soma\n}\n```\n\nCom linhas `2` e colunas `3`, as células são `(0,0)`, `(0,1)`, `(0,2)`, `(1,0)`, `(1,1)`, `(1,2)` — seis contribuições de `i * j`. A soma `soma_da_grade(2, 3)` devolve `3`: só a célula `(1, 2)` vale `2`."
+    },
+    {
+      "id": "os-nomes-sao-diferentes",
+      "title": "Os nomes são diferentes",
+      "markdown": "Cada laço tem o SEU nome de volta: o de fora é `i`, o de dentro é `j`. Dois nomes diferentes contam para o leitor qual volta é qual:\n\n```rust\npub fn soma_da_grade(linhas: i32, colunas: i32) -> i32 {\n    let mut soma = 0;\n    for i in 0..linhas {\n        for j in 0..colunas {\n            soma += i * j;\n        }\n    }\n    soma\n}\n```\n\nE a borda também conta: `soma_da_grade(1, 1)` devolve `0` — uma única célula, a `(0, 0)`, cujo produto é `0 * 0`. E `soma_da_grade(0, 3)` devolve `0`: sem linhas, o laço de fora nem roda — e o de dentro nunca é chamado."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-volta-de-fora-roda-a-de-dentro",
+      "statement": "Para cada volta do laço de fora, o laço de dentro roda inteiro.",
+      "question": "Com linhas 3 e colunas 4, quantas vezes roda o corpo mais interno?",
+      "options": [
+        "doze vezes: cada linha roda o laço de dentro inteiro (4 colunas)",
+        "sete vezes: 3 linhas somadas com 4 colunas",
+        "uma vez: o laço de dentro roda só na primeira linha",
+        "quatro vezes: o de dentro é o que conta"
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço de dentro roda INTEIRO a cada volta de fora: 3 linhas × 4 colunas = 12 rodadas do corpo mais interno.",
+      "sectionId": "a-volta-de-fora-e-a-de-dentro",
+      "optionRationales": [
+        "Cada volta de fora dispara o laço de dentro por completo: 3 × 4 = 12 rodadas.",
+        "Somar linhas e colunas confunde a grade: o laço MULTIPLICA as rodadas.",
+        "O laço de dentro roda de novo a cada nova linha — não só uma vez.",
+        "O laço de dentro roda 4 vezes POR linha — e há 3 linhas."
+      ]
+    },
+    {
+      "id": "a-grade-linha-por-linha",
+      "statement": "A grade é o retrato do laço aninhado: o laço de fora é a linha, o de dentro é a coluna.",
+      "question": "Em `soma_da_grade`, quem corre por dentro?",
+      "options": [
+        "o laço das colunas (`for j in 0..colunas`), dentro de cada linha",
+        "o laço das linhas, dentro de cada coluna",
+        "o acumulador soma, dentro do produto",
+        "nenhum — os dois laços rodam em paralelo"
+      ],
+      "answerIndex": 0,
+      "feedback": "A leitura é linha por linha: o laço de fora escolhe a linha, e o de dentro corre pelas colunas dela.",
+      "sectionId": "a-grade-e-o-laco-de-dentro",
+      "optionRationales": [
+        "O laço mais interno é o de dentro — aqui, o das colunas, uma vez inteira por linha.",
+        "As linhas são o laço de FORA — elas abraçam o laço das colunas.",
+        "O acumulador não contém laço nenhum — ele é quem junta as contribuições.",
+        "Laços aninhados nunca rodam em paralelo: um inteiro por volta do outro."
+      ]
+    },
+    {
+      "id": "cada-laco-seu-nome",
+      "statement": "Cada laço do par tem o seu nome de volta — i e j — para o leitor saber qual volta é qual.",
+      "question": "Por que os dois laços usam nomes diferentes (`i` e `j`)?",
+      "options": [
+        "porque cada volta é uma coisa diferente: a linha e a coluna",
+        "porque o compilador exige nomes de duas letras",
+        "porque o mesmo nome apagaria a soma",
+        "porque i e j são os únicos nomes permitidos em Rust"
+      ],
+      "answerIndex": 0,
+      "feedback": "Dois papéis, dois nomes: `i` é a linha e `j` é a coluna — o leitor distingue a volta pela letra.",
+      "sectionId": "os-nomes-sao-diferentes",
+      "optionRationales": [
+        "Cada `for` cria o SEU nome de volta — a linha e a coluna são coisas diferentes.",
+        "O nome da volta pode ser o que quiser — o costume de i e j é só convenção de grade.",
+        "Reusar o nome não apagaria a soma — mas confundiria as duas voltas.",
+        "Não há restrição de nomes em Rust — a escolha é de leitura, não de regra."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do for — a base do laço aninhado."
+    },
+    {
+      "title": "Rust by Example — For Loops and Range",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/for.html",
+      "description": "Os exemplos oficiais do for com intervalos — aninháveis."
+    }
+  ],
+  "challenges": [
+    "a-soma-da-grade"
+  ]
+}

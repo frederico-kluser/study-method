@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-estampa-do-ponto",
+  "title": "A estampa do ponto",
+  "concept": "derive_debug",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A estampa do ponto\n\nA função `mostra` devolve a ESTAMPA da struct: o texto que o compilador desenha a partir do molde — se a struct pedir.\n\nDuas linhas de aluno:\n\n1. acima do molde, escreva `#[derive(Debug)]` — o atributo que pede a estampa;\n2. no corpo de `mostra`, devolva `format!(\"{:?}\", p)` — o `{:?}` é o formato de Debug.\n\n- `mostra(ponto_de(2, 3))` devolve `Ponto { x: 2, y: 3 }`;\n- `mostra(ponto_de(0, 0))` devolve `Ponto { x: 0, y: 0 }`.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn mostra(p: Ponto) -> String {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn mostra(p: Ponto) -> String {\n    format!(\"{:?}\", p)\n}\n",
+  "testsCode": "use desafio::mostra;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_a_estampa_do_ponto_dois_por_tres() {\n    assert_eq!(mostra(ponto_de(2, 3)), \"Ponto { x: 2, y: 3 }\");\n}\n\n#[test]\nfn testa_a_estampa_do_ponto_origem() {\n    assert_eq!(mostra(ponto_de(0, 0)), \"Ponto { x: 0, y: 0 }\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A struct Ponto tem #[derive(Debug)] e mostra(ponto_de(2, 3)) devolve a estampa \"Ponto { x: 2, y: 3 }\".",
+      "teste": "testa_a_estampa_do_ponto_dois_por_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "mostra(ponto_de(0, 0)) devolve a estampa \"Ponto { x: 0, y: 0 }\".",
+      "teste": "testa_a_estampa_do_ponto_origem"
+    }
+  ],
+  "expectedTestCount": 2
+}

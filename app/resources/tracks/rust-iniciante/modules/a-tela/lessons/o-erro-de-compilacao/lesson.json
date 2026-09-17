@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-erro-de-compilacao",
+  "title": "O erro de compilação",
+  "summary": "O `rustc` lê o seu código antes de qualquer teste: quando recusa, ele diz o CÓDIGO do erro, a linha e a palavra exata — e o erro é conteúdo, não castigo.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "erro_compilacao"
+  ],
+  "prerequisites": [
+    "reatribuir"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:compilação",
+    "term:rustc"
+  ],
+  "theory": [
+    {
+      "id": "o-rustc-le-antes",
+      "title": "O rustc lê antes",
+      "markdown": "Antes de rodar qualquer teste, o `rustc` — o compilador — lê o seu código inteiro e recusa o que não entende. Este código não compila:\n\n```rust\npub fn ajuste() -> i32 {\n    let total = 10;\n    total = 15;\n    total\n}\n```\n\nA troca num nome fixo é recusada ANTES de o programa existir."
+    },
+    {
+      "id": "o-erro-tem-nome-e-linha",
+      "title": "O erro tem nome e linha",
+      "markdown": "O recusa do `rustc` vem com código, linha e explicação:\n\n```text\nerror[E0384]: cannot assign twice to immutable variable `total`\n --> src/lib.rs:3:5\n```\n\nO `E0384` é o NOME do erro; a linha aponta a troca; a mensagem diz a variável. Leia o erro até o fim antes de mexer: ele quase sempre diz o que falta."
+    },
+    {
+      "id": "a-correcao-e-a-promessa",
+      "title": "A correção é a promessa",
+      "markdown": "Consertar é dizer ao compilador a mesma coisa em duas linguagens: `mut` no código, e a troca que ele liberou:\n\n```rust\npub fn ajuste() -> i32 {\n    let mut total = 10;\n    total = 15;\n    total\n}\n```\n\nErro de compilação não é castigo: é o `rustc` conferindo a sua promessa antes de qualquer teste rodar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-erro-tem-codigo",
+      "statement": "O erro de compilação traz um código próprio, como `E0384`, e aponta a linha.",
+      "question": "O que o erro `E0384` informa, além da mensagem?",
+      "options": [
+        "O nome do erro e a linha do problema.",
+        "O resultado correto da conta.",
+        "O nome da função de teste.",
+        "Quantos testes falharam."
+      ],
+      "answerIndex": 0,
+      "feedback": "Código + linha + variável: leia até o fim antes de editar.",
+      "sectionId": "o-erro-tem-nome-e-linha"
+    },
+    {
+      "id": "o-compilador-vem-antes-do-teste",
+      "statement": "O `rustc` confere o código antes de o cargo rodar qualquer teste.",
+      "question": "Se o código não compila, o que acontece com os testes?",
+      "options": [
+        "Nenhum roda: a compilação recusa primeiro.",
+        "Todos rodam e falham um a um.",
+        "Só o primeiro teste roda.",
+        "Os testes rodam com o código antigo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Compilar vem antes: sem código compilado, não há teste nenhum.",
+      "sectionId": "o-rustc-le-antes"
+    }
+  ],
+  "sources": [
+    {
+      "title": "cargo test — The Cargo Book",
+      "url": "https://doc.rust-lang.org/cargo/commands/cargo-test.html",
+      "description": "O comando oficial que compila e roda os testes — a compilação vem primeiro."
+    },
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial da mutabilidade, onde nasce o erro E0384."
+    }
+  ],
+  "challenges": [
+    "o-ajuste-que-compila"
+  ]
+}

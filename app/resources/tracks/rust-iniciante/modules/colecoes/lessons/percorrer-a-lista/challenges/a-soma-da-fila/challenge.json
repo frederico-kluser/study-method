@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-da-fila",
+  "title": "A soma da fila",
+  "concept": "percorrer_a_lista",
+  "language": "rust",
+  "statement": "# A soma da fila\n\nA função `soma` percorre a lista e soma TODOS os valores:\n\n1. comece com o total em `0`;\n2. para cada `x` em `&fila`, some o valor de dentro com `*x`;\n3. devolva o total.\n\n- `soma(vec![2, 4, 6])` devolve `12`;\n- `soma(vec![])` devolve `0`.\n\nO laço EMPRESTA a lista (`for x in &fila`) — e o deref abre cada peça.\n",
+  "starterCode": "pub fn soma(fila: Vec<i32>) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma(fila: Vec<i32>) -> i32 {\n    let mut total = 0;\n    for x in &fila {\n        total += *x;\n    }\n    total\n}\n",
+  "testsCode": "use desafio::soma;\n\n#[test]\nfn testa_a_soma_de_dois_quatro_seis() {\n    assert_eq!(soma(vec![2, 4, 6]), 12);\n}\n\n#[test]\nfn testa_a_soma_da_fila_vazia() {\n    assert_eq!(soma(vec![]), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "soma(vec![2, 4, 6]) percorre a lista emprestada e devolve 12.",
+      "teste": "testa_a_soma_de_dois_quatro_seis"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "soma(vec![]) devolve 0 — a fila vazia soma zero.",
+      "teste": "testa_a_soma_da_fila_vazia"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 3
+}

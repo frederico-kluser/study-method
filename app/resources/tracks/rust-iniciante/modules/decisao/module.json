@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "decisao",
+  "title": "Decisão",
+  "order": 2,
+  "lessons": [
+    "comparar-numeros",
+    "igual",
+    "e-e",
+    "o-negativo",
+    "negar",
+    "se",
+    "se-senao",
+    "se-senao-se",
+    "o-se-que-devolve",
+    "a-condicao-que-guarda",
+    "a-logica-invertida",
+    "o-classificador"
+  ],
+  "challenge": "decisao"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "variantes-e-match",
+  "title": "Variantes e match",
+  "order": 7,
+  "lessons": [
+    "a-escolha-fixa",
+    "o-caminho-da-variante",
+    "o-casamento",
+    "um-braco-por-variante",
+    "o-braco-que-sobra",
+    "a-variante-que-carrega",
+    "casar-o-que-carrega",
+    "a-caixa-que-pode-vir-vazia",
+    "casar-a-caixa",
+    "a-resposta-que-pode-falhar",
+    "casar-a-resposta",
+    "a-porta-rapida",
+    "converter-texto-em-numero"
+  ],
+  "challenge": "variantes-e-match"
+}

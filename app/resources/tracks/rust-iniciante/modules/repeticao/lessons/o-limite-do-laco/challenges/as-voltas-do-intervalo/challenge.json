@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "as-voltas-do-intervalo",
+  "title": "As voltas do intervalo",
+  "concept": "o_limite_do_laco",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# As voltas do intervalo\n\nA borda do laço é frágil: o mesmo corte `n < limite` conta uma rodada a menos quando o `n` começa do `1` em vez do `0`.\n\nEscreva uma função `voltas_do_intervalo` que recebe o `limite` e conta as voltas do laço que começa no `1` e vai até antes do limite:\n\n1. comece com as `voltas` em `0` e o `n` em `1`;\n2. enquanto `n < limite`: conte a volta e faça o `n` subir 1;\n3. quando a condição virar `false`, o laço acaba — devolva as voltas.\n\n`voltas_do_intervalo(5)` devolve `4` — as voltas do `1`, `2`, `3` e `4` (o intervalo `1..5` tem quatro números). Começando do `0` com o mesmo corte, seriam `5` voltas: uma a mais. E `voltas_do_intervalo(1)` devolve `0`: a pergunta `1 < 1` vale `false` logo na porta.",
+  "starterCode": "pub fn voltas_do_intervalo(limite: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn voltas_do_intervalo(limite: i32) -> i32 {\n    let mut voltas = 0;\n    let mut n = 1;\n    while n < limite {\n        voltas += 1;\n        n += 1;\n    }\n    voltas\n}\n",
+  "testsCode": "use desafio::voltas_do_intervalo;\n\n#[test]\nfn testa_as_voltas_do_intervalo_ate_cinco() {\n    assert_eq!(voltas_do_intervalo(5), 4);\n}\n\n#[test]\nfn testa_as_voltas_do_intervalo_ate_dois() {\n    assert_eq!(voltas_do_intervalo(2), 1);\n}\n\n#[test]\nfn testa_a_borda_onde_o_laco_nem_roda() {\n    assert_eq!(voltas_do_intervalo(1), 0);\n}\n",
+  "requirements": [
+    { "id": "REQ-1", "descricao": "A função voltas_do_intervalo deve devolver 4 quando chamada com o limite 5 (as voltas do 1 ao 4).", "teste": "testa_as_voltas_do_intervalo_ate_cinco" },
+    { "id": "REQ-2", "descricao": "A função voltas_do_intervalo deve devolver 1 quando chamada com o limite 2 (só a volta do 1).", "teste": "testa_as_voltas_do_intervalo_ate_dois" },
+    { "id": "REQ-3", "descricao": "A função voltas_do_intervalo deve devolver 0 quando chamada com o limite 1 — a pergunta 1 < 1 já é false na porta.", "teste": "testa_a_borda_onde_o_laco_nem_roda" }
+  ],
+  "expectedTestCount": 3
+}

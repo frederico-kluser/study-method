@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "repeticao",
+  "title": "Repetição",
+  "order": 3,
+  "lessons": [
+    "repetir-para-sempre",
+    "parar-no-meio",
+    "contar-ate",
+    "ate-inclusive",
+    "enquanto",
+    "acumular-no-laco",
+    "o-contador-mutavel",
+    "parar-com-valor",
+    "de-dois-em-dois",
+    "laco-dentro-de-laco",
+    "o-limite-do-laco",
+    "a-tabuada"
+  ],
+  "challenge": "repeticao"
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "ate-inclusive",
+  "title": "Até inclusive",
+  "summary": "Os três pontos com o igual incluem o fim: 1..=4 tem os quatro números — o 4 entra.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:range:..=",
+  "concepts": [
+    "ate_inclusive"
+  ],
+  "prerequisites": [
+    "contar-ate"
+  ],
+  "introduces": {
+    "productive": [
+      "op:range:..=",
+      "node:RangeExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "os-tres-pontos-e-o-igual",
+      "title": "Os três pontos e o igual",
+      "markdown": "O intervalo com `..=` inclui o FIM: `1..=4` tem os números `1`, `2`, `3` e `4`:\n\n```rust\npub fn soma_de_1_ate(limite: i32) -> i32 {\n    let mut soma = 0;\n    for n in 1..=limite {\n        soma += n;\n    }\n    soma\n}\n```\n\n`soma_de_1_ate(4)` devolve `10`: `1 + 2 + 3 + 4` — as quatro voltas, com o fim dentro."
+    },
+    {
+      "id": "os-dois-intervalos-lado-a-lado",
+      "title": "Os dois intervalos, lado a lado",
+      "markdown": "A diferença entre os dois cortes é o fim: o `..` corta ANTES; o `..=` inclui o fim:\n\n```rust\npub fn de_1_a_4_sem_o_fim() -> i32 {\n    let mut soma = 0;\n    for n in 1..4 {\n        soma += n;\n    }\n    soma\n}\n\npub fn de_1_a_4_com_o_fim() -> i32 {\n    let mut soma = 0;\n    for n in 1..=4 {\n        soma += n;\n    }\n    soma\n}\n```\n\n`de_1_a_4_sem_o_fim()` devolve `6` (1 + 2 + 3); `de_1_a_4_com_o_fim()` devolve `10` (1 + 2 + 3 + 4). Uma rodada a mais — a que o `..=` acrescenta."
+    },
+    {
+      "id": "o-vazio-tambem-existe",
+      "title": "O vazio também existe",
+      "markdown": "Um intervalo pode não ter número nenhum: `1..=0` não tem volta — o começo (`1`) já passou do fim (`0`):\n\n```rust\npub fn soma_do_vazio() -> i32 {\n    let mut soma = 0;\n    for n in 1..=0 {\n        soma += n;\n    }\n    soma\n}\n```\n\n`soma_do_vazio()` devolve `0`: o laço nem começa. A borda do intervalo é a primeira coisa a conferir quando a conta do laço dá errado."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-fim-entra",
+      "statement": "O ..= inclui o fim: 1..=4 tem os quatro números, com o 4 dentro.",
+      "question": "Quantos números tem o intervalo `1..=4`?",
+      "options": [
+        "quatro: 1, 2, 3 e 4",
+        "três: 1, 2 e 3 — o 4 fica de fora",
+        "cinco: de 0 a 4",
+        "nenhum — intervalo com ..= é sempre vazio"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `..=` inclui o fim: 1, 2, 3 e 4 — as quatro voltas, com a última dentro.",
+      "sectionId": "os-tres-pontos-e-o-igual",
+      "optionRationales": [
+        "Com o `..=` o fim entra: são os quatro números do começo ao fim inclusive.",
+        "O 4 ficaria de fora com o `..` puro — o `..=` existe justamente para incluí-lo.",
+        "O intervalo começa no 1 — o 0 não tem lugar aqui.",
+        "O `..=` NÃO deixa o intervalo vazio — vazio seria um intervalo cujo começo passou do fim."
+      ]
+    },
+    {
+      "id": "uma-rodada-a-mais",
+      "statement": "A diferença entre 1..4 e 1..=4 é uma rodada: a que o ..= acrescenta com o fim.",
+      "question": "`de_1_a_4_sem_o_fim()` (com `1..4`) devolve 6. O que `de_1_a_4_com_o_fim()` (com `1..=4`) devolve?",
+      "options": [
+        "10 — a soma com o 4 incluído",
+        "6 — o fim não muda nada",
+        "16 — o 4 entra duas vezes",
+        "4 — só o fim"
+      ],
+      "answerIndex": 0,
+      "feedback": "1 + 2 + 3 = 6 sem o fim; com o fim, 1 + 2 + 3 + 4 = 10 — uma rodada a mais.",
+      "sectionId": "os-dois-intervalos-lado-a-lado",
+      "optionRationales": [
+        "O `..=` acrescenta a rodada do 4: a soma passa de 6 para 10.",
+        "O fim é exatamente o que muda: com ele, a soma ganha o 4.",
+        "Cada número entra uma única vez — o 4 entra uma vez, valendo 4.",
+        "O laço soma TODOS os números do intervalo, não só o fim."
+      ]
+    },
+    {
+      "id": "o-intervalo-vazio",
+      "statement": "1..=0 não tem número nenhum: o laço nem começa, e a soma fica em 0.",
+      "question": "O que devolve o laço `for n in 1..=0 { soma += n; }` com a soma começando em 0?",
+      "options": [
+        "0 — o intervalo está vazio e o laço nem roda",
+        "1 — o laço roda uma vez, com o começo",
+        "erro de compilação — intervalo invertido não compila",
+        "1 + 0 — o laço roda duas vezes"
+      ],
+      "answerIndex": 0,
+      "feedback": "O começo (`1`) já passou do fim (`0`): o intervalo é vazio — o laço não roda e a soma fica em 0.",
+      "sectionId": "o-vazio-tambem-existe",
+      "optionRationales": [
+        "Intervalo vazio não dá volta nenhuma: o `for` termina sem rodar o corpo.",
+        "Rodar UMA vez com o começo seria o comportamento do `loop` — o `for` segue o intervalo.",
+        "Intervalo invertido compila — ele apenas não tem número nenhum.",
+        "O laço roda as voltas que o intervalo tem — aqui, nenhuma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial do laço e dos intervalos na sintaxe do for."
+    },
+    {
+      "title": "std — o Range, o intervalo de um laço",
+      "url": "https://doc.rust-lang.org/std/ops/struct.Range.html",
+      "description": "O intervalo .. — de começo (inclusive) a fim (exclusive)."
+    },
+    {
+      "title": "std — o RangeInclusive, o intervalo até inclusive",
+      "url": "https://doc.rust-lang.org/std/ops/struct.RangeInclusive.html",
+      "description": "O intervalo ..= — de começo a fim, ambos inclusive."
+    }
+  ],
+  "challenges": [
+    "a-soma-inclusiva"
+  ]
+}

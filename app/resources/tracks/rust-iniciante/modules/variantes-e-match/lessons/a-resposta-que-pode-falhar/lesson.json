@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-resposta-que-pode-falhar",
+  "title": "A resposta que pode falhar",
+  "summary": "Result<T, E> é o conjunto de DUAS variantes que carregam: Ok(t) com o valor, Err(e) com o motivo.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:Ok",
+  "concepts": [
+    "result_resposta"
+  ],
+  "prerequisites": [
+    "a-caixa-que-pode-vir-vazia"
+  ],
+  "introduces": {
+    "productive": [
+      "global:Ok",
+      "global:Err"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:Result",
+    "term:Ok",
+    "term:Err"
+  ],
+  "theory": [
+    {
+      "id": "a-resposta-com-motivo",
+      "title": "A resposta com motivo",
+      "markdown": "A caixa (`Option`) responde ao \"pode não ter\". O `Result<T, E>` responde ao \"pode dar ERRADO\" — e errado pede MOTIVO:\n\n```rust\npub fn o_bilhete_de(idade: i32) -> Result<String, String> {\n    if idade < 0 {\n        Err(String::from(\"idade negativa\"))\n    } else {\n        Ok(format!(\"bilhete: {}\", idade))\n    }\n}\n```\n\n`Ok(t)` carrega o resultado certo; `Err(e)` carrega o motivo da falha. Os dois lados carregam — por isso o `Result` tem DOIS tipos no diamante: o do acerto e o do erro."
+    },
+    {
+      "id": "ok-e-err-carregam-valores",
+      "title": "Ok e Err carregam valores",
+      "markdown": "Nem o acerto nem o erro ficam à vista sem conteúdo — o valor do acerto viaja DENTRO do `Ok`, o motivo DENTRO do `Err`:\n\n```rust\npub fn o_erro_da_senha() -> Result<i32, String> {\n    Err(String::from(\"senha curta\"))\n}\n```\n\n`Err(String::from(\"senha curta\"))` é uma resposta de falha carregando o motivo. O `Ok` da função acima carrega o `String` montado pelo `format!` — o bilhete de verdade."
+    },
+    {
+      "id": "caixa-ou-resposta",
+      "title": "Caixa ou resposta",
+      "markdown": "Os dois conjuntos são irmãos: `Option<T>` tem DUAS variantes (`Some`, `None`); `Result<T, E>` também tem duas (`Ok`, `Err`) — mas as duas carregam.\n\nA pergunta que decide: quando não há resposta, importa dizer POR QUÊ? Sem motivo, `Option` e `None` bastam; com motivo, `Result` e `Err(e)`. O `Result` é o conjunto padrão de quem responde a um pedido."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-resposta-leva-o-motivo",
+      "sectionId": "a-resposta-com-motivo",
+      "statement": "Result<T, E> carrega o acerto em Ok(t) e o motivo da falha em Err(e).",
+      "question": "No `o_bilhete_de`, o que a resposta `Err(String::from(\"idade negativa\"))` carrega?",
+      "options": [
+        "O motivo de o bilhete não ter sido emitido",
+        "O bilhete com a idade negativa",
+        "Uma caixa vazia",
+        "O número da idade"
+      ],
+      "answerIndex": 0,
+      "feedback": "`Err` carrega o MOTIVO: por que o pedido falhou — aqui, uma String com a explicação.",
+      "optionRationales": [
+        "Isso: o `Err` é o braço da falha, e o que ele carrega é a explicação.",
+        "Bilhete nenhum foi emitido: idade negativa não vira bilhete.",
+        "Caixa vazia é `None`, do `Option` — o `Err` explica, não esvazia.",
+        "O `i32` chegou como argumento; o `Err` carrega uma String, não a idade."
+      ]
+    },
+    {
+      "id": "result-tem-dois-tipos",
+      "sectionId": "caixa-ou-resposta",
+      "statement": "Result<T, E> tem dois tipos: o do valor do Ok e o do motivo do Err.",
+      "question": "O que o diamante `Result<String, String>` declara?",
+      "options": [
+        "O Ok carrega um String e o Err também carrega uma String",
+        "O Ok carrega uma String e o Err carrega nada",
+        "As duas variantes carregam um i32",
+        "O Result é uma struct com dois campos"
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro tipo = conteúdo do Ok; segundo = conteúdo do Err. Aqui, os dois são String.",
+      "optionRationales": [
+        "Isso: `Result<String, String>` — o acerto e o motivo têm os SEUS tipos, na ordem.",
+        "No Result as duas variantes carregam: o Err sempre tem o motivo do tipo E.",
+        "O i32 nem aparece: os dois tipos declarados são String.",
+        "Result é um ENUM (conjunto de variantes), não uma struct de campos."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Result — std::result",
+      "url": "https://doc.rust-lang.org/std/result/",
+      "description": "A documentação oficial do Result: o enum de falha, com Ok e Err."
+    },
+    {
+      "title": "Result<T, E> — std::result::Result",
+      "url": "https://doc.rust-lang.org/std/result/enum.Result.html",
+      "description": "A página do enum Result: as variantes Ok(T) e Err(E)."
+    }
+  ],
+  "challenges": [
+    "o-embarque-do-aviao"
+  ]
+}

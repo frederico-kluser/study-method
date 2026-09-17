@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-que-pode-mudar",
+  "title": "A caixa que pode mudar",
+  "concept": "emprestar_para_mudar",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A caixa que pode mudar\n\nA função `grava` recebe o rótulo para MUDAR e o pedaço só para LER:\n\n- troque a assinatura: o `texto` deve chegar como `&mut String` — o empréstimo que promete mudar;\n- o `pedaco` continua `&str` (só leitura);\n- grave o pedaço com `.push_str` e devolva o novo tamanho com `.len`.\n\nApós `grava(&mut rotulo, \"2\")` com `rotulo` em `Ana: `, o rótulo do chamador vira `Ana: 2` e a função devolve `6`.",
+  "starterCode": "pub fn grava(texto: String, pedaco: &str) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn grava(texto: &mut String, pedaco: &str) -> usize {\n    texto.push_str(pedaco);\n    texto.len()\n}\n",
+  "testsCode": "use desafio::grava;\n\n#[test]\nfn testa_a_gravacao_do_ana() {\n    let mut rotulo = String::from(\"Ana: \");\n    assert_eq!(grava(&mut rotulo, \"2\"), 6);\n    assert_eq!(rotulo, \"Ana: 2\");\n}\n\n#[test]\nfn testa_a_gravacao_do_bo() {\n    let mut rotulo = String::from(\"Bo: \");\n    assert_eq!(grava(&mut rotulo, \"9\"), 5);\n    assert_eq!(rotulo, \"Bo: 9\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "grava deve receber &mut String, gravar o pedaço com push_str, devolver 6 e deixar o rótulo do chamador em \"Ana: 2\".",
+      "teste": "testa_a_gravacao_do_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "grava deve receber &mut String, gravar o pedaço com push_str, devolver 5 e deixar o rótulo do chamador em \"Bo: 9\".",
+      "teste": "testa_a_gravacao_do_bo"
+    }
+  ],
+  "expectedTestCount": 2
+}

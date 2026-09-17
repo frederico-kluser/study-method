@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "colecoes",
+  "title": "A urna do módulo",
+  "concept": "composicao_das_colecoes",
+  "difficulty": 5,
+  "language": "rust",
+  "statement": "# A urna do módulo\n\nFecho do módulo: a urna eletrônica. O sub-módulo `urna` já está no arquivo — a `Urna` é a caixa dos votos (`nova` abre, `recebe` empurra pelo `&mut self`, `votos` entrega a lista) e as pontes `empurra` e `lista` dão o caminho por fora. O teste monta a urna por elas: `desafio::urna::Urna::nova()`, `desafio::urna::empurra(&mut caixa, ...)`.\n\nFalta a CONTAGEM — o corpo de `apura(caixa: Urna)`, que recebe a caixa INTEIRA (ela vira sua — o movimento) e devolve o mapa:\n\n1. abra a contagem com `HashMap::new`;\n2. traga os votos pela ponte, no laço que EMPRESTA: `for voto in urna::lista(&caixa)`;\n3. acumule com o padrão entry: `*contagem.entry(voto).or_insert(0) += 1;`;\n4. devolva o mapa.\n\n- a urna da ana e do bo (`ana`, `bo`, `ana`) deixa `contagem[\"ana\"]` em `2` e `contagem[\"bo\"]` em `1`;\n- três votos do bo deixam `contagem[\"bo\"]` em `3` e `contagem.len()` em `1`.\n\nO teste não pergunta pela ORDEM (o mapa não tem ordem — ele pergunta por chave): quem responde é o `HashMap` que você montou.",
+  "starterCode": "pub mod urna {\n    pub struct Urna {\n        pub votos: Vec<String>,\n    }\n\n    impl Urna {\n        pub fn nova() -> Urna {\n            Urna { votos: vec![] }\n        }\n\n        pub fn recebe(&mut self, voto: String) {\n            self.votos.push(voto);\n        }\n\n        pub fn votos(&self) -> Vec<String> {\n            self.votos.clone()\n        }\n    }\n\n    pub fn empurra(urna: &mut Urna, voto: String) {\n        super::urna::Urna::recebe(urna, voto);\n    }\n\n    pub fn lista(urna: &Urna) -> Vec<String> {\n        super::urna::Urna::votos(urna)\n    }\n}\n\nuse std::collections::HashMap;\nuse urna::Urna;\n\npub fn apura(caixa: Urna) -> HashMap<String, i32> {\n    todo!()\n}\n",
+  "solutionCode": "pub mod urna {\n    pub struct Urna {\n        pub votos: Vec<String>,\n    }\n\n    impl Urna {\n        pub fn nova() -> Urna {\n            Urna { votos: vec![] }\n        }\n\n        pub fn recebe(&mut self, voto: String) {\n            self.votos.push(voto);\n        }\n\n        pub fn votos(&self) -> Vec<String> {\n            self.votos.clone()\n        }\n    }\n\n    pub fn empurra(urna: &mut Urna, voto: String) {\n        super::urna::Urna::recebe(urna, voto);\n    }\n\n    pub fn lista(urna: &Urna) -> Vec<String> {\n        super::urna::Urna::votos(urna)\n    }\n}\n\nuse std::collections::HashMap;\nuse urna::Urna;\n\npub fn apura(caixa: Urna) -> HashMap<String, i32> {\n    let mut contagem = HashMap::new();\n    for voto in urna::lista(&caixa) {\n        *contagem.entry(voto).or_insert(0) += 1;\n    }\n    contagem\n}\n",
+  "testsCode": "use desafio::apura;\n\n#[test]\nfn testa_a_urna_da_ana_e_do_bo() {\n    let mut caixa = desafio::urna::Urna::nova();\n    desafio::urna::empurra(&mut caixa, String::from(\"ana\"));\n    desafio::urna::empurra(&mut caixa, String::from(\"bo\"));\n    desafio::urna::empurra(&mut caixa, String::from(\"ana\"));\n    let c = apura(caixa);\n    assert_eq!(c[\"ana\"], 2);\n    assert_eq!(c[\"bo\"], 1);\n}\n\n#[test]\nfn testa_a_urna_do_bo_so() {\n    let mut caixa = desafio::urna::Urna::nova();\n    desafio::urna::empurra(&mut caixa, String::from(\"bo\"));\n    desafio::urna::empurra(&mut caixa, String::from(\"bo\"));\n    desafio::urna::empurra(&mut caixa, String::from(\"bo\"));\n    let c = apura(caixa);\n    assert_eq!(c[\"bo\"], 3);\n    assert_eq!(c.len(), 1);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "apura consome a urna (ana, bo, ana) com o laço que empresta e o padrão entry, e deixa contagem[\"ana\"] em 2 e contagem[\"bo\"] em 1.",
+      "teste": "testa_a_urna_da_ana_e_do_bo"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Três votos do bo: o padrão entry acumula até 3 e contagem.len() fica 1 — uma chave só.",
+      "teste": "testa_a_urna_do_bo_so"
+    }
+  ],
+  "expectedTestCount": 2
+}

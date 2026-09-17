@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "guardar-mais-um",
+  "title": "Guardar mais um",
+  "summary": "O push põe um valor NO FIM da lista: a coleção cresce de um em um, no lugar.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.push",
+  "concepts": [
+    "guardar_mais_um"
+  ],
+  "prerequisites": [
+    "a-lista-que-cresce"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.push",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-push-poe-no-fim",
+      "title": "O push põe no fim",
+      "markdown": "A lista que nasceu com dois valores cresce com o `.push` — cada push põe UM valor no FIM da fila:\n\n```rust\nlet mut fila = vec![2, 4];\nfila.push(6);\n```\n\nA fila passa de `[2, 4]` para `[2, 4, 6]` — o 6 entra no fim, depois dos que já estavam."
+    },
+    {
+      "id": "quem-guarda-precisa-ser-mut",
+      "title": "Quem guarda precisa ser mut",
+      "markdown": "Guardar é MUDAR a lista — e mudar precisa da permissão de sempre (M1): a lista nasce com `let mut`, ou chega por um empréstimo `&mut` (M5):\n\n```rust\npub fn guarde(fila: &mut Vec<i32>, n: i32) {\n    fila.push(n);\n}\n```\n\nQuem chama empresta a lista para MUDAR — a mesma regra do empréstimo que a M5 fixou."
+    },
+    {
+      "id": "o-push-muda-no-lugar",
+      "title": "O push muda no lugar",
+      "markdown": "O `.push` não devolve a lista nova: ele MUDA a lista no lugar e segue em frente. A linha `fila.push(6);` acaba em `;` porque não há valor nenhum para nomear — a lista de antes é a lista de depois, com um valor a mais.\n\nQuem muda a coleção é o dono do momento: push antes, leitura depois."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-push-e-no-fim",
+      "sectionId": "o-push-poe-no-fim",
+      "statement": "O push põe o valor NO FIM da lista: [2, 4] com push(6) vira [2, 4, 6].",
+      "question": "Depois de `let mut fila = vec![2, 4]; fila.push(6);`, o que é `fila[2]`?",
+      "options": [
+        "6 — o push pôs o 6 no fim, na posição 2",
+        "4 — o push pôs o 6 no começo",
+        "2 — o push trocou o primeiro",
+        "Panica — a posição 2 não existe"
+      ],
+      "answerIndex": 0,
+      "feedback": "O push acrescenta no fim: a fila ficou [2, 4, 6] — a posição 2 é o 6.",
+      "optionRationales": [
+        "A fila cresceu para [2, 4, 6]: a posição 2 é a última, com o 6.",
+        "O push nunca põe no começo — ele cresce pelo fim.",
+        "O push não troca nada: ele acrescenta.",
+        "Depois do push a fila tem três posições — 0, 1 e 2."
+      ]
+    },
+    {
+      "id": "guardar-precisa-mut",
+      "sectionId": "quem-guarda-precisa-ser-mut",
+      "statement": "Guardar em uma coleção exige mutabilidade: let mut na lista, ou &mut no empréstimo.",
+      "question": "Por que a lista do push precisa de `let mut` (ou chegar por `&mut`)?",
+      "options": [
+        "Porque o push MUDA a lista — e mudar exige mut",
+        "Porque toda lista nasce mutável por padrão",
+        "Porque o push devolve a lista nova",
+        "Porque o compilador exige const"
+      ],
+      "answerIndex": 0,
+      "feedback": "Mudar é o evento: quem recebe push muda no lugar — e a permissão para mudar é o mut.",
+      "optionRationales": [
+        "A regra do M1 vale aqui: quem muda, precisa de mut explícito.",
+        "Em Rust o padrão é IMUTÁVEL — o mut é você quem pede.",
+        "const é para valores fixos — o oposto do que o push faz.",
+        "const é a forma que NÃO muda — o contrário do push."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "a-fila-que-cresce"
+  ]
+}

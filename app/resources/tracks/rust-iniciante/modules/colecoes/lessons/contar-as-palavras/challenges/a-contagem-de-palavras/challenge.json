@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-contagem-de-palavras",
+  "title": "A contagem de palavras",
+  "concept": "contar_as_palavras",
+  "language": "rust",
+  "statement": "# A contagem de palavras\n\nA função `contar` recebe a lista de palavras e devolve o mapa da CONTAGEM:\n\n1. abra a contagem com `HashMap::new`;\n2. para cada `palavra` no laço por valor, aplique o padrão entry: `*contagem.entry(palavra).or_insert(0) += 1;`;\n3. devolva o mapa.\n\n- `contar(vec![\"sol\", \"lua\", \"sol\"])` — com as palavras como `String` — deixa `c[\"sol\"]` em `2` e `c[\"lua\"]` em `1`;\n- `contar` com só dois \"sol\" deixa o mapa com `1` chave — o `.len` responde `1`.\n\nO padrão entry inteiro, sem closure nenhuma.\n",
+  "starterCode": "use std::collections::HashMap;\n\npub fn contar(palavras: Vec<String>) -> HashMap<String, i32> {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn contar(palavras: Vec<String>) -> HashMap<String, i32> {\n    let mut contagem = HashMap::new();\n    for palavra in palavras {\n        *contagem.entry(palavra).or_insert(0) += 1;\n    }\n    contagem\n}\n",
+  "testsCode": "use desafio::contar;\n\n#[test]\nfn testa_o_sol_e_a_lua() {\n    let c = contar(vec![String::from(\"sol\"), String::from(\"lua\"), String::from(\"sol\")]);\n    assert_eq!(c[\"sol\"], 2);\n    assert_eq!(c[\"lua\"], 1);\n}\n\n#[test]\nfn testa_a_quantidade_de_chaves() {\n    let c = contar(vec![String::from(\"sol\"), String::from(\"sol\")]);\n    assert_eq!(c.len(), 1);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "contar conta com o padrão entry: c[\"sol\"] == 2 e c[\"lua\"] == 1 na lista [sol, lua, sol].",
+      "teste": "testa_o_sol_e_a_lua"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "contar não repete chave: o mapa de [sol, sol] tem exatamente 1 chave.",
+      "teste": "testa_a_quantidade_de_chaves"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 4
+}

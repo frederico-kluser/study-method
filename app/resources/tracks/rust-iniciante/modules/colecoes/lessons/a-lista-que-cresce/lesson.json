@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-lista-que-cresce",
+  "title": "A lista que cresce",
+  "summary": "A coleção que nasce com os valores dentro: vec![2, 4, 6] monta um Vec com os valores já guardados.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:vec!",
+  "concepts": [
+    "a_lista_que_cresce"
+  ],
+  "prerequisites": [
+    "o-texto-que-e-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "api:vec!",
+      "node:GenericType",
+      "node:TypeArguments"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:coleção"
+  ],
+  "theory": [
+    {
+      "id": "a-lista-literal",
+      "title": "A lista literal",
+      "markdown": "A primeira COLEÇÃO da trilha: uma lista que guarda vários valores numa caixa só. A macro `vec!` monta a lista com os valores dentro, na ordem:\n\n```rust\npub fn numeros() -> Vec<i32> {\n    vec![1, 2, 3]\n}\n```\n\n`vec![1, 2, 3]` é um `Vec<i32>` — a lista com três números, peça por peça."
+    },
+    {
+      "id": "a-lista-cresce-e-encolhe",
+      "title": "A lista cresce e encolhe",
+      "markdown": "Até aqui, os valores tiveram tamanho fixo: o texto da aula 1 já nascia pronto. A COLEÇÃO é a promessa nova: ela cresce e encolhe enquanto o programa roda — o tamanho não está fixado em lugar nenhum:\n\n```rust\nlet vazia = vec![];\nlet um = vec![7];\n```\n\nAs duas listas são do MESMO tipo — o que muda é quantos valores têm dentro agora."
+    },
+    {
+      "id": "o-tipo-da-lista",
+      "title": "O tipo da lista",
+      "markdown": "O tipo da lista de números é `Vec<i32>` — e a lista guarda valores de UM tipo só: um `Vec<i32>` guarda números; um `Vec<String>` guarda textos donos.\n\n```rust\npub fn pares() -> Vec<i32> {\n    vec![2, 4, 6]\n}\n```\n\n`Vec` vem do prelude: o nome aparece solto, sem `use` nenhum — a lista é do mesmo jeito que a `String`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-lista-nasce-cheia",
+      "sectionId": "a-lista-literal",
+      "statement": "A lista literal nasce com os valores dentro: vec![2, 4, 6] é um Vec com três valores, na ordem.",
+      "question": "O que `vec![2, 4, 6]` monta?",
+      "options": [
+        "Uma lista Vec com os valores 2, 4 e 6, nessa ordem",
+        "O texto \"2 4 6\" numa String só",
+        "A soma dos três: 12",
+        "Três variáveis soltas, sem caixa nenhuma"
+      ],
+      "answerIndex": 0,
+      "feedback": "A macro `vec!` monta a lista com os valores dentro, na ordem em que aparecem.",
+      "optionRationales": [
+        "A lista é a caixa que guarda vários valores numa ordem — e o vec! já a entrega cheia.",
+        "Texto com espaçamento é outra coisa; aqui a construção é a lista de números.",
+        "A soma é uma operação sobre a lista; o vec! não soma.",
+        "Cada valor está DENTRO da lista — não há três nomes soltos."
+      ]
+    },
+    {
+      "id": "a-promessa-da-colecao",
+      "sectionId": "a-lista-cresce-e-encolhe",
+      "statement": "A coleção cresce e encolhe em tempo de execução — o tamanho não está fixo na assinatura.",
+      "question": "O que torna uma lista uma COLEÇÃO, e não só três valores?",
+      "options": [
+        "Ela cresce e encolhe enquanto o programa roda",
+        "Ela guarda só números",
+        "Ela não precisa de tipo nenhum",
+        "Ela é escrita com colchetes"
+      ],
+      "answerIndex": 0,
+      "feedback": "A promessa da coleção é mudar de tamanho: cresce quando você guarda, encolhe quando você tira.",
+      "optionRationales": [
+        "O tamanho em tempo de execução é o que define a coleção.",
+        "Um Vec<String> também é coleção — o tipo dos itens não decide.",
+        "Toda lista tem tipo: Vec<i32>, Vec<String>…",
+        "Colchete é a forma da macro; a promessa de crescer é o conteúdo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "a-primeira-lista"
+  ]
+}

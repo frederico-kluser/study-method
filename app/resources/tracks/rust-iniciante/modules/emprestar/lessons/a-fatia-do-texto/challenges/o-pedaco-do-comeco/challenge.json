@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-pedaco-do-comeco",
+  "title": "O pedaço do começo",
+  "concept": "a_fatia_do_texto",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O pedaço do começo\n\nA função `recorta` deve devolver as `ate` primeiras letras da frase — o PEDAÇO emprestado:\n\n- o parâmetro `ate` marca onde o intervalo termina: `&frase[0..ate]`;\n- a assinatura devolve `&str` — o recorte é emprestado, sem cópia.\n\n`recorta(\"bom dia\", 3)` devolve `bom`; `recorta(\"sol\", 2)` devolve `so`. A contagem de casas começa no zero.",
+  "starterCode": "pub fn recorta(frase: &str, ate: usize) -> &str {\n    todo!()\n}\n",
+  "solutionCode": "pub fn recorta(frase: &str, ate: usize) -> &str {\n    &frase[0..ate]\n}\n",
+  "testsCode": "use desafio::recorta;\n\n#[test]\nfn testa_o_pedaco_do_bom_dia() {\n    assert_eq!(recorta(\"bom dia\", 3), \"bom\");\n}\n\n#[test]\nfn testa_o_pedaco_do_sol() {\n    assert_eq!(recorta(\"sol\", 2), \"so\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "recorta deve devolver a fatia &frase[0..ate] — \"bom\" para \"bom dia\" com ate 3.",
+      "teste": "testa_o_pedaco_do_bom_dia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "recorta deve devolver a fatia &frase[0..ate] — \"so\" para \"sol\" com ate 2.",
+      "teste": "testa_o_pedaco_do_sol"
+    }
+  ],
+  "expectedTestCount": 2
+}

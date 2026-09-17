@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-nome-do-emprestimo",
+  "title": "O nome do empréstimo",
+  "concept": "emprestar_qualquer_coisa",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# O nome do empréstimo\n\nA função `mede_o_emprestimo` recebe o texto DONO e o mede SEM movê-lo:\n\n1. crie o empréstimo com o `&`: `let emprestado = &texto;`;\n2. meça pela ponta: `emprestado.len()` — e devolva a medida.\n\n`mede_o_emprestimo(String::from(\"Ana\"))` devolve `3`; com `String::from(\"bom dia\")`, devolve `7`. O `texto` nunca muda de dono.",
+  "starterCode": "pub fn mede_o_emprestimo(texto: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn mede_o_emprestimo(texto: String) -> usize {\n    let emprestado = &texto;\n    emprestado.len()\n}\n",
+  "testsCode": "use desafio::mede_o_emprestimo;\n\n#[test]\nfn testa_a_medida_do_emprestimo_da_ana() {\n    assert_eq!(mede_o_emprestimo(String::from(\"Ana\")), 3);\n}\n\n#[test]\nfn testa_a_medida_do_emprestimo_do_bom_dia() {\n    assert_eq!(mede_o_emprestimo(String::from(\"bom dia\")), 7);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "mede_o_emprestimo deve medir pela referência &texto e devolver 3 para \"Ana\", sem mover o dono.",
+      "teste": "testa_a_medida_do_emprestimo_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "mede_o_emprestimo deve medir pela referência &texto e devolver 7 para \"bom dia\", sem mover o dono.",
+      "teste": "testa_a_medida_do_emprestimo_do_bom_dia"
+    }
+  ],
+  "expectedTestCount": 2
+}

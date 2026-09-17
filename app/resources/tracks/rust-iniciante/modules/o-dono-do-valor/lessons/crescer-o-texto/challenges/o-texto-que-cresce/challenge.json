@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-texto-que-cresce",
+  "title": "O texto que cresce",
+  "concept": "crescer_texto",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O texto que cresce\n\nA função `crescer` recebe o texto como `String` mutável — o parâmetro `mut texto` —, faz ele crescer com `.push_str` e devolve a caixa:\n\n- `crescer(String::from(\"oi\"))` devolve `oi!!!`;\n- `crescer(String::from(\"socorro\"))` devolve `socorro!!!`.\n\nEmpurre o `!!!` para o fim da caixa e devolva ela mesma: a última expressão é o `texto`.",
+  "starterCode": "pub fn crescer(mut texto: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn crescer(mut texto: String) -> String {\n    texto.push_str(\"!!!\");\n    texto\n}\n",
+  "testsCode": "use desafio::crescer;\n\n#[test]\nfn testa_o_crescimento_de_oi() {\n    assert_eq!(crescer(String::from(\"oi\")), \"oi!!!\");\n}\n\n#[test]\nfn testa_o_crescimento_de_socorro() {\n    assert_eq!(crescer(String::from(\"socorro\")), \"socorro!!!\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "crescer deve devolver \"oi!!!\" — o texto recebido crescido com push_str.",
+      "teste": "testa_o_crescimento_de_oi"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "crescer deve devolver \"socorro!!!\" — o texto recebido crescido com push_str.",
+      "teste": "testa_o_crescimento_de_socorro"
+    }
+  ],
+  "expectedTestCount": 2
+}

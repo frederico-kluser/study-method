@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "igual",
+  "title": "Igual",
+  "summary": "Dois sinais de igual fazem a pergunta que > e < não fazem: são iguais?",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:==",
+  "concepts": [
+    "igual"
+  ],
+  "prerequisites": [
+    "comparar-numeros"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:==",
+      "node:BinaryExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "dois-iguais-fazem-a-pergunta",
+      "title": "Dois iguais fazem a pergunta",
+      "markdown": "Os sinais `>` e `<` não sabem responder por igualdade. Quem responde é o `==` — DOIS sinais de igual, colados:\n\n```rust\npub fn sao_iguais(a: i32, b: i32) -> bool {\n    a == b\n}\n```\n\n`sao_iguais(2, 2)` é `true`; `sao_iguais(2, 3)` é `false`. A pergunta sai do meio: *os dois lados valem o mesmo?*"
+    },
+    {
+      "id": "um-igual-e-uma-ordem",
+      "title": "Um igual é uma ordem",
+      "markdown": "Um `=` só não pergunta nada — ele é a ordem de reatribuir que a aula `reatribuir` ensinou:\n\n```rust\npub fn troca_e_responde() -> i32 {\n    let mut x = 1;\n    x = 7;\n    x\n}\n```\n\n`x = 7` MUDA o valor de `x` para 7. Já `x == 7` pergunta se `x` vale 7 e devolve `true` ou `false` sem mudar nada. Um sinal: ordem. Dois sinais: pergunta."
+    },
+    {
+      "id": "compara-o-resultado-da-conta",
+      "title": "Compara o resultado da conta",
+      "markdown": "Os dois lados do `==` podem ser contas — Rust resolve a conta primeiro e compara o resultado:\n\n```rust\npub fn a_soma_bate(a: i32, b: i32, total: i32) -> bool {\n    a + b == total\n}\n```\n\n`a + b == total` soma os dois primeiros e pergunta se o resultado é igual ao terceiro. `a_soma_bate(2, 3, 5)` é `true`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "dois-iguais-pergunta",
+      "statement": "O == pergunta se os dois lados são iguais e devolve true ou false.",
+      "question": "O que `sao_iguais(5, 5)` devolve?",
+      "options": [
+        "true",
+        "false",
+        "5",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "Os dois lados valem 5 — a pergunta \"são iguais?\" é verdadeira, sai true.",
+      "sectionId": "dois-iguais-fazem-a-pergunta",
+      "optionRationales": [
+        "5 e 5 são iguais: a resposta da pergunta é o valor verdadeiro true.",
+        "false sairia para lados diferentes, como sao_iguais(2, 3).",
+        "5 é o valor comparado; quem sai é a resposta da comparação, true.",
+        "A comparação acontece e devolve a resposta — ela nunca devolve vazio."
+      ]
+    },
+    {
+      "id": "um-igual-ordem",
+      "statement": "Um = reatribui; dois == perguntam — sem mudar valor nenhum.",
+      "question": "O que `x = 7` faz com o `x` que valia 1?",
+      "options": [
+        "muda o valor de x para 7",
+        "responde false",
+        "responde true",
+        "nada, é um texto"
+      ],
+      "answerIndex": 0,
+      "feedback": "Um único = é a ordem de reatribuir: x passa a valer 7. Quem pergunta é o ==, com dois sinais.",
+      "sectionId": "um-igual-e-uma-ordem",
+      "optionRationales": [
+        "Um igual sozinho é a ordem de atribuição: x passa a valer 7.",
+        "Quem responde false é uma comparação falsa — e x = 7 não compara nada.",
+        "true também seria resposta de comparação; a linha x = 7 só muda o valor.",
+        "x = 7 é uma ordem real de reatribuição — o valor de x muda para 7."
+      ]
+    },
+    {
+      "id": "contas-antes-da-pergunta",
+      "statement": "Os dois lados do == podem ser contas: Rust resolve a conta e compara o resultado.",
+      "question": "Em `a + b == total`, o que é comparado?",
+      "options": [
+        "o resultado de a + b com o total",
+        "a com b",
+        "a com o total",
+        "nada — dá erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A soma a + b é resolvida primeiro; o resultado é que entra na pergunta de igualdade com o total.",
+      "sectionId": "compara-o-resultado-da-conta",
+      "optionRationales": [
+        "Rust resolve a + b e pergunta se esse resultado é igual ao total.",
+        "a e b nunca se comparam direto aqui: eles primeiro são somados.",
+        "o a entra na soma; quem é comparado com o total é o RESULTADO dela.",
+        "a comparação acontece normalmente — contas são resolvidas antes da pergunta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The Rust Book — Control Flow (cap. 3.5)",
+      "url": "https://doc.rust-lang.org/book/ch03-05-control-flow.html",
+      "description": "O capítulo oficial das comparações, do if/else e das expressões de decisão."
+    },
+    {
+      "title": "Rust by Example — if/else",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/if_else.html",
+      "description": "Exemplos oficiais executáveis de if, else e else if."
+    }
+  ],
+  "challenges": [
+    "dois-e-igual-a-dois"
+  ]
+}

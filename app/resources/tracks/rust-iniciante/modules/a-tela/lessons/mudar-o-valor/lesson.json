@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "slug": "mudar-o-valor",
+  "title": "Mudar o valor",
+  "summary": "O `mut` na frente do nome é uma PROMESSA: este valor pode mudar — sem ele, o compilador recusa qualquer mudança.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "decl:let-mut",
+  "concepts": [
+    "mudar_valor"
+  ],
+  "prerequisites": [
+    "dar-nome-ao-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:let-mut",
+      "node:MutableSpecifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-promessa-do-mut",
+      "title": "A promessa do mut",
+      "markdown": "Todo nome criado com `let` é FIXO: o valor guardado nele não muda nunca. Para prometer que um valor PODE mudar, escreva `mut` depois do `let`:\n\n```rust\npub fn base_movel(valor: i32) -> i32 {\n    let mut base = valor;\n    base\n}\n```\n\nO `mut` não muda o valor agora — ele muda o que o nome PERMITE."
+    },
+    {
+      "id": "sem-mut-o-compilador-recusa",
+      "title": "Sem mut, o compilador recusa",
+      "markdown": "O `let` fixo é a regra do Rust, não um detalhe. Tentar trocar o valor de um nome sem `mut` não compila: o erro do `rustc` aponta a linha e explica que a variável não é mutável.\n\n```rust\nlet mut base = valor;\n```\n\nÉ por isso que o `mut` existe: quem lê o seu código sabe, só de olhar, quais nomes podem mudar."
+    },
+    {
+      "id": "a-mudanca-vem-agora",
+      "title": "A mudança vem agora",
+      "markdown": "Nesta aula o treino é escrever a forma certa: o nome criado com `let mut` se comporta igual por enquanto — guarda o valor e o entrega.\n\nAs duas aulas seguintes usam a promessa: trocar o valor com `=` e acumular com `+=`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "mut-promete-mudanca",
+      "statement": "O `mut` é a promessa de que o valor guardado no nome pode mudar.",
+      "question": "O que `let mut base = valor;` declara, além do valor?",
+      "options": [
+        "Que `base` PODE ter o valor mudado depois.",
+        "Que `base` é um texto.",
+        "Que `base` nunca mais aparece.",
+        "Que o valor de `base` dobra."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `mut` muda a PERMISSÃO do nome, não o valor dele hoje.",
+      "sectionId": "a-promessa-do-mut"
+    },
+    {
+      "id": "sem-mut-e-fixo",
+      "statement": "Sem `mut`, o nome criado pelo `let` é fixo: o valor não muda.",
+      "question": "O que acontece ao tentar trocar o valor de um nome criado com `let` simples?",
+      "options": [
+        "O compilador recusa e mostra o erro.",
+        "O valor muda em silêncio.",
+        "O valor antigo é apagado.",
+        "Nada: é permitido."
+      ],
+      "answerIndex": 0,
+      "feedback": "Fixo é o padrão do Rust; a troca sem `mut` não compila.",
+      "sectionId": "sem-mut-o-compilador-recusa"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial da mutabilidade: o `mut` e a imutabilidade por padrão."
+    },
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial das funções, onde o nome mutável vive."
+    }
+  ],
+  "challenges": [
+    "a-base-movel"
+  ]
+}

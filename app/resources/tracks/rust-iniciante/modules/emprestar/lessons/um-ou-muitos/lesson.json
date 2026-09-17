@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "slug": "um-ou-muitos",
+  "title": "Um ou muitos",
+  "summary": "A REGRA do empréstimo: um &mut OU muitos & — nunca os dois ao mesmo tempo.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:MutableReference",
+  "concepts": [
+    "um_ou_muitos"
+  ],
+  "prerequisites": [
+    "mudar-pelo-emprestimo"
+  ],
+  "introduces": {
+    "productive": [
+      "node:MutableReference",
+      "node:MutableSpecifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:regra-do-empréstimo"
+  ],
+  "theory": [
+    {
+      "id": "a-regra",
+      "title": "A regra: um ou muitos",
+      "markdown": "O empréstimo tem UMA regra, e ela é rígida — pode existir UM `&mut` OU muitos `&`, nunca os dois juntos, nunca dois `&mut`:\n\n```rust\nlet mut placar = 10;\nlet leitor = &placar;\nlet outro_leitor = &placar;\n```\n\nMuitos leitores coexistem: todos só LÊEM — e ler junto não briga. É a regra do empréstimo."
+    },
+    {
+      "id": "o-mut-quer-a-caixa-so-para-ele",
+      "title": "O &mut quer a caixa só para ele",
+      "markdown": "O `&mut` pede a caixa SÓ PARA ELE:\n\n```rust\nlet mut placar = 10;\nlet mutavel = &mut placar;\n```\n\nEnquanto `mutavel` vive, o compilador não deixa outro empréstimo começar — quem escreve não pode ser interrompido. Um que muda, ou muitos que leem: a regra do empréstimo por inteiro."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "um-que-muda-ou-muitos-que-leem",
+      "sectionId": "a-regra",
+      "statement": "A regra do empréstimo: um &mut OU muitos &, nunca os dois juntos.",
+      "question": "Qual combinação a regra do empréstimo aceita?",
+      "options": [
+        "Um &mut sozinho, ou muitos & juntos",
+        "Dois &mut juntos",
+        "Um &mut e um & juntos",
+        "Nenhum empréstimo ao mesmo tempo"
+      ],
+      "answerIndex": 0,
+      "feedback": "Um que muda, ou muitos que leem — e só.",
+      "optionRationales": [
+        "A escrita é exclusiva; a leitura é coletiva.",
+        "Dois &mut brigam: quem escreve não pode ser interrompido.",
+        "O &mut exclui qualquer outro empréstimo, até de leitura.",
+        "Leitores & coexistem de boa — a regra permite."
+      ]
+    },
+    {
+      "id": "o-mut-exclui-os-outros",
+      "sectionId": "o-mut-quer-a-caixa-so-para-ele",
+      "statement": "Enquanto o &mut vive, o compilador recusa qualquer outro empréstimo da mesma caixa.",
+      "question": "Enquanto `mutavel` está vivo, o que o compilador faz com um novo empréstimo do `placar`?",
+      "options": [
+        "Recusa — a caixa já tem um dono temporário exclusivo",
+        "Permite — leitura é de graça",
+        "Permite e copia o placar",
+        "Recusa para sempre"
+      ],
+      "answerIndex": 0,
+      "feedback": "O exclusivo do &mut é a regra: ninguém entra enquanto ele vive.",
+      "optionRationales": [
+        "O &mut promete exclusividade: o novo empréstimo esperaria ele acabar.",
+        "A leitura de graça vale só entre leitores &.",
+        "Copiar não resolve: o conteúdo poderia mudar por baixo.",
+        "Só enquanto ele vive — no fim, a caixa volta a emprestar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "References and Borrowing — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+      "description": "O capítulo oficial do empréstimo: referências & e &mut, a regra do um-ou-muitos e o empréstimo que não sobrevive ao dono."
+    },
+    {
+      "title": "primitive reference (& e &mut) — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/primitive.reference.html",
+      "description": "O empréstimo por dentro: &T para ler e &mut T para mudar, com as regras do compilador."
+    }
+  ],
+  "challenges": [
+    "o-placar-que-dobra"
+  ]
+}

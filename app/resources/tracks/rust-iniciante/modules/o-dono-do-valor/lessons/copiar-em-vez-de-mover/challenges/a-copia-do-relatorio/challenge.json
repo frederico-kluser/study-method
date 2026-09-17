@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-copia-do-relatorio",
+  "title": "A cópia do relatório",
+  "concept": "clone",
+  "difficulty": 2,
+  "language": "rust",
+  "statement": "# A cópia do relatório\n\nA função `protocolar` recebe o relatório como `String` e devolve uma CÓPIA dele, criada com `.clone`:\n\n- `protocolar(String::from(\"DOC-77\"))` devolve `DOC-77`;\n- `protocolar(String::from(\"DOC-88\"))` devolve `DOC-88`.\n\nPeça a cópia ao próprio texto (`texto.clone()`) e devolva ela — a caixa nova tem o mesmo conteúdo e o dono original não perde nada.",
+  "starterCode": "pub fn protocolar(texto: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn protocolar(texto: String) -> String {\n    let copia = texto.clone();\n    copia\n}\n",
+  "testsCode": "use desafio::protocolar;\n\n#[test]\nfn testa_a_copia_do_doc_setenta_e_sete() {\n    assert_eq!(protocolar(String::from(\"DOC-77\")), \"DOC-77\");\n}\n\n#[test]\nfn testa_a_copia_do_doc_oitenta_e_oito() {\n    assert_eq!(protocolar(String::from(\"DOC-88\")), \"DOC-88\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "protocolar deve devolver a cópia do relatório DOC-77, criada com .clone.",
+      "teste": "testa_a_copia_do_doc_setenta_e_sete"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "protocolar deve devolver a cópia do relatório DOC-88, criada com .clone.",
+      "teste": "testa_a_copia_do_doc_oitenta_e_oito"
+    }
+  ],
+  "expectedTestCount": 2
+}

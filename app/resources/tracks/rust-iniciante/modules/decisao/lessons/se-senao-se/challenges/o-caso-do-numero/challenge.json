@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-caso-do-numero",
+  "title": "O caso do número",
+  "concept": "se_senao_se",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O caso do número\n\nTodo número está em um de três casos: negativo, zero ou positivo. A função `o_caso_do_numero` devolve uma etiqueta numérica para o caso:\n\n- `-1` para negativo;\n- `0` para zero;\n- `1` para positivo.\n\nUse `if` com um `else if` encadeado — e não precisa de `else` no fim.\n\nOs testes chamam com negativo, zero e positivo.",
+  "starterCode": "pub fn o_caso_do_numero(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_caso_do_numero(x: i32) -> i32 {\n    let mut caso = 1;\n    if x < 0 {\n        caso = -1;\n    } else if x == 0 {\n        caso = 0;\n    }\n    caso\n}\n",
+  "testsCode": "use desafio::o_caso_do_numero;\n\n#[test]\nfn testa_menos_sete_e_o_caso_menos_um() {\n    assert_eq!(o_caso_do_numero(-7), -1);\n}\n\n#[test]\nfn testa_zero_e_o_caso_zero() {\n    assert_eq!(o_caso_do_numero(0), 0);\n}\n\n#[test]\nfn testa_nove_e_o_caso_um() {\n    assert_eq!(o_caso_do_numero(9), 1);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função o_caso_do_numero deve devolver -1 para o número -7.",
+      "teste": "testa_menos_sete_e_o_caso_menos_um"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função o_caso_do_numero deve devolver 0 para o número 0.",
+      "teste": "testa_zero_e_o_caso_zero"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função o_caso_do_numero deve devolver 1 para o número 9 (o caso que sobra).",
+      "teste": "testa_nove_e_o_caso_um"
+    }
+  ],
+  "expectedTestCount": 3
+}

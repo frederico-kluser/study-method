@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-que-guarda-e-o-que-le",
+  "title": "O que guarda e o que lê",
+  "concept": "mover_ou_emprestar",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O que guarda e o que lê\n\nA função `junta_e_medir` recebe o texto que VAI GUARDAR e o fim que SÓ VAI LER:\n\n- troque a assinatura: o `fim` deve chegar como `&str` — ler é emprestar;\n- o `texto` continua `String` dono — vai guardar;\n- junte o fim no fim do texto com `.push_str` e devolva o tamanho do texto guardado com `.len`.\n\n`junta_e_medir(String::from(\"sol\"), \"!!!\")` devolve `6`. Se o `fim` fosse `String`, quem chama perderia o dele à toa.",
+  "starterCode": "pub fn junta_e_medir(texto: String, fim: String) -> usize {\n    todo!()\n}\n",
+  "solutionCode": "pub fn junta_e_medir(texto: String, fim: &str) -> usize {\n    let mut guardado = texto;\n    guardado.push_str(fim);\n    guardado.len()\n}\n",
+  "testsCode": "use desafio::junta_e_medir;\n\n#[test]\nfn testa_a_medida_do_sol_com_bang() {\n    assert_eq!(junta_e_medir(String::from(\"sol\"), \"!!!\"), 6);\n}\n\n#[test]\nfn testa_a_medida_do_a_com_b() {\n    assert_eq!(junta_e_medir(String::from(\"a\"), \"b\"), 2);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "junta_e_medir deve receber o dono String e o fim emprestado (&str), juntar com push_str e devolver 6 para \"sol\" e \"!!!\".",
+      "teste": "testa_a_medida_do_sol_com_bang"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "junta_e_medir deve receber o dono String e o fim emprestado (&str), juntar com push_str e devolver 2 para \"a\" e \"b\".",
+      "teste": "testa_a_medida_do_a_com_b"
+    }
+  ],
+  "expectedTestCount": 2
+}

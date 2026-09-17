@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "percorrer-a-lista",
+  "title": "Percorrer a lista",
+  "summary": "A forma nova do laço: for x in &v percorre a lista EMPRESTADA — cada item chega por referência.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:ForExpression",
+  "concepts": [
+    "percorrer_a_lista"
+  ],
+  "prerequisites": [
+    "a-lista-que-cresce",
+    "contar-ate"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForExpression"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-laco-que-empresta",
+      "title": "O laço que empresta",
+      "markdown": "O laço `for` que a M3 ensinou percorre intervalos; sobre a LISTA, ele percorre os valores — e o `&` empresta a lista inteira para o laço:\n\n```rust\nlet mut total = 0;\nfor x in &fila {\n    total += *x;\n}\n```\n\nCada volta entrega UM valor em `x` — acumulando no `total` que a M3 ensinou."
+    },
+    {
+      "id": "a-lista-continua-dona",
+      "title": "A lista continua dona",
+      "markdown": "O `&` é o empréstimo de sempre (M5): o laço LÊ a lista, não a gasta. Depois do laço, `fila` continua inteira, pronta para a próxima leitura:\n\n```rust\nlet mut total = 0;\nfor x in &fila {\n    total += *x;\n}\n```\n\nO laço não move a lista — quem percorre emprestado devolve o dono intacto."
+    },
+    {
+      "id": "o-item-chega-emprestado",
+      "title": "O item chega emprestado",
+      "markdown": "Como a lista foi emprestada, cada `x` chega como `&i32` — um empréstimo do valor. O deref `*x` abre a gaveta e entrega o número de dentro (M5):\n\n```rust\nlet mut total = 0;\nfor x in &fila {\n    total += *x;\n}\n```\n\n`*x` é o valor; `total += *x` soma o valor de dentro. O laço empréstimo, o deref abre."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-laco-empresta",
+      "sectionId": "o-laco-que-empresta",
+      "statement": "for x in &v percorre a lista EMPRESTADA: a lista continua dona depois do laço.",
+      "question": "Depois de `for x in &fila { … }`, o que acontece com `fila`?",
+      "options": [
+        "Continua inteira — o laço só leu, emprestado",
+        "Fica vazia — o laço consumiu",
+        "Virou uma String",
+        "Perde o primeiro valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O & empresta: o laço lê a lista e a devolve inteira — dono é quem a criou.",
+      "optionRationales": [
+        "Empréstimo não gasta: a lista segue no nome, intacta.",
+        "Consumir seria iterar por valor — o laço do & não move.",
+        "Tipo nenhum mudou: a lista segue sendo Vec.",
+        "O laço não tira peça: ele só lê pelo empréstimo."
+      ]
+    },
+    {
+      "id": "o-item-vem-emprestado",
+      "sectionId": "o-laco-que-empresta",
+      "statement": "No laço que empresta, cada x é &i32 — o deref *x abre o valor de dentro.",
+      "question": "Por que o corpo do laço soma `*x` e não `x`?",
+      "options": [
+        "Porque x é &i32 — o deref abre o valor",
+        "Porque x é String — o deref vira texto",
+        "Porque o += exige um ponteiro",
+        "Porque x é um Option que precisa abrir"
+      ],
+      "answerIndex": 0,
+      "feedback": "O item chega emprestado (&i32); o deref traz o número para a conta.",
+      "optionRationales": [
+        "O & do laço empresta cada peça — o * abre a gaveta.",
+        "O item é &i32, não texto — o deref devolve o número.",
+        "O += soma números comuns — o deref é quem entrega o número.",
+        "O Option não entra aqui: o empréstimo do laço é &i32 puro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Lists of Values with Vectors — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-01-vectors.html",
+      "description": "O capítulo oficial do Vec: vec!, push, len, pop, o colchete e o laço que empresta."
+    }
+  ],
+  "challenges": [
+    "a-soma-da-fila"
+  ]
+}

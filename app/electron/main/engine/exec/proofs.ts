@@ -225,7 +225,9 @@ export function judgeSolutionPasses(
   expectedTestCount: number,
   adapter: LanguageAdapter = defaultAdapter(),
 ): ProofJudgement {
-  const counts = adapter.countRun(execOutput(res));
+  // FIX adversarial (H1): o declarado liga a integridade de saída no Rust —
+  // resumo forjado sem cabeçalho/linhas por-teste volta ZERO aqui.
+  const counts = adapter.countRun(execOutput(res), expectedTestCount);
   if (adapter.failureExitCodes.isFailure(res.exitCode)) {
     return {
       proof: 'solutionPasses',
@@ -352,7 +354,7 @@ export function judgeCountMatches(
       detail: { declared, expectedTestCount },
     };
   }
-  const executed = adapter.countRun(execOutput(solutionRun)).testsRun;
+  const executed = adapter.countRun(execOutput(solutionRun), expectedTestCount).testsRun;
   if (executed === 0) {
     return {
       proof: 'countMatches',
@@ -634,7 +636,7 @@ export async function verifyChallengeProofs(
       failures,
       executions: { solution, starter, emptyStub },
       declared,
-      executed: adapter.countRun(execOutput(solution)).testsRun,
+      executed: adapter.countRun(execOutput(solution), declared).testsRun,
       types,
     };
   } catch (err) {

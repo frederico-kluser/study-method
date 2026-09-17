@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-funcao",
+  "title": "A primeira função",
+  "summary": "Uma função que devolve o dobro.",
+  "difficulty": 1,
+  "concepts": [
+    "funcao"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem",
+      "node:Parameters",
+      "node:Parameter",
+      "node:IntegerLiteral",
+      "op:binary:*",
+      "node:BinaryExpression"
+    ],
+    "receptive": [
+      "node:VisibilityModifier",
+      "node:PrimitiveType",
+      "node:UnaryExpression",
+      "op:unary:-",
+      "api:todo!"
+    ]
+  },
+  "theory": [
+    {
+      "id": "uma-funcao-e-so",
+      "title": "Uma função, e só",
+      "markdown": "A sua primeira função recebe um número e devolve o dobro dele.\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\nO `*` no corpo é a multiplicação — a expressão binária `x * 2`.\n\nChamada com `2`, ela devolve `4`:\n\n```text\ndobro(2) == 4\n```\n\nE o `-` na frente de um número é a NEGAÇÃO (o operador unário): o dobro de um número negativo também fecha.\n\n```rust\ndobro(-3)\n```\n\nChamada com `-3`, ela devolve `-6` — hoje a negação é só LEITURA: o desafio cobra o dobro com números positivos."
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "dobre-o-numero"
+  ]
+}

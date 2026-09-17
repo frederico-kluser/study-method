@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-palavra-exclamada",
+  "title": "A palavra exclamada",
+  "concept": "soma_textos",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A palavra exclamada\n\nA função `exclamar` recebe a palavra como `String` e devolve ela mesma com o ponto de exclamação — com o `+` de textos:\n\n- `exclamar(String::from(\"viva\"))` devolve `viva!`;\n- `exclamar(String::from(\"fora\"))` devolve `fora!`.\n\nO `+` consome a caixa da esquerda: a palavra recebida morre na soma, e a `String` nova sai pelo retorno.",
+  "starterCode": "pub fn exclamar(palavra: String) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn exclamar(palavra: String) -> String {\n    palavra + \"!\"\n}\n",
+  "testsCode": "use desafio::exclamar;\n\n#[test]\nfn testa_a_exclamacao_de_viva() {\n    assert_eq!(exclamar(String::from(\"viva\")), \"viva!\");\n}\n\n#[test]\nfn testa_a_exclamacao_de_fora() {\n    assert_eq!(exclamar(String::from(\"fora\")), \"fora!\");\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "exclamar deve devolver \"viva!\" — a soma de textos com o + movendo a caixa da esquerda.",
+      "teste": "testa_a_exclamacao_de_viva"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "exclamar deve devolver \"fora!\" — a soma de textos com o + movendo a caixa da esquerda.",
+      "teste": "testa_a_exclamacao_de_fora"
+    }
+  ],
+  "expectedTestCount": 2
+}

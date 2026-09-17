@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-corpo-e-uma-expressao",
+  "title": "O corpo é uma expressão",
+  "summary": "A última linha do corpo, SEM `;`, é o que a função devolve — o `;` transforma a expressão em instrução e mata o valor.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:FunctionItem",
+  "concepts": [
+    "corpo_expressao"
+  ],
+  "prerequisites": [
+    "a-primeira-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionItem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-ultima-linha-devolve",
+      "title": "A última linha devolve",
+      "markdown": "Toda aula deste módulo fez o mesmo truque — hora de nomear ele. O corpo da função é uma lista de linhas, e a ÚLTIMA delas, sem `;`, é o que a função devolve:\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\n`x * 2` é uma EXPRESSÃO: ela produz um valor, e esse valor é a devolução."
+    },
+    {
+      "id": "o-ponto-e-virgula-que-mata",
+      "title": "O ponto e vírgula que mata",
+      "markdown": "Adicione um `;` e a mesma linha vira INSTRUÇÃO: fez o trabalho e produziu NADA. A função prometia um `i32` e não devolve valor nenhum:\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2;\n}\n```\n\n```text\nerror[E0308]: mismatched types\n```\n\nO `;` não é decoração: é o comando que desliga a devolução da linha."
+    },
+    {
+      "id": "instrucoes-e-expressoes",
+      "title": "Instruções e expressões",
+      "markdown": "Agora o corpo se lê sem mistério:\n\n```rust\nlet mut total = 2;\ntotal += 3;\ntotal\n```\n\nAs duas primeiras linhas são instruções com `;`; a última é a expressão que vira resposta. Instruções FAZEM, a última expressão ENTREGA — e é por isso que ela vai sem `;`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ultima-expressao-e-o-retorno",
+      "statement": "A última expressão do corpo, sem `;`, é o que a função devolve.",
+      "question": "O que a função com corpo `x * 2` (sem `;`) devolve?",
+      "options": [
+        "O resultado de x * 2",
+        "nada",
+        "x",
+        "2"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem `;`, a última linha é a expressão devolvida.",
+      "sectionId": "a-ultima-linha-devolve"
+    },
+    {
+      "id": "ponto-e-virgula-mata-o-valor",
+      "statement": "O `;` transforma a expressão em instrução — e a linha deixa de devolver valor.",
+      "question": "O que o `;` em `x * 2;` faz com o valor de `x * 2`?",
+      "options": [
+        "Descarta ele: a linha vira instrução.",
+        "Dobra ele.",
+        "Guarda ele no nome x.",
+        "Nada: é só estilo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Com `;` a linha executa e produz nada — a devolução se perde.",
+      "sectionId": "o-ponto-e-virgula-que-mata"
+    }
+  ],
+  "sources": [
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial que distingue instruções e expressões no corpo da função."
+    },
+    {
+      "title": "Variables and Mutability — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html",
+      "description": "O capítulo oficial das variáveis, com o corpo que alterna let e expressão."
+    }
+  ],
+  "challenges": [
+    "o-corpo-que-devolve"
+  ]
+}

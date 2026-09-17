@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-porta-do-dobro-garantido",
+  "title": "A porta do dobro garantido",
+  "concept": "unwrap_expect",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A porta do dobro garantido\n\nA geladeira só serve o dobro quando TEM leite — e aqui a camada de cima GARANTE o leite positivo: quem chama nunca passa zero nem negativo. A função `o_leite_de`, da aula da caixa, já está no arquivo: ela devolve a caixa `Option<i32>`.\n\nComplete as duas funções abrindo a caixa pela porta rápida — sem match:\n\n- no corpo de `o_dobro_garantido`, o `let` já guarda a caixa: devolva `caixa.unwrap()`;\n- no corpo de `o_dobro_com_motivo`, o `let` já guarda a caixa: devolva `caixa.expect(\"o leite do dia precisa ser positivo\")`.\n\n- `o_dobro_garantido(4)` devolve `8`;\n- `o_dobro_com_motivo(2)` devolve `4`.\n\nPorta rápida com a promessa escrita: o expect explica o pânico que nunca deve chegar.\n",
+  "starterCode": "pub fn o_leite_de(leite: i32) -> Option<i32> {\n    if leite > 0 {\n        Some(leite * 2)\n    } else {\n        None\n    }\n}\n\npub fn o_dobro_garantido(leite: i32) -> i32 {\n    let caixa = o_leite_de(leite);\n    todo!()\n}\n\npub fn o_dobro_com_motivo(leite: i32) -> i32 {\n    let caixa = o_leite_de(leite);\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_leite_de(leite: i32) -> Option<i32> {\n    if leite > 0 {\n        Some(leite * 2)\n    } else {\n        None\n    }\n}\n\npub fn o_dobro_garantido(leite: i32) -> i32 {\n    let caixa = o_leite_de(leite);\n    caixa.unwrap()\n}\n\npub fn o_dobro_com_motivo(leite: i32) -> i32 {\n    let caixa = o_leite_de(leite);\n    caixa.expect(\"o leite do dia precisa ser positivo\")\n}\n",
+  "testsCode": "use desafio::o_dobro_com_motivo;\nuse desafio::o_dobro_garantido;\n\n#[test]\nfn testa_o_dobro_garantido_do_quatro() {\n    assert_eq!(o_dobro_garantido(4), 8);\n}\n\n#[test]\nfn testa_o_dobro_com_motivo_do_dois() {\n    assert_eq!(o_dobro_com_motivo(2), 4);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "o_dobro_garantido abre a caixa com unwrap e devolve 8 para o leite 4.",
+      "teste": "testa_o_dobro_garantido_do_quatro"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "o_dobro_com_motivo abre a caixa com expect e a mensagem \"o leite do dia precisa ser positivo\", devolvendo 4 para o leite 2.",
+      "teste": "testa_o_dobro_com_motivo_do_dois"
+    }
+  ],
+  "expectedTestCount": 2
+}
