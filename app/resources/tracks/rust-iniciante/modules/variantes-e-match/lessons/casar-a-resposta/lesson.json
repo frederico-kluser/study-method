@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "slug": "casar-a-resposta",
+  "title": "Casar a resposta",
+  "summary": "O match da resposta também tem dois braços: Ok(n) extrai o valor; Err(e) extrai o motivo.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:TupleStructPattern",
+  "concepts": [
+    "casar_result"
+  ],
+  "prerequisites": [
+    "a-resposta-que-pode-falhar",
+    "casar-o-que-carrega"
+  ],
+  "introduces": {
+    "productive": [
+      "node:TupleStructPattern"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "os-dois-bracos-da-resposta",
+      "title": "Os dois braços da resposta",
+      "markdown": "Abrir a resposta é casar com `Ok(n)` e com `Err(e)` — e as DUAS variantes carregam, então as duas extraem:\n\n```rust\npub fn o_resumo_da(resposta: Result<i32, String>) -> String {\n    match resposta {\n        Ok(n) => format!(\"certo: {}\", n),\n        Err(motivo) => format!(\"errado: {}\", motivo),\n    }\n}\n```\n\nNo braço do `Ok`, o `n` é o resultado que chegou; no do `Err`, o `motivo` é a explicação da falha. Mesmo `match` da aula `a-variante-que-carrega` — só que agora os dois lados carregam."
+    },
+    {
+      "id": "os-dois-lados-carregam",
+      "title": "Os dois lados carregam",
+      "markdown": "Na caixa (`Option`), o vazio não tinha valor — o braço do `None` não extraía nada. Na resposta, o erro TEM conteúdo, e o braço do `Err` o nomeia:\n\n```rust\npub fn o_numero_da(resposta: Result<i32, String>) -> i32 {\n    match resposta {\n        Ok(n) => n,\n        Err(_) => -1,\n    }\n}\n```\n\nQuando o motivo não interessa, o `_` (a aula `o-braco-que-sobra`) cobre o braço do `Err` sem nomear o que carrega."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "os-dois-lados-da-resposta-extraem",
+      "sectionId": "os-dois-bracos-da-resposta",
+      "statement": "No match do Result, os dois braços extraem: Ok(n) o valor, Err(e) o motivo.",
+      "question": "No braço `Err(motivo) => format!(\"errado: {}\", motivo)`, o que o padrão fez?",
+      "options": [
+        "Casou com a variante Err e nomeou o motivo carregado",
+        "Criou um erro novo",
+        "Comparou a resposta com a variante Err",
+        "Declarou o tipo do erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O padrão do Err extrai: o conteúdo carregado passa a se chamar `motivo` no braço.",
+      "optionRationales": [
+        "Isso: casou e extraiu — `motivo` é o E do Result que chegou.",
+        "O erro já veio na resposta: o braço não fabrica, ele ABRE.",
+        "O `=>` não compara: separa o padrão da resposta do braço.",
+        "O tipo já veio declarado na assinatura; o padrão só dá o nome ao conteúdo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Result<T, E> — std::result::Result",
+      "url": "https://doc.rust-lang.org/std/result/enum.Result.html",
+      "description": "A página do enum Result: as variantes Ok(T) e Err(E)."
+    },
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Result — std::result",
+      "url": "https://doc.rust-lang.org/std/result/",
+      "description": "A documentação oficial do Result: o enum de falha, com Ok e Err."
+    }
+  ],
+  "challenges": [
+    "o-veredito-do-juiz"
+  ]
+}

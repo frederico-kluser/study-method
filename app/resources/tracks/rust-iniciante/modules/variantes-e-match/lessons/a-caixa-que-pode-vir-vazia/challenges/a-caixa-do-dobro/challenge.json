@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-do-dobro",
+  "title": "A caixa do dobro",
+  "concept": "option_caixa",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A caixa do dobro\n\nA vaca leiteira não dá leite todos os dias. A função `o_leite_de` devolve a CAIXA do dobro do leite do dia:\n\n- dia com leite positivo: a caixa CHEIA — `Some(dobro)`;\n- dia sem leite (zero ou negativo): a caixa VAZIA — `None`.\n\nComplete o corpo de `o_leite_de`: um `if` que decide entre as duas variantes do `Option<i32>`, com o valor carregado na cheia.\n\nPara conferir, o arquivo traz `o_aviso_da`, o conferente de caixas: ele abre a caixa e responde `veio: <valor>` ou `nao veio`. Os testes passam a SUA caixa por ele:\n\n- `o_aviso_da(o_leite_de(3))` devolve `veio: 6`;\n- `o_aviso_da(o_leite_de(-1))` devolve `nao veio`.\n",
+  "starterCode": "pub fn o_aviso_da(caixa: Option<i32>) -> String {\n    match caixa {\n        Some(v) => format!(\"veio: {}\", v),\n        None => String::from(\"nao veio\"),\n    }\n}\n\npub fn o_leite_de(leite: i32) -> Option<i32> {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_aviso_da(caixa: Option<i32>) -> String {\n    match caixa {\n        Some(v) => format!(\"veio: {}\", v),\n        None => String::from(\"nao veio\"),\n    }\n}\n\npub fn o_leite_de(leite: i32) -> Option<i32> {\n    if leite > 0 {\n        Some(leite * 2)\n    } else {\n        None\n    }\n}\n",
+  "testsCode": "use desafio::o_aviso_da;\nuse desafio::o_leite_de;\n\n#[test]\nfn testa_o_aviso_da_caixa_cheia_do_leite_tres() {\n    assert_eq!(o_aviso_da(o_leite_de(3)), String::from(\"veio: 6\"));\n}\n\n#[test]\nfn testa_o_aviso_da_caixa_vazia_do_leite_negativo() {\n    assert_eq!(o_aviso_da(o_leite_de(-1)), String::from(\"nao veio\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "Com leite positivo, o_leite_de monta a caixa cheia: o_aviso_da(o_leite_de(3)) responde \"veio: 6\".",
+      "teste": "testa_o_aviso_da_caixa_cheia_do_leite_tres"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Com leite zero ou negativo, o_leite_de devolve a caixa vazia: o_aviso_da responde \"nao veio\".",
+      "teste": "testa_o_aviso_da_caixa_vazia_do_leite_negativo"
+    }
+  ],
+  "expectedTestCount": 2
+}

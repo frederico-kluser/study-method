@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-que-pode-vir-vazia",
+  "title": "A caixa que pode vir vazia",
+  "summary": "Option<T> é o conjunto de DUAS variantes da stdlib: Some(t), que carrega, e None, que não.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:Some",
+  "concepts": [
+    "option_caixa"
+  ],
+  "prerequisites": [
+    "casar-o-que-carrega"
+  ],
+  "introduces": {
+    "productive": [
+      "global:Some",
+      "global:None"
+    ],
+    "receptive": [
+      "node:GenericType",
+      "node:TypeArguments"
+    ]
+  },
+  "introducesTerms": [
+    "term:Option",
+    "term:Some",
+    "term:None"
+  ],
+  "theory": [
+    {
+      "id": "a-caixa-do-pode-nao-ter",
+      "title": "A caixa do \"pode não ter\"",
+      "markdown": "Uma função às vezes não tem o que devolver: o dobro só existe de número positivo para cima. Rust não tem `null` — tem a CAIXA `Option<T>`, que ou vem cheia ou vazia:\n\n```rust\npub fn o_dobro_de(n: i32) -> Option<i32> {\n    if n > 0 {\n        Some(n * 2)\n    } else {\n        None\n    }\n}\n```\n\n`Some(valor)` é a caixa CHEIA — a variante que carrega; `None` é a VAZIA. O `Option` é o conjunto; cada resposta é uma variante dele."
+    },
+    {
+      "id": "some-e-none-sao-as-variantes",
+      "title": "Some e None são as variantes",
+      "markdown": "O `Option` é um enum da stdlib — o tipo de conjunto que a aula `a-escolha-fixa` ensinou, pronto na linguagem:\n\n```rust\npub fn o_vale_vazio() -> Option<i32> {\n    None\n}\n```\n\n`Some` e `None` estão no PRELUDE: sem `use` nenhum, disponíveis em todo arquivo — como o `String` (M4) e o `i32` (M1). O `<i32>` do `Option<i32>` diz o tipo do conteúdo da caixa."
+    },
+    {
+      "id": "a-caixa-e-do-prelude",
+      "title": "A caixa vem pronta da linguagem",
+      "markdown": "Você não escreve o enum `Option`: ele é da stdlib. O que você escreve são as variantes — `Some(n)` para encher, `None` para esvaziar:\n\n```rust\npub fn a_caixa_de_trinta() -> Option<i32> {\n    Some(30)\n}\n```\n\n`Some(30)` é um valor do conjunto `Option<i32>`: a caixa com um 30 dentro. É a aula `a-variante-que-carrega` de novo — agora com o conjunto pronto da stdlib."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-caixa-ou-vem-cheia-ou-vazia",
+      "sectionId": "a-caixa-do-pode-nao-ter",
+      "statement": "Option<T> resolve o \"pode não ter\": Some(t) é a caixa cheia, None é a vazia.",
+      "question": "O que a função `o_dobro_de` devolve quando o número não é positivo?",
+      "options": [
+        "None — a caixa vazia",
+        "Some(0)",
+        "Um número negativo",
+        "Uma String de erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem valor, a caixa vem vazia: None. Com valor, `Some(n * 2)`.",
+      "optionRationales": [
+        "Isso: `None` é a variante vazia — o \"não tem\" sem inventar número.",
+        "`Some(0)` seria uma caixa CHEIA com zero — não é ausência.",
+        "Não há número: o tipo devolvido é `Option<i32>`, não `i32`.",
+        "Texto é outro tipo: a caixa não transforma ausência em frase."
+      ]
+    },
+    {
+      "id": "some-e-none-nao-precisam-de-use",
+      "sectionId": "some-e-none-sao-as-variantes",
+      "statement": "Some, None e Option estão no prelude: disponíveis em todo arquivo, sem use.",
+      "question": "O que falta no arquivo para escrever `Some(7)` com tipo `Option<i32>`?",
+      "options": [
+        "Nada — Some e Option já estão no escopo pelo prelude",
+        "use desafio::Option;",
+        "um import de crate externo",
+        "declarar o enum Option à mão"
+      ],
+      "answerIndex": 0,
+      "feedback": "Prelude fechado: Some/None/Option (e Ok/Err) vêm prontos, como o String.",
+      "optionRationales": [
+        "Isso: prelude é o que a linguagem põe no escopo — escreva e use.",
+        "`desafio` é a SUA crate: Option não mora nela, mora no prelude.",
+        "Std-only: e mesmo assim Option nem precisa de use — é prelude.",
+        "Reescrever Option por cima da stdlib não compila: o conjunto já existe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Option — std::option",
+      "url": "https://doc.rust-lang.org/std/option/",
+      "description": "A documentação oficial do Option: o enum de ausência, com Some e None."
+    },
+    {
+      "title": "Option<T> — std::option::Option",
+      "url": "https://doc.rust-lang.org/std/option/enum.Option.html",
+      "description": "A página do enum Option: as variantes Some(T) e None e o tipo dentro do diamante."
+    },
+    {
+      "title": "Defining an Enum — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html",
+      "description": "O capítulo oficial do enum: as variantes, os valores que elas carregam e o Option como caixa."
+    }
+  ],
+  "challenges": [
+    "a-caixa-do-dobro"
+  ]
+}

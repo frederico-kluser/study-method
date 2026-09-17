@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta-do-queijo",
+  "title": "A etiqueta do queijo",
+  "concept": "enum_conjunto_fixo",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# A etiqueta do queijo\n\nA fábrica de queijos maturados classifica cada lote numa etiqueta: suave, maturado ou extra. Não existe quarta opção — a escolha é FIXA.\n\nO conjunto não foi entregue. Escreva o enum `Maturidade` com as variantes `Suave`, `Maturado` e `Extra` — com `#[derive(Debug, PartialEq)]`, porque o teste compara a etiqueta com `==` — e complete a função `a_etiqueta_de`: dias 0 ou 1 são `Suave`; dias 2 ou 3 são `Maturado`; 4 dias ou mais são `Extra`.\n\n- `a_etiqueta_de(0)` devolve `Suave`;\n- `a_etiqueta_de(3)` devolve `Maturado`;\n- `a_etiqueta_de(7)` devolve `Extra`.\n\nO enum declara TODAS as escolhas possíveis; a função devolve a variante certa com o caminho `Maturidade::Suave`.\n",
+  "starterCode": "pub fn a_etiqueta_de(dias: i32) -> Maturidade {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Maturidade {\n    Suave,\n    Maturado,\n    Extra,\n}\n\npub fn a_etiqueta_de(dias: i32) -> Maturidade {\n    if dias < 2 {\n        Maturidade::Suave\n    } else if dias < 4 {\n        Maturidade::Maturado\n    } else {\n        Maturidade::Extra\n    }\n}\n",
+  "testsCode": "use desafio::a_etiqueta_de;\nuse desafio::Maturidade;\n\n#[test]\nfn testa_a_etiqueta_do_dia_zero() {\n    assert_eq!(a_etiqueta_de(0), Maturidade::Suave);\n}\n\n#[test]\nfn testa_a_etiqueta_do_dia_tres() {\n    assert_eq!(a_etiqueta_de(3), Maturidade::Maturado);\n}\n\n#[test]\nfn testa_a_etiqueta_do_dia_sete() {\n    assert_eq!(a_etiqueta_de(7), Maturidade::Extra);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O enum Maturidade declara as variantes Suave, Maturado e Extra, e a_etiqueta_de(0) devolve Maturidade::Suave.",
+      "teste": "testa_a_etiqueta_do_dia_zero"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "a_etiqueta_de(3) devolve a variante Maturado: dois ou três dias são Maturado.",
+      "teste": "testa_a_etiqueta_do_dia_tres"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "a_etiqueta_de(7) devolve a variante Extra: quatro dias ou mais são Extra.",
+      "teste": "testa_a_etiqueta_do_dia_sete"
+    }
+  ],
+  "expectedTestCount": 3
+}

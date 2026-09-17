@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "slug": "converter-texto-em-numero",
+  "title": "Converter texto em número",
+  "summary": "parse tenta ler o número no texto e devolve um Result — o produtor real de resposta.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.parse",
+  "concepts": [
+    "converter_parse"
+  ],
+  "prerequisites": [
+    "a-porta-rapida",
+    "o-texto-que-e-dono"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.parse"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:parse"
+  ],
+  "theory": [
+    {
+      "id": "o-produtor-de-resposta",
+      "title": "O produtor de resposta",
+      "markdown": "O texto chegou do usuário e precisa virar número. O `parse` TENTA a conversão — e devolve um `Result`, porque texto pode não ser número:\n\n```rust\npub fn a_tentativa_de(texto: String) -> i32 {\n    let tentativa = texto.parse();\n    tentativa.unwrap()\n}\n```\n\nA leitura do `parse` nunca devolve o número direto: devolve uma RESPOSTA — o `Result<i32, _>`. O nome `tentativa` não é enfeite: parse TENTA; o acerto e a falha chegam juntos."
+    },
+    {
+      "id": "quem-decide-o-tipo",
+      "title": "Quem decide o tipo é o destino",
+      "markdown": "`parse` lê o texto em QUALQUER tipo que saiba ler — e o tipo vem da assinatura da função que recebe:\n\n```rust\npub fn o_numero_do(texto: String) -> i32 {\n    let tentativa = texto.parse();\n    let numero = tentativa.unwrap();\n    numero\n}\n```\n\nA função devolve `i32`, e o `parse` lê para `i32`. Pedir o tipo a `String::new()` (M4) e depois ler com `parse` é o caminho da leitura a dois passos."
+    },
+    {
+      "id": "o-texto-que-nao-vira-numero",
+      "title": "O texto que não vira número",
+      "markdown": "Quando o texto não é número, o `parse` devolve o `Err` com o motivo — e o `unwrap` da leitura acima PANICA:\n\n`let n = String::from(\"sete\").parse().unwrap();` para com `invalid digit found in string`.\n\nO caminho COMPLETO é casar a resposta: `match texto.parse() { Ok(n) => ..., Err(e) => ... }` — os dois braços do `Result`, da aula `casar-a-resposta`, respondendo ao que o `parse` trouxe."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-parse-devolve-uma-resposta",
+      "sectionId": "o-produtor-de-resposta",
+      "statement": "parse tenta ler o número e devolve um Result: Ok com o número, Err com o motivo.",
+      "question": "O que `texto.parse()` devolve quando o texto é \"42\"?",
+      "options": [
+        "Uma resposta: Ok com o 42 dentro",
+        "O número 42 direto",
+        "A String \"42\" sem mudanças",
+        "None, porque leitura não falha"
+      ],
+      "answerIndex": 0,
+      "feedback": "parse nunca devolve o valor direto: a resposta vem embrulhada no Result.",
+      "optionRationales": [
+        "Isso: a leitura é uma RESPOSTA — `Ok(42)` na caixa do Result.",
+        "O valor direto só existe depois de abrir a resposta (match ou unwrap).",
+        "parse converte: a String de entrada não volta igual.",
+        "None é do Option; o parse produz Result, com motivo no Err."
+      ]
+    },
+    {
+      "id": "o-tipo-vem-do-destino",
+      "sectionId": "quem-decide-o-tipo",
+      "statement": "O tipo que o parse lê vem do destino: a assinatura da função decide.",
+      "question": "A função promete devolver `i32` e o corpo faz `texto.parse()`. Que leitura o parse faz?",
+      "options": [
+        "Lê o texto como i32 — o tipo do destino",
+        "Lê como f64, o tipo padrão de número",
+        "Lê como String, o tipo do texto",
+        "Não lê nada: espera o tipo no argumento"
+      ],
+      "answerIndex": 0,
+      "feedback": "O parse infere o tipo do DESTINO: a promessa da assinatura decide a leitura.",
+      "optionRationales": [
+        "Isso: o Result<i32, _> do parse casa com o tipo que a função promete.",
+        "Não existe \"padrão de número\" solto: o tipo vem da assinatura.",
+        "A String é a ENTRADA; o parse lê para o tipo do resultado prometido.",
+        "O parse não recebe tipo por argumento — ele lê para o destino."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str — std::primitive::str",
+      "url": "https://doc.rust-lang.org/std/primitive.str.html",
+      "description": "A página oficial do str: o método parse, o produtor de Result na vida real."
+    },
+    {
+      "title": "Result<T, E> — std::result::Result",
+      "url": "https://doc.rust-lang.org/std/result/enum.Result.html",
+      "description": "A página do enum Result: as variantes Ok(T) e Err(E)."
+    }
+  ],
+  "challenges": [
+    "o-numero-do-formulario"
+  ]
+}

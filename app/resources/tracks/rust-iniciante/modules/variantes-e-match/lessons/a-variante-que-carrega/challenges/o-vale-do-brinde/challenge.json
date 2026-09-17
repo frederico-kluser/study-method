@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-vale-do-brinde",
+  "title": "O vale do brinde",
+  "concept": "variante_que_carrega",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O vale do brinde\n\nA loja de aniversário manda o conjunto `Brinde` pronto: `Nada` é a variante vazia; `Vale(i32)` carrega o valor em centavos do vale-presente.\n\nComplete o corpo de `o_vale_do` com um match de dois braços:\n\n- o braço da variante que carrega usa o padrão `Brinde::Vale(valor)` e devolve o `valor` extraído;\n- o braço de `Brinde::Nada` devolve `0`.\n\n- `o_vale_do(Brinde::Vale(50))` devolve `50`;\n- `o_vale_do(Brinde::Nada)` devolve `0`.\n\nO padrão nomeia o que chega: dentro do braço, `valor` é o i32 que a variante carregou.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Brinde {\n    Nada,\n    Vale(i32),\n}\n\npub fn o_vale_do(brinde: Brinde) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Brinde {\n    Nada,\n    Vale(i32),\n}\n\npub fn o_vale_do(brinde: Brinde) -> i32 {\n    match brinde {\n        Brinde::Vale(valor) => valor,\n        Brinde::Nada => 0,\n    }\n}\n",
+  "testsCode": "use desafio::o_vale_do;\nuse desafio::Brinde;\n\n#[test]\nfn testa_o_vale_de_cinquenta() {\n    assert_eq!(o_vale_do(Brinde::Vale(50)), 50);\n}\n\n#[test]\nfn testa_o_vale_do_nada() {\n    assert_eq!(o_vale_do(Brinde::Nada), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O padrão Brinde::Vale(valor) extrai o valor carregado e o_vale_do(Brinde::Vale(50)) devolve 50.",
+      "teste": "testa_o_vale_de_cinquenta"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço de Brinde::Nada devolve 0.",
+      "teste": "testa_o_vale_do_nada"
+    }
+  ],
+  "expectedTestCount": 2
+}

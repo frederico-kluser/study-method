@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "slug": "casar-o-que-carrega",
+  "title": "Casar o que carrega",
+  "summary": "A extração vira resultado: o valor nomeado no padrão entra na resposta do braço.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:TupleStructPattern",
+  "concepts": [
+    "casar_extraido"
+  ],
+  "prerequisites": [
+    "a-variante-que-carrega",
+    "o-casamento"
+  ],
+  "introduces": {
+    "productive": [
+      "node:TupleStructPattern"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-extraido-entra-na-resposta",
+      "title": "O extraído entra na resposta",
+      "markdown": "O padrão nomeia; a resposta USA. Num braço com `format!`, o valor extraído é um argumento como qualquer outro:\n\n```rust\npub fn a_etiqueta_do(pedido: Pedido) -> String {\n    match pedido {\n        Pedido::Fechado(n) => format!(\"fechado: {}\", n),\n        Pedido::Aberto => String::from(\"aberto\"),\n    }\n}\n```\n\nO padrão casou, extraíu o `i32` com o nome `n` — e a resposta usa o `n` como qualquer variável de bloco."
+    },
+    {
+      "id": "o-nome-do-extraido-e-seu",
+      "title": "O nome do extraído é seu",
+      "markdown": "O nome dentro do parêntese é uma variável NOVA, criada pelo padrão — você escolhe como chamá-la:\n\n```rust\npub fn o_dobro_do(pedido: Pedido) -> i32 {\n    match pedido {\n        Pedido::Fechado(total) => total * 2,\n        Pedido::Aberto => 0,\n    }\n}\n```\n\n`n`, `total` ou `valor`: o padrão dá o nome, e o corpo do braço lê a peça carregada por esse nome. A variante vazia (`Aberto`) não extrai nada — a resposta não depende de conteúdo nenhum."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-extraido-e-variavel-do-braco",
+      "sectionId": "o-extraido-entra-na-resposta",
+      "statement": "O valor extraído no padrão é uma variável do braço: a resposta o usa como quiser.",
+      "question": "No braço `Pedido::Fechado(n) => format!(\"fechado: {}\", n)`, de onde vem o `n`?",
+      "options": [
+        "Do padrão, que casou com a variante e nomeou o que ela carrega",
+        "De um let antes do match",
+        "Do formato do format!",
+        "Da variante Aberto"
+      ],
+      "answerIndex": 0,
+      "feedback": "O padrão extrai e nomeia: casou com Fechado, o i32 carregado passa a ser `n`.",
+      "optionRationales": [
+        "Isso: o padrão `Fechado(n)` cria a variável `n` com o conteúdo carregado.",
+        "Não há declaração antes: o padrão do braço cria o nome sozinho.",
+        "O format! apenas IMPRIME o `n`; quem criou o nome foi o padrão.",
+        "A variante Aberto não carrega valor: não tem nada para nomear."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Match — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/match.html",
+      "description": "Os exemplos oficiais de match: um braço por variante e o _ que cobre o resto."
+    }
+  ],
+  "challenges": [
+    "a-etiqueta-do-pedido-fechado"
+  ]
+}

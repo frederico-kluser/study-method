@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "slug": "casar-a-caixa",
+  "title": "Casar a caixa",
+  "summary": "O match da caixa tem dois braços: Some(v) extrai o conteúdo; None responde ao vazio.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:TupleStructPattern",
+  "concepts": [
+    "casar_option"
+  ],
+  "prerequisites": [
+    "a-caixa-que-pode-vir-vazia",
+    "casar-o-que-carrega"
+  ],
+  "introduces": {
+    "productive": [
+      "node:TupleStructPattern"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "os-dois-bracos-da-caixa",
+      "title": "Os dois braços da caixa",
+      "markdown": "Abrir a caixa é casar com as DUAS variantes — a que carrega, com o padrão de extração, e a vazia, direto:\n\n```rust\npub fn o_ou_zero(caixa: Option<i32>) -> i32 {\n    match caixa {\n        Some(v) => v,\n        None => 0,\n    }\n}\n```\n\n`Some(v)` casa com a caixa cheia e nomeia o conteúdo; `None` casa com a vazia. Dois braços, conjunto de dois — exaustivo sem sobra."
+    },
+    {
+      "id": "a-resposta-por-caixa",
+      "title": "A resposta de cada braço",
+      "markdown": "O `match` é a forma LEGÍTIMA de abrir a caixa: cada braço responde ao seu caso, e o `v` extraído é um `i32` de verdade:\n\n```rust\npub fn o_descricao_da(caixa: Option<i32>) -> String {\n    match caixa {\n        Some(v) => format!(\"tem: {}\", v),\n        None => String::from(\"nao tem\"),\n    }\n}\n```\n\nDentro do braço do `Some`, o compilador já sabe que existe conteúdo — o `v` é o valor carregado, não uma aposta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-caixa-se-abre-em-dois-bracos",
+      "sectionId": "os-dois-bracos-da-caixa",
+      "statement": "Abrir a caixa é casar com Some(v) e None: um braço por variante do Option.",
+      "question": "No match de uma caixa `Option<i32>`, quais são os dois padrões dos braços?",
+      "options": [
+        "Some(v), que extrai o conteúdo, e None, que responde ao vazio",
+        "0 e 1",
+        "True e False",
+        "Option::Some e Option::None escritos com ponto"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa é um enum de duas variantes: `Some(v)` extrai; `None` é o caso vazio.",
+      "optionRationales": [
+        "Isso: o padrão da cheia nomeia o conteúdo; a vazia não carrega nada.",
+        "A caixa não é número: os padrões são as variantes Some e None.",
+        "Não há comparação: os braços do match são PADRÕES, não condições.",
+        "O separador entre conjunto e variante é `::` — e Some dispensa o prefixo: já é do prelude."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Option<T> — std::option::Option",
+      "url": "https://doc.rust-lang.org/std/option/enum.Option.html",
+      "description": "A página do enum Option: as variantes Some(T) e None e o tipo dentro do diamante."
+    },
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Option — std::option",
+      "url": "https://doc.rust-lang.org/std/option/",
+      "description": "A documentação oficial do Option: o enum de ausência, com Some e None."
+    }
+  ],
+  "challenges": [
+    "a-resposta-da-caixa"
+  ]
+}

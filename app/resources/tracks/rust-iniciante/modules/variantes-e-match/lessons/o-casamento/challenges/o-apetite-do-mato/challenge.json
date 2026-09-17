@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-apetite-do-mato",
+  "title": "O apetite do mato",
+  "concept": "match_variante",
+  "difficulty": 3,
+  "language": "rust",
+  "statement": "# O apetite do mato\n\nO jardim responde a cada dose de sol. O conjunto `Sol` e a função já existem no arquivo:\n\n- o braço de `Pleno` devolve a String `\"cresce\"`;\n- o braço de `Nublado` devolve a String `\"sobrevive\"`;\n- o braço de `Escuro` devolve a String `\"murcha\"`.\n\nUm braço por variante — o match tem de responder a TODAS as três, porque é exaustivo. Cada resposta é `String::from(\"…\")`, e o corpo do braço é uma expressão: nada de `return` e nada de ponto-e-vírgula no fim.\n",
+  "starterCode": "#[derive(Debug, PartialEq)]\npub enum Sol {\n    Pleno,\n    Nublado,\n    Escuro,\n}\n\npub fn a_resposta_do_mato(sol: Sol) -> String {\n    match sol {\n        Sol::Pleno => todo!(),\n        Sol::Nublado => todo!(),\n        Sol::Escuro => todo!(),\n    }\n}\n",
+  "solutionCode": "#[derive(Debug, PartialEq)]\npub enum Sol {\n    Pleno,\n    Nublado,\n    Escuro,\n}\n\npub fn a_resposta_do_mato(sol: Sol) -> String {\n    match sol {\n        Sol::Pleno => String::from(\"cresce\"),\n        Sol::Nublado => String::from(\"sobrevive\"),\n        Sol::Escuro => String::from(\"murcha\"),\n    }\n}\n",
+  "testsCode": "use desafio::a_resposta_do_mato;\nuse desafio::Sol;\n\n#[test]\nfn testa_a_resposta_ao_sol_pleno() {\n    assert_eq!(a_resposta_do_mato(Sol::Pleno), String::from(\"cresce\"));\n}\n\n#[test]\nfn testa_a_resposta_ao_sol_nublado() {\n    assert_eq!(a_resposta_do_mato(Sol::Nublado), String::from(\"sobrevive\"));\n}\n\n#[test]\nfn testa_a_resposta_ao_sol_escuro() {\n    assert_eq!(a_resposta_do_mato(Sol::Escuro), String::from(\"murcha\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função a_resposta_do_mato responde ao braço de Sol::Pleno com \"cresce\".",
+      "teste": "testa_a_resposta_ao_sol_pleno"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função a_resposta_do_mato responde ao braço de Sol::Nublado com \"sobrevive\".",
+      "teste": "testa_a_resposta_ao_sol_nublado"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "A função a_resposta_do_mato responde ao braço de Sol::Escuro com \"murcha\".",
+      "teste": "testa_a_resposta_ao_sol_escuro"
+    }
+  ],
+  "expectedTestCount": 3
+}

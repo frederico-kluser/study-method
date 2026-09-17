@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-veredito-do-juiz",
+  "title": "O veredito do juiz",
+  "concept": "casar_result",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# O veredito do juiz\n\nO tribunal recebe a resposta do copista e escreve o veredito. A resposta chega como `Result<i32, String>`: acerto carrega a nota, erro carrega o motivo.\n\nComplete o corpo de `o_veredito_do` com um match de dois braços:\n\n- o braço de `Ok(n)` devolve `format!(\"nota: {}\", n)`;\n- o braço de `Err(motivo)` devolve `format!(\"sem nota: {}\", motivo)`.\n\n- `o_veredito_do(Ok(8))` devolve `nota: 8`;\n- `o_veredito_do(Err(String::from(\"falta resposta\")))` devolve `sem nota: falta resposta`.\n\nOs dois lados da resposta carregam — e os dois braços extraem.\n",
+  "starterCode": "pub fn o_veredito_do(resposta: Result<i32, String>) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_veredito_do(resposta: Result<i32, String>) -> String {\n    match resposta {\n        Ok(n) => format!(\"nota: {}\", n),\n        Err(motivo) => format!(\"sem nota: {}\", motivo),\n    }\n}\n",
+  "testsCode": "use desafio::o_veredito_do;\n\n#[test]\nfn testa_o_veredito_da_nota_oito() {\n    assert_eq!(o_veredito_do(Ok(8)), String::from(\"nota: 8\"));\n}\n\n#[test]\nfn testa_o_veredito_da_falta_de_resposta() {\n    assert_eq!(o_veredito_do(Err(String::from(\"falta resposta\"))), String::from(\"sem nota: falta resposta\"));\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O braço de Ok(n) devolve \"nota: 8\" para a resposta Ok(8).",
+      "teste": "testa_o_veredito_da_nota_oito"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço de Err(motivo) devolve \"sem nota: falta resposta\" para o erro carregado.",
+      "teste": "testa_o_veredito_da_falta_de_resposta"
+    }
+  ],
+  "expectedTestCount": 2
+}

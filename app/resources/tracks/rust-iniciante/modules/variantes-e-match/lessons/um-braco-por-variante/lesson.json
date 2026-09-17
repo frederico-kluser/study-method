@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "slug": "um-braco-por-variante",
+  "title": "Um braço por variante",
+  "summary": "O braço é PADRÃO => RESPOSTA: o aluno escreve o braço inteiro, pergunta e resposta.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:MatchArm",
+  "concepts": [
+    "braco_da_variante"
+  ],
+  "prerequisites": [
+    "o-casamento"
+  ],
+  "introduces": {
+    "productive": [
+      "node:MatchArm",
+      "node:MatchPattern"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-braco-e-duas-partes",
+      "title": "O braço tem duas partes",
+      "markdown": "O braço é a linha do match, e as duas partes se separam em `=>`:\n\n```rust\npub fn o_peso_do(lado: Lado) -> i32 {\n    match lado {\n        Lado::Direito => 1,\n        Lado::Esquerdo => -1,\n    }\n}\n```\n\nÀ esquerda, o PADRÃO: o caminho da variante que pergunta. À direita, a RESPOSTA: o valor do braço. O padrão pergunta; a resposta entrega — e o tipo da resposta é o tipo que TODOS os braços prometem (`i32`, aqui)."
+    },
+    {
+      "id": "o-tipo-que-todos-os-bracos-prometem",
+      "title": "Todos os braços respondem o MESMO tipo",
+      "markdown": "Um braço devolvendo `String` e outro devolvendo `i32` não compila: o match inteiro tem UM tipo — o tipo que todos os braços prometem:\n\n```rust\npub fn a_pista_do(lado: Lado) -> String {\n    match lado {\n        Lado::Direito => String::from(\"leste\"),\n        Lado::Esquerdo => String::from(\"oeste\"),\n    }\n}\n```\n\nTroque um braço por `1` e o compilador reprova com `if and else have incompatible types`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-braco-e-padrao-e-resposta",
+      "sectionId": "o-braco-e-duas-partes",
+      "statement": "O braço tem duas partes: o padrão à esquerda de `=>` e a resposta à direita.",
+      "question": "No braço `Lado::Direito => 1`, o que é `Lado::Direito` e o que é `1`?",
+      "options": [
+        "O padrão (a pergunta) e o valor do braço (a resposta)",
+        "O padrão e o nome do braço",
+        "A condição e o corpo do if",
+        "O conjunto e a variante que casou"
+      ],
+      "answerIndex": 0,
+      "feedback": "À esquerda de `=>` fica o padrão; à direita, o valor que o braço devolve.",
+      "optionRationales": [
+        "Isso: o padrão pergunta se a variante casou; a resposta é o valor do braço.",
+        "Braço não tem nome: o compilador o conhece pela ordem e pelo padrão.",
+        "Não é if: a pergunta do match é um PADRÃO, não uma condição.",
+        "`Lado::Direito` é caminho, sim — mas o `1` é a resposta do braço, não a variante."
+      ]
+    },
+    {
+      "id": "todos-os-bracos-prometem-o-mesmo-tipo",
+      "sectionId": "o-tipo-que-todos-os-bracos-prometem",
+      "statement": "Todos os braços de um match devolvem o mesmo tipo — o tipo do match inteiro.",
+      "question": "Num match que devolve `String`, o que acontece com o braço que devolve `1`?",
+      "options": [
+        "A compilação reprova: os braços prometem tipos diferentes",
+        "O 1 é convertido para \"1\"",
+        "O braço com 1 é ignorado",
+        "O tipo do match vira uma mistura dos dois"
+      ],
+      "answerIndex": 0,
+      "feedback": "O match tem UM tipo — o que todos os braços prometem; um fora reprova.",
+      "optionRationales": [
+        "Isso: o compilador compara o tipo de TODOS os braços e reprova o divergente.",
+        "Rust não converte número em texto por conta própria: conversão é explícita.",
+        "O braço divergente é erro de compilação — o compilador não escolhe por você.",
+        "Não existe \"mistura\": o tipo do match é decidido ANTES de rodar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Match — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/match.html",
+      "description": "Os exemplos oficiais de match: um braço por variante e o _ que cobre o resto."
+    }
+  ],
+  "challenges": [
+    "o-peso-da-balanca"
+  ]
+}

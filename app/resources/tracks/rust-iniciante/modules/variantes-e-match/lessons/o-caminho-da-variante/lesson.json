@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-caminho-da-variante",
+  "title": "O caminho da variante",
+  "summary": "Uma variante não vive solta: o caminho `Cor::Vermelho` diz o conjunto e a variante.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:ScopedIdentifier",
+  "concepts": [
+    "caminho_da_variante"
+  ],
+  "prerequisites": [
+    "a-escolha-fixa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ScopedIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:caminho"
+  ],
+  "theory": [
+    {
+      "id": "o-nome-inteiro-da-variante",
+      "title": "O nome inteiro da variante",
+      "markdown": "`Vermelho` sozinho não existe: a variante mora DENTRO do conjunto, e o caminho `::` diz a rua e a casa:\n\n```rust\npub fn a_cor_do_pare() -> Cor {\n    Cor::Vermelho\n}\n\npub fn a_cor_do_siga() -> Cor {\n    Cor::Verde\n}\n```\n\n`Cor::Vermelho` lê-se: DENTRO de `Cor`, pegue `Vermelho`. É a mesma mecânica do `Ponto::new` de M6 — caminho-qualificado, agora apontando para uma variante."
+    },
+    {
+      "id": "o-caminho-em-todo-lugar",
+      "title": "O caminho em todo lugar",
+      "markdown": "A variante é sempre usada PELO CAMINHO — em variável, em comparação, na devolução:\n\n```rust\npub fn troca(cor: Cor) -> Cor {\n    if cor == Cor::Vermelho {\n        Cor::Verde\n    } else {\n        Cor::Vermelho\n    }\n}\n```\n\n`cor == Cor::Vermelho` compara o valor chegado com a variante do conjunto — o `==` que o derive `PartialEq` ensinou (M6) agora compara escolhas. E o `troca` devolve a variante contrária: uma das duas, sempre."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-variante-precisa-do-caminho",
+      "sectionId": "o-nome-inteiro-da-variante",
+      "statement": "A variante é escrita pelo caminho `Conjunto::Variante` — o `::` liga o conjunto à variante.",
+      "question": "Como se escreve a variante Vermelho do conjunto Cor, como valor?",
+      "options": [
+        "Cor::Vermelho",
+        "Vermelho",
+        "Cor.Vermelho",
+        "Cor(Vermelho)"
+      ],
+      "answerIndex": 0,
+      "feedback": "O caminho `Cor::Vermelho` diz o conjunto e a variante — o `::` é o separador.",
+      "optionRationales": [
+        "Isso: o `::` liga o conjunto à variante — o caminho inteiro é o nome do valor.",
+        "A variante não vive solta no escopo: sem o conjunto, o nome não existe.",
+        "Ponto é o separador de CAMPO (M6); entre conjunto e variante o separador é `::`.",
+        "Parênteses chamariam função ou montariam variante com valor — Vermelho não carrega nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Defining an Enum — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html",
+      "description": "O capítulo oficial do enum: as variantes, os valores que elas carregam e o Option como caixa."
+    },
+    {
+      "title": "Enums — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/custom_types/enum.html",
+      "description": "Os exemplos oficiais de enum: declaração, variantes e caminhos."
+    }
+  ],
+  "challenges": [
+    "o-estado-do-espelho"
+  ]
+}

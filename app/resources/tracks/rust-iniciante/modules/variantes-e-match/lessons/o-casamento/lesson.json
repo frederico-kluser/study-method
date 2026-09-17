@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-casamento",
+  "title": "O casamento",
+  "summary": "O match pergunta QUAL variante chegou e responde com o corpo do braço correspondente.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:MatchExpression",
+  "concepts": [
+    "match_variante"
+  ],
+  "prerequisites": [
+    "o-caminho-da-variante"
+  ],
+  "introduces": {
+    "productive": [
+      "node:MatchExpression",
+      "node:MatchBlock"
+    ],
+    "receptive": [
+      "node:MatchArm",
+      "node:MatchPattern"
+    ]
+  },
+  "introducesTerms": [
+    "term:match",
+    "term:braço"
+  ],
+  "theory": [
+    {
+      "id": "a-pergunta-da-variante",
+      "title": "A pergunta da variante",
+      "markdown": "Para decidir entre variantes não se usa fila de `else if`: usa-se o `match` — ele pergunta, braço por braço, qual variante chegou:\n\n```rust\npub fn a_resposta_da(cor: Cor) -> String {\n    match cor {\n        Cor::Vermelho => String::from(\"pare\"),\n        Cor::Verde => String::from(\"siga\"),\n        Cor::Amarelo => String::from(\"atencao\"),\n    }\n}\n```\n\n`match cor` abre com o valor chegando; dentro das chaves, cada linha é um BRAÇO: à esquerda, a pergunta (o caminho da variante); à direita, `=>` e a resposta."
+    },
+    {
+      "id": "o-match-e-exaustivo",
+      "title": "O match é exaustivo",
+      "markdown": "O compilador NÃO deixa um caso de fora: se o conjunto tem três variantes e o match responde a só duas, ele reprova a compilação com `non-exhaustive patterns`. Faltou um braço, o programa não existe.\n\nÉ a mesma exaustividade do `if`/`else` — mas aqui a cobrança é pelo CONJUNTO: cada variante declarada merece a sua resposta, e uma variante nova no enum cobra braços novos em todo match que a usa."
+    },
+    {
+      "id": "o-braco-e-uma-expressao",
+      "title": "O corpo do braço é uma expressão",
+      "markdown": "O match INTEIRO devolve um valor: o valor do braço que casou. E dentro de uma função que devolve `String`, o match fica na última linha, sem `return` e sem ponto-e-vírgula:\n\n```rust\npub fn a_estampa_da(cor: Cor) -> String {\n    match cor {\n        Cor::Verde => String::from(\"siga\"),\n        Cor::Amarelo => String::from(\"atencao\"),\n        Cor::Vermelho => String::from(\"pare\"),\n    }\n}\n```\n\nÉ o corpo-expressão de M1 de novo: o match É o valor que a função devolve."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-match-responde-a-cada-variante",
+      "sectionId": "a-pergunta-da-variante",
+      "statement": "O match pergunta qual variante chegou e responde com o corpo do braço correspondente.",
+      "question": "No match de `cor`, o que o braço `Cor::Vermelho => String::from(\"pare\")` faz?",
+      "options": [
+        "Se a cor for Vermelho, o match devolve \"pare\"",
+        "Pinta a variante Vermelho de \"pare\"",
+        "Compara Vermelho com a string \"pare\"",
+        "Guarda \"pare\" dentro da variante"
+      ],
+      "answerIndex": 0,
+      "feedback": "Braço é pergunta e resposta: se casou com Vermelho, o valor do braço sai do match.",
+      "optionRationales": [
+        "Isso: `=>` separa a pergunta (o padrão) da resposta (o valor do braço).",
+        "Variantes não ganham cor: o braço só ESCOLHE o que devolver.",
+        "A comparação de variante é o `==`; no braço o `=>` é o separador pergunta→resposta.",
+        "O enum guarda o valor da variante; o braço devolve OUTRO valor (a resposta)."
+      ]
+    },
+    {
+      "id": "o-match-nao-deixa-caso-solto",
+      "sectionId": "o-match-e-exaustivo",
+      "statement": "O match é EXAUSTIVO: uma variante sem braço reprova a compilação.",
+      "question": "O conjunto tem três variantes e o match responde a duas. O que acontece?",
+      "options": [
+        "A compilação reprova: faltou um braço (non-exhaustive patterns)",
+        "A variante sem braço devolve vazio",
+        "O compilador escolhe a primeira resposta",
+        "O programa roda e para na variante sem braço"
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador cobra a resposta de TODAS as variantes — é a exaustividade do match.",
+      "optionRationales": [
+        "Isso: `non-exhaustive patterns` — o compilador nomeia o caso que faltou.",
+        "Não existe valor \"vazio\" aqui: ou o braço responde, ou não compila.",
+        "O compilador não adivinha: a exaustividade é regra, não escolha.",
+        "O programa nem chega a rodar: o erro é na compilação."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "The match Control Flow Construct — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch06-02-match.html",
+      "description": "O capítulo oficial do match: braços, exaustividade e o padrão que extrai o valor."
+    },
+    {
+      "title": "Match — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/flow_control/match.html",
+      "description": "Os exemplos oficiais de match: um braço por variante e o _ que cobre o resto."
+    }
+  ],
+  "challenges": [
+    "o-apetite-do-mato"
+  ]
+}

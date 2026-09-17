@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-resposta-da-caixa",
+  "title": "A resposta da caixa",
+  "concept": "casar_option",
+  "difficulty": 4,
+  "language": "rust",
+  "statement": "# A resposta da caixa\n\nA portaria da enxoval recebe a caixa do item do dia e responde com o número na parede: caixa cheia mostra o número; caixa vazia mostra zero.\n\nComplete o corpo de `o_numero_na_tela` com um match de dois braços que ABRE a caixa:\n\n- o braço de `Some(v)` extrai o conteúdo e devolve o `v`;\n- o braço de `None` devolve `0`.\n\n- `o_numero_na_tela(Some(9))` devolve `9`;\n- `o_numero_na_tela(None)` devolve `0`.\n\nOs dois braços cobrem o conjunto inteiro do `Option` — a exaustividade fecha sozinha.\n",
+  "starterCode": "pub fn o_numero_na_tela(caixa: Option<i32>) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn o_numero_na_tela(caixa: Option<i32>) -> i32 {\n    match caixa {\n        Some(v) => v,\n        None => 0,\n    }\n}\n",
+  "testsCode": "use desafio::o_numero_na_tela;\n\n#[test]\nfn testa_o_nove_na_tela_da_caixa_cheia() {\n    assert_eq!(o_numero_na_tela(Some(9)), 9);\n}\n\n#[test]\nfn testa_o_zero_na_tela_da_caixa_vazia() {\n    assert_eq!(o_numero_na_tela(None), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O braço de Some(v) extrai o conteúdo e o_numero_na_tela(Some(9)) devolve 9.",
+      "teste": "testa_o_nove_na_tela_da_caixa_cheia"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "O braço de None devolve 0 quando a caixa vem vazia.",
+      "teste": "testa_o_zero_na_tela_da_caixa_vazia"
+    }
+  ],
+  "expectedTestCount": 2
+}
