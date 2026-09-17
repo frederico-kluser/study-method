@@ -4,7 +4,7 @@
   "title": "Converter texto em número",
   "summary": "parse tenta ler o número no texto e devolve um Result — o produtor real de resposta.",
   "difficulty": 4,
-  "role": "regular",
+  "role": "integration",
   "targetAtom": "api:.parse",
   "concepts": [
     "converter_parse"

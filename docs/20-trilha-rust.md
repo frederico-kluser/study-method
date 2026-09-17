@@ -14,7 +14,7 @@
 > gate determinístico divergirem, o gate vence — e este documento está errado.
 >
 > **Base.** O adaptador REAL (`app/electron/main/engine/lang/rust.ts` + `vocab/rs/extract_ast.mjs`),
-> cujo inventário de **190 chaves** (`app/electron/main/engine/vocab/atoms.rust.json`, gerado do
+> cujo inventário de **191 chaves** (`app/electron/main/engine/vocab/atoms.rust.json`, gerado do
 > corpus `app/tests/fixtures/rust/corpus.rs` pela toolchain **1.98.1**) é o VOCABULÁRIO FECHADO desta
 > trilha; os fatos de toolchain medidos em [`research/06-toolchains.md`](research/06-toolchains.md)
 > (ficha Rust: `cargo test` zero-install, exit **101**, o footgun do filtro por nome curto); e a
@@ -140,7 +140,7 @@ pela solução de referência e o `format!` é o que o teste força; a assimetri
 fase SAÍDA de Python declarou os 17 desafios não-discriminantes
 ([`16`](16-engine-de-trilha.md) §9.1).
 
-**As assimetrias J5 medidas das ondas 4–5, módulo a módulo.** O padrão é sempre o mesmo: existe um
+**As assimetrias J5 medidas das ondas 4–6, módulo a módulo.** O padrão é sempre o mesmo: existe um
 desafio que PASSA sem escrever o átomo-alvo (uma resposta igualmente correta que contorna o que a
 aula ensina) e o aviso que o denuncia nunca reprova — a bateria J5 A13–A16 é javascript-only, e a
 discriminação do Rust é medida aula a aula pelo gate de qualidade, não por ela:
@@ -162,6 +162,11 @@ discriminação do Rust é medida aula a aula pelo gate de qualidade, não por e
   `#[derive(PartialEq)]` — o `==` sobre a struct nunca é cobrado) · aula 11 `o-atalho-do-campo`
   (`a-estatistica-do-turno`: a forma longa `minimo: minimo, maximo: maximo` passa sem o
   `node:ShorthandFieldInitializer`).
+- **M7 (`variantes-e-match`)** — o bypass teórico da aula 8 `a-caixa-que-pode-vir-vazia`
+  (`a-caixa-do-dobro`): `leite.checked_mul(2).filter(|dobro| *dobro > 0)` devolve as mesmas caixas
+  (`Some(6)`/`None` nos mesmos inputs; medido na toolchain 1.98.1) sem escrever `Some`/`None` na
+  lacuna — `checked_mul(2)` puro NÃO basta (o dia −1 vira `Some(-2)` e o conferente responde
+  `veio: -2`); mitigado pelo conferente `o_aviso_da` declarado no statement + cláusula 11.
 
 ### Os fatos da linguagem que governam esta trilha
 
@@ -188,7 +193,7 @@ Todos medidos (fontes: `lang/rust.ts`, `docs/research/06-toolchains.md` ficha Ru
 ### Vocabulário de átomos desta trilha
 
 Os eixos de [`16`](16-engine-de-trilha.md) §3.1, com a forma que cada um assume em Rust — o
-inventário fechado é `app/electron/main/engine/vocab/atoms.rust.json` (**190 chaves**: 76 `node:`,
+inventário fechado é `app/electron/main/engine/vocab/atoms.rust.json` (**191 chaves**: 77 `node:`,
 14 `op:`, 4 `decl:`, 77 `global:`, 19 `api:`; gerado do corpus, nunca digitado).
 
 | Eixo | Forma da chave em Rust | Aberto? | Exemplo |
@@ -738,7 +743,7 @@ anterior (§0).
 
 ### Fora do iniciante (declarado) — a cobertura do inventário, chave a chave
 
-**O inventário tem 190 chaves; o iniciante cobre as que o zero absoluto permite.** Cada ausência é
+**O inventário tem 191 chaves; o iniciante cobre as que o zero absoluto permite.** Cada ausência é
 uma decisão, não um esquecimento. As chaves de eixo fechado que o iniciante NÃO cita, com destino:
 
 | Chave (ou grupo) | Destino | Por quê |
@@ -876,6 +881,6 @@ mesmo padrão publicado). Nunca URL inventada.
 | M4 `o-dono-do-valor` | [`book/ch04-00-understanding-ownership.html`](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) · [`book/ch04-01-what-is-ownership.html`](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html) · [`rust-by-example/std/str.html`](https://doc.rust-lang.org/rust-by-example/std/str.html) · [`std/keyword.let.html`](https://doc.rust-lang.org/std/keyword.let.html) · [`std/string/struct.String.html`](https://doc.rust-lang.org/std/string/struct.String.html) |
 | M5 `emprestar` | [`book/ch04-02-references-and-borrowing.html`](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html) · [`book/ch04-03-slices.html`](https://doc.rust-lang.org/book/ch04-03-slices.html) · [`std/primitive.str.html`](https://doc.rust-lang.org/std/primitive.str.html) · [`std/primitive.reference.html`](https://doc.rust-lang.org/std/primitive.reference.html) · [`std/primitive.char.html`](https://doc.rust-lang.org/std/primitive.char.html) · [`rust-by-example/scope/lifetime.html`](https://doc.rust-lang.org/rust-by-example/scope/lifetime.html) |
 | M6 `estruturas` | [`book/ch05-01-defining-structs.html`](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) · [`book/ch05-03-method-syntax.html`](https://doc.rust-lang.org/book/ch05-03-method-syntax.html) · [`rust-by-example/custom_types/structs.html`](https://doc.rust-lang.org/rust-by-example/custom_types/structs.html) · [`std/fmt/trait.Debug.html`](https://doc.rust-lang.org/std/fmt/trait.Debug.html) · [`std/cmp/trait.PartialEq.html`](https://doc.rust-lang.org/std/cmp/trait.PartialEq.html) · [`std/clone/trait.Clone.html`](https://doc.rust-lang.org/std/clone/trait.Clone.html) · [`std/marker/trait.Copy.html`](https://doc.rust-lang.org/std/marker/trait.Copy.html) · [`rust-by-example/hello/print.html`](https://doc.rust-lang.org/rust-by-example/hello/print.html) · [`book/appendix-03-derivable-traits.html`](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html) |
-| M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-match.html`](https://doc.rust-lang.org/book/ch06-02-match.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) |
+| M7 `variantes-e-match` | [`book/ch06-01-defining-an-enum.html`](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html) · [`book/ch06-02-match.html`](https://doc.rust-lang.org/book/ch06-02-match.html) · [`std/option/`](https://doc.rust-lang.org/std/option/) · [`std/result/`](https://doc.rust-lang.org/std/result/) · [`rust-by-example/custom_types/enum.html`](https://doc.rust-lang.org/rust-by-example/custom_types/enum.html) · [`rust-by-example/flow_control/match.html`](https://doc.rust-lang.org/rust-by-example/flow_control/match.html) |
 | M8 `colecoes` | [`book/ch08-00-common-collections.html`](https://doc.rust-lang.org/book/ch08-00-common-collections.html) · [`book/ch08-01-vectors.html`](https://doc.rust-lang.org/book/ch08-01-vectors.html) · [`book/ch08-03-hash-maps.html`](https://doc.rust-lang.org/book/ch08-03-hash-maps.html) · [`std/collections/struct.HashMap.html`](https://doc.rust-lang.org/std/collections/struct.HashMap.html) |
 | todos (harness) | [`cargo/commands/cargo-test.html`](https://doc.rust-lang.org/cargo/commands/cargo-test.html) · [`cargo/guide/project-layout.html`](https://doc.rust-lang.org/cargo/guide/project-layout.html) · [`edition-guide/`](https://doc.rust-lang.org/edition-guide/) · [`rust-by-example/hello.html`](https://doc.rust-lang.org/rust-by-example/hello.html) |
