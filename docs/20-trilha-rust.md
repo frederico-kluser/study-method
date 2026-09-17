@@ -301,6 +301,8 @@ currículo. É a mesma honestidade da bateria J5 A13–A16 declarada neste contr
 do EXTRATOR (cadeia sobre resultado de chamada), vale para as duas linguagens com extrator de
 chave `api:` de método e não reprova ninguém — o gate não pode cobrar o que a régua não lê.
 
+**⚑ As emissões DENTRO de macro (`token_tree`), medidas — o que a macro esconde e o que ela não esconde.** O ARGUMENTO da macro é conteúdo (a seção acima), e a régua dele tem três fatos medidos por extração real (`extract_ast.mjs`, ondas 6 e 8): (1) o **identificador solto é nó nomeado dentro do `token_tree`** e emite `global:<nome>` normalmente — `assert_eq!(Some(6), …)` emite `global:Some`: a macro NÃO esconde chave global; (2) os **operadores** emitem pela varredura de token (`op:unary:-` do `dobro(-3)`) — mas só por heurística de prefixo, e `x * 2` dentro de `format!` sai `op:unary:*` (a chave ERRADA): **aritmética vai FORA de macros**, em expressão real, onde `op:binary:*` + `node:BinaryExpression` saem da árvore; (3) o **literal e a cadeia qualificada NÃO emitem** — dentro do `token_tree` não existe árvore de expressão: `node:IntegerLiteral` não sai, e `String::from` num assert emite `global:String` mas NÃO `api:String::from` (o ponto cego do §⚑ (f) abaixo). Duas consequências de autoria adotadas pela trilha inteira: **aritmética fora de macros** e **parens de agrupamento fora** (`(2 + 3)` emite `node:ParenthesizedExpression`, chave fora do inventário — o corpus nunca a usou).
+
 ### A semente receptiva do harness Rust
 
 O que o aluno lê em TODO desafio e não escreve em nenhum. Entra no receptivo da aula 1 e nunca no
@@ -834,7 +836,7 @@ concorrência, não o FFI; declarar isso não é limitação escondida, é o con
 
 | Curso | Módulos | Aulas | Status |
 |---|---|---|---|
-| `rust-iniciante` | M1–M8 | 13+12+12+13+13+12+13+13 = **101** | **medidas** — contadas sobre as tabelas de §2 (verificação reexecutável: `0 falhas`) |
+| `rust-iniciante` | M1–M8 | 13+12+12+13+13+12+13+13 = **101** | **medidas** — contadas sobre as tabelas de §2 (verificação reexecutável: `0 falhas`) — e **ENTREGUE no disco** (ondas 3–7: `app/resources/tracks/rust-iniciante/`, 101 aulas + 109 desafios; o estado final, com os números medidos, está no [`18`](18-estado-da-fabricacao-dos-cursos.md) §8) |
 | `rust-intermediario` | porta + 7 | 14 + 86 = **100** | previstas |
 | `rust-avancado` | porta + 3 | 8 + 28 = **36** | previstas |
 | `rust-especialista` | porta + 3 | 9 + 33 = **42** | previstas |
@@ -866,6 +868,67 @@ rust-iniciante --limite 0` (0 violações) → `coverage` (0 lacunas) → `requi
 `track:validate` → `track:challenge:verify` (as quatro provas por desafio) → gates de repo
 (newline!) → squash-merge com gate em snapshot. **A trilha só existe como `rust-iniciante`
 quando a onda 7 fecha** — até lá, os autores trabalham em draft com `--dir`.
+
+## ⚑ Dívidas de ENGINE registradas durante a fabricação
+
+> Registradas pela fabricação do `rust-iniciante` (ondas 3–8), cada uma com a PROVA que a sustenta.
+> Nenhuma é dívida de conteúdo: são limitações pré-existentes da engine ou rotas aguardando decisão
+> de engine — todas contornadas sem afrouxar gate, e o estado final fecha os números do §4 com o que
+> existe hoje (as provas de execução da onda 8: audit 0 · coverage 109/109 · bijeção 109 ·
+> validate 109 ✓).
+
+**(a) Multi-arquivo `files[]` para rust aguarda o validador multilíngue do produto.** O validador
+estrutural dos desafios (`content/trackTypes.ts`) testa `files[].path` contra
+`SAFE_FILE_PATH_RE = defaultAdapter().filePathPattern` — o adaptador **DEFAULT** (`javascript`,
+`\.mjs$`), não o do desafio. PROVA POR EXECUÇÃO (onda 8, `validateChallengeSource` real): um
+`files[0].path: "src/lib.rs"` reprova com `files[0].path inválido: "src/lib.rs" (esperado caminho
+seguro ^[a-zA-Z0-9_\-/]+\.mjs$…)`; o mesmo validador aceita `lib/soma.mjs`. O SUBMIT já é correto —
+`challengePairFromSource` copia `challenge.language` e o desafio `\.rs$` roda pelo adaptador Rust
+(`tests/rustTrilhaRoda.test.ts` prova o caminho inteiro, com cargo). O `rsLayout` aceita `files[]`
+verbatim — mas o MANIFESTO vem sempre PRIMEIRO e o TESTE sempre ÚLTIMO na ordem de escrita: um
+`files[]` que carregue `Cargo.toml` SOBRESCREVE o manifesto do harness, e um `files[]`
+`tests/desafio.rs` é SOBRESCRITO pelo teste do harness. Consequência declarada: os 8 desafios de
+módulo foram autorados ARQUIVO-ÚNICO (o M8 com `mod` inline — `node:ModItem` e `node:Super` já são
+semente), e a rota de engine própria (validador por `challenge.language`) é onda futura.
+
+**(b) `cmdChallengeVerify` não alcança desafio de módulo.** O comando resolve
+`modules/<m>/lessons/<aula>/challenges/<slug>/challenge.json` (`tools/track-cli.ts`,
+`lessonDir(track, moduleSlug, lessonSlug)`) — a rota `modules/<m>/challenges/<m>/challenge.json`
+não é alcançável por ele (o comando nem aceita a ausência de aula). As duas rotas que COBREM os 8:
+`track:validate`, cujo laço passa por `mod.challenge` (onda 8: **109 verificados ✓, 0 reprovados**,
+incluindo os 8 de módulo), e `verifyChallengePair` direto (as MESMAS provas por execução, chamada
+por desafio — o que as sondas fail-closed por módulo usaram durante a autoria).
+
+**(c) Desafios de módulo FORA do `auditTrack`.** O audit itera
+`track.modules → mod.lessons → lesson.challenges` (`audit.ts`, `entradaDeProgressao` e o laço
+principal de violações) — o desafio do módulo (`LoadedModule.challenge`) não entra no orçamento
+auditado, e os números de audit (§4) falam só dos 101 de aula. A contenção dos 8 foi garantida por
+OUTRO caminho, fail-closed: **sondas por módulo** (as provas de execução por desafio de módulo,
+durante e depois da autoria) e o **coverage fim-da-trilha** (109/109 — `coletarDesafios` inclui os
+8; 0 lacunas). Fazer o audit alcançá-los é decisão de engine futura.
+
+**(d) `statement` não-extraído pelo audit.** `challengeSurfaces` monta só starter/solution/tests
+(`audit.ts:202-215`) — o enunciado nunca passa pelo extrator. Declarado em §"O que o gate NÃO
+mede" e confirmado pela fabricação: a disciplina de autoria (a revisão que audita a teoria audita
+o enunciado) cobre o que o gate não vê. A lacuna é da ENGINE — vale para Python também.
+
+**(e) As linhas do mapa: `api:<.campo>` e globais dentro de macro.** A linha da LEITURA de campo
+por receptor local (`api:<.campo>` → `node:FieldExpression` + `node:FieldIdentifier`) está no mapa
+da regra do par (§"A regra do par"). A emissão de GLOBAIS dentro de macro entrou no mesmo §
+(§"As emissões DENTRO de macro", medida na onda 6: `assert_eq!(Some(6), …)` emite `global:Some`) —
+a macro não esconde chave global nenhuma. Verificação feita na onda 8: a linha de `api:<.campo>`
+presente; a de globais dentro de macro NÃO estava no mapa — acrescentada nesta onda, junto dos
+dois fatos irmãos (aritmética fora de macros; parens de agrupamento fora).
+
+**(f) `api:`-dentro-de-`assert_eq!` não emite `api:` — cego pré-existente.** Dentro do
+`token_tree` não existe `scoped_identifier`: a emissão de `api:` de caminho-qualificado exige árvore
+de expressão. PROVA por extração real (onda 8, `extractAllOccurrences`, adaptador Rust):
+`assert_eq!(String::from("oi"), …)` emite `global:String` e NÃO emite `api:String::from` — o MESMO
+`String::from` fora da macro (num `let`) emite os dois. O fallback do requirements não salva: o
+trecho do assert é expressão crua e o parse standalone falha ("falta ;") → `[]`
+(`atomsDoTrechoDoAssertRust`). Dormente nas trilhas atuais (nenhum teste cobra `api:` só dentro de
+assert), e vale para as duas linguagens com extrator de `api:` de método — o gate não pode cobrar o
+que a régua não lê.
 
 ## 6. Fontes oficiais por módulo (P-FONTE)
 
