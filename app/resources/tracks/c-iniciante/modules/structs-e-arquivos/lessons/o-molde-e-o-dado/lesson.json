@@ -22,7 +22,7 @@
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",
     "aula": 1,
-    "ensina": "struct Ponto (o molde e o dado) + o acesso a campo p.x [pendente: kinds clang a confirmar no adaptador — declaração: StructDecl/RecordDecl; acesso: MemberExpr — hoje ambos não emergem]",
+    "ensina": "node:RecordDecl (o molde — só tagUsed: \"struct\"; a union é derrubada e os campos FieldDecl são transparentes), node:MemberExpr (o acesso a campo p.x)",
     "presume": "um-nome-para-um-valor",
     "quiz": "struct Ponto agrupa valores DIFERENTES numa ficha só; cada campo tem o seu tipo.",
     "desafio": "cartao-de-ponto — declara o struct e imprime os campos; teste compara a linha."

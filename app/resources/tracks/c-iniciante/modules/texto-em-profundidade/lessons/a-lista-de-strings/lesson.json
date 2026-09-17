@@ -23,7 +23,7 @@
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",
     "aula": 12,
-    "ensina": "cons. — decl:var em forma nova (o array de arrays: char nomes[5][20] — o adaptador emite decl:var; a FORMA 2D é PENDENTE, §8)",
+    "ensina": "cons. — decl:var em forma nova (o array de arrays: char nomes[5][20] — o adaptador emite decl:var; a FORMA 2D fica em prosa — §8.2 P12)",
     "presume": "a-string-e-o-zero, a-caixa-com-gavetas",
     "quiz": "char nomes[5][20]: 5 palavras de até 19 letras + terminador cada.",
     "desafio": "lista-de-convidados — lê 3 nomes e lista numerada; teste injeta 3 nomes e compara as 3 linhas."

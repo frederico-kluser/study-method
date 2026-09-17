@@ -23,7 +23,7 @@
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",
     "aula": 6,
-    "ensina": "cons. — decl:var em forma nova (array de structs) + acesso pontos[i].x [pendente: MemberExpr]",
+    "ensina": "cons. — decl:var em forma nova (array de structs) + node:MemberExpr (o acesso pontos[i].x)",
     "presume": "o-apelido-do-molde, varrer-a-lista",
     "quiz": "pontos[i].x: primeiro a gaveta, depois o campo.",
     "desafio": "o-ponto-mais-longe — imprime todos e acha o mais distante da origem (sqrt); teste compara o índice."

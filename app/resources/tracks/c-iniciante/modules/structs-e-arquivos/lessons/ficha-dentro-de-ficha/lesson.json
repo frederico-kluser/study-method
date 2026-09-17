@@ -22,7 +22,7 @@
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",
     "aula": 7,
-    "ensina": "cons. — acesso a campo em forma nova (struct aninhada: pessoa.casa.x) [pendente: MemberExpr]",
+    "ensina": "cons. — node:MemberExpr em forma nova (struct aninhada: pessoa.casa.x — um nó MemberExpr por nível de campo)",
     "presume": "o-apelido-do-molde",
     "quiz": "O campo pode ser outro struct: um ponto por nível de ponto.",
     "desafio": "a-ficha-da-pessoa — Pessoa { nome, casa: Ponto }; imprime nome e casa; teste compara a linha."

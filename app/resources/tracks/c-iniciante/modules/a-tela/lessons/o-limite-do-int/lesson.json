@@ -22,7 +22,7 @@
     "modulo": "a-tela",
     "moduloTitulo": "A tela",
     "aula": 21,
-    "ensina": "cons. — node:IncludeDirective em forma nova (o #include <limits.h>; INT_MAX/INT_MIN são macro e não emitem chave — §8)",
+    "ensina": "cons. — node:IncludeDirective em forma nova (o #include <limits.h>; INT_MAX/INT_MIN são MACRO: sem nó no AST e sem ApiRef após a expansão — não emitem chave, §8.2)",
     "presume": "comparacoes",
     "quiz": "INT_MAX é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa.",
     "desafio": "o-teto-e-o-piso — imprime INT_MAX e INT_MIN; teste compara os dois números."

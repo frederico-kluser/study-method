@@ -22,7 +22,7 @@
     "modulo": "decisao",
     "moduloTitulo": "Decisão",
     "aula": 8,
-    "ensina": "node:BreakStmt + o switch [pendente: kind clang a confirmar no adaptador — SwitchStmt/CaseStmt hoje não emergem (os filhos sobem)]",
+    "ensina": "node:SwitchStmt, node:BreakStmt (o par: a estrutura e a saída; os rótulos case/default são filhos TRANSPARENTES do nó — sobem sem chave própria)",
     "presume": "em-cascata",
     "quiz": "Sem o break, a execução CAI para o case de baixo (fallthrough).",
     "desafio": "menu-do-dia — switch sobre o dia 1–7 com break; teste com 1 e 6."

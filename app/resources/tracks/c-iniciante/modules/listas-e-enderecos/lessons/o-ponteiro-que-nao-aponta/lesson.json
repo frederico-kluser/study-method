@@ -22,7 +22,7 @@
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",
     "aula": 19,
-    "ensina": "NULL, o endereço \"nenhum\" [pendente: macro do <stddef.h> — não emite ApiRef nem nó; hoje invisível ao extrator; onda 3 decide]",
+    "ensina": "cons. — decl:var em forma nova (o ponteiro que pode não apontar) + op:binary:!= (o teste do nulo; NULL fica em PROSA — term:NULL: macro, expande para ((void*)0) e o cast da expansão é derrubado pelo guard do extrator — não emite chave, §8.2 P8)",
     "presume": "o-papel-com-o-endereco",
     "quiz": "NULL é o endereço \"nenhum\"; usá-lo como casa desaba o programa — por isso se testa antes.",
     "desafio": "o-gate-do-nulo — maiorDe(v, n) devolve ponteiro para o maior, ou NULL se n == 0; o main testa != NULL; teste com n=0 e n>0."

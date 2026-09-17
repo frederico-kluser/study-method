@@ -23,7 +23,7 @@
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",
     "aula": 5,
-    "ensina": "s->m — o campo via ponteiro (o degrau é o * do M5 aplicado à ficha) [pendente: kind clang a confirmar no adaptador — é MemberExpr com base ponteiro, hoje não emerge]",
+    "ensina": "node:MemberExpr em forma nova (o campo via ponteiro: a MESMA chave do p.x — o -> vai no atributo memberAccess: \"arrow\"; o degrau é o * do M5 aplicado à ficha)",
     "presume": "o-dado-na-caixa, ir-ate-a-casa",
     "quiz": "p->x é (*p).x: o ponteiro enxerga o original e muda de verdade.",
     "desafio": "o-movedor-de-verdade — moverVia(Ponto *p, dx, dy) muda o original; teste compara os campos do original."

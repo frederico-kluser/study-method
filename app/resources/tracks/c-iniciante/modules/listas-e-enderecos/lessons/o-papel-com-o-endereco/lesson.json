@@ -22,7 +22,7 @@
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",
     "aula": 9,
-    "ensina": "cons. — decl:var em forma nova (o ponteiro: int *p = &x; — o adaptador emite decl:var; a FORMA ponteiro é PENDENTE, §8)",
+    "ensina": "cons. — decl:var em forma nova (o ponteiro: int *p = &x; — o adaptador emite decl:var; a FORMA ponteiro fica em prosa — §8.2, P12)",
     "presume": "enderecos",
     "quiz": "int *p = &x; — o p não guarda número: guarda ONDE o número está.",
     "desafio": "aponta-para-mim — declara p e imprime p e &x; teste: as duas impressões são o mesmo endereço."

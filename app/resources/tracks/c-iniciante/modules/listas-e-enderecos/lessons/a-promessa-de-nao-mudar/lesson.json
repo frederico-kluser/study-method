@@ -22,7 +22,7 @@
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",
     "aula": 18,
-    "ensina": "o qualificador const na promessa de leitura [pendente: sem nó no AST do clang — é qualificador de TIPO, invisível ao extrator; onda 3 decide a chave]",
+    "ensina": "cons. — decl:func em forma nova (o contrato de leitura na assinatura; o qualificador const fica em PROSA — term:const: qualificador de TIPO, sem nó no AST do clang, nunca emite chave — §8.2 P7)",
     "presume": "a-lista-como-parametro",
     "quiz": "const int v[] diz \"esta função só lê\" — tentar mudar vira ERRO de compilação.",
     "desafio": "soma-com-promessa — refaz somaLista com const int v[]; teste compara a soma (igual) e exige compilação limpa."

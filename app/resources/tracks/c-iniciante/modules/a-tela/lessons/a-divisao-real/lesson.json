@@ -23,7 +23,7 @@
     "modulo": "a-tela",
     "moduloTitulo": "A tela",
     "aula": 13,
-    "ensina": "cast explícito (double)7 / 2 [pendente: kind clang a confirmar no adaptador — CStyleCastExpr hoje é transparente no extrator]",
+    "ensina": "node:CStyleCastExpr (o cast (double)7 / 2 — saiu de _TRANSPARENTES na onda 3; o tipo-alvo vai no atributo castType; cast de MACRO não emite — §8)",
     "presume": "multiplicar-e-dividir, o-numero-com-virgula",
     "quiz": "(double)7 / 2 é 3.5 — o cast de UM lado basta para a conta virar real.",
     "desafio": "media-de-dois — média de dois inteiros fixos com casas decimais; teste compara o valor com %f."

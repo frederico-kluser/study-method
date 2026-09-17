@@ -23,7 +23,7 @@
     "modulo": "decisao",
     "moduloTitulo": "Decisão",
     "aula": 9,
-    "ensina": "ternário max = a > b ? a : b; [pendente: kind clang a confirmar no adaptador — ConditionalOperator hoje é transparente no extrator]",
+    "ensina": "node:ConditionalOperator (o ternário max = a > b ? a : b; — saiu de _TRANSPARENTES na onda 3)",
     "presume": "se-senao, um-nome-para-um-valor",
     "quiz": "max = a > b ? a : b; atribui um dos dois valores numa linha.",
     "desafio": "maior-de-dois — lê dois números e imprime o maior via ternário; teste com (3, 9) e (9, 3)."
