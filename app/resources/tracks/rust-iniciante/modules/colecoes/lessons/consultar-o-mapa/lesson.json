@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "slug": "consultar-o-mapa",
+  "title": "Consultar o mapa",
+  "summary": "O .get devolve a CAIXA: Some do valor quando a chave está, None quando não está.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.get",
+  "concepts": [
+    "consultar_o_mapa"
+  ],
+  "prerequisites": [
+    "guardar-no-mapa",
+    "casar-a-caixa"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.get",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-get-devolve-a-caixa",
+      "title": "O get devolve a caixa",
+      "markdown": "Consultar o mapa com o `.get` — ele devolve a caixa `Option`: `Some` do valor quando a chave está, `None` quando não está:\n\n```rust\nlet idade = idades.get(\"ana\");\n```\n\n`idade` não é o número: é a CAIXA que pode trazer o valor — a mesma caixa do `.pop`."
+    },
+    {
+      "id": "o-colchete-panica-o-get-responde",
+      "title": "O colchete panica, o get responde",
+      "markdown": "As duas formas respondem pela chave — e diferem no que fazem quando a chave falta:\n\n```rust\nlet idade = idades.get(\"ana\");\n```\n\nO colchete devolve o valor DIRETO e panica fora; o `.get` devolve a caixa e deixa o programa decidir. Para chave que pode faltar, o get é a pergunta segura."
+    },
+    {
+      "id": "abrir-a-caixa-com-o-match",
+      "title": "Abrir a caixa com o match de sempre",
+      "markdown": "Abrir a caixa é o `match` do M7 — os dois braços, `Some` e `None`:\n\n```rust\nmatch idades.get(\"ana\") {\n    Some(valor) => Some(*valor),\n    None => None,\n}\n```\n\nO `Some(valor)` traz o valor EMPRESTADO (`&i32`) — o deref `*valor` traz o número para fora, dono de si."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "get-devolve-caixa",
+      "sectionId": "o-get-devolve-a-caixa",
+      "statement": "O .get devolve Option: Some do valor quando a chave está, None quando não está.",
+      "question": "O que `idades.get(\"ana\")` devolve quando a chave \"ana\" NÃO está no mapa?",
+      "options": [
+        "None — a caixa vazia",
+        "Panica — o get não perdoa chave que falta",
+        "Zero — chave que falta vale zero",
+        "A idade da primeira chave"
+      ],
+      "answerIndex": 0,
+      "feedback": "O get responde com a caixa: sem a chave, a caixa vem vazia — None.",
+      "optionRationales": [
+        "A caixa é a resposta do get: cheia com o valor, vazia sem ele.",
+        "Quem panica é o colchete — o get devolve a caixa e decide.",
+        "Zero não existe sem você decidir: o None é o que sai.",
+        "O get procura a chave pedida — nada de primeira chave."
+      ]
+    },
+    {
+      "id": "o-some-traz-emprestado",
+      "sectionId": "abrir-a-caixa-com-o-match",
+      "statement": "O Some do get traz o valor EMPRESTADO (&i32) — o deref traz o número para fora.",
+      "question": "No braço `Some(valor)`, o que é `*valor`?",
+      "options": [
+        "O valor de dentro do empréstimo — o número dono de si",
+        "A caixa de novo, embrulhada",
+        "A chave do mapa",
+        "O tamanho do mapa"
+      ],
+      "answerIndex": 0,
+      "feedback": "O deref abre o empréstimo: *valor é o i32, pronto para voltar na caixa Some.",
+      "optionRationales": [
+        "O get empresta (&i32) — o deref abre e entrega o número.",
+        "A caixa já foi aberta pelo match — o deref cuida do valor.",
+        "A chave está no par — o valor é o que o get trouxe.",
+        "O tamanho é do .len — o deref cuida do valor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-consulta-segura"
+  ]
+}

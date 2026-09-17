@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "slug": "trazer-o-mapa",
+  "title": "Trazer o mapa",
+  "summary": "O HashMap mora fora do prelude, no módulo std::collections — o use o traz para o arquivo.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:std::collections::HashMap",
+  "concepts": [
+    "trazer_o_mapa"
+  ],
+  "prerequisites": [
+    "percorrer-a-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:std::collections::HashMap",
+      "api:std::collections",
+      "global:std",
+      "node:UseDeclaration",
+      "node:ScopedIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-mapa-mora-fora-do-prelude",
+      "title": "O mapa mora fora do prelude",
+      "markdown": "A `String` e o `Vec` moram no prelude: o nome aparece solto, sem importar nada. O `HashMap` NÃO — ele mora no módulo `std::collections`, e o `use` o traz:\n\n```rust\nuse std::collections::HashMap;\n```\n\nUma linha, no TOPO do arquivo, antes de tudo — é ela que abre a porta do mapa."
+    },
+    {
+      "id": "o-endereco-completo",
+      "title": "O endereço completo",
+      "markdown": "O caminho qualificado do mapa é `std::collections::HashMap` — módulo, submódulo, tipo. Com o `use` no topo, o resto do arquivo chama só `HashMap`:\n\n```rust\npub fn le_mapa(nomes: &HashMap<String, String>) -> String {\n    format!(\"{} nomes no mapa\", nomes.len())\n}\n```\n\nA assinatura já fala com o mapa: o `use` é quem deixa o nome curto compilar."
+    },
+    {
+      "id": "a-porta-antes-da-mochila",
+      "title": "A porta antes da mochila",
+      "markdown": "O `use` chega ANTES do mapa ter conteúdo: ele fica no topo, e as próximas aulas enchem a mochila — abrir o mapa, guardar pares, consultar chaves.\n\nÉ o caminho de sempre para peças de fora do prelude: o endereço completo fica no `use`, e o resto do arquivo fala com o nome curto."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-use-traz-o-mapa",
+      "sectionId": "o-mapa-mora-fora-do-prelude",
+      "statement": "O HashMap mora no módulo std::collections — o use o traz para o arquivo.",
+      "question": "Onde mora o HashMap, e como ele chega ao arquivo?",
+      "options": [
+        "No std::collections, trazido por um use no topo",
+        "No prelude, solto como o println!",
+        "Na crate desafio, importada pelo teste",
+        "No arquivo do aluno, sem use nenhum"
+      ],
+      "answerIndex": 0,
+      "feedback": "O mapa é peça de std::collections: o use na primeira linha o traz.",
+      "optionRationales": [
+        "O módulo das coleções é std::collections — e o use é a porta.",
+        "println! é do prelude; o HashMap não — por isso precisa do use.",
+        "A crate desafio é a do ALUNO — nenhuma API dela existe.",
+        "Sem o use o nome curto nem compila: a porta vem antes."
+      ]
+    },
+    {
+      "id": "o-caminho-qualificado",
+      "sectionId": "o-endereco-completo",
+      "statement": "O endereço completo do mapa é std::collections::HashMap; com o use, o arquivo chama só HashMap.",
+      "question": "Qual é o endereço completo do mapa?",
+      "options": [
+        "std::collections::HashMap",
+        "std::HashMap",
+        "collections::HashMap",
+        "HashMap::std"
+      ],
+      "answerIndex": 0,
+      "feedback": "Módulo std, submódulo collections, peça HashMap — o endereço completo.",
+      "optionRationales": [
+        "O caminho qualificado tem as três partes, separadas por ::.",
+        "Falta o submódulo collections no meio do caminho.",
+        "Falta a raiz std — o módulo mora dentro dela.",
+        "Esse é o nome CURTO que o use passa a permitir."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Common Collections — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-00-common-collections.html",
+      "description": "A visão oficial das coleções: dados com vários valores guardados na memória, todos num mesmo tipo."
+    },
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-porta-do-mapa"
+  ]
+}

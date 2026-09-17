@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "slug": "contar-as-palavras",
+  "title": "Contar as palavras",
+  "summary": "O padrão entry: uma linha que responde às duas perguntas — existe? some 1. Não existe? nasça com 1.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.entry",
+  "concepts": [
+    "contar_as_palavras"
+  ],
+  "prerequisites": [
+    "guardar-no-mapa"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.entry",
+      "api:.or_insert",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:padrão-entry"
+  ],
+  "theory": [
+    {
+      "id": "a-pergunta-que-o-entry-responde",
+      "title": "A pergunta que o entry responde",
+      "markdown": "Para contar, cada palavra faz a MESMA pergunta: ela já está no mapa? Se está, some 1; se não está, entre com 1. O `.entry` responde às duas num par de linhas:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut contagem = HashMap::new();\n*contagem.entry(String::from(\"sol\")).or_insert(0) += 1;\n```\n\nO `entry` procura a chave; o `or_insert(0)` diz o valor de nascença de quem falta."
+    },
+    {
+      "id": "o-or-insert-e-valor-pronto",
+      "title": "O or_insert é valor pronto",
+      "markdown": "O `.or_insert(0)` recebe um VALOR pronto — `0` —, e devolve a GAVETA da contagem (`&mut i32`). O deref escreve nela: `+= 1`.\n\nSem closure nenhuma, sem função nenhuma no meio: o padrão entry inteiro é o procura + o entra + o soma. Existe um primo com closure (`or_insert_with`) — fica para o curso de closures; aqui o valor é sempre pronto."
+    },
+    {
+      "id": "o-laco-que-conta",
+      "title": "O laço que conta",
+      "markdown": "A contagem inteira é o laço por valor (a aula da lista) alimentando o padrão entry:\n\n```rust\nuse std::collections::HashMap;\n\nfor palavra in palavras {\n    *contagem.entry(palavra).or_insert(0) += 1;\n}\n```\n\nCada `palavra` sai do laço DONA de si — e o `entry` a move para dentro do mapa, no lugar dela, somando `1` na gaveta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "entry-responde-duas-perguntas",
+      "sectionId": "a-pergunta-que-o-entry-responde",
+      "statement": "O padrão entry responde às duas perguntas do contador: existe? some; não existe? nasce.",
+      "question": "O que `*contagem.entry(p).or_insert(0) += 1;` faz na PRIMEIRA aparição de p?",
+      "options": [
+        "Cria a chave com 0 e soma 1 — a contagem nasce em 1",
+        "Panica — a chave ainda não existe",
+        "Soma 2 — o 0 e o 1 juntos",
+        "Não faz nada — entry só consulta"
+      ],
+      "answerIndex": 0,
+      "feedback": "O entry cria a vaga com o or_insert(0) e o deref soma 1: nasce em 1.",
+      "optionRationales": [
+        "Or_insert(0) dá o valor de nascença; o += 1 soma na gaveta: 0 + 1 = 1.",
+        "Justo o contrário do colchete: o entry NÃO panica — ele cria.",
+        "O or_insert(0) só entra quando falta — não soma duas vezes.",
+        "O entry prepara a gaveta — e o += 1 escreve nela."
+      ]
+    },
+    {
+      "id": "sem-closure-nenhuma",
+      "sectionId": "o-or-insert-e-valor-pronto",
+      "statement": "O or_insert recebe um VALOR pronto — o padrão entry inteiro sem closure nenhuma.",
+      "question": "O que o `.or_insert(0)` recebe?",
+      "options": [
+        "O valor 0, pronto para quem ainda não existe",
+        "Uma função que calcula o zero",
+        "A chave nova do mapa",
+        "O valor atual da contagem"
+      ],
+      "answerIndex": 0,
+      "feedback": "Valor pronto: o or_insert entrega a gaveta — com 0 dentro se a chave faltava.",
+      "optionRationales": [
+        "O or_insert é o primo SEM closure do padrão — recebe valor pronto.",
+        "Nenhuma função no meio: o valor 0 entra direto.",
+        "A chave é o argumento do entry — o or_insert cuida do valor.",
+        "Ele devolve a gaveta (&mut) — quem dá valor é o argumento."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-contagem-de-palavras"
+  ]
+}

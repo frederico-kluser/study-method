@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "guardar-no-mapa",
+  "title": "Guardar no mapa",
+  "summary": "O insert põe o par no mapa: a chave aponta para o valor — e chave de novo troca o valor.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.insert",
+  "concepts": [
+    "guardar_no_mapa"
+  ],
+  "prerequisites": [
+    "o-mapa-vazio"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.insert",
+      "node:FieldExpression",
+      "node:FieldIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-insert-poe-o-par",
+      "title": "O insert põe o par",
+      "markdown": "Guardar no mapa é pôr um PAR: a chave, o valor. O `.insert` recebe os dois, na ordem:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut idades = HashMap::new();\nidades.insert(String::from(\"ana\"), 9);\n```\n\nO mapa passa a ter o par `\"ana\"` → `9` — a chave é a porta, o valor é o que está atrás."
+    },
+    {
+      "id": "a-chave-e-dona",
+      "title": "A chave é dona",
+      "markdown": "A `String` da chave SE MOVE para dentro do mapa (M4) — o insert consome o nome:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut idades = HashMap::new();\nidades.insert(String::from(\"ana\"), 9);\n```\n\nDepois do insert, a caixa de texto não serve mais fora do mapa: o dono dela agora é o mapa."
+    },
+    {
+      "id": "chave-de-novo-valor-trocado",
+      "title": "Chave de novo, valor trocado",
+      "markdown": "Cada chave existe UMA vez no mapa. O `.insert` numa chave que já estava TROCA o valor — e devolve o antigo numa caixa `Option`, a mesma que o `.pop` ensinou:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut idades = HashMap::new();\nidades.insert(String::from(\"ana\"), 9);\n```\n\nMapa não acumula chaves iguais: o último insert é quem manda no valor."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-par-entra-junto",
+      "sectionId": "o-insert-poe-o-par",
+      "statement": "O insert põe o par: a chave aponta para o valor — insert(String::from(\"ana\"), 9) guarda \"ana\" → 9.",
+      "question": "O que `idades.insert(String::from(\"ana\"), 9)` faz?",
+      "options": [
+        "Guarda o par \"ana\" → 9 no mapa",
+        "Guarda o número 9 numa lista",
+        "Devolve a idade da ana",
+        "Cria uma chave sem valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O insert põe o par inteiro: a chave \"ana\" aponta para o 9.",
+      "optionRationales": [
+        "Par completo, na ordem do método: primeiro a chave, depois o valor.",
+        "Mapa não é lista — o par vai para o mapa, com porta e conteúdo.",
+        "Ler é o .get, que vem na próxima aula — o insert guarda.",
+        "Todo par entra completo: chave e valor, juntos."
+      ]
+    },
+    {
+      "id": "a-chave-se-move",
+      "sectionId": "a-chave-e-dona",
+      "statement": "A String da chave se move para dentro do mapa — o insert consome o dono.",
+      "question": "Depois de `idades.insert(String::from(\"ana\"), 9);`, quem é o dono do texto \"ana\"?",
+      "options": [
+        "O mapa — a chave se moveu para dentro dele",
+        "A variável idades — o texto continua solto",
+        "Ninguém — o texto foi apagado",
+        "O compilador, que guarda uma cópia"
+      ],
+      "answerIndex": 0,
+      "feedback": "O insert move a chave: o mapa passa a ser o dono do texto.",
+      "optionRationales": [
+        "Regra do M4: passar o dono por valor move — e o insert recebe a chave por valor.",
+        "O nome não fica solto: ele virou parte do mapa.",
+        "O texto não se apaga: ele mora dentro do mapa, como chave.",
+        "O compilador não guarda cópia — ele conta os donos."
+      ]
+    },
+    {
+      "id": "o-ultimo-insert-manda",
+      "sectionId": "chave-de-novo-valor-trocado",
+      "statement": "Insert numa chave que já existe TROCA o valor — a chave não se repete no mapa.",
+      "question": "Dois inserts na mesma chave — o que fica no mapa?",
+      "options": [
+        "A chave uma vez só, com o valor do último insert",
+        "Duas chaves iguais, com os dois valores",
+        "A chave com o primeiro valor, travado",
+        "Um erro de compilação"
+      ],
+      "answerIndex": 0,
+      "feedback": "Chave é única: o insert de novo troca o valor — o último manda.",
+      "optionRationales": [
+        "O mapa não acumula chaves iguais: o valor novo substitui o antigo.",
+        "Chave repetida não existe — o mapa é a coleção dos pares únicos.",
+        "Nada trava: o insert troca e devolve o antigo na caixa.",
+        "Trocar valor é operação normal — o compilador aprova."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-idade-anotada"
+  ]
+}

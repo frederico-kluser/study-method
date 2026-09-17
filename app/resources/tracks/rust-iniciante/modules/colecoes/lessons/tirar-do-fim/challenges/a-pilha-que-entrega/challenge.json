@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-pilha-que-entrega",
+  "title": "A pilha que entrega",
+  "concept": "tirar_do_fim",
+  "language": "rust",
+  "statement": "# A pilha que entrega\n\nA pilha entrega UMA peça por chamada: a função `entrega` recebe a pilha para MUDAR e devolve a caixa do `.pop`:\n\n- `entrega(&mut pilha)` numa pilha `[1, 2, 3]` devolve `Some(3)`;\n- na pilha `[5]`, a primeira entrega devolve `Some(5)` e a segunda devolve `None` — a pilha acabou.\n\nO `.pop` devolve `Option<i32>`: Some do último, None quando vazia.\n",
+  "starterCode": "pub fn entrega(pilha: &mut Vec<i32>) -> Option<i32> {\n    todo!()\n}\n",
+  "solutionCode": "pub fn entrega(pilha: &mut Vec<i32>) -> Option<i32> {\n    pilha.pop()\n}\n",
+  "testsCode": "use desafio::entrega;\n\n#[test]\nfn testa_a_entrega_do_ultimo() {\n    let mut pilha = vec![1, 2, 3];\n    assert_eq!(entrega(&mut pilha), Some(3));\n}\n\n#[test]\nfn testa_a_pilha_que_acabou() {\n    let mut pilha = vec![5];\n    assert_eq!(entrega(&mut pilha), Some(5));\n    assert_eq!(entrega(&mut pilha), None);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "entrega(&mut pilha) numa pilha [1, 2, 3] devolve Some(3) — o último valor, na caixa.",
+      "teste": "testa_a_entrega_do_ultimo"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "Na pilha [5], a primeira entrega devolve Some(5) e a segunda devolve None — pilha vazia não panica.",
+      "teste": "testa_a_pilha_que_acabou"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 3
+}

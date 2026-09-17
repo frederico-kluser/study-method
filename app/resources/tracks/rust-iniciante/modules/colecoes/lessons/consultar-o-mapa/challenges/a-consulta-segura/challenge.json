@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-consulta-segura",
+  "title": "A consulta segura",
+  "concept": "consultar_o_mapa",
+  "language": "rust",
+  "statement": "# A consulta segura\n\nA função `consulta` pergunta a idade SEM arriscar pânico:\n\n1. o corpo pergunta ao `.get`: `idades.get(nome)`;\n2. o `match` abre a caixa: no braço `Some(valor)`, devolva `Some(*valor)` — o número dono de si; no braço `None`, devolva `None`.\n\n- `consulta(&idades, \"ana\")` com a ana anotada devolve `Some(9)`;\n- `consulta(&idades, \"ana\")` numa urna sem a ana devolve `None`.\n\nO colchete panica; o get responde — e o match de sempre abre a resposta.\n",
+  "starterCode": "use std::collections::HashMap;\n\npub fn consulta(idades: &HashMap<String, i32>, nome: &str) -> Option<i32> {\n    todo!()\n}\n",
+  "solutionCode": "use std::collections::HashMap;\n\npub fn consulta(idades: &HashMap<String, i32>, nome: &str) -> Option<i32> {\n    match idades.get(nome) {\n        Some(valor) => Some(*valor),\n        None => None,\n    }\n}\n",
+  "testsCode": "use desafio::consulta;\nuse std::collections::HashMap;\n\n#[test]\nfn testa_a_idade_da_ana() {\n    let mut idades = HashMap::new();\n    idades.insert(String::from(\"ana\"), 9);\n    assert_eq!(consulta(&idades, \"ana\"), Some(9));\n}\n\n#[test]\nfn testa_a_chave_que_nao_existe() {\n    let mut idades = HashMap::new();\n    idades.insert(String::from(\"bo\"), 4);\n    assert_eq!(consulta(&idades, \"ana\"), None);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "consulta(&idades, \"ana\") no mapa com a ana anotada em 9 devolve Some(9).",
+      "teste": "testa_a_idade_da_ana"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "consulta(&idades, \"ana\") sem a chave \"ana\" devolve None — a caixa vazia.",
+      "teste": "testa_a_chave_que_nao_existe"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 4
+}

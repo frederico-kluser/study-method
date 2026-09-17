@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-soma-um-em-cada",
+  "title": "O soma um em cada",
+  "concept": "mudar_dentro_do_laco",
+  "language": "rust",
+  "statement": "# O soma um em cada\n\nA função `soma_um` percorre a lista mutável e soma `1` em CADA peça, no lugar:\n\n1. o laço corre sobre a `fila` que chegou por `&mut`;\n2. dentro do laço, escreva na gaveta: `*x += 1;`.\n\n- numa fila `[1, 2, 3]`, `soma_um(&mut fila)` deixa `2` na posição `0`;\n- numa fila `[9, 9]`, as duas posições ficam `10`.\n\nO deref é a mão que escreve: `*x += 1`.\n",
+  "starterCode": "pub fn soma_um(fila: &mut Vec<i32>) {\n    todo!()\n}\n",
+  "solutionCode": "pub fn soma_um(fila: &mut Vec<i32>) {\n    for x in fila {\n        *x += 1;\n    }\n}\n",
+  "testsCode": "use desafio::soma_um;\n\n#[test]\nfn testa_o_soma_um_na_fila() {\n    let mut fila = vec![1, 2, 3];\n    soma_um(&mut fila);\n    assert_eq!(fila[0], 2);\n}\n\n#[test]\nfn testa_a_fila_inteira_mudou() {\n    let mut fila = vec![9, 9];\n    soma_um(&mut fila);\n    assert_eq!(fila[0], 10);\n    assert_eq!(fila[1], 10);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "soma_um(&mut fila) soma 1 em cada peça: fila[0] vira 2 na fila [1, 2, 3].",
+      "teste": "testa_o_soma_um_na_fila"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "soma_um(&mut fila) na fila [9, 9] deixa 10 nas duas posições.",
+      "teste": "testa_a_fila_inteira_mudou"
+    }
+  ],
+  "expectedTestCount": 2,
+  "difficulty": 4
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "colecoes",
+  "title": "Coleções",
+  "order": 8,
+  "lessons": [
+    "a-lista-que-cresce",
+    "guardar-mais-um",
+    "quantos-tem",
+    "pegar-pela-posicao",
+    "tirar-do-fim",
+    "percorrer-a-lista",
+    "mudar-dentro-do-laco",
+    "trazer-o-mapa",
+    "o-mapa-vazio",
+    "guardar-no-mapa",
+    "consultar-o-mapa",
+    "contar-as-palavras",
+    "o-analisador-de-votos"
+  ]
+}

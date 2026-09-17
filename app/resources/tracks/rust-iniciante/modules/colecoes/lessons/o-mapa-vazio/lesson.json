@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-mapa-vazio",
+  "title": "O mapa vazio",
+  "summary": "O HashMap::new abre o mapa SEM nada dentro: nenhuma chave, nenhum valor.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "api:HashMap::new",
+  "concepts": [
+    "o_mapa_vazio"
+  ],
+  "prerequisites": [
+    "trazer-o-mapa"
+  ],
+  "introduces": {
+    "productive": [
+      "api:HashMap::new",
+      "node:ScopedIdentifier"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-new-abre-a-mochila",
+      "title": "O new abre a mochila",
+      "markdown": "O mapa nasce VAZIO — nenhuma chave, nenhum valor. O `HashMap::new` é o construtor do mapa, como o `Ponto::new` era o construtor da peça (M6):\n\n```rust\nuse std::collections::HashMap;\n\nlet mut mochila = HashMap::new();\n```\n\nA mochila está aberta e sem nada dentro — pronta para os pares que as próximas aulas guardam."
+    },
+    {
+      "id": "o-tipo-o-mapa-descobre",
+      "title": "O tipo o mapa descobre",
+      "markdown": "`HashMap::new()` não diz o tipo nenhum — e não precisa: o tipo fica pronto quando você GUARDA algo no mapa. Enquanto a mochila está vazia, o compilador espera:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut mochila = HashMap::new();\n```\n\nNas aulas seguintes, o primeiro `insert` fixa o par — e a inferência (M1) faz o resto."
+    },
+    {
+      "id": "o-nome-do-par",
+      "title": "O nome do par",
+      "markdown": "O mapa guarda PARES: cada chave aponta para um valor. `HashMap<String, i32>` é o mapa cuja chave é texto e cujo valor é número:\n\n```rust\nuse std::collections::HashMap;\n\npub fn mochila() -> HashMap<String, i32> {\n    HashMap::new()\n}\n```\n\nChave e valor são tipos DIFERENTES dentro da mesma caixa — o mapa é a coleção dos pares."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "nasce-vazio",
+      "sectionId": "o-new-abre-a-mochila",
+      "statement": "HashMap::new abre o mapa vazio: nenhuma chave, nenhum valor.",
+      "question": "O que `HashMap::new()` devolve?",
+      "options": [
+        "Um mapa vazio, sem chave e sem valor",
+        "Um mapa com uma chave nula",
+        "Uma lista de chaves",
+        "Uma caixa Option com o mapa dentro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O new é o construtor: a mochila abre sem nada dentro.",
+      "optionRationales": [
+        "O construtor entrega a coleção pronta e vazia — o conteúdo vem depois.",
+        "Chave nula não existe: o mapa nasce sem par nenhum.",
+        "Lista é a coleção do Vec — o mapa é dos pares.",
+        "O mapa vem direto, sem caixa: a caixa é do get e do pop."
+      ]
+    },
+    {
+      "id": "o-par-de-tipos",
+      "sectionId": "o-nome-do-par",
+      "statement": "O tipo do mapa nomeia os DOIS lados do par: HashMap<String, i32> é chave String, valor i32.",
+      "question": "O que `HashMap<String, i32>` declara?",
+      "options": [
+        "Mapa com chave String e valor i32",
+        "Mapa com chave i32 e valor String",
+        "Uma lista de Strings e números",
+        "Mapa que aceita qualquer tipo"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro tipo é a CHAVE, o segundo é o VALOR — o par inteiro no nome.",
+      "optionRationales": [
+        "A ordem do par no tipo é sempre chave, depois valor.",
+        "A ordem importa: String na frente é a chave.",
+        "Mapa não é lista: ele guarda pares, não peças soltas.",
+        "O mapa tem tipos fixos — sem qualquer tipo no iniciante."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Storing Keys with Associated Values in Hash Maps — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch08-03-hash-maps.html",
+      "description": "O capítulo oficial do HashMap: new, insert, get e o padrão entry com or_insert na contagem de palavras."
+    },
+    {
+      "title": "struct HashMap — a documentação oficial do std",
+      "url": "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+      "description": "A referência oficial do mapa: new, insert, get, entry/or_insert e as garantias de cada método."
+    }
+  ],
+  "challenges": [
+    "a-mochila-vazia"
+  ]
+}
