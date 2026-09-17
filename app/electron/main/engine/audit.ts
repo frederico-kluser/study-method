@@ -231,6 +231,57 @@ function allowedFor(
   }
 }
 
+/**
+ * O rótulo HUMANO da linguagem para a mensagem de parse (A2), POR LINGUAGEM.
+ *
+ * A mensagem antiga cravava "JavaScript" — e numa trilha C isso é diagnóstico
+ * ENGANOSO: o testsCode da convenção counter_protocol não parseia como C (a
+ * macro `SM_TEST` só é declarada pelo harness), o clang é quem reprovou, e
+ * dizer "não parseia como JavaScript" manda o autor consertar a linguagem
+ * errada. O `PARSE_ERROR` já carrega o adapterId da trilha — a mensagem usa-o
+ * em vez de cravar o default.
+ *
+ * ESCOPO EXATO DO QUE MUDOU, POR LINGUAGEM (revisão da onda 3):
+ *
+ *   - JavaScript: byte a byte a mensagem de antes ("`testsCode` não parseia
+ *     como JavaScript: …") — o default continuou default, e o teste trava o
+ *     formato antigo.
+ *   - Python e TypeScript: MUDANÇA INTENCIONAL, declarada. A base cravava
+ *     "JavaScript" para TODAS as linguagens não-C, e estas duas herdavam o
+ *     rótulo errado — o mesmo defeito enganoso do C. Agora leem "não parseia
+ *     como Python" / "… como TypeScript": melhoria de diagnóstico, não efeito
+ *     incidental (o registro abaixo já mapeava as duas; a função passou a
+ *     lê-lo).
+ *   - C: o A2 NÃO MONTA FRASE NENHUMA — a mensagem é o próprio DETALHE do
+ *     erro, verbatim. Quando o clang reprovou, o detalhe JÁ abre com o
+ *     prefixo canônico "clang reprovou o fonte (l:c): …" (no referencial do
+ *     testsCode — a ante-sala de `extract.ts` rebaseia) e prefixar de novo
+ *     duplicaria o diagnóstico; quando o detalhe NÃO abre com esse prefixo, a
+ *     falha é de tooling ("extrator C ausente", "clang ausente", timeout) e
+ *     inventar "clang reprovou" mentiria sobre quem falhou.
+ */
+const ROTULO_DE_LINGUAGEM: Readonly<Record<string, string>> = {
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  python: 'Python',
+};
+
+function mensagemDeParse(label: string, adapterId: LanguageId, erro: { message: string }): string {
+  if (adapterId === 'c') {
+    // DEDUPE + HONESTIDADE DE ORIGEM (revisão da onda 3): o detalhe do
+    // adaptador já diz a origem real — "clang reprovou o fonte (l:c): …"
+    // quando o clang reprovou, e a própria causa ("extrator C ausente…",
+    // "clang ausente…", timeout) quando a falha é de tooling. O prefixo antigo
+    // "clang reprovou o `${label}` da trilha C" DUPLICAVA o diagnóstico do
+    // clang e MENTIA na falha de tooling. O A2 de C é então o detalhe
+    // verbatim — a superfície segue nos campos `campo` e `trechoOfensor` da
+    // violação.
+    return erro.message;
+  }
+  const rotulo = ROTULO_DE_LINGUAGEM[adapterId] ?? adapterId;
+  return `\`${label}\` não parseia como ${rotulo}: ${erro.message}`;
+}
+
 function messageFor(key: AtomKey, taughtIn: string | null, ref: string, surface: Surface): string {
   const label = humanLabel(key);
   if (taughtIn === null) {
@@ -585,7 +636,15 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
 
       for (const { surface, code, label } of surfaces) {
         if (code.trim().length === 0) continue;
-        const result = extractAtoms(code, { fileName: `${challengeFile}#${label}`, language: adapterId });
+        // `surface` vai ao extrator porque É o call-site que sabe o que está
+        // passando: o testsCode de C não parseia verbatim (a macro SM_TEST
+        // da convenção) e a ante-sala vive num ponto único — extract.ts
+        // (onda 3). O gate não prepende nada aqui.
+        const result = extractAtoms(code, {
+          fileName: `${challengeFile}#${label}`,
+          language: adapterId,
+          surface,
+        });
         if (!result.ok) {
           push({
             regra: 'A2',
@@ -599,7 +658,7 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
             faixa: null,
             trechoOfensor: label,
             primeiraAulaQueEnsina: null,
-            mensagem: `\`${label}\` não parseia como JavaScript: ${result.error.message}`,
+            mensagem: mensagemDeParse(label, adapterId, result.error),
           });
           continue;
         }

@@ -8,6 +8,7 @@
  *
  *   javascript  ->  `quality/minimal.ts`        (`export function` + `return`)
  *   python      ->  `quality/minimalPython.ts`  (`print` e `def`, indentado)
+ *   c           ->  `quality/minimalC.ts`       (protótipo do teste + `checa_*`)
  *
  * ─── POR QUE ESTE ARQUIVO EXISTE (o defeito MEDIDO que ele fecha) ──────────
  *
@@ -33,6 +34,7 @@ import { EngineLinguagemError } from '../extract';
 import { DEFAULT_ADAPTER_ID, getAdapter, type LanguageId } from '../lang/registry';
 import type { ProverDeDesafio } from '../phases/f9Verifier';
 import { sintetizarCodigoMinimo, type MinimalCtx, type MinimalVerdict } from './minimal';
+import { sintetizarCodigoMinimoC } from './minimalC';
 import { sintetizarCodigoMinimoPython } from './minimalPython';
 
 /** Quem sintetiza a solução mínima de cada linguagem. */
@@ -49,6 +51,7 @@ export type SintetizadorMinimo = (
 export const SINTETIZADOR_POR_LINGUAGEM: Readonly<Record<string, SintetizadorMinimo>> = {
   javascript: sintetizarCodigoMinimo,
   python: sintetizarCodigoMinimoPython,
+  c: sintetizarCodigoMinimoC,
 };
 
 /** As linguagens que TÊM sintetizador de código mínimo, em ordem estável. */

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "slug": "consolidacao-listas",
+  "title": "O projeto do módulo",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 21,
+    "ensina": "cons. — projeto (leitura + estatística + ordenação)",
+    "presume": "a-caixa-com-gavetas a andar-de-ponteiro",
+    "quiz": "(quiz) Quando o tamanho precisa viajar com a lista — e por que sizeof não resolve dentro da função?",
+    "desafio": "as-vendas-do-dia — lê n vendas, imprime total, máxima e o top 3 ordenado decrescente; 4 testes."
+  }
+}

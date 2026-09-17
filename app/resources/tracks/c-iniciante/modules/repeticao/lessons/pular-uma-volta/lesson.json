@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "pular-uma-volta",
+  "title": "Pular uma volta",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "parar-no-meio"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "repeticao",
+    "moduloTitulo": "Repetição",
+    "aula": 9,
+    "ensina": "node:ContinueStmt",
+    "presume": "parar-no-meio",
+    "quiz": "O continue pula para o PRÓXIMO passo — diferente do break, que sai.",
+    "desafio": "impares-fora — imprime 1..20 pulando múltiplos de 3 com continue; teste compara a lista."
+  }
+}

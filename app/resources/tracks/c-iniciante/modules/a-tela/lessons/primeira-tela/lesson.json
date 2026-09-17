@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "slug": "primeira-tela",
+  "title": "A primeira linha na tela",
+  "summary": "O printf escreve na tela o texto que você der a ele — e o \\n do fim manda a próxima saída para outra linha.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "api:printf",
+  "concepts": [
+    "o_printf"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "api:printf",
+      "node:CallExpr",
+      "node:StringLiteral"
+    ],
+    "receptive": [
+      "node:IncludeDirective"
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a tela deixa de ser só leitura: uma linha escrita pelo aluno agora PRODUZ texto na tela, e o \\n decide onde a próxima linha começa",
+  "theory": [
+    {
+      "id": "a-linha-que-imprime",
+      "title": "A ordem que mostra",
+      "markdown": "Programar é escrever ordens que o computador segue. Em C, a ordem que mostra um texto na tela é uma chamada à função `printf`:\n\n```c\nprintf(\"oi\\n\");\n```\n\nE na tela aparece isto:\n\n```text\noi\n```\n\nO texto entre as aspas é a mensagem; o `\\n` do fim manda o que vier depois para a linha de baixo.\n\nNo topo do seu arquivo já existe uma linha que você só lê: `#include <stdio.h>` — é ela que traz o `printf` (aula própria mais à frente). A sua ordem entra dentro da função `tela`, que o programa de fora chama."
+    },
+    {
+      "id": "o-fim-de-linha",
+      "title": "O \\n comanda a linha",
+      "markdown": "Duas ordens `printf` mostram duas frases. Com o `\\n` no fim de cada literal, cada frase sai na sua linha:\n\n```c\nprintf(\"primeira linha\\n\");\nprintf(\"segunda linha\\n\");\n```\n\n```text\nprimeira linha\nsegunda linha\n```\n\nE se faltar o `\\n` do primeiro? A segunda frase continua na MESMA linha:\n\n```c\nprintf(\"primeira linha\");\nprintf(\"segunda linha\\n\");\n```\n\n```text\nprimeira linhasegunda linha\n```\n\nPerceba: o `printf` não pula linha por conta própria. Quem manda a próxima saída para outra linha é o `\\n` — ele é o comando de quebra de linha do texto."
+    },
+    {
+      "id": "tres-linhas-de-uma-vez",
+      "title": "Três linhas de uma vez",
+      "markdown": "O `\\n` é um caractere DENTRO do texto — não um separador de ordens. Uma única ordem pode imprimir três linhas:\n\n```c\nprintf(\"um\\ndois\\ntres\\n\");\n```\n\n```text\num\ndois\ntres\n```\n\nO computador lê o literal da esquerda para a direita: mostra `um`, encontra `\\n` e desce, mostra `dois`, desce de novo, mostra `tres`, e o último `\\n` deixa a tela pronta para o que vier depois.\n\nNo desafio você vai usar as duas formas: um `printf` por linha. As duas funcionam — o que importa é onde os `\\n` estão."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-fim-de-linha-manda-a-proxima-para-baixo",
+      "statement": "O `\\n` no fim do literal manda a próxima saída para outra linha.",
+      "question": "O programa é `printf(\"oi\\n\");` e depois `printf(\"tchau\");`. O que aparece na tela?",
+      "options": [
+        "Duas linhas: `oi` na primeira, `tchau` na segunda.",
+        "Uma linha só: `oi tchau`.",
+        "Uma linha só: `oi\\ntchau`, com a barra aparecendo.",
+        "Nada: falta um `\\n` no fim de `tchau`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `\\n` do primeiro literal desce a linha; o `tchau` entra na de baixo. A tela fica com as duas linhas.",
+      "sectionId": "o-fim-de-linha",
+      "optionRationales": [
+        "O `\\n` do primeiro literal desce a linha, então o `tchau` começa na de baixo: duas linhas.",
+        "Uma linha só aconteceria se NENHUM literal tivesse `\\n`; aqui o primeiro tem.",
+        "O `\\n` não aparece na tela: ele é o comando de descer linha, não um texto.",
+        "Faltar o `\\n` do último não apaga nada: o `tchau` é impresso igual — só sem quebrar a linha depois dele."
+      ]
+    },
+    {
+      "id": "um-printf-tres-linhas",
+      "statement": "O `\\n` é um caractere dentro do texto: uma única ordem `printf` pode imprimir várias linhas.",
+      "question": "O que a ordem `printf(\"um\\ndois\\ntres\\n\");` mostra na tela?",
+      "options": [
+        "Três linhas: `um`, depois `dois`, depois `tres`.",
+        "Uma linha só: `umdoistres`.",
+        "Uma linha só: `um\\ndois\\ntres`, com as barras aparecendo.",
+        "Três linhas na ordem contrária: `tres`, `dois`, `um`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada `\\n` dentro do literal desce a linha no meio da mensagem: três linhas saem de uma ordem só.",
+      "sectionId": "tres-linhas-de-uma-vez",
+      "optionRationales": [
+        "Cada `\\n` desce a linha no meio do texto: `um`, `dois` e `tres` saem em três linhas.",
+        "`umdoistres` sairia se o literal não tivesse `\\n` nenhum.",
+        "As barras do `\\n` nunca aparecem: é o comando de descer linha dentro do texto.",
+        "O `printf` mostra o texto na ordem em que ele está escrito — nada inverte."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "printf, fprintf, sprintf, snprintf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/printf",
+      "description": "A página oficial do printf em C: o texto de formato, o buraco dos especificadores e os caracteres de escape."
+    },
+    {
+      "title": "printf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/printf.3.html",
+      "description": "A man-page do printf: a mesma função que o seu programa chama, descrita pelo sistema."
+    },
+    {
+      "title": "Escape sequences — a referência da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/escape",
+      "description": "A página oficial do \\n e dos demais caracteres de escape dentro de literais em C."
+    }
+  ],
+  "challenges": [
+    "tres-linhas"
+  ]
+}

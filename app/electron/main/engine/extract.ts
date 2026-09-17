@@ -93,10 +93,42 @@
  * O que este arquivo NÃO faz: não sabe o que é permitido (é `budget.ts`), não
  * lê trilha (é `audit.ts`) e não chama LLM nenhuma — nunca.
  *
+ * ─── ONDA 3 DA TRILHA C: A ANTE-SALA DO TESTSCODE (o ponto único) ──────────
+ *
+ * O testsCode de C da convenção counter_protocol (`docs/build-spec/blocks/
+ * 03-tdd.md` §3.9.3) é um TU cujos cenários são blocos `SM_TEST(slug){
+ * checa_*(…) }` — e a macro `SM_TEST` só existe no header gerado
+ * (`sm_harness.h`). Analisado VERBATIM, o clang reprova o TU inteiro
+ * ("parameter 'dobro_de_2' was not declared", 3:9), e o gate A2 do `audit.ts`
+ * acusava uma violação de parse ENGANOSA em TODO desafio C correto. A onda 2
+ * já abriu as portas de orçamento (`atomKeys.ts` mede a semente receptiva e
+ * `quality/requirements.ts:791` prepende a ante-sala na derivação de
+ * requirements) — o que faltava era o audit, porque o extrator não tinha
+ * onde dizer "isto é testsCode".
+ *
+ * O ponto único é AQUI (`anteSalaDoTestsCode` + o desvio em
+ * `coletarOcorrencias`, por onde `extractAtoms` e `extractAllOccurrences`
+ * passam os dois): o call-site declara `surface: 'testsCode'` e a linguagem
+ * que já passa em `language`; quando a superfície é testsCode e o adaptador
+ * é `c`, o fonte analisado passa a ser `SM_COUNT_PREABULO + '\n' + code` — a
+ * MESMA ante-sala que `cCountDeclared` usa, importada de `lang/c.ts`. As
+ * posições são REBASEDAS para o referencial do testsCode (o gate cita
+ * arquivo:linha:coluna do código do autor, não do fonte combinado) e as
+ * ocorrências da PRÓPRIA ante-sala são DESCARTADAS: sem isso o dedup-para-a-
+ * primeira do extrator faria o protótipo `sm_registrar` do preâmbulo (linha
+ * 2) sombrear o protótipo do AUTOR (`int dobro(int x);`, linha 12 do fonte
+ * combinado) — a violação citaria linha negativa.
+ *
+ * É CONDICIONAL À LINGUAGEM por construção: sem `surface`, ou com
+ * `surface !== 'testsCode'`, ou com qualquer outro adaptador, o fonte é
+ * analisado VERBATIM, byte a byte, como sempre foi. JavaScript, TypeScript e
+ * Python não mudam nem uma ocorrência.
+ *
  * Referência: `docs/16-engine-de-trilha.md` §5.3.
  */
 
 import * as ts from 'typescript';
+import { SM_COUNT_PREABULO } from './lang/c';
 import {
   AtomKey,
   DeclarationKind,
@@ -420,6 +452,12 @@ export const CAMINHADA_POR_LINGUAGEM: Readonly<Record<string, 'ts-node' | 'lang-
   javascript: 'ts-node',
   typescript: 'ts-node',
   python: 'lang-node',
+  // ONDA C: a árvore de C vem do subprocesso clang→python3 (`vocab/c/
+  // extract_ast.py`) — um `LangNode`, não um `ts.Node`. E a árvore do clang é
+  // SEMÂNTICA (o `-fsyntax-only` resolve tipos e casts): os casts implícitos
+  // viram nós `ImplicitCastExpr` que o helper DERRUBA (os filhos sobem ao
+  // pai), e o eixo `form:` não existe aqui pela mesma razão do Python.
+  c: 'lang-node',
 };
 
 /** As linguagens que ESTE módulo sabe caminhar, em ordem estável. */
@@ -468,7 +506,31 @@ export interface ExtractOptions {
    * `exigirAdaptadorComCaminhada` e o cabeçalho deste arquivo.
    */
   language?: LanguageId;
+  /**
+   * A SUPERFÍCIE do artefato da qual o código veio (§5.1: starter/solution/
+   * tests/statement + a teoria). Default: nenhuma — o fonte é analisado
+   * VERBATIM.
+   *
+   * A superfície NÃO muda a caminhada nem os eixos; ela existe para a ÚNICA
+   * normalização que a extração precisa: `testsCode` de C não parseia
+   * standalone (a macro `SM_TEST` da convenção counter_protocol só é
+   * declarada pelo harness gerado). Quando `surface === 'testsCode'` e a
+   * linguagem resolve para o adaptador `c`, o fonte analisado é
+   * `SM_COUNT_PREABULO + '\n' + code`, com as posições rebasadas para o
+   * referencial do testsCode e as ocorrências da própria ante-sala
+   * descartadas — ver `anteSalaDoTestsCode` e o cabeçalho deste arquivo.
+   * Qualquer outro par (superfície, adaptador) é verbatim.
+   */
+  surface?: ExtractSurface;
 }
+
+/**
+ * As superfícies de código que um call-site pode declarar (§5.1). Coincide
+ * com `Surface` de `engine/audit.ts` — e fica AQUI (e não lá) porque é a
+ * assinatura do extrator que a recebe; audit é um dos ~10 call-sites, não o
+ * dono.
+ */
+export type ExtractSurface = 'starterCode' | 'solutionCode' | 'testsCode' | 'theory' | 'statement';
 
 /**
  * VARREDURAS DE TRIVIA — o que a caminhada do AST NÃO PODE ver.
@@ -702,6 +764,105 @@ function caminharLangNode(
 }
 
 /**
+ * A ANTE-SALA do testsCode — a normalização do PONTO ÚNICO (onda 3 da trilha
+ * C; ver o cabeçalho deste arquivo para a história inteira).
+ *
+ * O que ela é: um texto que entra NA FRENTE do fonte do autor antes do parse.
+ * Hoje existe UM caso — o testsCode de C — e a função é DELIBERADAMENTE uma
+ * tabela de decisão e não um `if` solto: uma próxima linguagem com o mesmo
+ * defeito entra aqui POR DECISÃO (e com a sua própria ante-sala), como em
+ * `CAMINHADA_POR_LINGUAGEM`. Fora do caso, `null` = fonte verbatim.
+ *
+ * POR QUE O PREÂMBULO E NÃO OUTRA COISA: `SM_COUNT_PREABULO` é o MESMO texto
+ * que o próprio adaptador C usa para parsear testsCode (`cCountDeclared`) e
+ * que a derivação de requirements de C prepende (`quality/requirements.ts`,
+ * `parseSourceC`) — três leitores, UM texto, e nenhum dele editado à mão
+ * aqui. Importado de `lang/c.ts` (o dono), nunca copiado.
+ *
+ * POR QUE DESCARTAR AS OCORRÊNCIAS DA ANTE-SALA: ela é scaffolding do parse —
+ * o layout REAL do desafio (`cLayout`) escreve o arquivo de teste como
+ * `#include "sm_harness.h"` + testsCode, e o preâmbulo nunca chega a disco.
+ * Atribuir os átomos dele ao autor recriaria, em outro figurino, a violação
+ * enganosa que esta onda conserta. E o descarte é obrigatório até para as
+ * chaves PERDOADAS: o dedup-para-a-primeira do extrator faria o protótipo
+ * `sm_registrar` do preâmbulo (linha 2 do fonte combinado) sombrear o
+ * protótipo do AUTOR (`int dobro(int x);`) — e a violação citaria linha
+ * negativa depois do rebase.
+ */
+interface AnteSala {
+  /** o texto que entra NA FRENTE do fonte do autor. */
+  texto: string;
+  /** nº de LINHAS do texto — o rebase de `line` (1-based). */
+  linhas: number;
+  /** o texto + o '\n' de emenda — o rebase de `start`/`end` (offsets). */
+  prefixo: string;
+}
+
+/** A ante-sala por (superfície, adaptador). `null` = fonte VERBATIM. */
+function anteSalaDoTestsCode(surface: ExtractSurface | undefined, adapterId: string): AnteSala | null {
+  if (surface !== 'testsCode' || adapterId !== 'c') return null;
+  return {
+    texto: SM_COUNT_PREABULO,
+    linhas: SM_COUNT_PREABULO.split('\n').length,
+    prefixo: `${SM_COUNT_PREABULO}\n`,
+  };
+}
+
+/**
+ * Rebase das ocorrências do fonte COMBINADO (ante-sala + autor) para o
+ * referencial do AUTOR: `line` − nº de linhas da ante-sala, `start`/`end` −
+ * bytes da emenda (o preâmbulo é ASCII puro, byte = caractere). Ocorrências
+ * DA ANTE-SALA (`start < prefixo.length`) são DESCARTADAS — ver
+ * `anteSalaDoTestsCode`. O corte é por OFFSET, não por linha: todo nó de C é
+ * posicionado pelo MESMO offset em bytes do dump do clang, inclusive
+ * `node:IncludeDirective`, que o helper python sintetiza linha a linha DO
+ * FONTE (e não vem de nó nenhum da árvore).
+ */
+function rebasarParaAutor(todas: AtomOccurrence[], anteSala: AnteSala): void {
+  const doAutor = todas.filter((o) => o.start >= anteSala.prefixo.length);
+  todas.length = 0;
+  for (const o of doAutor) {
+    todas.push({
+      ...o,
+      line: o.line - anteSala.linhas,
+      start: o.start - anteSala.prefixo.length,
+      end: o.end - anteSala.prefixo.length,
+    });
+  }
+}
+
+/**
+ * O erro de parse do fonte COMBINADO, rebasado para o referencial do autor.
+ *
+ * O clang reporta a posição no fonte que VIU — o combinado. Como a ante-sala
+ * é C válido por construção, o primeiro erro de um testsCode quebrado cai no
+ * trecho do autor: `line` volta ao referencial do testsCode, e o PREFIXO
+ * canônico da mensagem do adaptador ("clang reprovou o fonte (l:c): ") é
+ * rebasado junto, para que a frase e o par arquivo:linha:coluna da violação
+ * apontem para o MESMO caractere. Um erro DENTRO da ante-sala seria defeito
+ * da própria engine (o texto é fixo) e fica com a linha crua — diagnosticar a
+ * engine vale mais que cosmética. A âncora é o prefixo INTEIRO e ancorado no
+ * início, nunca uma busca solta por "(l:c)" — mensagens de outros modos de
+ * falha (clang ausente, extrator ausente, timeout) passam ilesas.
+ */
+function erroRebasado(
+  erro: { code: 'PARSE_ERROR'; message: string; line: number; column: number },
+  anteSala: AnteSala,
+): { code: 'PARSE_ERROR'; message: string; line: number; column: number } {
+  const line = erro.line > anteSala.linhas ? erro.line - anteSala.linhas : erro.line;
+  const m = /^clang reprovou o fonte \((\d+):(\d+)\): /.exec(erro.message);
+  if (m === null || Number(m[1]) <= anteSala.linhas) return { ...erro, line };
+  return {
+    ...erro,
+    line,
+    message: erro.message.replace(
+      /^clang reprovou o fonte \(\d+:\d+\): /,
+      `clang reprovou o fonte (${line}:${erro.column}): `,
+    ),
+  };
+}
+
+/**
  * Caminhada comum do extrator: EXPOE TODA ocorrência de cada construção, na
  * ordem de visita do AST. O `extractAtoms` deduplica a partir daqui; o
  * `extractAllOccurrences` devolve a caminhada crua — é o que A13c (spans
@@ -718,6 +879,13 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
   const adapter = exigirAdaptadorComCaminhada(language);
   const caminhada = CAMINHADA_POR_LINGUAGEM[adapter.id];
 
+  // (0) A ANTE-SALA (onda 3) — declarada pela superfície no call-site, só
+  // para testsCode de C. Com ante-sala, o PARSE vê o fonte combinado e a
+  // saída (posições e erro) volta ao referencial do autor; sem ante-sala,
+  // `fonte === code` e nada muda — o caminho de sempre.
+  const anteSala = anteSalaDoTestsCode(options.surface, adapter.id);
+  const fonte = anteSala === null ? code : `${anteSala.prefixo}${code}`;
+
   // (1) A ÁRVORE vem do adaptador. No caminho nativo é o mesmo
   // `createSourceFile` de sempre (com `setParentNodes`, que `isValueReference`
   // exige), mesmo `ScriptTarget`, mesmo `ScriptKind` por dialeto e MESMO erro
@@ -728,15 +896,20 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
   // O `fileName` default só existe para o caminho nativo: em Python o nome vai
   // para o módulo analisado e aparece na mensagem de erro, e chamar um trecho
   // de Python de `trecho.mjs` seria mentir no relatório.
-  const parsed = adapter.parse(code, {
+  const parsed = adapter.parse(fonte, {
     fileName: options.fileName ?? (caminhada === 'ts-node' ? 'trecho.mjs' : undefined),
     dialect: options.dialect,
   });
-  if (!parsed.ok) return { ok: false, error: parsed.error };
+  if (!parsed.ok) {
+    if (anteSala === null) return { ok: false, error: parsed.error };
+    return { ok: false, error: erroRebasado(parsed.error, anteSala) };
+  }
 
   const todas: AtomOccurrence[] = [];
-  if (caminhada === 'ts-node') caminharTsNode(code, adapter, parsed, todas);
-  else caminharLangNode(code, adapter, parsed, todas);
+  if (caminhada === 'ts-node') caminharTsNode(fonte, adapter, parsed, todas);
+  else caminharLangNode(fonte, adapter, parsed, todas);
+
+  if (anteSala !== null) rebasarParaAutor(todas, anteSala);
 
   // A VARREDURA DE TRIVIA vem DEPOIS da caminhada e no FIM da lista, de
   // propósito: uma diretiva de comentário não tem lugar numa ordem de visita de

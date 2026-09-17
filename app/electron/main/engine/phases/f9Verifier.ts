@@ -176,6 +176,14 @@ export const GUARD_POR_REQUIRE: Readonly<Record<string, boolean>> = {
   javascript: true,
   typescript: true,
   python: false,
+  // C — a defesa é ESTRUTURAL e mora no `run.sh` gerado pelo adaptador
+  // (`lang/c.ts`, "O RELATÓRIO FORA DO ALCANCE DO CÓDIGO DO ALUNO"): nonce em
+  // urandom compilado SÓ nos TUs do harness, contagem confiável só de linhas
+  // com o prefixo SM e relatório escrito NO FIM (um `exit(0)` cedo do aluno
+  // mata o processo antes da escrita). Um binário compilado não carrega
+  // `--require` — a linha é `false` pelo MESMO motivo da de Python (o guard
+  // já vem no layout), e o `C_ENV_SCRUB.scope` declara os limites restantes.
+  c: false,
 };
 
 /** Resolve a política de exit-guard da linguagem. LANÇA quando não há linha. */

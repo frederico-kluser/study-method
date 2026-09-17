@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "compilar-sozinho",
+  "title": "Compilar com as próprias mãos",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-biblioteca-em-dois-arquivos"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 16,
+    "ensina": "cons. — leitura do compilador (term:warning, term:flag) — PRÁTICA DE TERMINAL: o 0 warnings NÃO é gate do desafio (o adaptador não tem caminho de dados para warnings — §4)",
+    "presume": "a-biblioteca-em-dois-arquivos",
+    "quiz": "-Wall -Wextra acende os avisos que viram aliados; a prática de terminal exige 0 warnings antes de seguir.",
+    "desafio": "zero-avisos — o starter tem 3 avisos conhecidos (unused variable, missing initializer, return sem valor); o aluno conserta rodando o compilador no terminal; o teste do desafio assevera exit 0 + saída correta."
+  }
+}

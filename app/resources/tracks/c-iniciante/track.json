@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "c-iniciante",
+  "title": "C Iniciante: do primeiro printf ao programador C de arquivos",
+  "description": "Curso 1 de 4 da cadeia de C, feito para quem parte do zero absoluto. Cada aula ensina no máximo duas construções novas e termina num desafio conferido por teste automático; ao final do curso, o aluno escreve um programa C de dois arquivos, com funções próprias em .h, structs, arrays e strings, e o compila sozinho com -std=c11.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "c",
+  "runtime": "cc-c11",
+  "harnessLanguage": "c",
+  "entryCriteria": [
+    "zero absoluto — nunca programou"
+  ],
+  "modules": [
+    "a-tela",
+    "decisao",
+    "repeticao",
+    "caixas-que-devolvem",
+    "listas-e-enderecos",
+    "texto-em-profundidade",
+    "structs-e-arquivos"
+  ]
+}

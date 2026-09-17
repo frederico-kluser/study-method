@@ -24,7 +24,7 @@
  * não é encontrada, cai para os átomos do trecho do assert (o que o teste
  * EXERCE) — determinístico nos dois casos.
  *
- * ─── DUAS LINGUAGENS, DUAS DERIVAÇÕES, UM DESPACHANTE (onda 10) ───────────
+ * ─── TRÊS LINGUAGENS, TRÊS DERIVAÇÕES, UM DESPACHANTE (onda 10; C na onda C) ─
  *
  * Até `main@26dbc19` este arquivo era JAVASCRIPT-ONLY, e o cabeçalho defendia
  * a decisão assim: "a derivação lê o teste com `ts.createSourceFile` e
@@ -56,6 +56,8 @@
  *
  *   javascript → `test('nome', …)` + `assert.*`   (AST do TypeScript)
  *   python     → `def test_…(self)` + `self.assert*` (AST do adaptador Python)
+ *   c          → bloco `SM_TEST(<slug>)` + `checa_*(…)` (AST do adaptador C —
+ *                ver "A DERIVAÇÃO DE C" abaixo do lado Python)
  *
  * Linguagem REGISTRADA mas sem derivação escrita (hoje `typescript`) continua
  * LANÇANDO `EngineLinguagemError`, e linguagem desconhecida continua lançando
@@ -84,6 +86,7 @@
 import * as ts from 'typescript';
 
 import type { AtomKey } from '../atomKeys';
+import { C_ENTRY_PATH, C_TEST_PATH, SM_COUNT_PREABULO } from '../lang/c';
 import { EngineLinguagemError, exigirAdaptadorJavascript, extractAllOccurrences, extractAtoms } from '../extract';
 import { PY_ENTRY_PATH } from '../lang/python';
 import { DEFAULT_ADAPTER_ID, getAdapter, type LangNode, type LanguageId } from '../lang/registry';
@@ -737,6 +740,269 @@ function validarRequirementsPython(
 }
 
 // ---------------------------------------------------------------------------
+// C — blocos `SM_TEST(<slug>)` + helpers `checa_*` do counter_protocol
+// ---------------------------------------------------------------------------
+
+/**
+ * A DERIVAÇÃO DE C (onda C) — a terceira estrutura de teste, e a razão de ela
+ * ter derivação PRÓPRIA: o teste C do desafio é um TU sem `main` cujos
+ * cenários são blocos `SM_TEST(<slug>)` (macro do `sm_harness.h` gerado) e
+ * cujas verificações são chamadas `checa_int/checa_long/checa_double/
+ * checa_char/checa_str` (helpers STATIC do PRÓPRIO header — funções
+ * declaradas no TU, logo NUNCA `api:`; é o counter_protocol de
+ * `docs/build-spec/blocks/03-tdd.md` §3.9.3). Nem `test('nome', …)` nem
+ * `def test_…(self)` — e o IDENTIFICADOR do cenário é o SLUG, que é o que o
+ * relatório do harness imprime (`SM<nonce> T <slug> ok`) e o que um
+ * `challenge.json` cita.
+ *
+ * O testsCode de C SÓ parseia com a ante-sala que a própria engine define
+ * (`SM_COUNT_PREABULO`, a mesma que `cCountDeclared` usa): sem ela a macro
+ * `SM_TEST` é função não declarada e o clang reprova o TU inteiro. O preâmbulo
+ * desloca linhas — e nada aqui depende de linha (a contagem é POR AST, igual
+ * a `cCountDeclared`).
+ *
+ * COBERTURA (`cobertura[].atoms`): os átomos das FUNÇÕES DA SOLUÇÃO chamadas
+ * pelas verificações do cenário — o aluno precisa ESCREVÊ-LAS para
+ * satisfazê-lo. O MESMO partido da forma `import` do Python, com uma
+ * diferença declarada: o trecho do assert de C (`checa_int("…", dobro(2), 4,
+ * "…")`) é expressão solta e NÃO parseia standalone — o fallback de trecho do
+ * lado JavaScript/Python não existe aqui, e a cobertura fica VAZIA quando o
+ * cenário não chama função da solução (o alvo restante é o helper `checa_*`
+ * do próprio header: emitir os átomos dele seria emitir o HARNESS como se
+ * fosse cobrança — a mesma decisão da forma `stdout` do Python).
+ */
+
+/** Os helpers de verificação do counter_protocol (03-tdd §3.9.3) — os MESMOS
+ * nomes que `SM_HARNESS_HEADER` define e `SM_COUNT_PREABULO` prototipa. */
+const CHECAS_C: ReadonlySet<string> = new Set([
+  'checa_int',
+  'checa_long',
+  'checa_double',
+  'checa_char',
+  'checa_str',
+]);
+
+/** A expansão de `SM_TEST(slug)` define `test_<slug>` (e `sm_reg_<slug>`,
+ * construtor — excluído por não começar com este prefixo). */
+const PREFIXO_TESTE_C = 'test_';
+
+/** Parseia o testsCode de C com a ante-sala da macro; falha é exceção. */
+function parseSourceC(code: string, fileName: string, language: LanguageId): LangNode {
+  const parsed = getAdapter(language).parse(`${SM_COUNT_PREABULO}\n${code}`, { fileName });
+  if (!parsed.ok) {
+    throw new RequirementsParseError(
+      `${parsed.error.code} em ${parsed.error.line}:${parsed.error.column}: ${parsed.error.message}`,
+    );
+  }
+  return parsed.root;
+}
+
+/** Caminha a árvore do adaptador C aplicando `fn` a cada nó (pré-ordem). */
+function caminharC(node: LangNode, fn: (n: LangNode) => void): void {
+  fn(node);
+  for (const filho of node.children) caminharC(filho, fn);
+}
+
+/**
+ * Um cenário de teste C: a DEFINIÇÃO `test_<slug>` (com corpo).
+ *
+ * A expansão da macro emite a decl E a def como DOIS nós — a MESMA regra que
+ * `cCountDeclared` aplica para não dobrar a contagem; dedupe por slug e fica
+ * a definição. O nome para a bijeção é o SLUG (sem o prefixo `test_`).
+ */
+interface TesteNodeC {
+  slug: string;
+  corpo: LangNode;
+}
+
+/** Blocos `SM_TEST(<slug>)` — definições `test_*` com corpo, na ordem do fonte. */
+function coletarTestesC(root: LangNode): TesteNodeC[] {
+  const porSlug = new Map<string, TesteNodeC>();
+  caminharC(root, (n) => {
+    if (n.type !== 'FunctionDecl') return;
+    const nome = n.attributes.name;
+    if (nome === undefined || !nome.startsWith(PREFIXO_TESTE_C)) return;
+    const corpo = n.children.find((f) => f.type === 'CompoundStmt');
+    if (corpo === undefined) return; // protótipo da expansão — a def é outro nó
+    const slug = nome.slice(PREFIXO_TESTE_C.length);
+    const anterior = porSlug.get(slug);
+    if (anterior === undefined || n.start >= anterior.corpo.start) {
+      porSlug.set(slug, { slug, corpo: n });
+    }
+  });
+  return [...porSlug.values()].sort((a, b) => a.corpo.start - b.corpo.start);
+}
+
+/**
+ * O nome do callee de uma chamada C: `checa_int(…)` → `checa_int`;
+ * `dobro(2)` → `dobro`. O callee de C é o PRIMEIRO filho `DeclRefExpr` (os
+ * portadores sintéticos — `ApiRef`/`IndirectCall` — são anexados ao FIM).
+ */
+function nomeDoCalleeC(call: LangNode): string | null {
+  const callee = call.children[0];
+  if (callee === undefined || callee.type !== 'DeclRefExpr') return null;
+  return callee.attributes.name ?? null;
+}
+
+/** É chamada a um helper `checa_*` do counter_protocol? Devolve o nome. */
+function checaC(call: LangNode): string | null {
+  const nome = nomeDoCalleeC(call);
+  return nome !== null && CHECAS_C.has(nome) ? nome : null;
+}
+
+/** Os argumentos de uma chamada C, na ordem — sem os portadores sintéticos. */
+function argumentosC(call: LangNode): LangNode[] {
+  return call.children.slice(1).filter((c) => c.synthetic !== true);
+}
+
+/** As verificações `checa_*` dentro de um nó, em ordem de fonte. */
+function checasDentroDeC(node: LangNode): LangNode[] {
+  const out: LangNode[] = [];
+  caminharC(node, (n) => {
+    if (n.type !== 'CallExpr') return;
+    if (checaC(n) !== null) out.push(n);
+  });
+  out.sort((a, b) => a.start - b.start);
+  return out;
+}
+
+/**
+ * Descrição em pt-BR de UMA verificação `checa_*(cenario, obtido, esperado,
+ * porque)`, derivada do TEXTO REAL — a MESMA fórmula dos lados JavaScript e
+ * Python: a chamada à função do aluno no argumento `obtido` vira "A função X
+ * deve devolver Y quando chamada com Z"; o que não é chamada vira a igualdade
+ * literal.
+ */
+function descreverAssertC(call: LangNode): string {
+  if (checaC(call) === null) return `O teste exige: ${call.text.slice(0, 100)}.`;
+
+  const args = argumentosC(call);
+  const obtido = args[1];
+  const esperado = args[2];
+
+  if (obtido === undefined) return `O teste exige: ${call.text.slice(0, 100)}.`;
+
+  if (obtido.type === 'CallExpr') {
+    const fnTexto = nomeDoCalleeC(obtido) ?? obtido.text;
+    const argsTexto = argumentosC(obtido)
+      .map((a) => a.text)
+      .join(', ');
+    const esperadoTexto = esperado !== undefined ? esperado.text : 'o resultado esperado';
+    return argsTexto.length > 0
+      ? `A função ${fnTexto} deve devolver ${esperadoTexto} quando chamada com ${argsTexto}.`
+      : `A função ${fnTexto} deve devolver ${esperadoTexto}.`;
+  }
+
+  if (esperado !== undefined) {
+    return `O teste exige que ${obtido.text} seja igual a ${esperado.text}.`;
+  }
+  return `O teste exige: ${call.text.slice(0, 100)}.`;
+}
+
+/** As funções chamadas dentro das verificações do cenário (exceto `checa_*`). */
+function funcoesChamadasNoTesteC(corpo: LangNode): string[] {
+  const nomes = new Set<string>();
+  for (const checa of checasDentroDeC(corpo)) {
+    caminharC(checa, (n) => {
+      if (n.type !== 'CallExpr') return;
+      const nome = nomeDoCalleeC(n);
+      if (nome !== null && !CHECAS_C.has(nome)) nomes.add(nome);
+    });
+  }
+  return [...nomes];
+}
+
+/** Átomos do trecho da SOLUÇÃO de C que define as funções chamadas. */
+function atomsDasFuncoesNaSolucaoC(
+  solutionCode: string,
+  funcoes: string[],
+  language: LanguageId,
+): AtomKey[] {
+  if (funcoes.length === 0) return [];
+  const alvo = new Set(funcoes);
+
+  const extraido = extractAllOccurrences(solutionCode, {
+    fileName: C_ENTRY_PATH,
+    language,
+  });
+  if (!extraido.ok) return [];
+
+  const parsed = getAdapter(language).parse(solutionCode, { fileName: C_ENTRY_PATH });
+  if (!parsed.ok) return [];
+
+  // Só DEFINIÇÃO (com corpo) conta — o protótipo que o próprio testsCode
+  // declara não é o que o aluno escreve.
+  const spans: Array<{ start: number; end: number }> = [];
+  caminharC(parsed.root, (n) => {
+    if (n.type !== 'FunctionDecl') return;
+    const nome = n.attributes.name;
+    if (nome === undefined || !alvo.has(nome)) return;
+    if (n.children.some((f) => f.type === 'CompoundStmt')) {
+      spans.push({ start: n.start, end: n.end });
+    }
+  });
+  if (spans.length === 0) return [];
+
+  const chaves = new Set<AtomKey>();
+  for (const occ of extraido.occurrences) {
+    if (spans.some((s) => occ.start >= s.start && occ.end <= s.end)) chaves.add(occ.key);
+  }
+  return [...chaves].sort();
+}
+
+/**
+ * C: deriva requirements do arquivo de teste — um por bloco `SM_TEST(<slug>)`,
+ * com descrição em pt-BR derivada das verificações `checa_*` REAIS. Lança
+ * `RequirementsParseError` se o teste não parseia como C (fail-closed — nunca
+ * um conjunto vazio silencioso).
+ */
+function derivarRequirementsC(
+  testsCode: string,
+  solutionCode: string,
+  _starterCode: string,
+  language: LanguageId,
+): RequirementsDerivados {
+  const root = parseSourceC(testsCode, C_TEST_PATH, language);
+  const testes = coletarTestesC(root);
+
+  const requirements: Requirement[] = [];
+  const cobertura: RequirementCobertura[] = [];
+
+  testes.forEach((t, index) => {
+    const id = `REQ-${index + 1}`;
+    const checas = checasDentroDeC(t.corpo);
+    const descricoes = checas.map(descreverAssertC);
+    const descricao =
+      descricoes.length > 0
+        ? descricoes.join(' E ')
+        : `O teste '${t.slug}' não contém verificações.`;
+    requirements.push({ id, descricao, teste: t.slug });
+
+    const atoms = atomsDasFuncoesNaSolucaoC(
+      solutionCode,
+      funcoesChamadasNoTesteC(t.corpo),
+      language,
+    );
+    cobertura.push({ requirementId: id, atoms });
+  });
+
+  return { requirements, cobertura };
+}
+
+/** C: a bijeção requirements declarados × blocos `SM_TEST(<slug>)` (o slug). */
+function validarRequirementsC(
+  testsCode: string,
+  requirementsDeclarados: RequirementDeclarado[],
+  language: LanguageId,
+): ValidacaoRequirements {
+  const root = parseSourceC(testsCode, C_TEST_PATH, language);
+  return casarBijecao(
+    coletarTestesC(root).map((t) => t.slug),
+    requirementsDeclarados,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // O DESPACHANTE (a mesma forma de `quality/minimalPorLinguagem.ts`)
 // ---------------------------------------------------------------------------
 
@@ -770,6 +1036,10 @@ const DERIVACAO_POR_LINGUAGEM: Readonly<
   python: {
     derivar: (t, s, st) => derivarRequirementsPython(t, s, st),
     validar: (t, d) => validarRequirementsPython(t, d),
+  },
+  c: {
+    derivar: (t, s, st, lang) => derivarRequirementsC(t, s, st, lang),
+    validar: (t, d, lang) => validarRequirementsC(t, d, lang),
   },
 };
 

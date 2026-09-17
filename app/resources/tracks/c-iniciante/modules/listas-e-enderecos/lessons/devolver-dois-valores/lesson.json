@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-dois-valores",
+  "title": "Devolver dois valores",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-lista-como-parametro",
+    "a-troca-que-funciona"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 13,
+    "ensina": "cons. — node:ParmVarDecl em forma nova (dois parâmetros-ponteiro de saída)",
+    "presume": "a-lista-como-parametro, a-troca-que-funciona",
+    "quiz": "Sem structs ainda, a forma de devolver DOIS valores em C é o par de ponteiros de saída.",
+    "desafio": "minimo-e-maximo — minimoEMaximo(v, 5, &min, &max); teste compara os dois valores."
+  }
+}

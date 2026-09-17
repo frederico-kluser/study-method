@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-molde-e-o-dado",
+  "title": "O molde e o dado",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "um-nome-para-um-valor"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 1,
+    "ensina": "node:RecordDecl (o molde — só tagUsed: \"struct\"; a union é derrubada e os campos FieldDecl são transparentes), node:MemberExpr (o acesso a campo p.x)",
+    "presume": "um-nome-para-um-valor",
+    "quiz": "struct Ponto agrupa valores DIFERENTES numa ficha só; cada campo tem o seu tipo.",
+    "desafio": "cartao-de-ponto — declara o struct e imprime os campos; teste compara a linha."
+  }
+}

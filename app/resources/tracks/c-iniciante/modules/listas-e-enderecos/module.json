@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "slug": "listas-e-enderecos",
+  "title": "Listas e endereços",
+  "order": 5,
+  "lessons": [
+    "a-caixa-com-gavetas",
+    "pegar-pela-gaveta",
+    "varrer-a-lista",
+    "o-maximo-da-lista",
+    "gavetas-vazias",
+    "contando-iguais",
+    "quantos-bytes",
+    "enderecos",
+    "o-papel-com-o-endereco",
+    "ir-ate-a-casa",
+    "a-troca-que-funciona",
+    "a-lista-como-parametro",
+    "devolver-dois-valores",
+    "preencher-lendo",
+    "inverter-a-lista",
+    "procurar-na-lista",
+    "ordenar-a-lista",
+    "a-promessa-de-nao-mudar",
+    "o-ponteiro-que-nao-aponta",
+    "andar-de-ponteiro",
+    "consolidacao-listas"
+  ]
+}

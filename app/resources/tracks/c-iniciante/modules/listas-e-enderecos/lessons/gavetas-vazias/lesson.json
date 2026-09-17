@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "gavetas-vazias",
+  "title": "Gavetas vazias",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-caixa-com-gavetas"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 5,
+    "ensina": "cons. — node:InitListExpr em forma nova (inicializador parcial: o resto fica em 0)",
+    "presume": "a-caixa-com-gavetas",
+    "quiz": "int v[5] = {1, 2}; deixa as outras três gavetas em 0.",
+    "desafio": "zeros-garantidos — imprime o array parcialmente inicializado; teste compara os 5 valores."
+  }
+}

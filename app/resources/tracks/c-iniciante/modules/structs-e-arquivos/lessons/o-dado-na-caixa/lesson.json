@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dado-na-caixa",
+  "title": "O dado na caixa",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "o-apelido-do-molde",
+    "devolver-em-vez-de-mostrar"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 4,
+    "ensina": "cons. — node:ParmVarDecl em forma nova (struct por valor entra e sai da função)",
+    "presume": "o-apelido-do-molde, devolver-em-vez-de-mostrar",
+    "quiz": "A função recebe a CÓPIA: mudar o parâmetro não muda o original (o vestíbulo de novo).",
+    "desafio": "o-movedor — mover(p, dx, dy) devolve o ponto novo; teste compara x e y devolvidos."
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "dois-valores-de-uma-vez",
+  "title": "Dois valores de uma vez",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "perguntar-ao-usuario"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 19,
+    "ensina": "cons. — api:scanf em forma nova (dois %d na mesma chamada, em prosa)",
+    "presume": "perguntar-ao-usuario",
+    "quiz": "Digitando 3 4, o %d %d lê os dois — espaço e Enter servem os dois.",
+    "desafio": "soma-digitada — lê dois inteiros e imprime a soma; teste injeta 3 e 4, espera 7."
+  }
+}

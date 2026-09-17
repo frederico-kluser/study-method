@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "oi-na-tela",
+  "title": "Oi na tela",
+  "concept": "a_funcao",
+  "difficulty": 1,
+  "language": "c",
+  "statement": "# Oi na tela\n\nEscreva a função `tela` para imprimir exatamente `oi` e uma quebra de linha.",
+  "starterCode": "/* escreva a funcao tela inteira aqui:\n   o programa de fora chama tela() pelo nome — o nome e o contrato. */\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"oi\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio oi-na-tela — counter_protocol (03-tdd 3.9.3).\n   A captura do stdout acontece DENTRO do teste: freopen para o arquivo\n   temporario, chamada da funcao, leitura do arquivo de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid tela(void);\n\nSM_TEST(oi_na_tela) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    tela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha impressa\", linha, \"oi\\n\",\n              \"a tela imprime oi\");\n    fclose(f);\n}\n",
+  "expectedTestCount": 1
+}

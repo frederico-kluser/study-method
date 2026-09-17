@@ -61,6 +61,7 @@
  * compilador inteiro no caminho de quem só quer abrir uma aula.
  */
 
+import { cAdapter } from './c';
 import { javascriptAdapter } from './javascript';
 import { pythonAdapter } from './python';
 import { typescriptAdapter } from './typescript';
@@ -87,10 +88,16 @@ import { typescriptAdapter } from './typescript';
  * CAMADA DE TRAVA (a semântica de tipos): mesmo runner, mesmo `SyntaxKind`,
  * mesmo vocabulário — e uma prova a mais, a QUINTA (`exec/typesCheck.ts`),
  * porque Node APAGA os tipos em vez de conferi-los.
+ *
+ * ONDA C: `c` é a QUARTA linha e a primeira da família "toolchain emite AST"
+ * (§7 item 3: o padrão que desbloqueia Go, C# e o resto do Tier B) — o parse
+ * dela roda `clang -Xclang -ast-dump=json` por subprocesso e exige clang
+ * ESPECIFICAMENTE (o gcc não tem a extensão), enquanto o runner aceita
+ * cc/gcc/clang. O modelo de subprocesso é o do `lang/python.ts`.
  */
-export const KNOWN_LANGUAGE_IDS = ['javascript', 'python', 'typescript'] as const;
+export const KNOWN_LANGUAGE_IDS = ['javascript', 'python', 'typescript', 'c'] as const;
 
-/** Um id de linguagem conhecido (`'javascript'`, `'python'`, `'typescript'`). */
+/** Um id de linguagem conhecido (`'javascript'`, `'python'`, `'typescript'`, `'c'`). */
 export type LanguageId = (typeof KNOWN_LANGUAGE_IDS)[number];
 
 /**
@@ -113,7 +120,9 @@ export const DEFAULT_ADAPTER_ID: LanguageId = 'javascript';
  * E `'ts'` acompanha `'typescript'` como grafia curta (é a extensão do arquivo
  * e a tag da cerca): a LINGUAGEM — e o que uma trilha crava no `challenge.json`
  * — é `'typescript'`, e aceitar as duas grafias evita reprovar uma trilha por
- * escrever a mesma coisa com dois nomes.
+ * escrever a mesma coisa com dois nomes. `'c'` e `'c11'` seguem o mesmo
+ * princípio: a linguagem e o padrão que a trilha de C compila (`-std=c11`, a
+ * linha medida de `skills/study-method/references/languages.md` §3.1).
  */
 export const KNOWN_CHALLENGE_LANGUAGES = [
   'javascript',
@@ -123,6 +132,8 @@ export const KNOWN_CHALLENGE_LANGUAGES = [
   'cpython',
   'typescript',
   'ts',
+  'c',
+  'c11',
 ] as const;
 
 /** Valor válido de `challenge.language` / `track.programmingLanguage`. */
@@ -932,8 +943,10 @@ export function listTheoryCodeTags(): string[] {
 // forma: um adaptador que é quase todo COMPOSIÇÃO sobre outro (`lang/
 // typescript.ts` delega onze dos quinze membros ao `javascriptAdapter`), o que
 // prova que a interface aguenta uma linguagem que difere da vizinha por
-// camada, e não por toolchain.
+// camada, e não por toolchain. `c` é a QUARTA forma e a primeira "toolchain
+// emite AST" (§7 item 3): o clang é quem produz a árvore, por subprocesso.
 
 registerAdapter(javascriptAdapter);
 registerAdapter(pythonAdapter);
 registerAdapter(typescriptAdapter);
+registerAdapter(cAdapter);

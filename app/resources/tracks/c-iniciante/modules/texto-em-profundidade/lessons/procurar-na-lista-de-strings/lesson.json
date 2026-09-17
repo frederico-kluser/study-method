@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "procurar-na-lista-de-strings",
+  "title": "Procurar na lista de strings",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-lista-de-strings",
+    "comparar-textos"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 13,
+    "ensina": "cons. — api:strcmp + node:ForStmt na composição",
+    "presume": "a-lista-de-strings, comparar-textos",
+    "quiz": "Buscar é comparar com strcmp DENTRO do laço — nunca com ==.",
+    "desafio": "lista-de-presenca — checa se o nome lido está na lista; teste com nome presente e ausente."
+  }
+}

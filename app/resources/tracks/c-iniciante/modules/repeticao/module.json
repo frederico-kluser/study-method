@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "repeticao",
+  "title": "Repetição",
+  "order": 3,
+  "lessons": [
+    "enquanto",
+    "contar-para-tras",
+    "somar-tudo",
+    "para",
+    "passo-de-dois",
+    "ler-ate-sentar",
+    "repetir-ao-menos-uma-vez",
+    "parar-no-meio",
+    "pular-uma-volta",
+    "laco-dentro-de-laco",
+    "o-triangulo",
+    "a-flag-da-busca",
+    "consolidacao-repeticao"
+  ]
+}

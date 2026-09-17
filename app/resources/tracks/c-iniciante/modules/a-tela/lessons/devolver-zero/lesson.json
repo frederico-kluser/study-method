@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-zero",
+  "title": "O programa termina e diz como foi",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-esqueleto"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 3,
+    "ensina": "node:ReturnStmt (LEITURA: o return 0; do main do harness; a ESCRITA nasce no M4)",
+    "presume": "o-esqueleto",
+    "quiz": "O 0 que o main devolve é o código de saída: zero significa \"terminou bem\".",
+    "desafio": "fim-limpo — o aluno escreve a função; o runner exige exit 0 do run; o return 0; do harness é lido na teoria."
+  }
+}

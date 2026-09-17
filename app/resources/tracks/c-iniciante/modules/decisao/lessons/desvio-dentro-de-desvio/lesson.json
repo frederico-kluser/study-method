@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "desvio-dentro-de-desvio",
+  "title": "Desvio dentro de desvio",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "se-senao"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "decisao",
+    "moduloTitulo": "Decisão",
+    "aula": 11,
+    "ensina": "cons. — node:IfStmt em forma nova (aninhado; o else pertence ao if mais próximo)",
+    "presume": "se-senao",
+    "quiz": "O else gruda no if mais interno quando faltam chaves — por aqui, as chaves sempre.",
+    "desafio": "entrada-do-show — if (idade >= 18) { if (ingresso) ... } senão barra; teste com (20, sim), (20, não) e (16, sim)."
+  }
+}

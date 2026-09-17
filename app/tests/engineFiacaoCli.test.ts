@@ -842,7 +842,7 @@ describe('engine CLI — requirements: linguagem sem derivação escrita ABORTA 
     const r = await runEngine(['requirements', 'trilha-typescript-minima', '--dir', FIXTURE_TS]);
     assert.equal(r.code, 2, `stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
     assert.match(r.stderr, /linguagem 'typescript'/, 'a linguagem PEDIDA é nomeada');
-    assert.match(r.stderr, /escritas: javascript, python/, 'as linguagens que TÊM derivação são listadas');
+    assert.match(r.stderr, /escritas: c, javascript, python/, 'as linguagens que TÊM derivação são listadas');
     assert.doesNotMatch(r.stdout, /PLACAR \(requirements\)/, 'nenhum placar pode sair de uma medição que não aconteceu');
   });
 

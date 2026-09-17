@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-com-gavetas",
+  "title": "A caixa com gavetas",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "mais-de-uma-janela",
+    "um-nome-para-um-valor"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 1,
+    "ensina": "node:InitListExpr (o inicializador entre chaves; o par da regra do par: decl:var em forma nova — o array int notas[5])",
+    "presume": "mais-de-uma-janela, um-nome-para-um-valor",
+    "quiz": "int notas[5] cria 5 gavetas numeradas 0..4 — a gaveta 5 não existe.",
+    "desafio": "notas-na-tela — imprime as 5 notas do inicializador; teste compara as 5 linhas."
+  }
+}

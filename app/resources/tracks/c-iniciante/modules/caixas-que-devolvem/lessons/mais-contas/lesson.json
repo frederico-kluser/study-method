@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "mais-contas",
+  "title": "As contas que vêm de fora",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar",
+    "a-divisao-real"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "caixas-que-devolvem",
+    "moduloTitulo": "Caixas que devolvem",
+    "aula": 13,
+    "ensina": "api:sqrt (com o #include <math.h> — a mesma chave node:IncludeDirective, em forma nova; o -lm no comando fica em prosa)",
+    "presume": "devolver-em-vez-de-mostrar, a-divisao-real",
+    "quiz": "sqrt recebe e devolve double; o -lm no comando liga a biblioteca matemática (o runner já traz).",
+    "desafio": "hipotenusa — hipotenusa(a, b) com sqrt; teste com (3, 4) → 5.0."
+  }
+}

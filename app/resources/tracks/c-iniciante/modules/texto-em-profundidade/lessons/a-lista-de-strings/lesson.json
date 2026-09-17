@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-lista-de-strings",
+  "title": "A lista de listas de letras",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "a-string-e-o-zero",
+    "a-caixa-com-gavetas"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 12,
+    "ensina": "cons. — decl:var em forma nova (o array de arrays: char nomes[5][20] — o adaptador emite decl:var; a FORMA 2D fica em prosa — §8.2 P12)",
+    "presume": "a-string-e-o-zero, a-caixa-com-gavetas",
+    "quiz": "char nomes[5][20]: 5 palavras de até 19 letras + terminador cada.",
+    "desafio": "lista-de-convidados — lê 3 nomes e lista numerada; teste injeta 3 nomes e compara as 3 linhas."
+  }
+}

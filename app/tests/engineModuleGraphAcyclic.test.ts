@@ -186,6 +186,8 @@ const CICLOS_PERMITIDOS = new Set<string>(
     ['lang/registry.ts', 'lang/javascript.ts'],
     ['lang/registry.ts', 'lang/python.ts'],
     ['lang/registry.ts', 'lang/typescript.ts'],
+    // ONDA C: o par do quarto adaptador — o mesmo benigno dos três acima.
+    ['lang/registry.ts', 'lang/c.ts'],
     ['exec/proofs.ts', 'exec/typesCheck.ts'],
   ].map((pair) => [...pair].sort().join(' , ')),
 );

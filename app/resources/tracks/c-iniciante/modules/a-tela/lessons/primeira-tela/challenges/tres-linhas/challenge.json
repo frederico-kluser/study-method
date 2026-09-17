@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "tres-linhas",
+  "title": "Três linhas",
+  "concept": "o_printf",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Três linhas\n\nA função `tela` já existe no seu arquivo — quem a chama é o programa de fora (o `main` do harness, que você só lê). Falta escrever o **corpo** dela: três ordens `printf` que imprimem, exatamente nesta ordem:\n\n```text\nola, tela!\nimprimir e facil no C\ntres linhas e acabou\n```\n\nCada frase vai em um `printf` próprio, e cada literal termina com `\\n` para a próxima frase começar numa linha nova. A linha `void tela(void) {` e o `}` de fechamento já estão prontos — você escreve só o que vai entre as chaves.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* tela e a funcao que a tela do programa pede. O programa de fora\n   (o harness) a chama — voce escreve o corpo dela, entre as chaves. */\nvoid tela(void) {\n    /* escreva aqui os tres printf, um por linha, cada um com \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio tres-linhas — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste (modelo cenario-do-harness):\n   freopen manda o stdout para o arquivo temporario, o teste chama a funcao\n   do aluno e le o arquivo de volta — stdlib puro, sem runner proprio. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid tela(void);\n\nSM_TEST(tres_linhas_na_ordem) {\n    /* captura: o stdout vira o arquivo sm_saida.tmp */\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    tela();\n    fflush(stdout);\n\n    /* leitura linha a linha: cada \\n do literal abriu uma linha nova */\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha\", linha, \"ola, tela!\\n\",\n              \"a primeira coisa impressa e a primeira frase\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha\", linha, \"imprimir e facil no C\\n\",\n              \"o \\n do primeiro printf empurrou esta frase para a segunda linha\");\n    fgets(linha, 80, f);\n    checa_str(\"a terceira linha\", linha, \"tres linhas e acabou\\n\",\n              \"o \\n do segundo printf abriu a terceira linha\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"ola, tela!\\n\");\n    printf(\"imprimir e facil no C\\n\");\n    printf(\"tres linhas e acabou\\n\");\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "tres_linhas_na_ordem",
+      "teste": "tres_linhas_na_ordem",
+      "descricao": "a funcao tela imprime tres linhas fixas, nesta ordem: \"ola, tela!\", \"imprimir e facil no C\" e \"tres linhas e acabou\" — cada checa_str confere uma linha do stdout capturado"
+    }
+  ]
+}

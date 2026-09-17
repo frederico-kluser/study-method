@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-lista-de-fichas",
+  "title": "A lista de fichas",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "o-apelido-do-molde",
+    "varrer-a-lista"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 6,
+    "ensina": "cons. — decl:var em forma nova (array de structs) + node:MemberExpr (o acesso pontos[i].x)",
+    "presume": "o-apelido-do-molde, varrer-a-lista",
+    "quiz": "pontos[i].x: primeiro a gaveta, depois o campo.",
+    "desafio": "o-ponto-mais-longe — imprime todos e acha o mais distante da origem (sqrt); teste compara o índice."
+  }
+}

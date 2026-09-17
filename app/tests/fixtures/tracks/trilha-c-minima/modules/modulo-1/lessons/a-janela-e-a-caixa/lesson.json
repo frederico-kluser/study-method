@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-janela-e-a-caixa",
+  "title": "A janela e a caixa",
+  "summary": "Uma função imprime na tela; outra devolve um valor.",
+  "difficulty": 1,
+  "concepts": [
+    "a_funcao"
+  ],
+  "prerequisites": [],
+  "theory": [
+    {
+      "id": "imprimir-e-devolver",
+      "title": "Imprimir e devolver",
+      "markdown": "A função que imprime mostra o texto na tela:\n\n```c\n#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"oi\\n\");\n}\n```\n\nA função que devolve entrega um valor a quem a chamou:\n\n```c\nint dobro(int x) {\n    return 2 * x;\n}\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "oi-na-tela",
+    "o-dobro"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-troca-que-funciona",
+  "title": "A troca que funciona",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "ir-ate-a-casa",
+    "copias-no-vestibulo"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 11,
+    "ensina": "cons. — op:unary:* em forma nova (mudar o original via parâmetro-ponteiro)",
+    "presume": "ir-ate-a-casa, copias-no-vestibulo",
+    "quiz": "Passando &a e &b, a função troca DE VERDADE: a cópia é do endereço, não do valor.",
+    "desafio": "o-swap — trocar(int *a, int *b) que funciona; teste compara os dois valores trocados (o payoff do M4)."
+  }
+}

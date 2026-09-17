@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "decisao",
+  "title": "Decisão",
+  "order": 2,
+  "lessons": [
+    "se",
+    "se-senao",
+    "e-logico",
+    "ou-logico",
+    "negacao",
+    "verdadeiro-e-falso-com-nome",
+    "em-cascata",
+    "escolher-por-valor",
+    "escolher-em-uma-linha",
+    "faixas-com-prioridade",
+    "desvio-dentro-de-desvio",
+    "consolidacao-decisao"
+  ]
+}

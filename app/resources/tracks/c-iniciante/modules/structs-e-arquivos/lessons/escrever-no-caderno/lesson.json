@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "escrever-no-caderno",
+  "title": "Escrever no caderno",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "o-caderno",
+    "buraco-na-frase"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "structs-e-arquivos",
+    "moduloTitulo": "Structs e arquivos",
+    "aula": 10,
+    "ensina": "api:fprintf",
+    "presume": "o-caderno, buraco-na-frase",
+    "quiz": "fprintf é o printf que escolhe o caderno: mesmo %d, mesmo %s.",
+    "desafio": "o-diario — escreve 3 linhas de log com fprintf; teste lê o arquivo e compara as 3 linhas."
+  }
+}

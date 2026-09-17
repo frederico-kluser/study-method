@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-nome-so-vive-dentro",
+  "title": "O nome só vive dentro",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar",
+    "um-nome-para-um-valor"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "caixas-que-devolvem",
+    "moduloTitulo": "Caixas que devolvem",
+    "aula": 10,
+    "ensina": "cons. — decl:var em forma nova (nome local) + term:escopo",
+    "presume": "devolver-em-vez-de-mostrar, um-nome-para-um-valor",
+    "quiz": "O nome da variável local nasce na chamada e morre no return.",
+    "desafio": "sombra-de-nome — starter que usa um nome local fora da função (erro de compilação); o aluno conserta devolvendo o valor; teste compara o valor devolvido."
+  }
+}

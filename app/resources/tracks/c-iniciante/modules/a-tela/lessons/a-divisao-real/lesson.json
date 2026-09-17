@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-divisao-real",
+  "title": "Dividir de verdade",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "multiplicar-e-dividir",
+    "o-numero-com-virgula"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "a-tela",
+    "moduloTitulo": "A tela",
+    "aula": 13,
+    "ensina": "node:CStyleCastExpr (o cast (double)7 / 2 — saiu de _TRANSPARENTES na onda 3; o tipo-alvo vai no atributo castType; cast de MACRO não emite — §8)",
+    "presume": "multiplicar-e-dividir, o-numero-com-virgula",
+    "quiz": "(double)7 / 2 é 3.5 — o cast de UM lado basta para a conta virar real.",
+    "desafio": "media-de-dois — média de dois inteiros fixos com casas decimais; teste compara o valor com %f."
+  }
+}

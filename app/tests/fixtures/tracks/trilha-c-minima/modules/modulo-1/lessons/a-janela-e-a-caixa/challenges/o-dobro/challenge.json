@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dobro",
+  "title": "O dobro",
+  "concept": "a_funcao",
+  "difficulty": 1,
+  "language": "c",
+  "statement": "# O dobro\n\nA função `dobro` devolve o dobro do número que recebe.",
+  "starterCode": "int dobro(int n) {\n    /* devolva o dobro de n */\n    return 0;\n}\n",
+  "solutionCode": "int dobro(int n) {\n    return n * 2;\n}\n",
+  "testsCode": "/* teste do desafio o-dobro — counter_protocol (03-tdd 3.9.3). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint dobro(int n);\n\nSM_TEST(dobro_de_2) {\n    checa_int(\"o dobro de 2\", dobro(2), 4, \"o dobro de 2 e 4\");\n}\n\nSM_TEST(dobro_de_5) {\n    checa_int(\"o dobro de 5\", dobro(5), 10, \"o dobro de 5 e 10\");\n}\n",
+  "expectedTestCount": 2
+}

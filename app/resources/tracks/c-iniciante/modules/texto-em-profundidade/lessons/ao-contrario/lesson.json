@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "ao-contrario",
+  "title": "Ao contrário, e o espelho",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "concepts": [],
+  "prerequisites": [
+    "copiar-a-mao",
+    "inverter-a-lista"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "texto-em-profundidade",
+    "moduloTitulo": "Texto em profundidade",
+    "aula": 14,
+    "ensina": "cons. — composição (swap de caracteres nas pontas + comparação com o original: palíndromo simples)",
+    "presume": "copiar-a-mao, inverter-a-lista",
+    "quiz": "Palíndromo: comparar a palavra com ela mesma invertida, posição a posição.",
+    "desafio": "o-espelho — verifica se a palavra lida é palíndromo (sem acento); teste com arara (1) e porta (0)."
+  }
+}

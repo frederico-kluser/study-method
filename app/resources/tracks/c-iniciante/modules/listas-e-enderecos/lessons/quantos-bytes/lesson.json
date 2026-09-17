@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "quantos-bytes",
+  "title": "Quantos bytes o molde ocupa",
+  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "difficulty": 1,
+  "role": "regular",
+  "concepts": [],
+  "prerequisites": [
+    "a-caixa-com-gavetas"
+  ],
+  "theory": [
+    {
+      "id": "esqueleto-em-autoria",
+      "title": "Aula em autoria (onda de conteúdo)",
+      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+    }
+  ],
+  "sources": [],
+  "challenges": [],
+  "autoria": {
+    "modulo": "listas-e-enderecos",
+    "moduloTitulo": "Listas e endereços",
+    "aula": 7,
+    "ensina": "op:unary:sizeof (o nó é node:UnaryExprOrTypeTraitExpr — a chave sai do atributo)",
+    "presume": "a-caixa-com-gavetas",
+    "quiz": "sizeof(int) é 4 nesta máquina (medido); sizeof v / sizeof v[0] devolve QUANTOS elementos.",
+    "desafio": "o-tamanho-real — calcula n = sizeof v / sizeof v[0] e imprime n e o array; teste espera n=5 e os valores."
+  }
+}

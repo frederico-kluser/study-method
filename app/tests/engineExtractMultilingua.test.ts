@@ -144,7 +144,10 @@ describe('extract — as duas caminhadas e a guarda fail-closed', () => {
     assert.equal(CAMINHADA_POR_LINGUAGEM.javascript, 'ts-node');
     assert.equal(CAMINHADA_POR_LINGUAGEM.typescript, 'ts-node');
     assert.equal(CAMINHADA_POR_LINGUAGEM.python, 'lang-node');
-    assert.deepEqual([...LINGUAGENS_COM_CAMINHADA], ['javascript', 'python', 'typescript']);
+    // ONDA C: 'c' entra pela GENÉRICA — a árvore vem do subprocesso
+    // clang→python3 (um LangNode, não um ts.Node).
+    assert.equal(CAMINHADA_POR_LINGUAGEM.c, 'lang-node');
+    assert.deepEqual([...LINGUAGENS_COM_CAMINHADA], ['c', 'javascript', 'python', 'typescript']);
   });
 
   it('a guarda REPROVA a linguagem sem caminhada, com erro ESTRUTURADO', () => {
