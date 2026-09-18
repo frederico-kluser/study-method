@@ -398,7 +398,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | `skills/study-method/assets/` | Schemas JSON, templates de setup/sessão/desafio, catálogo de decisões. |
 | [`app/`](app/) | A GUI Electron. Não é a skill: é um app que **embrulha** a skill — `studyMethodRunner.ts` dá `spawn` nos mesmos scripts bash — e acrescenta geração de aula ao vivo, editor, TTS/STT local e LLM embarcado. Instalada por `./install.sh`, rodada por `./run.sh`. |
 | [`app/electron/main/engine/`](app/electron/main/engine/) | A engine de trilhas: 13 fases (`F0`..`F12`) que produzem um currículo inteiro offline, mais o gate determinístico que prova sobre AST que nenhum desafio cobra o que nenhuma aula ensinou. Rodada pelo CLI (`npm run engine -- audit <slug>`), **nunca** dentro do processo principal do Electron. |
-| [`app/resources/tracks/`](app/resources/tracks/) | Os cursos que o app oferece ao aluno. **Hoje no disco existem DOIS:** `python-iniciante` (7 módulos, 112 aulas, 113 desafios — ver `docs/18-estado-da-fabricacao-dos-cursos.md`) e `rust-iniciante` (**entregue**: 8 módulos, 101 aulas, 101 desafios de aula + 8 de módulo = 109; audit 0 violações · coverage 109/109 com 1 excesso declarado · bijeção 109/109 · `track:validate` 109 ✓ — os números reproduzíveis e as dívidas declaradas estão em `docs/18` §8); os outros três de Python (`python-intermediario`, `python-avancado`, `python-especialista`) estão planejados — o desenho integral está no [`docs/17-trilha-python.md`](docs/17-trilha-python.md). **A cadeia de Rust** (`rust-iniciante` → `rust-intermediario` → `rust-avancado` → `rust-especialista`) tem contrato de conteúdo no [`docs/20-trilha-rust.md`](docs/20-trilha-rust.md), o adaptador da linguagem é a 4ª linha do registro multilíngue da engine (`app/electron/main/engine/lang/rust.ts`) e o editor tem realce Rust dedicado (`@codemirror/lang-rust`). |
+| [`app/resources/tracks/`](app/resources/tracks/) | Os cursos que o app oferece ao aluno. **Hoje no disco existem TRÊS:** `python-iniciante` (7 módulos, 112 aulas, 113 desafios — ver `docs/18-estado-da-fabricacao-dos-cursos.md`), `rust-iniciante` (**entregue**: 8 módulos, 101 aulas, 101 desafios de aula + 8 de módulo = 109; audit 0 violações · coverage 109/109 com 1 excesso declarado · bijeção 109/109 · `track:validate` 109 ✓ — os números reproduzíveis e as dívidas declaradas estão em `docs/18` §8) e `c-iniciante` (**desenhado integralmente, em autoria** — o contrato de conteúdo integral está no [`docs/20-trilha-c.md`](docs/20-trilha-c.md): 7 módulos, 115 aulas e o desenho de 115 desafios de aula + 7 de módulo; a espinha já está no disco, os desafios em autoria — status na §7 do contrato); os outros três de Python (`python-intermediario`, `python-avancado`, `python-especialista`) estão planejados — o desenho integral está no [`docs/17-trilha-python.md`](docs/17-trilha-python.md). **A cadeia de Rust** (`rust-iniciante` → `rust-intermediario` → `rust-avancado` → `rust-especialista`) tem contrato de conteúdo no [`docs/20-trilha-rust.md`](docs/20-trilha-rust.md), o adaptador da linguagem é a 4ª linha do registro multilíngue da engine (`app/electron/main/engine/lang/rust.ts`) e o editor tem realce Rust dedicado (`@codemirror/lang-rust`). |
 | [`docs/`](docs/) | O `docs/` do repositório: documentos normativos por domínio. `00-contratos.md` é a autoridade — não confundir com o `docs/` do setup, que é a teoria do aluno. |
 | [`docs/research/`](docs/research/) | A pesquisa auditada que sustenta as decisões, com as fontes. |
 | [`docs/build-spec/`](docs/build-spec/) | Os fragmentos de contrato de cada artefato implementado. |
@@ -437,8 +437,10 @@ Isso muda o que as afirmações acima valem, então vale separar:
 **A skill — verificada por execução** (numa máquina Linux de desenvolvimento, em 2026-08-23):
 
 - os 5 gates rodam e fecham **verdes**: `gate-build`, `gate-lint`, `validate`, `smoke` e
-  `spec-conformance`. ⚠ **Isso não vale mais desde que o `app/` entrou no repositório** — dois
-  deles reprovam hoje; ver o bloco "A GUI e a engine de trilhas", abaixo;
+  `spec-conformance`. ⚠ **Isso deixou de valer quando o `app/` entrou no repositório** — na
+  medição de 2026-09-01 dois deles reprovavam; medido em 2026-09-17, os cinco fecham verdes de
+  novo — ver o bullet "e os 5 gates bash fecham verdes" no bloco "A GUI e a engine de trilhas",
+  abaixo;
 - o `smoke` percorre o fluxo inteiro num `HOME` temporário: cria um setup, abre e fecha 3 sessões
   com o ciclo REQUEST/APPLY, gera e valida um desafio Python pelo protocolo completo, renderiza um
   gráfico com as 4 saídas, prova a idempotência do `readme-sync.sh` byte a byte e valida todo JSON
@@ -472,6 +474,14 @@ tem o estado mais desigual:
   diretamente é comparar réguas diferentes;
 - **as duas aparecem lado a lado** para o aluno: `track:list` lista o que está instalado, e o
   portão de qualidade da engine roda na autoria, não na entrega;
+- **os gates exigem a toolchain da linguagem provada na máquina** — o parse por AST e as provas de
+  execução spawnam binários reais (`python3`; `cargo` real sob ambiente scrubado; `clang` para o
+  parse de C), e sem a prova o gate reprova fail-closed, nunca instala. A prova de ambiente é passo
+  da autoria: o passo `preparar_ambiente` da skill de criar cursos (`trilha-author`) usa o auxiliar
+  `_ensure-toolchain.sh` (`skills/study-method/scripts/`, de prefixo `_` — fora da tabela dos 19
+  scripts do §8 de `docs/00-contratos.md`); os pré-requisitos do APP em si (node ≥ 22.13, `npm ci`,
+  marcador `.install-ok`) continuam sendo coisa de `install.sh`/`run.sh` — o auxiliar reporta o
+  harness, não gerencia o app;
 - o modo `generate` (F0–F12) **nunca rodou fora de teste**: não existe um `run.json` nos 84.499
   arquivos do repositório, e nunca existiu em 554 commits. A trilha entregue foi materializada por
   um script ad-hoc, por fora dos portões fail-closed da F12;
@@ -483,14 +493,18 @@ tem o estado mais desigual:
   **4824 testes · 0 falhos · 1 skip** (`npm test`, em `app/` — inclui os 109 desafios da trilha
   `rust-iniciante` provados por execução com o cargo, `audit`/`coverage` da engine e o caminho de
   IPC da trilha).
-- **e os 5 gates bash já não fecham verdes.** Medido em 2026-09-01, rodando os cinco na raiz:
-  `validate` (77), `smoke` (78) e `spec-conformance` (11) passam; **`gate-build` (9 passou · 2
-  falhou) e `gate-lint` (2 passou · 3 falhou) reprovam.** A causa é a mesma dos dois lados: os
-  gates foram escritos quando o repositório era só a skill e hoje varrem `app/` inteiro — incluindo
-  `app/node_modules` (CRLF em B-09, chave dupla sem fechamento em L-03), o `app/tsconfig.node.json`,
-  que é JSONC e não JSON estrito (B-03), e arquivos de `app/content-src/` sem newline final (L-04).
-  O bloco de 2026-08-23 acima continua verdadeiro para o que ele mediu — a skill —, e é por isso
-  que ele agora diz "a skill".
+- **e os 5 gates bash fecham verdes.** Medido em 2026-09-17, rodando os cinco na raiz: os cinco
+  saem **GATE VERDE/rc=0** — `gate-build` (11 passou · 0 falhou), `gate-lint` (5 passou · 0
+  falhou; 1 aviso L-06 pré-existente, não reprovante), `validate` (77 passou · 0 falhou · 2
+  avisos), `smoke` (78) e `spec-conformance` (11). O vermelho de 2026-09-01 — **`gate-build` (9
+  passou · 2 falhou) e `gate-lint` (2 passou · 3 falhou)**, dos gates que, escritos quando o
+  repositório era só a skill, passaram a varrer `app/` inteiro (`app/node_modules`: CRLF em B-09,
+  chave dupla sem fechamento em L-03; o `app/tsconfig.node.json` é JSONC e não JSON estrito, B-03;
+  arquivos de `app/content-src/` sem newline final, L-04) — não reproduz mais, e a mudança tem
+  endereço: o commit `cd566cf` (2026-09-02) tirou `node_modules` do escopo dos gates bash via
+  fronteira única declarada, passou o B-03 a ler `tsconfig*`/`jsconfig*` no dialeto JSONC e fechou
+  o newline final dos arquivos de `app/content-src/`. O bloco de 2026-08-23 acima continua
+  verdadeiro para o que ele mediu — a skill —, e é por isso que ele agora diz "a skill".
 
 ---
 

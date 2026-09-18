@@ -439,6 +439,34 @@ lista de construções diz o que é *permitido*, o resumo diz *como aquilo foi a
 
 ## 5. Os gates determinísticos
 
+**⚑ PRÉ-REQUISITO DE AMBIENTE.** Os gates de parse (§5.3) e as provas de execução (§5.4) exigem a
+toolchain da linguagem **provada na máquina** — o binário real que o gate spawna, não uma promessa.
+Python: `python3`, para o runner de teste e para o extrator (o parse roda `python3 -I -S`). Rust: o
+`cargo` **REAL** que responde sob o ambiente scrubado do filho (sysroot resolvido; `RUSTC`/`RUSTDOC`
+pinados) — e `node`, que hospeda o parser tree-sitter WASM. C: `clang` para o PARSE
+(`-Xclang -ast-dump=json` é uma extensão do clang; o gcc não a tem —
+`app/electron/main/engine/lang/c.ts:27-30` e `:184`) + `cc`/`gcc`/`clang` para o runner e `python3`
+para o extrator.
+
+**A prova de ambiente é passo da AUTORIA, não do gate.** É a skill de autoria de trilhas
+(`trilha-author`), no passo `preparar_ambiente`, que garante a máquina antes de qualquer gate, com o
+auxiliar `skills/study-method/scripts/_ensure-toolchain.sh` — auxiliar de prefixo `_`, fora da
+tabela dos 19 scripts do §8 de [`docs/00-contratos.md`](00-contratos.md). Invocação canônica:
+`bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json` (e `--check`
+para re-checagem sem instalar; exits: 0 provado · 1 faltando/falha/sem-privilégio · 2 uso
+incorreto), re-checável com `--check` nos passos `validar_modulo` e `publicar`. O gate **nunca
+instala**: sem a prova ele reprova por falta de prova (fail-closed, medido em
+`app/electron/main/engine/lang/rust.ts:288-298` e `app/electron/main/engine/lang/c.ts:281-283`). E
+ambiente provado **não** é conteúdo aprovado — a bateria de orçamento (§5.1–§5.2) e as provas de
+execução (§5.4) continuam valendo sobre o que a trilha ensina.
+
+**As regras de ambiente medido (§8.3 do
+[`docs/18-estado-da-fabricacao-dos-cursos.md`](18-estado-da-fabricacao-dos-cursos.md)) continuam
+valendo.** O cold-start do prover — a primeira bateria que spawna a toolchain em lote numa sessão
+nova — reprova o lote inteiro por ambiente no 1º run: rode sempre 1 re-run antes de diagnosticar
+conteúdo. E gates de `cargo` em paralelo sobre o MESMO `CARGO_HOME` produzem falhas aleatórias:
+serialize-os.
+
 ### 5.1 Bateria de orçamento
 
 | # | Verificação | Severidade |

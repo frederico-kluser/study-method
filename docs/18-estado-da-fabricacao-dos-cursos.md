@@ -95,7 +95,7 @@ Porta-de-entrada `a-porta-dos-padroes` (~10 aulas: re-introduz herança, Protoco
 
 ## 6. Roteiro de retomada
 
-1. Use a skill **`skills/trilha-author`** (fluxo `mapear_curso → desenhar_grafo → autoria_aula → validar_modulo → publicar`) e as tabelas do docs/17.
+1. Use a skill **`skills/trilha-author`** (fluxo `mapear_curso → preparar_ambiente → desenhar_grafo → autoria_aula → validar_modulo → publicar`, com a re-checagem `--check` em `validar_modulo` e `publicar`) e as tabelas do docs/17.
 2. Cada curso novo COMEÇA pela porta-de-entrada (re-introduzir a fronteira do curso anterior — o orçamento é por trilha e não herda o curso anterior).
 3. Por onda: escrever módulo → `npm run engine -- audit <slug> --limite 0` (0 violações) → `coverage` (0 lacunas) → `requirements` (bijeção) → `track:validate` → `track:challenge:verify` (4 provas) → `lessonTypewriterReadingSpeed` → gates de repo (newline!) → squash-merge com gate em snapshot.
 4. Dívidas do iniciante (a-tela sem requirements[], 29 excessos J5 fase SAÍDA) podem ser quitadas na primeira onda de retomada.
