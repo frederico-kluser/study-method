@@ -423,6 +423,16 @@ instalado morre com o contêiner, que é o ponto.
    apt-get update && apt-get install -y ca-certificates curl
    ```
 
+   Em arch, é o `pacman -Sy` que vem antes de instalar: o `--ensure` do
+   `_ensure-toolchain.sh` roda `pacman -S --needed --noconfirm` SEM o `-Sy` de propósito
+   (sincronizar a base de dados é preparo do operador, não parte da instalação). Se o
+   `-Sy` falhar por assinatura ou base de dados velha (snapshot antigo da imagem), instale
+   o keyring e repita:
+
+   ```bash
+   pacman -Sy || { pacman -Sy --noconfirm archlinux-keyring && pacman -Sy; }
+   ```
+
 3. **Provar** cada toolchain com os quatro blocos do §2 (cada um deve sair exit 0 com UM teste
    rodado).
 

@@ -295,4 +295,6 @@ operador da autoria — nunca com o aluno na sessão: a regra de tutoria **SEG-6
 toolchain nunca sem confirmação naquele momento") continua valendo intacta para a tutoria.
 Limitação v1 declarada no cabeçalho dele: não lê o env de override do cargo da engine
 (`STUDY_METHOD_CARGO_BIN`) — um `--check` pode dar falso negativo numa máquina que resolve
-cargo por esse env; a mensagem de falha do rust cita o remédio em prosa.
+cargo por esse env; a mensagem de falha do rust cita o remédio em prosa. O cache
+`$STUDY_METHOD_HOME/toolchain-ensure.json` é diagnóstico da ÚLTIMA invocação completa
+(gravado mesmo quando o exit é `1`), nunca fonte de verdade — a prova é sempre por execução.
