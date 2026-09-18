@@ -6,7 +6,8 @@ runtime.
 
 ## Sumário
 Convenção geral · Exit codes e o que fazer com cada um · ⭐ Protocolo REQUEST/APPLY (com exemplo
-completo) · Os 19 componentes de `SK/scripts/`, agrupados pelos 9 passos.
+completo) · Os 19 componentes de `SK/scripts/`, agrupados pelos 9 passos · Auxiliares de prefixo
+`_` (fora da tabela §8).
 
 ---
 
@@ -262,6 +263,36 @@ Exit: `0` (inclusive abaixo do limiar — não faz nada, e é sucesso) · `1` ·
 
 ---
 
-Nenhum destes 19 chama rede, instala nada, ou decide sozinho algo que devesse vir do aluno — onde
-falta julgamento, o único caminho é a §2. Onde faltar toolchain, disco ou permissão, o script
-devolve o exit code certo e você fala com o aluno em pt-BR simples — nunca despeje stderr cru.
+Nenhum destes **19 da §3** chama rede, instala nada, ou decide sozinho algo que devesse vir do
+aluno — onde falta julgamento, o único caminho é a §2. Onde faltar toolchain, disco ou
+permissão, o script devolve o exit code certo e você fala com o aluno em pt-BR simples — nunca
+despeje stderr cru. A afirmação fala dos 19 componentes listados acima; os **auxiliares de
+prefixo `_`** (§4, abaixo) estão fora dessa conta — e é por isso que um deles pode instalar,
+que é contrato de outro passo, não da sessão.
+
+---
+
+## 4. Auxiliares de prefixo `_`
+
+Fora da tabela §8 e fora dos 19: o prefixo `_` é a marca de **módulo interno** — precedente
+`lib/_mutate.py`. Nenhum deles é chamado em sessão de tutoria, e nenhum recebe
+`<setup_root>` (como o detector).
+
+Hoje há um executável nessa família:
+
+**`_ensure-toolchain.sh`** — o motor do passo `preparar_ambiente` da superfície de **AUTORIA**
+(skill `trilha-author`): prova por execução que a toolchain dos cursos publicados
+(`python-iniciante`, `rust-iniciante`, `c-iniciante`) está pronta — a árvore mínima de desafio
+rodando de verdade, com guarda de "teste executado > 0" (a regra de `!= 0` e a contagem da
+§1 de linguagens valem aqui igual) — e, em `--ensure`, instala pelo gerenciador da distro
+detectada e RE-PROVA. Formas: `--check` (só prova, offline, nunca instala), `--ensure`,
+`--self-test`, `--language <python|rust|c>` (enum fechado deste auxiliar — mais estreito que o
+enum da §8, de propósito) e `--json`. Exit: `0` provado · `1` faltando/falha de prova/falha de
+instalação/sem privilégio (o JSON distingue `missing` × `install_failed` × `no_privilege`) ·
+`2` uso incorreto. Ele nunca pede senha (stdin fechado): sem privilégio, devolve a mensagem
+acionável com o comando exato para o operador. A instalação é sempre com consentimento do
+operador da autoria — nunca com o aluno na sessão: a regra de tutoria **SEG-6** ("instalar
+toolchain nunca sem confirmação naquele momento") continua valendo intacta para a tutoria.
+Limitação v1 declarada no cabeçalho dele: não lê o env de override do cargo da engine
+(`STUDY_METHOD_CARGO_BIN`) — um `--check` pode dar falso negativo numa máquina que resolve
+cargo por esse env; a mensagem de falha do rust cita o remédio em prosa.

@@ -328,6 +328,19 @@ Registre no **`setup.json`** (o manifesto na raiz do setup) qual linguagem foi c
 versão exata. Não é no `meta.json`: esse é o manifesto de **um desafio**, em
 `challenges/<NNNN>-<slug>/`, e o estado do setup gravado ali seria reperguntado a cada desafio.
 
+⚑ **Fronteira: a regra "nunca instalar" governa a tutoria — não a autoria.** Tudo nesta seção
+vale para a **sessão com o aluno**. Na **autoria de cursos** (skill `trilha-author`, o passo
+`preparar_ambiente`) o ambiente é garantido pelo auxiliar
+`skills/study-method/scripts/_ensure-toolchain.sh`: `--check` só **prova por execução** — a
+árvore mínima da §3.2 rodando de verdade — e nunca instala; `--ensure` instala pela receita da
+família de distro detectada (as receitas por família vivem na referência de ambiente da autoria)
+e, depois de instalar, re-prova por execução uma vez — a re-prova ainda falhando, o veredito é
+de falha de instalação, com a mensagem carregando o detalhe da prova; quando não pode instalar,
+falha com mensagem acionável que distingue os dois casos: **sem privilégio**, traz os COMANDOS
+EXATOS de instalação, um por bloco, para o operador rodar à mão; **sem gerenciador conhecido**,
+pede a instalação manual e a re-execução do `--ensure`. A decisão de instalar segue sendo do
+operador — nunca do tutor em sessão, nunca em nome do aluno.
+
 ---
 
 ## 7. Armadilhas transversais de desafio
