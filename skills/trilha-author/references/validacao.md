@@ -20,11 +20,16 @@ bash skills/study-method/scripts/_ensure-toolchain.sh --check --language <l>
 bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json
 ```
 
-O harness (node+npm para a CLI via tsx) só é GARANTIDO pela invocação SEM `--language` —
-`bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --json`, que cobre as 3
-linguagens + o harness (é o modo recomendado quando a trilha em autoria usa mais de uma
-linguagem ou quando nenhuma foi passada); com `--language <l>` o harness é só reportado — o
-`--check --language <l>` sai 0 mesmo com npm ausente, e sem node+npm a CLI dos gates não sobe.
+O harness (node+npm+jq para a CLI via tsx e o JSON da engine) é pré-requisito dos gates em
+qualquer trilha, e o `--ensure` o garante em TODO escopo: a invocação canônica
+`bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json` garante,
+num único comando, a linguagem + os hosts cruzados + o harness, e a invocação SEM `--language`
+(`bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --json`, as 3 linguagens + o
+harness) continua sendo a recomendada quando a trilha em autoria usa mais de uma linguagem ou
+quando nenhuma foi passada. No `--check`, o harness ausente é REPORTADO — entra em
+`ensure.missing` com aviso acionável no stderr, com o comando exato de instalação da família —
+e o exit fica com a prova das linguagens pedidas (sai 0 se elas provam; garantir o harness é
+trabalho do `--ensure`). A moral permanece: sem node+npm+jq a CLI dos gates não sobe.
 
 Exit code do script: **0** toolchain provada por execução · **1** faltando, falha de prova,
 falha de instalação ou sem privilégio — sempre com mensagem acionável · **2** uso incorreto. Sem
@@ -42,7 +47,7 @@ prova que o binário existe:
 | python | `python3 -m unittest discover -s tests -p "test_*.py" -v` com `Ran N tests`, N≥1 | **1** · zero testes **5** |
 | rust | `cargo --version` + o sysroot resolve (`rustc --print sysroot`) mesmo com `RUSTUP_HOME`/`CARGO_HOME` removidos do env + `cargo test --offline` | **101** |
 | c | runner `gcc -std=c11 -g stub.c tests/test_stub.c -o runner -lm && ./runner` (aceita `cc`→`gcc`→`clang`) + o parse `clang -std=c11 -fsyntax-only stub.c` | **134** (SIGABRT) |
-| o harness da engine | `node --version && npm --version` (a CLI roda via tsx) | sem node+npm a CLI não sobe — nenhum gate roda |
+| o harness da engine | `node --version && npm --version && jq --version` (a CLI roda via tsx e o JSON via jq) | sem node+npm+jq a CLI não sobe — nenhum gate roda |
 
 Para C, compilar com gcc e passar **NÃO** prova prontidão de autoria C: o PARSE da engine é
 clang-only (`-ast-dump=json` é extensão do clang) e, sem clang, `PARSE_ERROR` vira violação no

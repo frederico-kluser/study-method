@@ -18,15 +18,18 @@
 #                         são as linguagens dos cursos publicados)
 #   --json                aceito e explícito; a saída já é JSON sempre (stdout puro;
 #                         progresso e resumo humanos vão para stderr)
-#   Sem --language: cobre as 3 linguagens + o bloco harness. Com --language: só ela.
+#   Sem --language: cobre as 3 linguagens + o bloco harness. Com --language: só ela +
+#   o bloco harness (node+npm+jq — pré-requisito dos gates em qualquer trilha).
 #
 # Garantia CRUZADA (hosts da engine — app/electron/main/engine/lang/rust.ts:9 e c.ts:11-12):
 #   --ensure --language rust garante TAMBÉM node (host do parser WASM do tree-sitter);
 #   --ensure --language c   garante TAMBÉM python3 (host do extrator) e clang — o PARSE de C
 #   exige clang (-ast-dump=json é extensão do clang; o gcc NÃO serve pro parse — c.ts:27-31);
-#   o gcc cobre só o RUNNER. O bloco harness (node+npm) é reportado SEMPRE; o --ensure o
-#   instala SEM --language e, no escopo de --language rust, pela mesma garantia cruzada —
-#   mesmo com o rust já provado (os gates rodam via npm/tsx).
+#   o gcc cobre só o RUNNER. O bloco harness (node+npm+jq) é reportado SEMPRE — e o --ensure
+#   o garante em TODO escopo, com ou sem --language, qualquer linguagem: node+npm sobem a
+#   CLI dos gates (via tsx) e o jq parseia o JSON da engine, em qualquer trilha. No --check,
+#   o harness ausente entra em ensure.missing (rótulos node/jq) com aviso acionável no
+#   stderr e NÃO derruba o exit — a prova das linguagens pedidas decide o veredito.
 #
 # Exit codes (docs/00-contratos.md §5.1 — só 0/1/2):
 #   0  todas as linguagens pedidas PROVADAS (e, em --ensure, instaladas quando faltaram)
@@ -66,6 +69,7 @@ SM_LANGS="python rust c"
 
 # Estado global (evita nameref, que é bash 4.3+).
 SM_MODE="check"
+SM_MODE_TAKEN=""
 SM_ONLY=""
 SM_TMP=""
 SM_PATH=""
@@ -87,6 +91,7 @@ SM_C_OK="false"; SM_C_ARGV=""; SM_C_EXIT=""; SM_C_DETAIL=""
 SM_C_STEP_BUILD="nao"; SM_C_STEP_CLANG="nao"; SM_C_STEP_PY="nao"
 SM_NODE_FOUND="false"; SM_NODE_VER=""; SM_NODE_OK="false"
 SM_NPM_FOUND="false"; SM_NPM_VER=""; SM_NPM_OK="false"
+SM_JQ_FOUND="false"; SM_JQ_VER=""; SM_JQ_OK="false"
 SM_ENS_SKIPPED=""
 SM_DOC=""
 
@@ -169,11 +174,55 @@ sm_last_line() {
 }
 
 sm_snip() {
-    # recorta o trecho de saída que vai para o detail do JSON
-    local s="$1"
-    if [ "${#s}" -gt 160 ]; then
-        s="${s:0:160}"
-    fi
+    # recorta o trecho de saída que vai para o detail do JSON. O corte é por BYTES
+    # (head -c, tail -c, od e wc -c são byte-based em QUALQUER locale) com guard de
+    # fronteira UTF-8: sob locale single-byte (LC_ALL=C) o corte antigo soltava
+    # 0xC3 no meio de um carácter — JSON UTF-8 inválido (json.loads rejeita). O
+    # guard examina os últimos 4 bytes e só recua quando a sequência final está
+    # INCOMPLETA: lead solto no fim; ou lead + continuations em quantidade MENOR
+    # que o comprimento que o lead exige (2/3/4). Sequência completa no fim fica.
+    local s="$1" len hexs n tn tok lead exp c i drop
+    s="$(printf '%s' "$s" | head -c 160)"
+    len="$(printf '%s' "$s" | wc -c | tr -d ' ')"
+    while [ "$len" -gt 0 ]; do
+        hexs="$(printf '%s' "$s" | tail -c 4 | od -An -tx1 | tr '\n' ' ')"
+        set -- $hexs
+        n=$#
+        eval "tn=\${$n}"
+        drop=0
+        case "$tn" in
+            0*|1*|2*|3*|4*|5*|6*|7*)
+                break ;;  # ASCII no fim — fronteira limpa
+            [89ab]*)
+                # continuations no fim: acha o lead que os abre e decide se a
+                # sequência final está completa ou foi cortada
+                c=1; i=$((n - 1))
+                while [ "$i" -ge 1 ]; do
+                    eval "tok=\${$i}"
+                    case "$tok" in [89ab]*) c=$((c + 1)); i=$((i - 1)) ;; *) break ;; esac
+                done
+                drop="$c"
+                if [ "$i" -ge 1 ]; then
+                    eval "lead=\${$i}"
+                    case "$lead" in
+                        c[2-9a-f]|d*) exp=2 ;;
+                        e*)           exp=3 ;;
+                        f[0-4])       exp=4 ;;
+                        *)            exp=0 ;;  # lead inválido (c0/c1/f5–ff) — não abre sequência
+                    esac
+                    if [ "$exp" -gt 0 ] && [ $((c + 1)) -ge "$exp" ]; then
+                        break  # sequência completa no fim — fronteira limpa
+                    fi
+                    [ "$exp" -gt 0 ] && drop=$((c + 1))
+                fi
+                ;;
+            [cdef]*)
+                drop=1 ;;  # lead solto no fim — a sequência foi cortada antes de abrir
+        esac
+        [ "$drop" -gt 0 ] || break
+        len=$((len - drop))
+        s="$(printf '%s' "$s" | head -c "$len")"
+    done
     printf '%s' "$s"
 }
 
@@ -187,6 +236,7 @@ sm_extract_version() {
         c)      printf '%s' "$(printf '%s' "$first" | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)" ;;
         node)   printf '%s' "${first#v}" ;;
         npm)    printf '%s' "$first" ;;
+        jq)     printf '%s' "${first#jq-}" ;;
         *)      printf '%s' "$first" ;;
     esac
 }
@@ -489,11 +539,14 @@ sm_proof_c() {
 }
 
 # ---------------------------------------------------------------------------
-# Bloco harness — node + npm, reportados SEMPRE.
+# Bloco harness — node + npm + jq, reportados SEMPRE. O jq entra como RÓTULO no
+# ensure.missing e na mensagem do aviso do stderr; o bloco harness do JSON segue
+# com as chaves node/npm apenas (shape congelado — nenhuma chave nova).
 # ---------------------------------------------------------------------------
 sm_probe_harness() {
     SM_NODE_FOUND="false"; SM_NODE_VER=""; SM_NODE_OK="false"
     SM_NPM_FOUND="false"; SM_NPM_VER=""; SM_NPM_OK="false"
+    SM_JQ_FOUND="false"; SM_JQ_VER=""; SM_JQ_OK="false"
     local p
     p="$(command -v node 2>/dev/null || true)"
     if [ -n "$p" ]; then
@@ -511,6 +564,15 @@ sm_probe_harness() {
         if [ "$SM_RC" -eq 0 ]; then
             SM_NPM_VER="$(sm_extract_version npm "$SM_OUT")"
             SM_NPM_OK="true"
+        fi
+    fi
+    p="$(command -v jq 2>/dev/null || true)"
+    if [ -n "$p" ]; then
+        SM_JQ_FOUND="true"
+        sm_run jq --version
+        if [ "$SM_RC" -eq 0 ]; then
+            SM_JQ_VER="$(sm_extract_version jq "$SM_OUT")"
+            SM_JQ_OK="true"
         fi
     fi
     return 0
@@ -572,30 +634,45 @@ sm_detect_family() {
 
 # ---------------------------------------------------------------------------
 # Receitas --ensure — VERBATIM da referência de ambiente da autoria (§3), fonte canônica.
-# $1 = família, $2 = bloco (python | rust | c | node) → pacotes, um por linha.
+# $1 = família, $2 = bloco (python | rust | c | node | jq) → pacotes, um por linha.
 # ---------------------------------------------------------------------------
 sm_recipe_packages() {
+    # Divergência pacman declarada: a receita canônica (referência de ambiente da autoria,
+    # §3.4) usa `pacman -Syu --needed ...` — aqui o `pacman -S` roda SEM o refresh do banco
+    # (-Sy/-Syu não roda; o -Sy sozinho é a armadilha do upgrade parcial e o -Syu faria um
+    # upgrade do sistema que não cabe num --ensure).
     case "$1:$2" in
         pacman:python) printf 'python\n' ;;
         pacman:rust)   printf 'rust\n' ;;
         pacman:c)      printf 'base-devel\nclang\n' ;;
         pacman:node)   printf 'nodejs\nnpm\njq\n' ;;
+        pacman:jq)     printf 'jq\n' ;;
         apt:python)    printf 'python3\n' ;;
         apt:rust)      printf 'cargo\nrustc\n' ;;
         apt:c)         printf 'build-essential\nclang\n' ;;
         apt:node)      printf 'nodejs\nnpm\njq\n' ;;
+        apt:jq)        printf 'jq\n' ;;
         dnf:python)    printf 'python3\n' ;;
         dnf:rust)      printf 'rust\ncargo\n' ;;
         dnf:c)         printf 'gcc\nclang\ngcc-c++\nmake\n' ;;
         dnf:node)      printf 'nodejs\nnpm\njq\n' ;;
+        dnf:jq)        printf 'jq\n' ;;
         apk:python)    printf 'python3\n' ;;
         apk:rust)      printf 'rust\ncargo\n' ;;
         apk:c)         printf 'build-base\nclang\n' ;;
         apk:node)      printf 'nodejs\nnpm\njq\n' ;;
+        apk:jq)        printf 'jq\n' ;;
         macos:python)  printf 'python3\n' ;;
+        # Divergência macos:rust declarada (referência de ambiente da autoria, §3.5/§4): o
+        # caminho recomendado pela fonte canônica é o instalador do rustup.rs, que este
+        # script NÃO usa — zero rede em linha de código, o download só nasce do gerenciador
+        # — então a receita daqui é o brew rustup + o pós-install 'rustup default stable'
+        # (bloco macos:rust no fluxo de instalação), que cobre a armadilha nº 1 da família:
+        # rustup sem toolchain default não entrega cargo.
         macos:rust)    printf 'rustup\n' ;;
         macos:c)       : ;;  # o clang do macOS vem do Xcode Command Line Tools, não do brew
         macos:node)    printf 'node\njq\n' ;;
+        macos:jq)      printf 'jq\n' ;;
         *)             : ;;
     esac
     return 0
@@ -662,20 +739,23 @@ sm_have_privilege() {
 
 sm_exec_install() {
     # roda a instalação com teto de 900s, stdin fechado (nunca pede senha) e sudo -n
-    # quando precisa de privilégio; todo download nasce do gerenciador
+    # quando precisa de privilégio; todo download nasce do gerenciador. O stdout do
+    # gerenciador vai para o STDERR: o stdout deste script é SEMPRE o documento JSON
+    # (contrato do cabeçalho) — o apt-get/pacman vaza milhares de linhas e um
+    # json.load(stdout) quebraria para qualquer consumidor de --ensure --json.
     local rc
     set +e
     if [ "$(id -u)" -eq 0 ] || [ "$SM_FAMILY" = "macos" ]; then
         if command -v timeout >/dev/null 2>&1; then
-            timeout -s KILL -k 2 900 "${SM_INSTALL_ARGV[@]}" </dev/null
+            timeout -s KILL -k 2 900 "${SM_INSTALL_ARGV[@]}" </dev/null >&2
         else
-            "${SM_INSTALL_ARGV[@]}" </dev/null
+            "${SM_INSTALL_ARGV[@]}" </dev/null >&2
         fi
     else
         if command -v timeout >/dev/null 2>&1; then
-            timeout -s KILL -k 2 900 sudo -n "${SM_INSTALL_ARGV[@]}" </dev/null
+            timeout -s KILL -k 2 900 sudo -n "${SM_INSTALL_ARGV[@]}" </dev/null >&2
         else
-            sudo -n "${SM_INSTALL_ARGV[@]}" </dev/null
+            sudo -n "${SM_INSTALL_ARGV[@]}" </dev/null >&2
         fi
     fi
     rc=$?
@@ -691,17 +771,18 @@ sm_apt_update_once() {
     SM_APT_UPDATED="1"
     local rc
     set +e
+    # stdout do gerenciador vai para o stderr — o stdout do script é SEMPRE o JSON
     if [ "$(id -u)" -eq 0 ]; then
         if command -v timeout >/dev/null 2>&1; then
-            timeout -s KILL -k 2 300 apt-get update </dev/null
+            timeout -s KILL -k 2 300 apt-get update </dev/null >&2
         else
-            apt-get update </dev/null
+            apt-get update </dev/null >&2
         fi
     else
         if command -v timeout >/dev/null 2>&1; then
-            timeout -s KILL -k 2 300 sudo -n apt-get update </dev/null
+            timeout -s KILL -k 2 300 sudo -n apt-get update </dev/null >&2
         else
-            sudo -n apt-get update </dev/null
+            sudo -n apt-get update </dev/null >&2
         fi
     fi
     rc=$?
@@ -784,15 +865,18 @@ sm_ensure_flow() {
             sm_add_missing "$b2"
         done
     done
-    # 2) o bloco harness entra no escopo do --ensure SEM --language; e com
-    #    --language rust ele entra MESMO quando a prova do rust já passou de
-    #    primeira — é a garantia cruzada no caminho "já provado" (rust.ts:9:
-    #    o node é o host do parser WASM do tree-sitter; o rust provado não isenta
-    #    o node da garantia). Sem --language, vale o escopo completo.
-    if [ -z "$only" ] || [ "$only" = "rust" ]; then
-        if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-            sm_add_missing "node"
-        fi
+    # 2) o bloco harness (node+npm+jq) entra no escopo do --ensure em TODO caso — com ou
+    #    sem --language, QUALQUER linguagem: node+npm sobem a CLI dos gates (via tsx) e o
+    #    jq parseia o JSON da engine, pré-requisito dos gates em qualquer trilha. É a
+    #    mesma garantia cruzada no caminho "já provado" (rust.ts:9: o node é o host do
+    #    parser WASM do tree-sitter; o rust provado não isenta o node, e o python/c
+    #    provado não isenta o harness). O dedup por rótulo do missing evita o node
+    #    duplicado quando a garantia cruzada do rust (needs) já o acrescentou.
+    if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+        sm_add_missing "node"
+    fi
+    if ! command -v jq >/dev/null 2>&1; then
+        sm_add_missing "jq"
     fi
     # 3) nada faltando: as provas de primeira valem
     if [ ! -s "$SM_TMP/missing.txt" ]; then
@@ -827,7 +911,7 @@ sm_ensure_flow() {
     if [ "$SM_FAMILY" = "apt" ]; then
         sm_apt_update_once
     fi
-    for b2 in python rust c node; do
+    for b2 in python rust c node jq; do
         grep -qx "$b2" "$SM_TMP/missing.txt" || continue
         sm_build_install_argv "$b2"
         if [ "${#SM_INSTALL_ARGV[@]}" -eq 0 ]; then
@@ -855,10 +939,11 @@ sm_ensure_flow() {
             if command -v rustup >/dev/null 2>&1; then
                 sm_err "selecionando a toolchain stable do rustup (o formula não traz toolchain por si)"
                 set +e
+                # stdout do rustup vai para o stderr — o stdout do script é SEMPRE o JSON
                 if command -v timeout >/dev/null 2>&1; then
-                    timeout -s KILL -k 2 900 rustup default stable </dev/null
+                    timeout -s KILL -k 2 900 rustup default stable </dev/null >&2
                 else
-                    rustup default stable </dev/null
+                    rustup default stable </dev/null >&2
                 fi
                 set -e
             else
@@ -896,15 +981,51 @@ sm_ensure_flow() {
             fi
         done
     done
-    # honestidade do node na garantia cruzada (só no escopo de --language rust): o
-    # bloco foi INSTALADO e o re-probe do harness ainda não encontra node/npm no
-    # PATH — registra failed em vez de o JSON ficar em silêncio sobre a lacuna.
-    if [ "$only" = "rust" ] && grep -qx "node" "$SM_TMP/installed.txt" 2>/dev/null; then
+    # honestidade do harness em QUALQUER escopo (o bloco entra em todo --ensure agora): o
+    # bloco foi INSTALADO e o re-probe do harness ainda não encontra o conjunto no PATH —
+    # registra failed em vez de o JSON ficar em silêncio sobre a lacuna.
+    if grep -qx "node" "$SM_TMP/installed.txt" 2>/dev/null; then
         if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
             printf '%s\t%s\t%s\n' "node" "install_failed" \
                 "instalado (node) e o re-probe do harness ainda não encontra node/npm no PATH" \
                 >> "$SM_TMP/failed.txt"
         fi
+    fi
+    if grep -qx "jq" "$SM_TMP/installed.txt" 2>/dev/null; then
+        if ! command -v jq >/dev/null 2>&1; then
+            printf '%s\t%s\t%s\n' "jq" "install_failed" \
+                "instalado (jq) e o re-probe do harness ainda não encontra jq no PATH" \
+                >> "$SM_TMP/failed.txt"
+        fi
+    fi
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Aviso acionável do harness ausente no --check — QUALQUER escopo. Nunca derruba
+# o exit (o veredito é da prova das linguagens pedidas): informa o que falta e
+# traz o comando EXATO da receita desta família, como o --ensure aplicaria. Só
+# fala no stderr — o shape do JSON não muda.
+# ---------------------------------------------------------------------------
+sm_harness_warn() {
+    local faltam="" cmdline
+    if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+        faltam="node/npm"
+    fi
+    if ! command -v jq >/dev/null 2>&1; then
+        if [ -n "$faltam" ]; then
+            faltam="$faltam + jq"
+        else
+            faltam="jq"
+        fi
+    fi
+    [ -n "$faltam" ] || return 0
+    sm_detect_family
+    cmdline="$(sm_install_cmdline node)"
+    if [ "$SM_FAMILY" = "none" ] || [ -z "$cmdline" ]; then
+        sm_err "aviso: harness ausente/incompleto (faltando: $faltam) — os gates rodam via npm/tsx e exigem node+npm+jq em qualquer trilha; família de distro não detectada: instale node+npm+jq à mão (o --ensure garante quando a família é detectada)"
+    else
+        sm_err "aviso: harness ausente/incompleto (faltando: $faltam) — os gates rodam via npm/tsx e exigem node+npm+jq em qualquer trilha; comando exato da receita 'node' desta família: $cmdline (o --ensure aplica e re-prova; o --check nunca instala)"
     fi
     return 0
 }
@@ -927,10 +1048,10 @@ sm_stderr_summary() {
             sm_err "$l: prova FALHOU"
         fi
     done
-    if [ "$SM_NODE_OK" = "true" ] && [ "$SM_NPM_OK" = "true" ]; then
-        sm_err "harness: node+npm ok"
+    if [ "$SM_NODE_OK" = "true" ] && [ "$SM_NPM_OK" = "true" ] && [ "$SM_JQ_OK" = "true" ]; then
+        sm_err "harness: node+npm+jq ok"
     else
-        sm_err "harness: node/npm incompleto (node=$SM_NODE_OK npm=$SM_NPM_OK)"
+        sm_err "harness: node/npm/jq incompleto (node=$SM_NODE_OK npm=$SM_NPM_OK jq=$SM_JQ_OK)"
     fi
     return 0
 }
@@ -1111,23 +1232,20 @@ sm_main_run() {
                 sm_add_missing "$b2"
             done
         done
-        if [ -z "$SM_ONLY" ]; then
-            if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-                sm_add_missing "node"
-            fi
-            if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-                sm_err "aviso: harness node/npm incompleto — os gates rodam via npm/tsx; rode --ensure SEM --language para instalar (a instalação é decisão do operador)"
-            fi
-        elif [ "$SM_ONLY" = "rust" ]; then
-            # garantia cruzada (rust.ts:9): com --language rust, o node ausente é
-            # REPORTADO no ensure.missing (informativo). O --check nunca instala e o
-            # harness ausente NÃO derruba o exit do --check — o veredito continua
-            # sendo o da prova do rust; garantir o node é trabalho do --ensure.
-            if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-                sm_add_missing "node"
-                sm_err "aviso: harness node/npm incompleto — o node é o host do parser WASM do rust; reportado em ensure.missing (o --check nunca instala; o --ensure --language rust garante)"
-            fi
+        # o harness (node+npm+jq) é REPORTADO no --check em QUALQUER escopo — com ou sem
+        # --language, qualquer linguagem — porque node+npm sobem a CLI dos gates (via tsx)
+        # e o jq parseia o JSON da engine, em qualquer trilha. Entra em ensure.missing
+        # (rótulos node/jq) com aviso acionável no stderr (comandos exatos por família),
+        # mas NÃO derruba o exit do --check: a prova das linguagens pedidas decide o
+        # veredito — garantir o harness é trabalho do --ensure, que o cobre em todo
+        # escopo (o dedup por rótulo evita o node duplicado).
+        if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+            sm_add_missing "node"
         fi
+        if ! command -v jq >/dev/null 2>&1; then
+            sm_add_missing "jq"
+        fi
+        sm_harness_warn
     fi
     sm_stderr_summary
 
@@ -1286,24 +1404,43 @@ sm_self_test() {
 
     # 5) contrato de uso: enum fechado e flag desconhecida saem com o código 2
     rc=0
-    ( SM_MODE="check"; SM_ONLY=""; main --language java ) >/dev/null 2>&1 || rc=$?
+    ( SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --language java ) >/dev/null 2>&1 || rc=$?
     if [ "$rc" -eq 2 ]; then
         sm_st_ok "contrato de uso: --language fora do enum fechado sai com o código 2"
     else
         sm_st_bad "contrato de uso: --language java saiu com o código $rc (esperado 2)"
     fi
     rc=0
-    ( SM_MODE="check"; SM_ONLY=""; main --flag-desconhecida ) >/dev/null 2>&1 || rc=$?
+    ( SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --flag-desconhecida ) >/dev/null 2>&1 || rc=$?
     if [ "$rc" -eq 2 ]; then
         sm_st_ok "contrato de uso: flag desconhecida sai com o código 2"
     else
         sm_st_bad "contrato de uso: flag desconhecida saiu com o código $rc (esperado 2)"
     fi
 
+    # 5b) BUG fix (modo duplicado em QUALQUER ordem): o branch --check não marcava o
+    #     modo como tomado — `--check --ensure` (nessa ordem) aceitava e ESCALAVA para
+    #     ensure (instala de verdade com privilégio real), e `--check --self-test`
+    #     re-entrava no auto-teste. Com o modo marcado, qualquer duplicação sai 2.
+    rc=0
+    ( SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --check --ensure ) >/dev/null 2>&1 || rc=$?
+    if [ "$rc" -eq 2 ]; then
+        sm_st_ok "contrato de uso: --check --ensure (nessa ordem) sai com o código 2 (não escala para ensure)"
+    else
+        sm_st_bad "contrato de uso: --check --ensure saiu com o código $rc (esperado 2)"
+    fi
+    rc=0
+    ( SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --check --self-test ) >/dev/null 2>&1 || rc=$?
+    if [ "$rc" -eq 2 ]; then
+        sm_st_ok "contrato de uso: --check --self-test (nessa ordem) sai com o código 2 (não re-entra no auto-teste)"
+    else
+        sm_st_bad "contrato de uso: --check --self-test saiu com o código $rc (esperado 2)"
+    fi
+
     # 6) contrato do JSON e do cache — um sub-run completo, com HOME de estado no tmp
     outj="$fx/out.json"
     rc=0
-    ( STUDY_METHOD_HOME="$fx/state"; SM_MODE="check"; SM_ONLY=""; main --check --json ) > "$outj" 2>/dev/null || rc=$?
+    ( STUDY_METHOD_HOME="$fx/state"; SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --check --json ) > "$outj" 2>/dev/null || rc=$?
     if [ "$rc" -eq 0 ] || [ "$rc" -eq 1 ]; then
         sm_st_ok "sub-run --check completo saiu com o código $rc (0 provado · 1 faltando)"
     else
@@ -1358,8 +1495,36 @@ SM_ST_JSON
         fi
     fi
 
-    # 7) caminho --ensure "já provado": NÃO instala nada (só com prova verde no anfitrião)
+    # 6b) BUG fix (corte multibyte): o sm_snip corta por BYTES com guard de fronteira
+    #     UTF-8 — sob LC_ALL=C (locale single-byte) um corte no meio de um carácter
+    #     multibyte não pode fabricar JSON UTF-8 inválido (o guard recua para a
+    #     fronteira antes de emitir). Euro (0xE2 0x82 0xAC) força o corte a 160 bytes
+    #     a cair em cima de um lead byte (160 = 3×53 + 1).
+    if command -v python3 >/dev/null 2>&1; then
+        local mbsnip="" mbstr="" mbdoc mbi=0
+        while [ "$mbi" -lt 80 ]; do
+            mbstr="${mbstr}€"
+            mbi=$((mbi + 1))
+        done
+        mbsnip="$(LC_ALL=C sm_snip "$mbstr")"
+        mbdoc="$(printf '{"detail": "%s"}' "$(sm_json_escape "$mbsnip")")"
+        if [ -n "$mbsnip" ] && printf '%s' "$mbdoc" \
+            | python3 -c 'import json, sys; json.loads(sys.stdin.buffer.read().decode("utf-8"))' 2>/dev/null; then
+            sm_st_ok "corte multibyte sob LC_ALL=C: detail sai UTF-8 válido e o JSON parseia (guard de fronteira)"
+        else
+            sm_st_bad "corte multibyte sob LC_ALL=C: detail saiu com UTF-8 quebrado (JSON inválido)"
+        fi
+    else
+        sm_err "auto-teste: corte multibyte não exercido (anfitrião sem python3)"
+    fi
+
+    # 7) caminho --ensure "já provado": NÃO instala nada (só com prova verde no anfitrião).
+    #    O anfitrião precisa de node+npm+jq PRESENTES: o bloco harness entra no escopo de
+    #    TODO --ensure (e nada pode ser instalado no auto-teste), então com o harness
+    #    ausente este caminho é degradado e não é exercido aqui.
     if [ -f "$fx/state/toolchain-ensure.json" ] && command -v python3 >/dev/null 2>&1 \
+        && command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 \
+        && command -v jq >/dev/null 2>&1 \
         && python3 - "$outj" <<'SM_ST_PYOK'
 import json
 import sys
@@ -1370,7 +1535,7 @@ SM_ST_PYOK
         local sk rc2
         sk="$fx/sk.json"
         rc2=0
-        ( STUDY_METHOD_HOME="$fx/state"; SM_MODE="check"; SM_ONLY=""; main --ensure --language python --json ) > "$sk" 2>/dev/null || rc2=$?
+        ( STUDY_METHOD_HOME="$fx/state"; SM_MODE="check"; SM_ONLY=""; SM_MODE_TAKEN=""; main --ensure --language python --json ) > "$sk" 2>/dev/null || rc2=$?
         if python3 - "$sk" <<'SM_ST_SKIP'
 import json
 import sys
@@ -1395,7 +1560,7 @@ SM_ST_SKIP
             sm_st_bad "caminho --ensure já provado saiu com o código $rc (esperado 0)"
         fi
     else
-        sm_err "auto-teste: caminho --ensure já provado não exercido (prova python não está verde no anfitrião)"
+        sm_err "auto-teste: caminho --ensure já provado não exercido (prova python não está verde no anfitrião, ou node+npm+jq ausentes — o harness entra no escopo de todo --ensure e nada pode ser instalado aqui)"
     fi
 
     if [ "$SM_ST_FAILS" -gt 0 ]; then
@@ -1413,7 +1578,7 @@ sm_usage() {
     printf '  --check        só prova por execução; NUNCA instala (default)\n' >&2
     printf '  --ensure       instala pela receita da distro quando a prova falha, e RE-PROVA\n' >&2
     printf '  --self-test    exercita provas e contrato de exit/JSON em tmp; não instala\n' >&2
-    printf '  --language <l> enum fechado: python rust c (sem a flag: as 3 + harness)\n' >&2
+    printf '  --language <l> enum fechado: python rust c (o harness entra em todo modo; sem a flag: as 3 linguagens)\n' >&2
     printf '  --json         aceito; a saída em stdout já é JSON sempre\n' >&2
 }
 
@@ -1421,23 +1586,24 @@ main() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --check)
-                if [ "$SM_MODE" != "check" ]; then
+                if [ -n "$SM_MODE_TAKEN" ]; then
                     sm_usage; sm_die 2 "só um modo por execução (--check/--ensure/--self-test)"
                 fi
+                SM_MODE_TAKEN="check"
                 shift
                 ;;
             --ensure)
-                if [ "$SM_MODE" != "check" ]; then
+                if [ -n "$SM_MODE_TAKEN" ]; then
                     sm_usage; sm_die 2 "só um modo por execução (--check/--ensure/--self-test)"
                 fi
-                SM_MODE="ensure"
+                SM_MODE_TAKEN="ensure"; SM_MODE="ensure"
                 shift
                 ;;
             --self-test)
-                if [ "$SM_MODE" != "check" ]; then
+                if [ -n "$SM_MODE_TAKEN" ]; then
                     sm_usage; sm_die 2 "só um modo por execução (--check/--ensure/--self-test)"
                 fi
-                SM_MODE="self-test"
+                SM_MODE_TAKEN="self-test"; SM_MODE="self-test"
                 shift
                 ;;
             --language)

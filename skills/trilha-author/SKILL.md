@@ -88,9 +88,13 @@ primeiro `mapear_curso` e atualizado a cada curso.
    --language <l> --json` da raiz do repositório (e `--check` — nunca instala — na re-checagem de
    `validar_modulo` e de `publicar`), cobrindo os hosts cruzados da engine (rust exige `node`,
    host do parser WASM; C exige `clang` para o parse e `python3` para o extrator; python exige
-   `python3`). O harness (node+npm para a CLI via tsx) NÃO entra nesse escopo — ele é garantido
-   pela invocação SEM `--language`, `bash skills/study-method/scripts/_ensure-toolchain.sh
-   --ensure --json`, que cobre as 3 linguagens + o harness; é o modo recomendado quando a trilha
+   `python3`). Essa invocação canônica garante, num único comando, a linguagem + os hosts
+   cruzados + o harness (node+npm+jq para a CLI via tsx e o JSON da engine): o harness entra no
+   escopo de TODO `--ensure`, com ou sem `--language`. A re-checagem `--check --language <l>`
+   reporta o harness ausente — entra em `ensure.missing` com aviso acionável no stderr, com o
+   comando de instalação — sem derrubar o exit, que fica com a prova da linguagem pedida. A
+   invocação SEM `--language` (`bash skills/study-method/scripts/_ensure-toolchain.sh
+   --ensure --json`, as 3 linguagens + o harness) continua sendo a recomendada quando a trilha
    em autoria usa mais de uma linguagem ou quando nenhuma foi passada. Faltando toolchain,
    `--ensure` instala pela receita da distro; sem poder instalar, o passo para com mensagem
    acionável e o gate reprova por ambiente. A regra de tutoria "nunca instalar" NÃO vale aqui —
@@ -129,8 +133,8 @@ Abra a referência **antes** de agir no passo. Todas em `references/`, um nível
 | preparar_ambiente | references/ambiente.md | `bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json` (da raiz) |
 | `desenhar_grafo` | `references/qualidade-aula.md` | `npm run engine -- audit <slug> --dir <draft> --limite 0` (a partir da 1ª aula) |
 | `autoria_aula` | `references/autoria-aula.md` · `references/qualidade-aula.md` | `npm run track -- track:challenge:verify <slug> <mod> <aula> <desafio>` |
-| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `coverage <slug>` · `requirements <slug>` · `npm run track -- track:validate <slug>` · `_ensure-toolchain.sh --check --language <l>` |
-| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os quatro gates · `_ensure-toolchain.sh --check --language <l>` |
+| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `coverage <slug>` · `requirements <slug>` · `npm run track -- track:validate <slug>` · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
+| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os quatro gates · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
 
 ## Regras de idioma
 
