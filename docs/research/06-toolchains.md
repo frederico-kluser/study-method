@@ -588,6 +588,62 @@ exit codes distintos: 134 para ambos via assert nativo, mas toolchains e extens�
 Java exigiria no mínimo o jar standalone do JUnit; as demais nove (C#, Ruby, Elixir, Kotlin,
 Swift, PHP, Julia, R, Haskell) não têm runtime nenhum instalado nesta máquina.
 
+### 9.1 Sub-medição de 2026-09-17 — o host pronto para os três cursos publicados
+
+Re-medição nesta sessão, na MESMA máquina do perfil acima (que fica como registro histórico), com
+objetivo declarado: provar que o host roda de ponta a ponta os três cursos publicados —
+`c-iniciante`, `python-iniciante` e `rust-iniciante` — pelo veredito do auxiliar de ambiente
+(`skills/study-method/scripts/_ensure-toolchain.sh`; contrato e exits em
+`docs/16-engine-de-trilha.md` §5) e pelos gates determinísticos da engine. Os gates rodaram de
+`app/` na cópia principal SEM `npm ci` (578 pacotes em `node_modules`), trilhas SERIALIZADAS —
+regra de `CARGO_HOME` de `docs/18-estado-da-fabricacao-dos-cursos.md` §8.3.
+
+**Auxiliar `--check --json` — exit 0, `ensure.missing: []` (nada faltando; `--ensure` não acionado):**
+
+| Linguagem | Versão medida | proof.ok | Prova do auxiliar |
+|---|---|---|---|
+| python | 3.14.7 (`/usr/bin/python3`) | true | `unittest` sob env scrubado (`env -i`, `LC_ALL=C.UTF-8`, `TZ=UTC`): 1 teste rodou e passou |
+| rust | 1.98.0 (`~/.cargo/bin/cargo`; rustc 1.98.0, rustup 1.29.0) | true | três níveis: `cargo --version`; cargo REAL do sysroot sob env scrubado; teste de integração offline |
+| c | 16.2.1 (`/usr/bin/cc` → gcc 16.2.1; clang 22.1.8 para o parse) | true | runner compilou e rodou com `cc`; `clang -fsyntax-only` passou; `python3` presente como host do extrator |
+
+Harness: node 24.19.0 ok · npm 11.17.0 ok. Complemento medido nesta sessão: jq 1.8.2. O `--ensure`
+do auxiliar monta a instalação por FAMÍLIA de gerenciador de pacotes (linhagem arch/cachyos →
+pacman) e a família pacman tem prova de instalação-do-zero registrada no log da execução e
+re-runnável via `tools/emulador-ambiente.sh` (emulador Docker de máquina limpa: ubuntu:24.04 +
+archlinux); nesta re-medição nada faltou e nenhuma instalação rodou (contrato e exits do auxiliar
+em `docs/16-engine-de-trilha.md` §5).
+
+**Gates da engine por trilha.** Critério calibrado por trilha: `python-iniciante` e
+`rust-iniciante` exigem os QUATRO gates verdes; `c-iniciante` tem dívida de conteúdo declarada em
+`docs/20-trilha-c.md` e o critério é `track:validate`/`requirements` verdes + `audit` sem violação
+NOVA (no-regression), com `coverage` como linha informativa.
+
+| Trilha | audit `--limite 0` | coverage | requirements | track:validate |
+|---|---|---|---|---|
+| python-iniciante | exit 0 · 0 violações · 112/112 desafios de aula · 0 avisos (bateria A13–A16 declarada NÃO RODOU: javascript-only) | exit 0 · 113/113 medidos · 0 lacunas · 51 excessos (informativo: aula ensina, teste não cobra — não reprova) | exit 1 · 92/113 bijetivos · 21 testes-sem-requirement e 0 requirements-sem-teste — EXATAMENTE a dívida legada declarada (`a-tela` sem `requirements[]`, 21 desafios legados, `docs/18-estado-da-fabricacao-dos-cursos.md` §4); NENHUMA nova | exit 0 · 113/113 verificados por execução |
+| rust-iniciante | exit 0 · 0 violações · 101/101 desafios de aula · 0 avisos (A13–A16 declarada, idem) | exit 0 · 109/109 medidos (101 de aula + 8 de módulo) · 0 lacunas · 1 excesso (declarado) | exit 0 · 109/109 bijetivos · 0 gaps | exit 0 · 109/109 verificados |
+| c-iniciante | exit 0 · 0 violações · 2/2 desafios vivos sobre 115 aulas — as 2 violações A2 declaradas ("testsCode não parseia", preâmbulo do parse; `docs/20-trilha-c.md` e `skills/trilha-author/references/prova-c.md` §6) NÃO ocorrem hoje: a ante-sala do extrator (`extract.ts`, onda 3) prefixa `SM_COUNT_PREABULO` ao testsCode de C com posições rebasadas, então o gap declarado da onda 3C está quitado; no-regression vale a fortiori (0 ≤ 2 declaradas, nenhuma nova) | exit 0 · 2/2 medidos · 0 lacunas — o sintetizador C da onda 3C (`app/electron/main/engine/quality/minimalC.ts`) já está registrado; o exit 2 "sem sintetizador" da onda 3–4 não se repete | exit 0 · 2/2 bijetivos · 0 gaps | exit 0 · 2/2 verificados por execução |
+
+Veredito: **a máquina está PRONTA para os três cursos publicados.** `rust-iniciante` e
+`c-iniciante`: 4/4 gates verdes (o de C, acima do critério calibrado). `python-iniciante`: os
+gates de ambiente/conteúdo integralmente verdes e `requirements` verde CONTRA O ESTADO DECLARADO —
+os 21 gaps são a dívida legada já registrada em `docs/18-estado-da-fabricacao-dos-cursos.md` §4
+(dívida de CONTEÚDO, não de máquina; backfill agendado como onda de retomada). O cold-start do
+prover não se manifestou: o `coverage` de rust passou no 1º run e não precisou do re-run de
+precaução de `docs/18-estado-da-fabricacao-dos-cursos.md` §8.3. Os gates não modificaram o
+repositório: o `git status --porcelain` da cópia principal seguiu com apenas o `yarn.lock`
+pré-existente — o auxiliar monta os fixtures de prova em diretório temporário, sem rastro no repo.
+
+**Prova negativa de chaves (2026-09-17).** A sessão não tinha NENHUMA variável de ambiente de
+chave definida e, ainda assim, um gate por trilha foi embrulhado em `env -u DEEPSEEK_API_KEY -u
+BRAVE_API_KEY -u OPENROUTER_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY`: `audit
+python-iniciante` (exit 0), `audit rust-iniciante` (exit 0) e `track:validate c-iniciante` (exit
+0) rodaram sem pedir chave nenhuma; os demais gates rodaram na mesma sessão, sem chave definida.
+Os quatro gates determinísticos (`audit`/`coverage`/`requirements`/`track:validate`) nunca exigem
+chave (prova negativa com `env -u` de 5 chaves); a chave da memória serve para entrar na interface
+(`registerKeys`, `docs/app-gui.md`) e um comando do fluxo de autoria (`track:challenge:context`)
+exige `OPENROUTER_API_KEY` com falha fechado.
+
 ---
 
 ## Fontes
