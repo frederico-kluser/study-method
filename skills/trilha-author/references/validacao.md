@@ -4,6 +4,69 @@ Regras de execução do passo `validar_modulo` e do `publicar`. Todos os comando
 sem rede e sem chave de API (P-PROVA: o veredito é do gate, nunca da leitura). Convenção de exit
 code da engine: **0** sem violação · **1** violações encontradas · **2** uso incorreto.
 
+## 0. Pré-requisito de ambiente — a prova ANTES do gate
+
+Os quatro gates spawnam toolchains reais (a engine parseia código e roda as provas de execução
+em binários de verdade) e o fail-closed deles é honesto: sem toolchain o gate reprova por
+ambiente, e a causa não é conteúdo — medido, o `track:validate` chegou a reprovar 109 desafios
+rust "corretamente" só porque o env do cargo não estava exportado (docs/18 §8.3). Por isso o
+ambiente é PROVADO por execução antes do primeiro gate (passo `preparar_ambiente`) e re-provado
+no início de `validar_modulo` e de `publicar`. O veredito é do script, nunca por leitura:
+
+```bash
+# da raiz do repositório (não de app/). A re-checagem NUNCA instala:
+bash skills/study-method/scripts/_ensure-toolchain.sh --check --language <l>
+# instala pela receita da distro e re-prova:
+bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json
+```
+
+O harness (node+npm para a CLI via tsx) só é GARANTIDO pela invocação SEM `--language` —
+`bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --json`, que cobre as 3
+linguagens + o harness (é o modo recomendado quando a trilha em autoria usa mais de uma
+linguagem ou quando nenhuma foi passada); com `--language <l>` o harness é só reportado — o
+`--check --language <l>` sai 0 mesmo com npm ausente, e sem node+npm a CLI dos gates não sobe.
+
+Exit code do script: **0** toolchain provada por execução · **1** faltando, falha de prova,
+falha de instalação ou sem privilégio — sempre com mensagem acionável · **2** uso incorreto. Sem
+TTY o contrato é o mesmo: mensagem acionável e exit **1**, nunca travar esperando input.
+
+Prova de prontidão = um comando que EXECUTA um teste de verdade — os comandos vêm da matriz de
+execução da referência de linguagens da tutoria e da matriz de prontidão da referência de
+ambiente da autoria, EXCETO o de rust: a prova abaixo é a variante ENDURECIDA do §1 da própria
+referência de ambiente da autoria (o cargo REAL, com sysroot resolvido e `cargo test --offline`
+— a prova que os gates exigem), não o `cargo test` simples dessas matrizes; `command -v` só
+prova que o binário existe:
+
+| Linguagem | Prova de prontidão (roda de verdade) | Status de falha |
+|---|---|---|
+| python | `python3 -m unittest discover -s tests -p "test_*.py" -v` com `Ran N tests`, N≥1 | **1** · zero testes **5** |
+| rust | `cargo --version` + o sysroot resolve (`rustc --print sysroot`) mesmo com `RUSTUP_HOME`/`CARGO_HOME` removidos do env + `cargo test --offline` | **101** |
+| c | runner `gcc -std=c11 -g stub.c tests/test_stub.c -o runner -lm && ./runner` (aceita `cc`→`gcc`→`clang`) + o parse `clang -std=c11 -fsyntax-only stub.c` | **134** (SIGABRT) |
+| o harness da engine | `node --version && npm --version` (a CLI roda via tsx) | sem node+npm a CLI não sobe — nenhum gate roda |
+
+Para C, compilar com gcc e passar **NÃO** prova prontidão de autoria C: o PARSE da engine é
+clang-only (`-ast-dump=json` é extensão do clang) e, sem clang, `PARSE_ERROR` vira violação no
+gate — a prova de C tem duas metades (runner e parse) e as duas precisam passar. E os hosts
+cruzados valem tanto quanto o binário da linguagem: o parse de rust roda em `node` (host do
+parser WASM) e o extrator de C roda em `python3`.
+
+Três regras de ambiente medido (docs/18 §8.3) que o executor aplica ANTES de diagnosticar
+conteúdo:
+
+1. **Cold-start do prover** — a primeira bateria que spawna cargo em lote numa sessão/worktree
+   nova sai com o lote inteiro reprovado por ambiente (medido: 109× SEM-SOLUCAO no 1º run,
+   109/109 no 2º). Regra: **sempre 1 re-run antes de diagnosticar conteúdo**.
+2. **Contenção de cargo** — gates de cargo em paralelo com outro agente no MESMO `CARGO_HOME`
+   produzem 1–2 reprovados aleatórios (rustc concorrente). Protocolo: **serializar os gates**;
+   reprovado que fecha em re-verificação isolada não é conteúdo.
+3. **`npm ci` do app passa de 10 min** (postinstalls bloqueados é o estado normal) e um
+   `node_modules` parcial fabrica violação fantasma (21 violações de orçamento com deps
+   quebradas → 0 com deps íntegras) — o veredito dos gates vale só com `npm ci` íntegro.
+
+A moral que amarra o pré-requisito ao resto deste arquivo: **ambiente provado ≠ conteúdo
+aprovado** — os gates só julgam conteúdo sobre um ambiente que já passou na prova; reprovação
+por ambiente não é sinal sobre o curso.
+
 ## 1. Os quatro gates, um por pergunta
 
 | Gate | Responde | O que reprova | Exit |
@@ -107,6 +170,8 @@ pelo teste**. Leitura operacional para o autor:
 
 1. Mova a trilha autorada para `app/resources/tracks/<slug>/` (arquivos: `track.json` com
    `entryCriteria`, `modules/` com `module.json` + `lessons/` + `challenges/`).
+   - **1.5.** Re-prove o ambiente (`_ensure-toolchain.sh --check --language <l>`) antes de
+     re-rodar os quatro gates.
 2. Re-rode os quatro gates **do local publicado** (sem `--dir`):
    `audit <slug> --limite 0` · `coverage <slug>` · `requirements <slug>` · `track:validate <slug>`.
 3. Só então o curso existe. Nenhum veredito por leitura humana: o gate decide.

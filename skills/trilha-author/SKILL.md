@@ -54,6 +54,13 @@ passa no gate não é "quase pronto", é **defeito**.
   starter falha, contagem de testes bate, stub vazio falha — docs/16 §5.4); por trilha, `audit` com
   **0 violações**, `coverage` com **0 lacunas**, `requirements` em **bijeção**, `track:validate`
   ok. Nenhum veredito por leitura humana: o gate decide.
+- **P-AMBIENTE — gate decide por execução, e execução precisa de toolchain provada.** Antes do
+  primeiro comando que parseia ou roda código (`desenhar_grafo` em diante), o ambiente é preparado
+  e PROVADO por execução (`_ensure-toolchain.sh --check`), nunca presumido; faltando, `--ensure`
+  aplica a receita da distro; sem poder instalar, o passo para com mensagem acionável e o gate
+  reprova por ambiente — nunca aprova por omissão. A regra de TUTORIA 'nunca instalar'
+  (study-method, languages.md §6) NÃO muda: ela vale na sessão com o aluno; a autoria roda na
+  máquina do operador.
 - **P-FONTE — 2–3 fontes oficiais por aula** (`sources[]`), URLs verificáveis
   (`docs.python.org`, `peps.python.org`), **nunca** URL inventada.
 - **P-CONTRATO — onde o contrato e o gate divergirem, o gate vence.** docs/16 e docs/17 são os
@@ -61,9 +68,11 @@ passa no gate não é "quase pronto", é **defeito**.
 
 ## Fluxo de trabalho — passos nomeados
 
-Nomes **literais e imutáveis**: `mapear_curso` → `desenhar_grafo` → `autoria_aula` →
-`validar_modulo` → `publicar`. Nenhum outro nome vale. Em cadeia de cursos, um sexto artefato —
-o contrato de interligação — é produzido no primeiro `mapear_curso` e atualizado a cada curso.
+Nomes **literais e imutáveis**: `mapear_curso` → `preparar_ambiente` → `desenhar_grafo` →
+`autoria_aula` → `validar_modulo` → `publicar`. Nenhum outro nome vale. Nada é renomeado;
+`preparar_ambiente` é re-checável (`--check`, nunca instala) no início de `validar_modulo` e de
+`publicar`. Em cadeia de cursos, um sexto artefato — o contrato de interligação — é produzido no
+primeiro `mapear_curso` e atualizado a cada curso.
 
 1. **`mapear_curso`** — define a **fronteira de entrada/saída** do curso (o que o aluno já sabe ao
    entrar; o que ele passa a conseguir fazer sozinho ao sair), os módulos e, para cada aula, a
@@ -72,23 +81,41 @@ o contrato de interligação — é produzido no primeiro `mapear_curso` e atual
    curso anterior, e as construções de fronteira entram no módulo porta-de-entrada.
    → `references/interligacao.md` (cadeia) · `references/autoria-aula.md` (Ensina/Presume) ·
    `references/qualidade-aula.md` (decomposição em átomos).
-2. **`desenhar_grafo`** — pré-requisitos por aula (`desbloqueado_por` = aresta dura; `usa` = linha
+2. **`preparar_ambiente`** — antes do primeiro comando que parseia ou roda código, garante que a
+   toolchain da linguagem da trilha em autoria está instalada, configurada e **provada por
+   execução** — a linguagem vem do contrato em docs/16, docs/17 e docs/20, nunca da conversa.
+   Roda a invocação canônica `bash skills/study-method/scripts/_ensure-toolchain.sh --ensure
+   --language <l> --json` da raiz do repositório (e `--check` — nunca instala — na re-checagem de
+   `validar_modulo` e de `publicar`), cobrindo os hosts cruzados da engine (rust exige `node`,
+   host do parser WASM; C exige `clang` para o parse e `python3` para o extrator; python exige
+   `python3`). O harness (node+npm para a CLI via tsx) NÃO entra nesse escopo — ele é garantido
+   pela invocação SEM `--language`, `bash skills/study-method/scripts/_ensure-toolchain.sh
+   --ensure --json`, que cobre as 3 linguagens + o harness; é o modo recomendado quando a trilha
+   em autoria usa mais de uma linguagem ou quando nenhuma foi passada. Faltando toolchain,
+   `--ensure` instala pela receita da distro; sem poder instalar, o passo para com mensagem
+   acionável e o gate reprova por ambiente. A regra de tutoria "nunca instalar" NÃO vale aqui —
+   a autoria roda na máquina do operador. Regras de ambiente medido (docs/18 §8.3): cold-start do prover (o 1º run
+   de cargo reprova o lote por ambiente — sempre 1 re-run antes de diagnosticar conteúdo);
+   contenção de cargo no MESMO CARGO_HOME (serializar os gates); npm ci >10 min; node_modules
+   parcial fabrica violação fantasma. Receitas por distro e provas de prontidão:
+   → `references/ambiente.md`.
+3. **`desenhar_grafo`** — pré-requisitos por aula (`desbloqueado_por` = aresta dura; `usa` = linha
    da Q-matrix), sempre sobre `concept.id` (nunca `lesson.slug`), e o **orçamento cumulativo**
    derivado (entrada = `entryConstructs` ∪ fecho-para-baixo dos pré-requisitos; saída = entrada ∪
    `introduces`). Nenhuma aula tem penhasco; composição vira nó próprio com aula própria. O grafo
    roda nas invariantes I1–I17 antes de existir prosa.
    → `references/qualidade-aula.md`.
-3. **`autoria_aula`** — escreve **uma** aula completa: `lesson.json` (teoria em markdown com blocos
+4. **`autoria_aula`** — escreve **uma** aula completa: `lesson.json` (teoria em markdown com blocos
    cercados, quiz `assertions[]`, `introduces`, `sources[]`) + `challenges/<slug>/challenge.json`
    (statement, starter, testes, solução, `expectedTestCount`, `outputChannel`). Testes em
    `tests/test_solucao.py` com `tests/__init__.py` obrigatório; o arquivo segue o formato da fase do
    canal (impressao → ambos → retorno).
    → `references/autoria-aula.md`.
-4. **`validar_modulo`** — roda os gates: `audit` (0 violações), `coverage` (0 lacunas),
+5. **`validar_modulo`** — roda os gates: `audit` (0 violações), `coverage` (0 lacunas),
    `requirements` (bijeção), `track:validate`/`track:challenge:verify` (quatro provas por desafio).
    Violação → corrige e re-roda; **nunca** aceita por leitura.
    → `references/validacao.md`.
-5. **`publicar`** — move a trilha autorada (com `track.json`, `entryCriteria`, módulos) para
+6. **`publicar`** — move a trilha autorada (com `track.json`, `entryCriteria`, módulos) para
    `app/resources/tracks/<slug>/` e roda a validação final **do local publicado**.
    → `references/validacao.md`.
 
@@ -99,10 +126,11 @@ Abra a referência **antes** de agir no passo. Todas em `references/`, um nível
 | Passo | Leia | Comandos da engine (de `app/`) |
 |---|---|---|
 | `mapear_curso` | `references/interligacao.md` · `references/autoria-aula.md` | — (desenho) |
+| preparar_ambiente | references/ambiente.md | `bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json` (da raiz) |
 | `desenhar_grafo` | `references/qualidade-aula.md` | `npm run engine -- audit <slug> --dir <draft> --limite 0` (a partir da 1ª aula) |
 | `autoria_aula` | `references/autoria-aula.md` · `references/qualidade-aula.md` | `npm run track -- track:challenge:verify <slug> <mod> <aula> <desafio>` |
-| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `coverage <slug>` · `requirements <slug>` · `npm run track -- track:validate <slug>` |
-| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os quatro gates |
+| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `coverage <slug>` · `requirements <slug>` · `npm run track -- track:validate <slug>` · `_ensure-toolchain.sh --check --language <l>` |
+| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os quatro gates · `_ensure-toolchain.sh --check --language <l>` |
 
 ## Regras de idioma
 
