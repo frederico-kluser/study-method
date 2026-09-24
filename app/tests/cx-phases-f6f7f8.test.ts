@@ -202,8 +202,8 @@ describe('F6-piloto — seleção determinística justificada (A-P25-2)', () => 
   });
 
   it('3 papéis DISTINTOS na ordem [raiz, mais_armadilhada, tardia], cada um com regra e critério', () => {
-    // ordem c0..c8; raiz introduz [c0,c1] (max 1), meio [c2..c5] (max 5, MAIOR
-    // risco = 4 introduces + extensão 3), tardia [c6..c8] (max 8).
+    // ordem c0..c8; raiz introduz [c0,c1] (min 0), meio [c2..c5] (min 2, MAIOR
+    // risco = 4 introduces + extensão 3), tardia [c6..c8] (min 6).
     const ordem = cids(['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']);
     const orcamento = {
       aulas: [aulaCom('m1/raiz', ['c0', 'c1']), aulaCom('m1/tardia', ['c6', 'c7', 'c8']), aulaCom('m1/meio', ['c2', 'c3', 'c4', 'c5'])],
@@ -225,12 +225,12 @@ describe('F6-piloto — seleção determinística justificada (A-P25-2)', () => 
     assert.equal(sel.aulas[2], 'm1/tardia');
     assert.deepEqual(selecionarAulasDoPiloto(orcamento, ordem), sel, 'determinística: mesma entrada, mesma seleção');
 
-    // CARACTERIZAÇÃO de um desvio nomeado: o critério da raiz DIZ "min(posição
-    // do introduces)" mas imprime a posição MÁXIMA (ver BUG abaixo).
-    assert.match(sel.justificativas[0].criterio, /min\(posição do introduces\) = 1/);
+    // O critério da raiz imprime a MENOR posição do introduces (min de [c0,c1]
+    // = 0) — a MESMA regra de ordenação da F4 (f4Budget.ts, Math.min).
+    assert.match(sel.justificativas[0].criterio, /min\(posição do introduces\) = 0/);
   });
 
-  it.skip('BUG: minPosicaoDaAula calcula MAX em vez de MIN — f6Pilot.ts:245 — o critério da raiz deveria citar a MENOR posição do introduces (documentado em "ordem da DAG (min-posição do introduces)" e no texto da regra)', () => {
+  it('minPosicaoDaAula = MÍNIMA posição do introduces (f6Pilot.ts:244, Math.min — mesma regra da F4): o critério cita min, nunca max', () => {
     const ordem = cids(['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8']);
     const orcamento = {
       aulas: [aulaCom('m1/raiz', ['c0', 'c1']), aulaCom('m1/tardia', ['c6', 'c7', 'c8']), aulaCom('m1/meio', ['c2', 'c3', 'c4', 'c5'])],
@@ -241,6 +241,9 @@ describe('F6-piloto — seleção determinística justificada (A-P25-2)', () => 
     const sel = selecionarAulasDoPiloto(orcamento, ordem);
     // comportamento CORRETO (documentado): min de [c0,c1] = 0, não 1 (= max).
     assert.match(sel.justificativas[0].criterio, /min\(posição do introduces\) = 0/);
+    // a tardia [c6,c7,c8] cita 6 (min), não 8 (max) — e um `Math.min(0, …)`
+    // que colapsasse tudo em 0 também falharia aqui.
+    assert.match(sel.justificativas[2].criterio, /min\(posição do introduces\) = 6/);
   });
 
   it('fail-closed: orçamento sem aulas, ordem vazia e piloto pequeno demais são PILOTO_INVALIDO', () => {

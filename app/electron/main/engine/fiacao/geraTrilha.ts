@@ -177,7 +177,7 @@ import {
   type ResultadoGFinal,
   type ResultadoMaterializacao,
 } from '../phases/f12Materialize';
-import { montarDossie, type Dossier } from '../prompts/dossier';
+import { montarDossie, EI_CLASS_VALUES, type Dossier, type EiClass } from '../prompts/dossier';
 import {
   construirPromptRevisor,
   validarRevisaoSemCodigo,
@@ -204,7 +204,7 @@ import {
 import { garantirSchemasValidos, lintSchemasDaEngine } from '../schemas/fieldOrder';
 import { conceptId } from '../graph/model';
 import type { ConceptGraph, ConceptId } from '../graph/model';
-import { HARNESS_RECEPTIVE_SEED } from '../atomKeys';
+import { HARNESS_RECEPTIVE_SEED, axisOf } from '../atomKeys';
 
 // ---------------------------------------------------------------------------
 // Erros estruturados (fail-closed — INV-03)
@@ -450,6 +450,63 @@ export function f1ConfigDefault(): F1Config {
   };
 }
 
+/**
+ * `ei_class` do dossiê = OS CINCO TIPOS DE CONHECIMENTO (§7.1 R4 —
+ * 'fato'|'categoria'|'regra'|'principio'|'integrativo', `EI_CLASS_VALUES` em
+ * prompts/dossier.ts; literalmente idêntico a `KC_TYPES` do F2,
+ * f2Decompose.ts:99). O `ei_class` do nó F2 ('isolado'|'interativo', §3.6) é
+ * OUTRO VOCABULÁRIO e nunca é repassado: o choque de enums era o BUG B
+ * (montarDossie recusava TODO nó real com `ErroDossieIncompleto "ei_class"` e
+ * as fases reais F6/F7 não construíam dossiê nenhum).
+ *
+ * FONTE PRIMÁRIA = `kc_type` do nó F2 — é o PRÓPRIO enum §7.1 R4 ("Tipo de
+ * conhecimento (§7.1 regra 4)", f2Decompose.ts:159-160): usá-lo mantém
+ * `kc_type` e `ei_class` do dossiê no MESMO tipo (o author imprime os dois,
+ * author.ts:394-395 — tipos divergentes no mesmo prompt são defeito) e torna
+ * 'principio' alcançável.
+ *
+ * FALLBACK (kc_type ausente/inválido) = derivação por CONSTRUÇÃO, padrão de
+ * `eiClassDaConstrucao` (modes/curriculumGap.ts — decisão de CÓDIGO, não de
+ * modelo): composição → INTEGRATIVO — e composição é SÓ `role: 'integration'`
+ * (§3.7, docs/16-engine-de-trilha.md:326: "Toda composição é um nó próprio do
+ * grafo, com aula própria, marcada `role: \"integration\"`"); nome de API ou
+ * global → FATO (enunciado direto e drill); termo de prosa → CATEGORIA
+ * (exemplos contrastantes); sintaxe → REGRA (worked example e prática). A
+ * construção significativa é a de eixo não-`node` (produtivas primeiro — a
+ * construção-alvo), como `construcaoSignificativa`.
+ *
+ * ATENÇÃO (decisão registrada): `ei_class: 'interativo'` NÃO vira
+ * 'integrativo'. A interatividade é o §7.1 R5 (docs/16-engine-de-trilha.md:
+ * 1401-1404 — "O formato segue TAMBÉM a interatividade dos elementos, e ela
+ * INVERTE A RECEITA" do worked example), eixo ORTOGONAL ao tipo de
+ * conhecimento R4 (:1396-1399); só `role: 'integration'` classifica
+ * composição (§3.7:326; amarra idêntica em f2Decompose.ts:165-169, que liga
+ * "nó integrativo" a §3.7 e à regra 4).
+ *
+ * REGISTRO do fallback extremo: snapshot sem nó F2 não traz kc_type nem
+ * construção para derivar — o dossiê nasce com 'fato' (valor mínimo do enum
+ * §7.1, sempre válido).
+ */
+function eiClassParaODossie(no: NoAtomico | undefined): EiClass {
+  if (no === undefined) return 'fato';
+  const kc = no.kc_type;
+  if (typeof kc === 'string' && (EI_CLASS_VALUES as readonly string[]).includes(kc)) return kc as EiClass;
+  // kc_type ausente/inválido — derivação por construção (padrão eiClassDaConstrucao).
+  if (no.role === 'integration') return 'integrativo';
+  const construcoes = [...(no.introduces.productive ?? []), ...(no.introduces.receptive ?? [])];
+  const chave = construcoes.find((k) => axisOf(k) !== 'node') ?? construcoes[0];
+  if (chave === undefined) return 'regra'; // nó sem construções — igual `eiClassDaConstrucao([])`
+  switch (axisOf(chave)) {
+    case 'api':
+    case 'global':
+      return 'fato';
+    case 'term':
+      return 'categoria';
+    default:
+      return 'regra';
+  }
+}
+
 /** Dossiês de aula DETERMINÍSTICOS a partir do freeze + orçamento + F2 + F0. */
 export function construirDossiesDeAula(opts: {
   freeze: Freeze;
@@ -494,7 +551,7 @@ export function construirDossiesDeAula(opts: {
       budget_receptivo: [...(introduz.introduces.receptive ?? [])],
       budget_teste: dedup([...harness, ...(introduz.introduces.receptive ?? []), ...(introduz.introduces.productive ?? [])]),
       kc_type: no?.kc_type ?? 'regra',
-      ei_class: no?.ei_class ?? 'isolado',
+      ei_class: eiClassParaODossie(no),
       subgoals: no ? [no.nome] : [],
       terms: [],
       notional_machine_delta: `máquina nocional do brief (F0): ${opts.brief.tema}`,

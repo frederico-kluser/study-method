@@ -58,6 +58,7 @@ import {
   type FaseF9Ref,
 } from '../electron/main/engine/fiacao/geraTrilha';
 import { PREDICADOS_DA_AULA, type RevisaoDoRevisor } from '../electron/main/engine/prompts/reviewer';
+import { EI_CLASS_VALUES } from '../electron/main/engine/prompts/dossier';
 import { createSemaphore } from '../electron/main/engine/runtime/semaphore';
 
 // ---------------------------------------------------------------------------
@@ -282,8 +283,10 @@ describe('construirDossiesDeAula — determinístico, com o harness no budget_te
     const freeze = freezeDe(['m1/abelha', 'm1/sol']);
     const budget = budgetDe([{ ref: 'm1/abelha' }, { ref: 'm1/sol' }]);
     // NOTA: `ei_class` do dossiê usa o enum §7.1 ('fato'|'categoria'|'regra'|
-    // 'principio'|'integrativo') — ver o teste SKIPADO abaixo sobre o choque
-    // de vocabulários com o `ei_class` do nó F2 ('isolado'|'interativo').
+    // 'principio'|'integrativo') e deriva do `kc_type` do nó F2 (fonte
+    // primária — o MESMO enum, f2Decompose.ts:99); o vocabulário de
+    // interatividade do F2 ('isolado'|'interativo') NUNCA é repassado ao
+    // dossiê (ver os testes abaixo sobre o choque de vocabulários).
     const nos = [
       { ...noAtomico('abelha'), ei_class: 'regra' } as unknown as NoAtomico,
       { ...noAtomico('sol'), ei_class: 'fato' } as unknown as NoAtomico,
@@ -299,11 +302,13 @@ describe('construirDossiesDeAula — determinístico, com o harness no budget_te
     assert.deepEqual(comNo.budget_produtivo, ['node:abelha']);
   });
 
-  it.skip('BUG: construirDossiesDeAula repassa o ei_class do nó F2 (isolado/interativo) ao dossiê, cujo enum é fato/categoria/regra/principio/integrativo — montarDossie recusa TODO nó real (ErroDossieIncompleto "ei_class"), o fallback `?? isolado` de snapshot SEM nó tem o mesmo destino, e as fases reais F6/F7 não constroem dossiê nenhum — app/electron/main/engine/fiacao/geraTrilha.ts:489', () => {
-    // COMPORTAMENTO CORRETO (quando o bug for corrigido, destipe este teste):
-    // um NoAtomico VÁLIDO do F2 (ei_class ∈ EI_CLASSES = 'isolado'|'interativo',
-    // o único que f2Decompose.ts:317 aceita) produz dossiê, com a classe §7.1
-    // DERIVADA dele; e um snapshot sem nó F2 produz dossiê com introduces vazio.
+  it('construirDossiesDeAula DERIVA o ei_class do dossiê (§7.1 R4) do nó F2 — o vocabulário do F2 (isolado/interativo) nunca é repassado, e snapshot sem nó cai no fallback "fato" (derivação: eiClassParaODossie em geraTrilha.ts)', () => {
+    // ENTRADA REAL do F2: NoAtomico com ei_class ∈ EI_CLASSES = 'isolado'|
+    // 'interativo' (o único que f2Decompose.ts:317 aceita) produz dossiê, com a
+    // classe §7.1 DERIVADA dele; e um snapshot sem nó F2 produz dossiê com
+    // introduces vazio. (Antes da correção, montarDossie recusava TODO nó real
+    // com ErroDossieIncompleto "ei_class" e as fases reais F6/F7 não construíam
+    // dossiê nenhum.)
     const freeze = freezeDe(['m1/abelha', 'm1/fantasma']);
     const budget = budgetDe([{ ref: 'm1/abelha' }, { ref: 'm1/fantasma' }]);
     const nos = [noAtomico('abelha')]; // ei_class: 'isolado' — vocabulário REAL do F2
@@ -311,6 +316,109 @@ describe('construirDossiesDeAula — determinístico, com o harness no budget_te
     assert.equal(dossies.length, 2);
     assert.deepEqual(dossies[0].dossie.introduces_productive, ['node:abelha']);
     assert.deepEqual(dossies[1].dossie.introduces_productive, [], 'sem nó F2 o dossiê nasce sem introduces');
+    for (const d of dossies) {
+      assert.ok(EI_CLASS_VALUES.includes(d.dossie.ei_class), `ei_class do dossiê ∈ EI_CLASS_VALUES (§7.1 R4): ${d.dossie.ei_class}`);
+    }
+    assert.equal(dossies[0].dossie.ei_class, 'regra', "kc_type 'regra' do nó é a fonte primária (§7.1 R4)");
+    assert.equal(dossies[1].dossie.ei_class, 'fato', 'fallback sem nó F2: "fato" (registro na docstring da derivação)');
+  });
+
+  it('ENTRADA REAL do F2 (ei_class "isolado" e "interativo"): construirDossiesDeAula constrói os dossiês com tipo de conhecimento DERIVADO — antes, montarDossie lançava ErroDossieIncompleto "ei_class" para todo nó real', () => {
+    const freeze = freezeDe(['m1/let', 'm1/map', 'm1/for']);
+    const budget = budgetDe([{ ref: 'm1/let' }, { ref: 'm1/map' }, { ref: 'm1/for' }]);
+    const nos = [
+      // sintaxe aprendível isoladamente (§3.6) — kc_type REGRA (worked example + prática)
+      noAtomico('let', {
+        introduces: { receptive: ['decl:let', 'op:assign:='], productive: ['decl:let'] },
+        kc_type: 'regra',
+        ei_class: 'isolado',
+      }),
+      // nome de API = enunciado direto — kc_type FATO (drill, não explique — §7.1 R4)
+      noAtomico('map', {
+        introduces: { receptive: ['api:array:map'], productive: ['api:array:map'] },
+        kc_type: 'fato',
+        ei_class: 'isolado',
+      }),
+      // composição (§3.7: role 'integration' + erklarung) — kc_type INTEGRATIVO;
+      // ei_class 'interativo' é o eixo R5 (worked example), NÃO decide o tipo
+      noAtomico('for', {
+        introduces: {
+          receptive: ['node:ForStatement', 'op:binary:<', 'op:unary:++'],
+          productive: ['node:ForStatement'],
+        },
+        kc_type: 'integrativo',
+        ei_class: 'interativo',
+        role: 'integration',
+        erklarung: 'o laço compõe condição, incremento e corpo',
+      }),
+    ];
+    const dossies = construirDossiesDeAula({ freeze, budget, nos, brief: BRIEF });
+    assert.equal(dossies.length, 3, 'os três dossiês nascem — antes a chamada inteira lançava ErroDossieIncompleto "ei_class"');
+    const porSlug = new Map(dossies.map((d) => [d.aula_slug, d.dossie]));
+    for (const d of porSlug.values()) {
+      assert.ok(EI_CLASS_VALUES.includes(d.ei_class), `ei_class do dossiê ∈ EI_CLASS_VALUES (§7.1 R4): ${d.ei_class}`);
+      assert.equal(d.ei_class, d.kc_type, 'kc_type e ei_class do dossiê apontam o MESMO tipo §7.1 R4 (o author imprime os dois)');
+    }
+    assert.equal(porSlug.get('m1/let')?.ei_class, 'regra', "kc_type 'regra' (fonte primária)");
+    assert.equal(porSlug.get('m1/map')?.ei_class, 'fato', "kc_type 'fato' (fonte primária)");
+    assert.equal(porSlug.get('m1/for')?.ei_class, 'integrativo', "kc_type 'integrativo' + composição (§3.7)");
+  });
+
+  it("kc_type 'principio' do nó F2 É o tipo §7.1 R4 do dossiê (fonte primária) — o tipo do autor fica alcançável e sem conflito", () => {
+    // REPRO do revisor: kc_type 'principio' com construção de sintaxe (decl:*)
+    // — a derivação por construção devolveria 'regra'; a fonte primária
+    // `kc_type` vence e a receita R4 do 'princípio' (explicação com rationale
+    // obrigatória) volta a ser alcançável.
+    const freeze = freezeDe(['m1/x']);
+    const budget = budgetDe([{ ref: 'm1/x' }]);
+    const nos = [
+      noAtomico('x', {
+        kc_type: 'principio',
+        introduces: { receptive: [], productive: ['decl:let'] },
+        ei_class: 'isolado',
+      }),
+    ];
+    const [d] = construirDossiesDeAula({ freeze, budget, nos, brief: BRIEF });
+    assert.equal(d.dossie.ei_class, 'principio', "kc_type 'principio' vence a derivação por construção");
+    assert.equal(d.dossie.kc_type, d.dossie.ei_class, 'os dois campos do dossiê apontam o MESMO tipo §7.1 R4');
+  });
+
+  it("kc_type ausente/inválido cai na derivação por construção (api→fato; role 'integration'→'integrativo'); ei_class 'interativo' sozinho NÃO vira 'integrativo' (§7.1 R5 é outro eixo)", () => {
+    const freeze = freezeDe(['m1/mapa', 'm1/composto', 'm1/laco']);
+    const budget = budgetDe([{ ref: 'm1/mapa' }, { ref: 'm1/composto' }, { ref: 'm1/laco' }]);
+    const nos = [
+      // kc_type FORA de KC_TYPES → derivação: api:* → FATO
+      noAtomico('mapa', {
+        kc_type: 'medio' as never,
+        introduces: { receptive: ['api:array:map'], productive: ['api:array:map'] },
+        ei_class: 'isolado',
+      }),
+      // 'isolado' é vocabulário do ei_class do F2, NÃO do kc_type — inválido →
+      // derivação; composição = role 'integration' (§3.7, docs:326) → INTEGRATIVO
+      noAtomico('composto', {
+        kc_type: 'isolado' as never,
+        introduces: { receptive: ['decl:let', 'op:assign:='], productive: ['decl:let'] },
+        role: 'integration',
+        erklarung: 'compõe declaração com atribuição',
+        ei_class: 'isolado',
+      }),
+      // kc_type ausente + ei_class 'interativo': a interatividade (§7.1 R5,
+      // docs:1401-1404) inverte a receita do worked example, NÃO classifica
+      // conhecimento — a derivação cai no eixo da construção (op:* → REGRA)
+      noAtomico('laco', {
+        kc_type: undefined as never,
+        introduces: { receptive: ['node:ForStatement', 'op:binary:<'], productive: ['node:ForStatement'] },
+        ei_class: 'interativo',
+      }),
+    ];
+    const dossies = construirDossiesDeAula({ freeze, budget, nos, brief: BRIEF });
+    const porSlug = new Map(dossies.map((d) => [d.aula_slug, d.dossie]));
+    for (const d of porSlug.values()) {
+      assert.ok(EI_CLASS_VALUES.includes(d.ei_class), `ei_class do dossiê ∈ EI_CLASS_VALUES (§7.1 R4): ${d.ei_class}`);
+    }
+    assert.equal(porSlug.get('m1/mapa')?.ei_class, 'fato', 'api:* → fato');
+    assert.equal(porSlug.get('m1/composto')?.ei_class, 'integrativo', "role 'integration' = composição (§3.7) → integrativo");
+    assert.equal(porSlug.get('m1/laco')?.ei_class, 'regra', "'interativo' (R5) não é tipo de conhecimento — op:* → regra");
   });
 
   it('LIMITE: snapshot sem entrada no orçamento → ErroGeracao ARTEFATO_AUSENTE (fail-closed)', () => {

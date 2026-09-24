@@ -241,7 +241,7 @@ function minPosicaoDaAula(aula: BudgetF4['aulas'][number], pos: Map<ConceptId, n
       'introduces',
     );
   }
-  return Math.max(0, ...introduces.map((c) => pos.get(c) as number));
+  return Math.min(...introduces.map((c) => pos.get(c) as number));
 }
 
 /**
