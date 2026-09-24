@@ -486,17 +486,51 @@ export const CELEBRATION = {
   redFlashRatioThreshold: 0.8,
 } as const;
 
-/** R/(R+G+B) de uma cor hex — o teste de red flash do SC 2.3.1, Nota 3. */
+/* ─── Parsing de hex comum às medições de cor ─────────────────────────────── */
+
+/**
+ * Canais 0–255 de uma cor hex CSS — o parser comum de `redFlashRatio`,
+ * `relativeLuminance` e `contrastRatio` (que mede por `relativeLuminance`).
+ * Aceita as DUAS grafias de cor opaca — `#rgb` e `#rrggbb`, com `#` opcional e
+ * qualquer caixa; `#rgb` expande cada dígito para o par (`#f00` é `#ff0000`),
+ * então a MESMA cor tem a MESMA medição nas duas grafias. Fora do contrato
+ * LANÇA erro claro, o mesmo contrato de rejeição do `hexToRgb()` de
+ * `codeTheme.ts`: entrada malformada não pode virar NaN numa fórmula normativa
+ * — NaN propagado é falha silenciosa, e NaN comparado com um teto é `false`,
+ * falha ABERTA numa guarda de acessibilidade (bugs K e L; testemunhas em
+ * `tests/cx-views-theme-design.test.ts`).
+ */
+function parseHexChannels(hex: string): { r: number; g: number; b: number } {
+  const m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) throw new Error(`hex inválida (esperado #rgb ou #rrggbb): "${hex}"`);
+  const digits = m[1]!;
+  const h = digits.length === 3 ? digits.split('').map((d) => d + d).join('') : digits;
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+/**
+ * R/(R+G+B) de uma cor hex — o teste de red flash do SC 2.3.1, Nota 3.
+ * Parsing e rejeição vêm do parser comum acima. História (BUG K): antes dele,
+ * esta função fatiava a hex sem validar e a grafia curta `#f00` virava NaN;
+ * `NaN >= 0.8` é `false`, ou seja, a guarda de acessibilidade falhava ABERTO,
+ * aprovando cor red flash para piscar.
+ */
 export function redFlashRatio(hex: string): number {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
+  const { r, g, b } = parseHexChannels(hex);
   const sum = r + g + b;
   return sum === 0 ? 0 : r / sum;
 }
 
-/** True quando a cor dispara o limiar de red flash e portanto NÃO pode piscar. */
+/**
+ * True quando a cor dispara o limiar de red flash e portanto NÃO pode piscar.
+ * O teto é `CELEBRATION.redFlashRatioThreshold` INCLUSIVO (`>=` já reprova).
+ * Entrada fora do contrato propaga o erro de `redFlashRatio` — engolir o erro e
+ * devolver `false` seria falhar ABERTO de novo.
+ */
 export function isRedFlashColor(hex: string): boolean {
   return redFlashRatio(hex) >= CELEBRATION.redFlashRatioThreshold;
 }
@@ -507,19 +541,22 @@ function channel(value: number): number {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
-/** Luminância relativa de uma cor hex. */
+/**
+ * Luminância relativa de uma cor hex. Parsing e rejeição vêm do parser comum
+ * (BUG L: antes dele, a grafia curta `#f00` devolvia NaN aqui e contaminava a
+ * razão de contraste inteira).
+ */
 export function relativeLuminance(hex: string): number {
-  const h = hex.replace('#', '');
-  const r = channel(parseInt(h.slice(0, 2), 16));
-  const g = channel(parseInt(h.slice(2, 4), 16));
-  const b = channel(parseInt(h.slice(4, 6), 16));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  const { r, g, b } = parseHexChannels(hex);
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
 /**
  * Razão de contraste (L1 + 0.05) / (L2 + 0.05), como define o glossário do
  * WCAG 2.2. O Understanding de 1.4.3 é explícito que o valor NÃO arredonda para
  * cima: 4.499:1 não passa em 4.5:1 — então compare sempre com `>=` cru.
+ * As duas cores passam pelo parser comum via `relativeLuminance`: as DUAS
+ * grafias CSS medem igual e entrada fora do contrato lança (BUG L).
  */
 export function contrastRatio(a: string, b: string): number {
   const la = relativeLuminance(a);

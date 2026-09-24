@@ -260,11 +260,100 @@ describe('redFlashRatio / isRedFlashColor (WCAG 2.2 SC 2.3.1, Nota 3)', () => {
     assert.equal(isRedFlashColor('#e60012'), true);
   });
 
-  it('entrada malformada NÃO é tratada: 3 dígitios devolve NaN (a função espera #rrggbb)', () => {
-    // Caracterização do caso-limite atual: redFlashRatio não valida a entrada;
-    // NaN comparado com >= 0.8 é false, logo #fff vira "não dispara red flash".
-    assert.equal(Number.isNaN(redFlashRatio('#fff')), true);
+  // ─── BUG K (CORRIGIDO) — testemunha de regressão permanente ─────────────────
+  // HISTÓRIA DO BUG (o caso substituído era uma caracterização MAL CLASSIFICADA
+  // como "entrada malformada, não-bug"): `redFlashRatio` fatiava a hex como se
+  // fosse SEMPRE `#rrggbb` e não validava o formato. Na grafia CSS curta
+  // (`#f00`) os slices casavam dígito avulso, `parseInt` devolvia NaN e o NaN
+  // vazava: `NaN >= 0.8` é `false`, logo `isRedFlashColor('#f00')` = false
+  // enquanto `isRedFlashColor('#ff0000')` = true para a MESMA cor. Uma guarda de
+  // acessibilidade (SC 2.3.1) que falha ABERTO — cor red-flash aprovada para
+  // piscar — é bug nomeado, não caso-limite. CORRIGIDO: as duas grafias CSS
+  // válidas (`#rgb` e `#rrggbb`) são aceitas e a MESMA cor tem o MESMO veredito
+  // nas duas; entrada FORA do contrato lança erro claro (mesmo contrato de
+  // rejeição do `hexToRgb` de `codeTheme.ts`) — nunca NaN. O limiar continua
+  // CELEBRATION.redFlashRatioThreshold = 0,8 INCLUSIVO, provado nos casos
+  // anteriores deste describe, que ficaram intactos.
+  it('BUG K: "#f00" e "#ff0000" são a MESMA cor e dão o MESMO veredito', () => {
+    assert.equal(redFlashRatio('#f00'), redFlashRatio('#ff0000'), 'as duas grafias medem diferente');
+    assert.equal(redFlashRatio('#f00'), 1, 'vermelho puro: 255/(255+0+0) = 1 nas duas grafias');
+    assert.equal(isRedFlashColor('#f00'), isRedFlashColor('#ff0000'), 'as duas grafias julgam diferente');
+    assert.equal(isRedFlashColor('#f00'), true, 'vermelho puro DISPARA red flash — nas DUAS grafias');
+    assert.equal(isRedFlashColor('#fff'), isRedFlashColor('#ffffff'));
     assert.equal(isRedFlashColor('#fff'), false);
+    assert.equal(redFlashRatio('#000'), redFlashRatio('#000000'), 'preto curto ≠ preto longo');
+    assert.equal(redFlashRatio('#000'), 0, 'preto puro: soma zero → razão zero');
+  });
+
+  it('BUG K: #rgb expande cada dígito para o par — cor a cor, #rgb ≡ #rrggbb', () => {
+    // Um par por canal: se a expansão dobrar errado UM dígito, este caso cai.
+    // Os MESMOS 8 pares varrem as TRÊS medições do parser comum — redFlashRatio,
+    // relativeLuminance e contrastRatio (com par de referência branco, cujo
+    // argumento também troca de grafia) — mais o veredito isRedFlashColor.
+    const ref: readonly [string, string] = ['#fff', '#ffffff'];
+    for (const [curta, longa] of [
+      ['#000', '#000000'],
+      ['#123', '#112233'],
+      ['#811', '#881111'],
+      ['#abc', '#aabbcc'],
+      ['#f00', '#ff0000'],
+      ['#0f0', '#00ff00'],
+      ['#00f', '#0000ff'],
+      ['#fff', '#ffffff'],
+    ] as const) {
+      assert.equal(redFlashRatio(curta), redFlashRatio(longa), `redFlashRatio: ${curta} ≢ ${longa}`);
+      assert.equal(isRedFlashColor(curta), isRedFlashColor(longa), `isRedFlashColor: ${curta} ≢ ${longa}`);
+      assert.equal(relativeLuminance(curta), relativeLuminance(longa), `relativeLuminance: ${curta} ≢ ${longa}`);
+      assert.equal(
+        contrastRatio(curta, ref[0]),
+        contrastRatio(longa, ref[1]),
+        `contrastRatio: ${curta}×${ref[0]} ≢ ${longa}×${ref[1]}`,
+      );
+      assert.equal(
+        contrastRatio(curta, ref[1]),
+        contrastRatio(longa, ref[0]),
+        `contrastRatio (referência cruzada): ${curta} ≢ ${longa}`,
+      );
+    }
+  });
+
+  it('BUG K: o teto 0,8 INCLUSIVO vale na grafia CURTA — "#811" = "#881111" = 0,8 exato', () => {
+    // 136/(136+17+17) = 136/170 = 0,8 EXATO (Object.is), e exatamente no teto
+    // já reprova (>=). O caso do limiar pinava só a forma longa '#080101';
+    // aqui a grafia curta fica pinada junto.
+    assert.ok(Object.is(redFlashRatio('#811'), 0.8), 'redFlashRatio("#811") devia ser 0,8 EXATO');
+    assert.ok(Object.is(redFlashRatio('#881111'), 0.8), 'redFlashRatio("#881111") devia ser 0,8 EXATO');
+    assert.equal(isRedFlashColor('#811'), true, 'exatamente no teto reprova — na grafia CURTA');
+    assert.equal(isRedFlashColor('#881111'), true, 'exatamente no teto reprova — na grafia LONGA');
+  });
+
+  it('BUG K: nenhuma grafia válida deixa NaN vazar (qualquer caixa, com ou sem #)', () => {
+    for (const hex of ['#f00', '#F00', 'f00', '#abc', '#e60012', '#E60012', 'be3b27', '#000']) {
+      assert.equal(Number.isNaN(redFlashRatio(hex)), false, `redFlashRatio("${hex}") devolveu NaN`);
+    }
+  });
+
+  it('BUG K: entrada FORA do contrato lança erro claro (contrato do hexToRgb) — nunca NaN nem false', () => {
+    for (const invalida of ['#12345', '#1234567', '#ff000080', '##ff0000', '#ggg', '#ff 000', 'rgb(255,0,0)', '']) {
+      assert.throws(
+        () => redFlashRatio(invalida),
+        /hex inválida/,
+        `redFlashRatio("${invalida}") devia rejeitar com erro claro`,
+      );
+    }
+    // o veredito de red flash rejeita JUNTO: engolir o erro e virar `false` seria
+    // voltar a falhar ABERTO (entrada malformada aprovada para piscar).
+    assert.throws(() => isRedFlashColor('#12345'), /hex inválida/);
+  });
+
+  it('BUG K/L: "#f008" (#rgba, 4 dígitos com alfa) é FORA do contrato — rejeitada nas QUATRO funções', () => {
+    // Rejeição dedicada: o parser comum só promete `#rgb` e `#rrggbb`; alfa não
+    // mede R/(R+G+B), e aceitar 4 dígitos calado reabriria a porta do NaN.
+    assert.throws(() => redFlashRatio('#f008'), /hex inválida/, 'redFlashRatio("#f008")');
+    assert.throws(() => isRedFlashColor('#f008'), /hex inválida/, 'isRedFlashColor("#f008")');
+    assert.throws(() => relativeLuminance('#f008'), /hex inválida/, 'relativeLuminance("#f008")');
+    assert.throws(() => contrastRatio('#f008', '#fff'), /hex inválida/, 'contrastRatio("#f008", …)');
+    assert.throws(() => contrastRatio('#fff', '#f008'), /hex inválida/, 'contrastRatio(…, "#f008")');
   });
 });
 
@@ -289,6 +378,50 @@ describe('relativeLuminance / contrastRatio (fórmula normativa do WCAG 2.x)', (
   it('os pisos normativos são os do contrato (AA 4,5 / AAA 7 / large 3 / não-texto 3)', () => {
     assert.deepEqual({ ...CONTRAST_FLOOR }, { bodyAA: 4.5, bodyAAA: 7, largeAA: 3, nonText: 3 });
     assert.equal(CELEBRATION.redFlashRatioThreshold, 0.8, 'o teto de red flash mora em CELEBRATION');
+  });
+
+  // ─── BUG L (CORRIGIDO) — padrão irmão do BUG K, fechado ─────────────────────
+  // HISTÓRIA DO BUG: `relativeLuminance`/`contrastRatio` mantinham o MESMO
+  // parsing naïve que o BUG K pegou em `redFlashRatio` (slice de 2 dígitos sem
+  // validar o formato). Na grafia CSS curta (`#f00`) os slices casavam dígito
+  // avulso, `parseInt` devolvia NaN e a MEDIÇÃO WCAG inteira virava NaN —
+  // falha silenciosa numa fórmula normativa. CORRIGIDO na causa: as três
+  // funções passam pelo MESMO parser comum (`#rgb` ≡ `#rrggbb`, `#` opcional,
+  // caixa livre, trim) e entrada fora do contrato lança erro claro — nunca
+  // NaN. Os pins deste describe (extremos, coeficientes, simetria, pisos)
+  // ficaram intactos.
+  it('BUG L: "#f00" ≡ "#ff0000" também na LUMINÂNCIA — mesma cor, mesma medição', () => {
+    assert.equal(relativeLuminance('#f00'), relativeLuminance('#ff0000'), 'as duas grafias medem diferente');
+    assert.ok(Math.abs(relativeLuminance('#f00') - 0.2126) < 1e-12, 'vermelho puro = coeficiente R, nas duas grafias');
+    assert.equal(relativeLuminance('#fff'), relativeLuminance('#ffffff'), 'branco curto ≠ branco longo');
+    assert.equal(relativeLuminance('#fff'), 1, 'branco curto = 1, como #ffffff');
+    assert.equal(relativeLuminance('#000'), relativeLuminance('#000000'), 'preto curto ≠ preto longo');
+    assert.equal(relativeLuminance('#000'), 0, 'preto curto = 0, como #000000');
+  });
+
+  it('BUG L: contrastRatio mede igual nas duas grafias — par máximo e simetria preservados', () => {
+    assert.equal(contrastRatio('#fff', '#000'), contrastRatio('#ffffff', '#000000'), 'branco×preto diverge por grafia');
+    assert.ok(Math.abs(contrastRatio('#fff', '#000') - 21) < 1e-9, 'branco×preto nas grafias curtas = par máximo');
+    assert.equal(contrastRatio('#fff', '#ffffff'), 1, 'a MESMA cor escrita nas duas grafias é 1:1');
+    assert.equal(contrastRatio('#f00', '#fff'), contrastRatio('#ff0000', '#ffffff'));
+    // simetria A×B == B×A vale em grafia curta, longa e MISTA
+    assert.equal(contrastRatio('#f00', '#000'), contrastRatio('#000', '#f00'));
+    assert.equal(contrastRatio('#f00', '#000000'), contrastRatio('#000000', '#ff0000'), 'simetria em grafia mista');
+  });
+
+  it('BUG L: fora do contrato lança erro claro nas TRÊS medições — nunca NaN', () => {
+    for (const invalida of ['#12345', '#ggg', 'rgb(0,0,0)', '']) {
+      assert.throws(() => relativeLuminance(invalida), /hex inválida/, `relativeLuminance("${invalida}")`);
+      assert.throws(() => contrastRatio(invalida, '#ffffff'), /hex inválida/, `contrastRatio("${invalida}", …)`);
+      assert.throws(() => contrastRatio('#ffffff', invalida), /hex inválida/, `contrastRatio(…, "${invalida}")`);
+      // as três medições recusam JUNTO — é o mesmo parser comum
+      assert.throws(() => redFlashRatio(invalida), /hex inválida/, `redFlashRatio("${invalida}")`);
+    }
+    for (const valida of ['#f00', '#e60012', '#fff']) {
+      assert.equal(Number.isNaN(relativeLuminance(valida)), false, `relativeLuminance("${valida}")`);
+      assert.equal(Number.isNaN(contrastRatio(valida, '#fff')), false, `contrastRatio("${valida}", …)`);
+      assert.equal(Number.isNaN(redFlashRatio(valida)), false, `redFlashRatio("${valida}")`);
+    }
   });
 });
 
