@@ -742,7 +742,13 @@ function sitesDeExtracao(): SiteExtracao[] {
  * com a razão no mapa de isentos.
  */
 const SITES_DE_TESTSCODE_COM_SURFACE = [
-  'electron/main/engine/audit.ts#code', // o loop das superfícies do desafio (A2/A3)
+  // REALINHADO NA REFATORAÇÃO L05 (split de `audit.ts` em módulos ≤500 linhas —
+  // mudança INTENCIONAL de layout, comportamento preservado byte a byte): o
+  // loop das superfícies do desafio (A2/A3) saiu de `audit.ts` e virou DOIS
+  // call-sites equivalentes — o do desafio de AULA (`auditAula.ts`) e o do
+  // desafio de MÓDULO (`auditModulo.ts`).
+  'electron/main/engine/auditAula.ts#code', // superfícies do desafio de aula (A2/A3)
+  'electron/main/engine/auditModulo.ts#code', // superfícies do desafio de módulo (A2/A3)
   'electron/main/engine/quality/progressao.ts#desafio.tests', // A13c lê o teste
 ];
 
@@ -774,8 +780,10 @@ const SITES_DE_TEORIA_COM_SURFACE = [
  * ou é inerte por guarda de linguagem.
  */
 const ISENTOS_COM_LANGUAGE: Record<string, string> = {
-  'electron/main/engine/audit.ts#block.code': 'teoria (A4) — bloco cercado parseia standalone',
-  'electron/main/engine/audit.ts#s.code': 'starterCode — o starter de C parseia standalone (a macro é do testsCode)',
+  // REALINHADOS NA REFATORAÇÃO L05 (split de `audit.ts` — ver acima): os mesmos
+  // call-sites de antes, agora nos módulos irmãos, com as MESMAS razões.
+  'electron/main/engine/auditAula.ts#block.code': 'teoria (A4) — bloco cercado parseia standalone',
+  'electron/main/engine/auditSuperficies.ts#s.code': 'starterCode — o starter de C parseia standalone (a macro é do testsCode)',
   'electron/main/engine/budget.ts#block.code': 'teoria — bloco cercado parseia standalone',
   'electron/main/engine/modes/curriculumGap.ts#bloco.codigo': 'teoria da aula nova (A4 do laço)',
   'electron/main/engine/quality/discriminacao.ts#desafio.solutionCode': 'solutionCode parseia standalone',

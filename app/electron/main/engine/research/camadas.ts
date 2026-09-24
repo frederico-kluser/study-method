@@ -87,52 +87,36 @@ import {
 import { fontesDoEnvelope, queriesExecutadas, type FonteComProcedencia } from './surfEnvelope';
 import { rodarSurf, type ExecutorDeProcesso } from './surfRunner';
 
-/** Identidade do artefato produzido por este módulo. */
-export const SCHEMA_PESQUISA_EM_CAMADAS = 'pesquisa-em-camadas' as const;
+// As constantes vivem em `camadasConstantes.ts` (refatoração L05) e são
+// re-exportadas pelos MESMOS nomes de antes.
+export {
+  SCHEMA_PESQUISA_EM_CAMADAS,
+  TETO_CAMADAS,
+  TETO_LACUNAS_POR_CAMADA,
+} from './camadasConstantes';
+import { SCHEMA_PESQUISA_EM_CAMADAS, TETO_CAMADAS, TETO_LACUNAS_POR_CAMADA } from './camadasConstantes';
 
-/**
- * Teto de camadas. Não é gosto: cada camada é no mínimo uma chamada de busca
- * mais uma de LLM, e o custo cresce linear. 4 é o teto declarado; quem quiser
- * mais muda aqui e assume a conta.
- */
-export const TETO_CAMADAS = 4;
-/** Teto de lacunas atacadas por camada — o mesmo raciocínio de custo. */
-export const TETO_LACUNAS_POR_CAMADA = 5;
-
-// ─── a análise da colheita (INJETADA) ───────────────────────────────────────
-
-/** Um item de evidência entregue ao analisador, já numerado. */
-export interface ItemDeEvidencia {
-  n: number;
-  url: string;
-  titulo: string;
-  trecho: string;
-}
-
-export interface EntradaDaAnalise {
-  ctx: ContextoDaTrilha;
-  /** número da camada cuja colheita está sendo analisada (1-based). */
-  camada: number;
-  evidencia: ItemDeEvidencia[];
-  /** perguntas já executadas — o analisador não deve repeti-las. */
-  perguntasJaFeitas: string[];
-}
-
-export interface AnaliseDaColheita {
-  /** leitura curta da evidência — raciocínio ANTES da decisão (INV-04, §6.3). */
-  leitura: string;
-  afirmacoes: AfirmacaoComFonte[];
-  lacunas: Lacuna[];
-}
-
-/**
- * O analisador. INJETADO: a suíte usa um fake e roda offline, sem rede e sem
- * chave — mesma disciplina de `braveSearchService` (`fetchImpl`) e da fase F1
- * (`Busca` injetada, A-P14-2).
- */
-export interface AnalisadorDeColheita {
-  analisar(entrada: EntradaDaAnalise): Promise<AnaliseDaColheita>;
-}
+// O analisador (tipos + implementação de produção) vive em `camadasAnalise.ts`
+// (refatoração L05) — re-exportado pelos MESMOS nomes de antes.
+export {
+  montarPromptDaAnalise,
+  extrairJson,
+  normalizarAnalise,
+  criarAnalisadorLlm,
+} from './camadasAnalise';
+export type {
+  AnalisadorDeColheita,
+  AnaliseDaColheita,
+  DepsDoAnalisadorLlm,
+  EntradaDaAnalise,
+  ItemDeEvidencia,
+} from './camadasAnalise';
+import type {
+  AnalisadorDeColheita,
+  AnaliseDaColheita,
+  EntradaDaAnalise,
+  ItemDeEvidencia,
+} from './camadasAnalise';
 
 // ─── configuração ───────────────────────────────────────────────────────────
 
@@ -274,28 +258,60 @@ export function criarPesquisaEmCamadas(deps: DepsDaPesquisa): PesquisaEmCamadas 
     const brief = montarBrief(ctx, tipo, alvo);
     const etapa = `pesquisa-camada-${numero}`;
     const ferramenta: FerramentaDoSurf = tipo === 'levantamento' ? 'normal' : 'unlimit';
-    const binario = ferramenta === 'normal' ? cfg.binarioNormal : cfg.binarioUnlimit;
+    const comando = montarComandoDaCamada(brief, ferramenta);
 
-    const comando = montarArgv(brief, {
+    const execucao = await rodarComFallback143(deps, comando, brief, ferramenta, etapa);
+
+    const { fontes, rejeitadas } = fontesDoEnvelope(execucao.resultado.envelope);
+    return {
+      chamadas: execucao.chamadas,
+      relatorio: montarRelatorioDeCamada(numero, tipo, ferramenta, brief, alvo, execucao, fontes, rejeitadas),
+    };
+  }
+
+  /** O argv da camada (binário alternativo e `--max-rounds` só no unlimit). */
+  function montarComandoDaCamada(
+    brief: ReturnType<typeof montarBrief>,
+    ferramenta: FerramentaDoSurf,
+  ): ReturnType<typeof montarArgv> {
+    const binario = ferramenta === 'normal' ? cfg.binarioNormal : cfg.binarioUnlimit;
+    return montarArgv(brief, {
       ferramenta,
       subAgents: cfg.subAgents,
       maxDepth: cfg.maxDepth,
       ...(ferramenta === 'unlimit' ? { maxRounds: cfg.maxRounds } : {}),
       ...(binario ? { binario } : {}),
     });
+  }
 
+  /** O resultado de UMA camada, já com a contagem de invocações ao surf. */
+  interface ExecucaoDaCamada {
+    resultado: Awaited<ReturnType<typeof rodarSurf>>;
+    chamadas: number;
+    rebaixada: boolean;
+  }
+
+  /**
+   * 143: TROCA DE FERRAMENTA, uma única vez, sem espera. Só se a camada estava
+   * no `unlimit` — rebaixar o `normal` para ele mesmo seria o retry que este
+   * módulo não faz.
+   */
+  async function rodarComFallback143(
+    depsDaCamada: DepsDaPesquisa,
+    comando: ReturnType<typeof montarArgv>,
+    brief: ReturnType<typeof montarBrief>,
+    ferramenta: FerramentaDoSurf,
+    etapa: string,
+  ): Promise<ExecucaoDaCamada> {
     let chamadas = 1;
     let rebaixada = false;
     let resultado;
     try {
-      resultado = await rodarSurf(deps.executor, comando, {
+      resultado = await rodarSurf(depsDaCamada.executor, comando, {
         timeoutMs: cfg.timeoutMsPorCamada,
         etapa,
       });
     } catch (e) {
-      // 143: a onda não coube no tempo. TROCA DE FERRAMENTA, uma única vez,
-      // sem espera. Só se a camada estava no `unlimit` — rebaixar o `normal`
-      // para ele mesmo seria o retry que este módulo não faz.
       if (
         e instanceof PesquisaError &&
         e.code === PESQUISA_CODES.SURF_MORTO_POR_TIMEOUT &&
@@ -309,7 +325,7 @@ export function criarPesquisaEmCamadas(deps: DepsDaPesquisa): PesquisaEmCamadas 
           maxDepth: cfg.maxDepth,
           ...(cfg.binarioNormal ? { binario: cfg.binarioNormal } : {}),
         });
-        resultado = await rodarSurf(deps.executor, comandoNormal, {
+        resultado = await rodarSurf(depsDaCamada.executor, comandoNormal, {
           timeoutMs: cfg.timeoutMsPorCamada,
           etapa: `${etapa}-rebaixada`,
         });
@@ -317,25 +333,34 @@ export function criarPesquisaEmCamadas(deps: DepsDaPesquisa): PesquisaEmCamadas 
         throw e;
       }
     }
+    return { resultado, chamadas, rebaixada };
+  }
 
-    const { fontes, rejeitadas } = fontesDoEnvelope(resultado.envelope);
+  /** O `RelatorioDeCamada` da execução (pergunta, queries, fontes, degradações). */
+  function montarRelatorioDeCamada(
+    numero: number,
+    tipo: TipoDeCamada,
+    ferramenta: FerramentaDoSurf,
+    brief: ReturnType<typeof montarBrief>,
+    alvo: Lacuna | undefined,
+    execucao: ExecucaoDaCamada,
+    fontes: FonteComProcedencia[],
+    rejeitadas: { url: string; motivo: string }[],
+  ): RelatorioDeCamada {
     return {
-      chamadas,
-      relatorio: {
-        camada: numero,
-        tipo,
-        ferramenta: rebaixada ? 'normal' : ferramenta,
-        pergunta: brief.question,
-        ...(alvo ? { lacunaId: alvo.id } : {}),
-        exitCode: resultado.exitCode,
-        vazia: resultado.tipo === 'vazio',
-        queries: queriesExecutadas(resultado.envelope),
-        fontes,
-        fontesRejeitadas: rejeitadas,
-        degradacoes: resultado.envelope.diagnostics.degraded,
-        sintetizadoPeloSurf: resultado.envelope.synthesized,
-        ...(rebaixada ? { rebaixadaParaNormal: true } : {}),
-      },
+      camada: numero,
+      tipo,
+      ferramenta: execucao.rebaixada ? 'normal' : ferramenta,
+      pergunta: brief.question,
+      ...(alvo ? { lacunaId: alvo.id } : {}),
+      exitCode: execucao.resultado.exitCode,
+      vazia: execucao.resultado.tipo === 'vazio',
+      queries: queriesExecutadas(execucao.resultado.envelope),
+      fontes,
+      fontesRejeitadas: rejeitadas,
+      degradacoes: execucao.resultado.envelope.diagnostics.degraded,
+      sintetizadoPeloSurf: execucao.resultado.envelope.synthesized,
+      ...(execucao.rebaixada ? { rebaixadaParaNormal: true } : {}),
     };
   }
 
@@ -468,169 +493,5 @@ async function analisarOuFalhar(
     leitura: typeof bruto.leitura === 'string' ? bruto.leitura : '',
     afirmacoes: bruto.afirmacoes,
     lacunas: bruto.lacunas,
-  };
-}
-
-// ─── o analisador de PRODUÇÃO (GLM 5.3 Flash pelo transporte único) ─────────
-
-export interface DepsDoAnalisadorLlm {
-  /** o transporte único da engine (`runtime/callLlm.ts`). INV-01: só ele. */
-  llm: EngineLlm;
-  stageVersion: string;
-  timeoutMs: number;
-  /** teto de lacunas pedidas por análise (default TETO_LACUNAS_POR_CAMADA). */
-  tetoLacunas?: number;
-}
-
-/**
- * O prompt do analisador. Ele pede FORMATO, não profundidade:
- *   - `leitura` vem ANTES de `afirmacoes` e `lacunas` no JSON — raciocínio
- *     antes da decisão, INV-04/§6.3;
- *   - as fontes são citadas por NÚMERO da lista de evidência, não por URL
- *     colada de memória: número curto o modelo não erra, URL longa ele
- *     alucina. O mapeamento número→URL é feito por ESTE código, com os dados
- *     que vieram do surf;
- *   - índice fora da lista vira `indice-desconhecido:<n>`, que o portão de
- *     qualidade reprova como citação inventada — nunca é silenciado.
- * Não existe imperativo de profundidade no texto: `reasoningEffort` é OMITIDO
- * na chamada, e omitir é o que faz o transporte aplicar `effort: 'max'`.
- */
-export function montarPromptDaAnalise(entrada: EntradaDaAnalise, tetoLacunas: number): string {
-  const ctx = entrada.ctx;
-  const jaEnsinado = ctx.jaEnsinado.length ? ctx.jaEnsinado.join('; ') : '(nada — primeira unidade)';
-  const evidencia = entrada.evidencia
-    .map((e) => `[${e.n}] ${e.titulo}\n    ${e.url}\n    ${e.trecho || '(a busca não devolveu trecho)'}`)
-    .join('\n');
-  const jaFeitas = entrada.perguntasJaFeitas.length
-    ? entrada.perguntasJaFeitas.map((q) => `- ${q}`).join('\n')
-    : '(nenhuma)';
-
-  return [
-    `Unidade em produção: "${ctx.unidade}" da trilha "${ctx.tema}" (${ctx.linguagem}), para ${ctx.publico}.`,
-    `Objetivo da unidade: ${ctx.objetivo}`,
-    `O currículo já ensinou: ${jaEnsinado}`,
-    '',
-    `EVIDÊNCIA COLHIDA (camada ${entrada.camada}) — cada item tem um número de citação:`,
-    evidencia || '(nenhuma)',
-    '',
-    'PERGUNTAS JÁ EXECUTADAS (não repita nenhuma delas como lacuna):',
-    jaFeitas,
-    '',
-    'Responda SOMENTE com um objeto JSON, nesta ordem de campos:',
-    '{',
-    '  "leitura": "o que a evidência acima sustenta e o que ela não sustenta",',
-    '  "afirmacoes": [{"id":"a1","texto":"uma frase que a unidade pode ensinar","fontes":[1,3]}],',
-    `  "lacunas": [{"id":"l1","pergunta":"o que ficou sem resposta","porque":"por que importa para esta unidade"}]`,
-    '}',
-    '',
-    'Regras do conteúdo:',
-    '- toda afirmação carrega ao menos um número de `fontes`, e o número tem que existir na lista acima;',
-    '- afirmação que a evidência não sustenta não entra — falta de evidência vira lacuna, não afirmação;',
-    '- o que o currículo já ensinou não é afirmação nova;',
-    `- no máximo ${tetoLacunas} lacunas, cada uma diferente das perguntas já executadas.`,
-  ].join('\n');
-}
-
-/**
- * Extrai o primeiro objeto JSON de uma resposta que pode vir cercada de prosa
- * ou de cerca ``` — mesmo problema que `researchPlanner.parseLlmJson` resolve
- * do lado dele. Devolve `null` em vez de lançar: quem decide o que fazer com a
- * falha é o chamador (que a transforma em ANALISE_INDISPONIVEL).
- */
-export function extrairJson(conteudo: string): unknown | null {
-  const texto = String(conteudo ?? '').trim();
-  if (texto === '') return null;
-  const semCerca = texto.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-  const inicio = semCerca.indexOf('{');
-  const fim = semCerca.lastIndexOf('}');
-  if (inicio < 0 || fim <= inicio) return null;
-  try {
-    return JSON.parse(semCerca.slice(inicio, fim + 1));
-  } catch {
-    return null;
-  }
-}
-
-/** Converte a resposta crua do modelo na análise tipada, mapeando número→URL. */
-export function normalizarAnalise(cru: unknown, evidencia: ItemDeEvidencia[]): AnaliseDaColheita | null {
-  if (typeof cru !== 'object' || cru === null || Array.isArray(cru)) return null;
-  const o = cru as Record<string, unknown>;
-  if (!Array.isArray(o['afirmacoes']) || !Array.isArray(o['lacunas'])) return null;
-  const porNumero = new Map<number, string>();
-  for (const e of evidencia) porNumero.set(e.n, e.url);
-
-  const afirmacoes: AfirmacaoComFonte[] = [];
-  (o['afirmacoes'] as unknown[]).forEach((a, i) => {
-    if (typeof a !== 'object' || a === null) return;
-    const item = a as Record<string, unknown>;
-    const numeros = Array.isArray(item['fontes']) ? item['fontes'] : [];
-    afirmacoes.push({
-      id: typeof item['id'] === 'string' && item['id'].trim() !== '' ? item['id'].trim() : `a${i + 1}`,
-      texto: typeof item['texto'] === 'string' ? item['texto'] : '',
-      fontes: numeros.map((n) => {
-        const num = typeof n === 'number' ? n : Number(n);
-        const url = porNumero.get(num);
-        return url ?? `indice-desconhecido:${String(n)}`;
-      }),
-    });
-  });
-
-  const lacunas: Lacuna[] = [];
-  (o['lacunas'] as unknown[]).forEach((l, i) => {
-    if (typeof l !== 'object' || l === null) return;
-    const item = l as Record<string, unknown>;
-    lacunas.push({
-      id: typeof item['id'] === 'string' && item['id'].trim() !== '' ? item['id'].trim() : `l${i + 1}`,
-      pergunta: typeof item['pergunta'] === 'string' ? item['pergunta'] : '',
-      porque: typeof item['porque'] === 'string' ? item['porque'] : '',
-    });
-  });
-
-  return {
-    leitura: typeof o['leitura'] === 'string' ? o['leitura'] : '',
-    afirmacoes,
-    lacunas,
-  };
-}
-
-/**
- * O analisador de PRODUÇÃO. Uma chamada por camada, pelo transporte único —
- * que já traz semáforo, backoff por código, timeout obrigatório, cache e log
- * sanitizado. `reasoningEffort` NÃO é passado: omitir é pedir o máximo.
- */
-export function criarAnalisadorLlm(deps: DepsDoAnalisadorLlm): AnalisadorDeColheita {
-  const tetoLacunas = deps.tetoLacunas ?? TETO_LACUNAS_POR_CAMADA;
-  return {
-    async analisar(entrada: EntradaDaAnalise): Promise<AnaliseDaColheita> {
-      const etapa = `pesquisa-analise-camada-${entrada.camada}`;
-      let resposta;
-      try {
-        resposta = await deps.llm.callLlm(etapa, {
-          prompt: montarPromptDaAnalise(entrada, tetoLacunas),
-          system:
-            'Você lê evidência de busca e separa o que ela sustenta do que ela não sustenta. ' +
-            'Responde só com o objeto JSON pedido, sem texto em volta.',
-          stageVersion: deps.stageVersion,
-          timeoutMs: deps.timeoutMs,
-          temperature: 0,
-        });
-      } catch (e) {
-        throw new PesquisaError({
-          code: PESQUISA_CODES.ANALISE_INDISPONIVEL,
-          etapa,
-          message: 'o transporte de LLM recusou a análise da colheita — fail-closed, nenhuma afirmação é inventada',
-          cause: e,
-        });
-      }
-      const analise = normalizarAnalise(extrairJson(resposta.content), entrada.evidencia);
-      if (!analise) {
-        throw new PesquisaError({
-          code: PESQUISA_CODES.ANALISE_INDISPONIVEL,
-          etapa,
-          message: 'a análise da colheita não voltou como JSON com `afirmacoes` e `lacunas`',
-        });
-      }
-      return analise;
-    },
   };
 }

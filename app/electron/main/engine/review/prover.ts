@@ -236,31 +236,40 @@ export class PinsDeRegressao {
     return this._pins;
   }
 
+  /** Guarda de runtime da discriminação de aferição. */
   private async aferir(pin: PinDeRegressao): Promise<VereditoDePin> {
-    if (isAfericaoDeExecucao(pin.afericao)) {
-      try {
-        const entrada = await pin.afericao.construirEntrada();
-        const veredito = await this.deps.proverDesafio(entrada);
-        const verde = pin.afericao.verdeQuando === 'provas_validas' ? veredito.valid : !veredito.valid;
-        const detalhe = veredito.valid
-          ? `provas válidas (${veredito.executed} testes)`
-          : `provas inválidas: ${veredito.failures.map((f) => f.reason).join('; ')}`;
-        return { pin, verde, detalhe };
-      } catch (erro) {
-        return {
-          pin,
-          verde: false,
-          detalhe: `pin de execução não pôde rodar: ${erro instanceof Error ? erro.message : String(erro)} (fail-closed)`,
-        };
-      }
+    return isAfericaoDeExecucao(pin.afericao) ? this.aferirExecucao(pin) : this.aferirAst(pin);
+  }
+
+  /** Pin CARO: roda as quatro provas do desafio via `ProverDeDesafio`. */
+  private async aferirExecucao(pin: PinDeRegressao): Promise<VereditoDePin> {
+    const afericao = pin.afericao as Extract<AfericaoDePin, { tipo: 'execucao' }>;
+    try {
+      const entrada = await afericao.construirEntrada();
+      const veredito = await this.deps.proverDesafio(entrada);
+      const verde = afericao.verdeQuando === 'provas_validas' ? veredito.valid : !veredito.valid;
+      const detalhe = veredito.valid
+        ? `provas válidas (${veredito.executed} testes)`
+        : `provas inválidas: ${veredito.failures.map((f) => f.reason).join('; ')}`;
+      return { pin, verde, detalhe };
+    } catch (erro) {
+      return {
+        pin,
+        verde: false,
+        detalhe: `pin de execução não pôde rodar: ${erro instanceof Error ? erro.message : String(erro)} (fail-closed)`,
+      };
     }
-    // AST — verde ⇔ a ofensa saiu do arquivo.
+  }
+
+  /** Pin BARATO: verde ⇔ a ofensa sumiu do arquivo relido. */
+  private async aferirAst(pin: PinDeRegressao): Promise<VereditoDePin> {
+    const afericao = pin.afericao as Extract<AfericaoDePin, { tipo: 'ast' }>;
     try {
       const conteudo = await this.deps.obterArquivo(pin.alvo.caminho);
       if (conteudo === null) {
         return { pin, verde: false, detalhe: `artefato "${pin.alvo.caminho}" sumiu — pin não verificável (fail-closed)` };
       }
-      const ofensaPresente = pinAst(conteudo, pin.afericao.trecho);
+      const ofensaPresente = pinAst(conteudo, afericao.trecho);
       return {
         pin,
         verde: !ofensaPresente,
@@ -340,6 +349,21 @@ const CATEGORIAS_DE_EXECUCAO: ReadonlySet<string> = new Set<string>([
 /** Campos das provas de um desafio dentro do artefato (JSON). */
 const CAMPOS_DE_PROVA = ['solutionCode', 'starterCode', 'testsCode', 'expectedTestCount'];
 
+/** Os campos de prova com o TIPO certo (o laço de tipos + os dois obrigatórios). */
+function camposDeProvaTipados(d: Record<string, unknown>): boolean {
+  for (const campo of CAMPOS_DE_PROVA) {
+    if (typeof d[campo] !== 'string' && campo !== 'expectedTestCount') return false;
+  }
+  if (typeof d.solutionCode !== 'string' || typeof d.starterCode !== 'string') return false;
+  if (typeof d.testsCode !== 'string' || typeof d.expectedTestCount !== 'number') return false;
+  return true;
+}
+
+/** A contagem de testes tem de ser inteiro ≥ 1 (0/fracionário/negativo = não é desafio). */
+function contagemDeTestesValida(d: Record<string, unknown>): boolean {
+  return Number.isInteger(d.expectedTestCount) && (d.expectedTestCount as number) >= 1;
+}
+
 /**
  * Tenta ler as QUATRO PROVAS de um artefato de desafio (JSON). Devolve `null`
  * quando o artefato não é um desafio executável (aula sem desafio, prosa…).
@@ -353,18 +377,34 @@ export function extrairProvasDoArtefato(conteudo: string): ChallengeProofsInput 
   }
   if (typeof dado !== 'object' || dado === null) return null;
   const d = dado as Record<string, unknown>;
-  for (const campo of CAMPOS_DE_PROVA) {
-    if (typeof d[campo] !== 'string' && campo !== 'expectedTestCount') return null;
-  }
-  if (typeof d.solutionCode !== 'string' || typeof d.starterCode !== 'string') return null;
-  if (typeof d.testsCode !== 'string' || typeof d.expectedTestCount !== 'number') return null;
-  if (!Number.isInteger(d.expectedTestCount) || d.expectedTestCount < 1) return null;
+  if (!camposDeProvaTipados(d)) return null;
+  if (!contagemDeTestesValida(d)) return null;
   return {
-    solutionCode: d.solutionCode,
-    starterCode: d.starterCode,
-    testsCode: d.testsCode,
-    expectedTestCount: d.expectedTestCount,
+    solutionCode: d.solutionCode as string,
+    starterCode: d.starterCode as string,
+    testsCode: d.testsCode as string,
+    expectedTestCount: d.expectedTestCount as number,
   };
+}
+
+/** O trecho do SPAN (≥ 3 caracteres) — a evidência medida; null se não resolve. */
+function trechoDoSpan(apontamento: Apontamento, conteudo: string): string | null {
+  const [inicio, fim] = apontamento.alvo.span;
+  if (inicio >= 0 && fim >= inicio && fim <= conteudo.length) {
+    const slice = conteudo.slice(inicio, fim).trim();
+    if (slice.length >= 3) return slice;
+  }
+  return null;
+}
+
+/** O primeiro fragmento entre crases da `prova` (≥ 3) — o fallback citado. */
+function trechoCitadoNaProva(prova: string): string | null {
+  const fragmentos = prova.match(/`([^`]+)`/g);
+  if (fragmentos && fragmentos.length > 0) {
+    const primeiro = fragmentos[0].replace(/`/g, '').trim();
+    if (primeiro.length >= 3) return primeiro;
+  }
+  return null;
 }
 
 /**
@@ -373,18 +413,12 @@ export function extrairProvasDoArtefato(conteudo: string): ChallengeProofsInput 
  * Devolve `null` quando não há trecho recuperável — o achado NÃO vira pin.
  */
 export function trechoOfensorDoAchado(apontamento: Apontamento, conteudo: string): string | null {
-  const [inicio, fim] = apontamento.alvo.span;
-  if (inicio >= 0 && fim >= inicio && fim <= conteudo.length) {
-    const slice = conteudo.slice(inicio, fim).trim();
-    if (slice.length >= 3) return slice;
-  }
-  const fragmentos = apontamento.evidencia.prova.match(/`([^`]+)`/g);
-  if (fragmentos && fragmentos.length > 0) {
-    const primeiro = fragmentos[0].replace(/`/g, '').trim();
-    if (primeiro.length >= 3) return primeiro;
-  }
   const token = apontamento.alvo.token.trim();
-  return token.length >= 3 ? token : null;
+  return (
+    trechoDoSpan(apontamento, conteudo) ??
+    trechoCitadoNaProva(apontamento.evidencia.prova) ??
+    (token.length >= 3 ? token : null)
+  );
 }
 
 /**

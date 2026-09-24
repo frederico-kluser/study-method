@@ -79,28 +79,41 @@
 import { z } from 'zod';
 
 import type { AuditReport, Violation } from '../audit';
+import type { Placar, Report } from './reportSecoes';
 import { REGRAS_DA_BARRA } from '../quality/barra';
 import { limiarDeFalsoPasse, type MedicaoDeFalsoPasse } from '../quality/judgeCalibration';
 import type { MedicaoSolubilidade } from '../quality/solvable';
 import type { Telemetria } from '../runtime/ledger';
 import { ReportSchema } from '../schemas/artifacts';
+import {
+  agruparPorFaixa,
+  agruparPorSuperficie,
+  comandoDaSecao,
+  formatarPlacar,
+  montarCobertura,
+  montarDistribuicao,
+  montarJustificativa,
+  montarLimitacoes,
+  montarTokensPorFase,
+  montarViolacoes,
+} from './reportSecoes';
 
-/** O relatório validado — o z.infer do ReportSchema (INV-05: todo campo existe). */
-export type Report = z.infer<typeof ReportSchema>;
+// O placar, as seções e o detector de cópia vivem em `reportSecoes.ts` e
+// `reportSimilaridade.ts` (refatoração L05) — re-exportados pelos MESMOS
+// nomes de antes.
+export { formatarPlacar } from './reportSecoes';
+export type { Placar } from './reportSecoes';
+export {
+  LIMIAR_SIMILARIDADE_COPIA,
+  acusarCopia,
+  normalizarCodigo,
+  similaridadeDice,
+  tokenizarPorFronteira,
+} from './reportSimilaridade';
 
-/** O placar no formato do repositório (§9.2). */
-export interface Placar {
-  passou: number;
-  falhou: number;
-  pendente: number;
-}
-
-/**
- * O limiar da acusação de cópia (REPLAN: Dice ≥ 0.70 sobre tokens
- * normalizados). Exportado para o teste A-P24-3 e para quem computa a seção
- * por aula fora deste relatório.
- */
-export const LIMIAR_SIMILARIDADE_COPIA = 0.7;
+// O tipo `Report` vive em `reportSecoes.ts` (refatoração L05) — re-exportado
+// pelo MESMO nome de antes.
+export type { Report } from './reportSecoes';
 
 /**
  * O comando canônico do audit (§9.4 e README da engine), o mesmo que o
@@ -140,22 +153,21 @@ export interface DepsDoRelatorio {
 // Limitações NOMEADAS (A-P24-1) — `limitacoes[]` sempre com entradas nomeadas
 // ---------------------------------------------------------------------------
 
-export const LIMITACAO_PROVA_EXECUCAO = 'prova-de-execucao';
-export const LIMITACAO_SIMILARIDADE = 'similaridade-exemplo-solucao';
-export const LIMITACAO_TELEMETRIA = 'telemetria';
-export const LIMITACAO_FALSO_PASSE = 'falso-passe-revisor';
-export const LIMITACAO_SOLUBILIDADE = 'solubilidade';
-export const LIMITACAO_ORCAMENTO_INFERIDO = 'orcamento-inferido';
-export const LIMITACAO_COMANDO_NAO_DECLARADO = 'comando-nao-declarado';
+// As limitações NOMEADAS vivem em `reportSecoes.ts` (refatoração L05) e são
+// re-exportadas pelos MESMOS nomes de antes.
+export {
+  LIMITACAO_COMANDO_NAO_DECLARADO,
+  LIMITACAO_FALSO_PASSE,
+  LIMITACAO_ORCAMENTO_INFERIDO,
+  LIMITACAO_PROVA_EXECUCAO,
+  LIMITACAO_SIMILARIDADE,
+  LIMITACAO_SOLUBILIDADE,
+  LIMITACAO_TELEMETRIA,
+} from './reportSecoes';
 
 // ---------------------------------------------------------------------------
 // O placar (§9.2 — formato do repositório)
 // ---------------------------------------------------------------------------
-
-/** `N passou · N falhou · N pendente` — o formato exato da convenção do repo. */
-export function formatarPlacar(placar: Placar): string {
-  return `${placar.passou} passou · ${placar.falhou} falhou · ${placar.pendente} pendente`;
-}
 
 function placarDoAudit(totals: AuditReport['totals']): Placar {
   return {
@@ -166,275 +178,50 @@ function placarDoAudit(totals: AuditReport['totals']): Placar {
 }
 
 // ---------------------------------------------------------------------------
-// O detector de similaridade exemplo-da-teoria × solução (Dice, determinístico)
-// ---------------------------------------------------------------------------
-
-/**
- * Remove comentários e colapsa whitespace. HEURÍSTICA DOCUMENTADA: comentários
- * de linha (`//`) são removidos quando precedidos de espaço ou início de linha
- * — `//` DENTRO de string (ex.: `'http://x'`) não é tratado aqui; para o
- * detector de cópia isto é aceitável (o custo de um falso-positivo por string
- * com `://` é nulo num relatório, e a régua é a mesma para as duas entradas).
- */
-export function normalizarCodigo(codigo: string): string {
-  return codigo
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:\w'"])[/][/][^\n]*/g, '$1 ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/**
- * Tokenização por fronteira: identificadores, números e cada caractere de
- * pontuação isolado, tudo em minúsculas. Mesma entrada → mesma lista (puro).
- */
-export function tokenizarPorFronteira(codigo: string): string[] {
-  const limpo = normalizarCodigo(codigo);
-  const tokens = limpo.match(/[A-Za-z_$][A-Za-z0-9_$]*|\d+(?:\.\d+)?|[^\sA-Za-z0-9_$]/g) ?? [];
-  return tokens.map((t) => t.toLowerCase());
-}
-
-/**
- * Coeficiente de Dice sobre os CONJUNTOS de tokens:
- * 2·|A∩B| / (|A|+|B|). `0..1`. Dois códigos sem token algum → 0 (sem evidência
- * não é acusação). Determinístico e puro.
- */
-export function similaridadeDice(a: string, b: string): number {
-  const A = new Set(tokenizarPorFronteira(a));
-  const B = new Set(tokenizarPorFronteira(b));
-  if (A.size === 0 && B.size === 0) return 0;
-  let intersecao = 0;
-  for (const token of A) if (B.has(token)) intersecao += 1;
-  return (2 * intersecao) / (A.size + B.size);
-}
-
-/** `similaridadeDice(a, b) >= LIMIAR_SIMILARIDADE_COPIA` — a acusação. */
-export function acusarCopia(exemploDaTeoria: string, solucao: string): boolean {
-  return similaridadeDice(exemploDaTeoria, solucao) >= LIMIAR_SIMILARIDADE_COPIA;
-}
-
-// ---------------------------------------------------------------------------
 // Seções derivadas do AuditReport
 // ---------------------------------------------------------------------------
 
-type ViolacaoDoReport = Report['violacoes_orcamento'][number];
-
-/** Cada violação do audit vira uma linha no formato da violação de §5.5. */
-function montarViolacoes(violations: readonly Violation[]): ViolacaoDoReport[] {
-  return violations.map((v) => ({
-    arquivo: v.arquivo,
-    campo: v.campo,
-    linha: v.linha,
-    coluna: v.coluna,
-    eixo: v.eixo,
-    construcao: v.construcao,
-    faixa: v.faixa,
-    trechoOfensor: v.trechoOfensor,
-    primeiraAulaQueEnsina: v.primeiraAulaQueEnsina,
-    mensagem: v.mensagem,
-  }));
-}
-
-/** Agrupa violações por faixa — desc por contagem, desempate alfabético. */
-function agruparPorFaixa(violations: readonly Violation[]): Array<[string, number]> {
-  const mapa = new Map<string, number>();
-  for (const v of violations) {
-    const chave = v.faixa ?? '(sem faixa)';
-    mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
-  }
-  return [...mapa.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-}
-
-/** Agrupa violações por superfície (`campo`) — mesma ordem determinística. */
-function agruparPorSuperficie(violations: readonly Violation[]): Array<[string, number]> {
-  const mapa = new Map<string, number>();
-  for (const v of violations) {
-    mapa.set(v.campo, (mapa.get(v.campo) ?? 0) + 1);
-  }
-  return [...mapa.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-}
-
-function formatarGrupos(grupos: Array<[string, number]>): string {
-  return grupos.map(([chave, n]) => `${chave}: ${n}`).join(', ') || '(nenhuma)';
-}
-
 /**
- * Cobertura (§9.2): conceitos sem aula dona = as chaves de construção que
- * NENHUMA aula ensina (violação com `construcao` e `primeiraAulaQueEnsina`
- * null — a LACUNA DE CURRÍCULO do audit); aulas sem desafio = métricas com
- * zero desafios (a relação inversa aula → desafio).
+ * Gera o relatório/placar (F12) de uma trilha. PURO e SÍNCRONO: recebe o audit
+ * e as medições prontas, devolve o `Report` validado por `ReportSchema`.
+ *
+ * Falha rápido (fail-closed, §9.3) quando a saída montada não valida — a
+ * assinatura é o contrato: se `gerarRelatorio` produzir algo que o schema
+ * rejeita, é ERRO de implementação, nunca um relatório inválido em silêncio.
  */
-function montarCobertura(audit: AuditReport): Report['cobertura'] {
-  const semDona = new Set<string>();
-  for (const v of audit.violations) {
-    if (v.construcao !== null && v.primeiraAulaQueEnsina === null) semDona.add(v.construcao);
-  }
-  return {
-    conceitos_sem_aula_dona: [...semDona].sort(),
-    aulas_sem_desafio: audit.metrics.filter((m) => m.desafios === 0).map((m) => m.ref),
-  };
-}
-
-/** O histograma que denuncia penhasco e platô (§9.2) — direto do `novas` do audit. */
-function montarDistribuicao(audit: AuditReport): Report['distribuicao_construcoes_novas'] {
-  return audit.metrics.map((m) => ({ aula: m.ref, quantidade: m.novas }));
-}
-
-/** Tokens por fase — SÓ de telemetry.jsonl (fonte única do REPLAN), soma por etapa. */
-function montarTokensPorFase(telemetria: readonly Telemetria[]): Report['tokens_por_fase'] {
-  const porEtapa = new Map<string, number>();
-  for (const linha of telemetria) {
-    const total = linha.tokensEntrada + linha.tokensSaida;
-    porEtapa.set(linha.etapa, (porEtapa.get(linha.etapa) ?? 0) + total);
-  }
-  return [...porEtapa.entries()]
-    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
-    .map(([fase, tokens]) => ({ fase, tokens }));
-}
-
-// ---------------------------------------------------------------------------
-// Comandos por seção
-// ---------------------------------------------------------------------------
-
-function comandoDaSecao(comandos: Readonly<Record<string, string>> | undefined, chaves: readonly string[]): string | undefined {
-  if (!comandos) return undefined;
-  for (const chave of chaves) {
-    const valor = comandos[chave];
-    if (typeof valor === 'string' && valor.trim() !== '') return valor;
-  }
-  return undefined;
-}
-
-// ---------------------------------------------------------------------------
-// O gerador
-// ---------------------------------------------------------------------------
-
-interface JustificativaOpts {
-  audit: AuditReport;
-  placar: Placar;
-  comando: string;
-  porFaixa: Array<[string, number]>;
-  porSuperficie: Array<[string, number]>;
-  solubilidade: MedicaoSolubilidade | null;
-  falsoPasse: MedicaoDeFalsoPasse | null;
-  linhasTelemetria: number;
-  veredito: Report['veredito'];
-  limiar: number;
-  comandos: Readonly<Record<string, string>> | undefined;
-}
-
-function montarJustificativa(o: JustificativaOpts): string {
-  const { audit, placar, comando } = o;
-  const pct = audit.totals.desafios > 0
-    ? Math.round((audit.totals.desafiosComViolacao / audit.totals.desafios) * 100)
-    : 0;
-
-  const secoes: string[] = [
-    `Trilha \`${audit.trackSlug}\`: placar ${formatarPlacar(placar)} — ${audit.totals.desafiosComViolacao} de ${audit.totals.desafios} desafio(s) com violação de orçamento (${pct}%), ${audit.totals.violacoes} violação(ões), das quais ${audit.totals.lacunasDeCurriculo} lacuna(s) de currículo. Números reproduzíveis por: \`${comando}\`.`,
-    `Agrupamento das violações — por faixa: ${formatarGrupos(o.porFaixa)}; por superfície: ${formatarGrupos(o.porSuperficie)}.`,
-  ];
-
-  // A BARRA A17–A23, quando o audit a mediu. GUARDADA por `!== undefined`
-  // porque `AuditReport.barra` é ADITIVO: um relatório montado à mão (fixture)
-  // não a tem, e escrever "0 erros de barra" sobre uma medição que não existe é
-  // a aprovação por omissão do §9.3. Só as regras COM achado entram na frase —
-  // as que deram zero estão no `audit.barra.porRegra`, e o comando abaixo as
-  // imprime todas.
-  if (o.audit.barra !== undefined) {
-    const b = o.audit.barra;
-    const porRegra = b.porRegra
-      .filter((r) => r.erros > 0)
-      .map((r) => `${r.regra} ${r.erros}`)
-      .join(' · ');
-    // A FAIXA sai do catálogo (`REGRAS_DA_BARRA`), nunca de uma string cravada:
-    // a barra ganhou A24 em 2026-09-22 e um texto fixo em "A17–A23" passaria a
-    // mentir sobre o que os números desta frase contam.
-    const avisos = b.porRegra.filter((r) => r.avisos > 0).map((r) => `${r.regra} ${r.avisos}`).join(' · ');
-    secoes.push(
-      `Barra pedagógica ${REGRAS_DA_BARRA[0]}–${REGRAS_DA_BARRA[REGRAS_DA_BARRA.length - 1]} ` +
-        `(agnóstica de linguagem, quality/barra.ts — teto do passo, primeira aula, ` +
-        `declarar-não-é-demonstrar, aula sem prova, carga de novidade, duas formas, regra do par): ` +
-        `${b.erros} erro(s)${porRegra === '' ? '' : ` (${porRegra})`} em ` +
-        `${b.aulasComErro} aula(s), ${b.avisos} aviso(s)${avisos === '' ? '' : ` (${avisos})`} e ` +
-        `${b.blocosQueNaoParseiam} bloco(s) de teoria que o parser recusa. Estes erros JÁ ESTÃO ` +
-        `contados em violações acima — não são um segundo placar. O par ` +
-        `"placar ${formatarPlacar(placar)}" × "veredito" não é contradição: o placar conta DESAFIO ` +
-        `(desafiosComViolacao) e o achado da barra é da AULA. Fonte da medição: ` +
-        `\`cd app && npm run engine -- barra ${audit.trackSlug} --limite 0\`.`,
-    );
-  }
-
-  if (o.solubilidade !== null) {
-    const s = o.solubilidade;
-    const sComando = comandoDaSecao(o.comandos, ['solubilidade']);
-    secoes.push(
-      `J3 solubilidade (aluno simulado, pass^k, §9.1): passou=${s.passou} (${s.tentativas} tentativa(s), taxa de acerto ${s.taxaDeAcerto}); primeira construção faltante: ${s.primeiraConstrucaoFaltante ?? '(nenhuma nomeável)'}${s.avisoTarefaQuebrada ? '; AVISO: 0% de acerto é sinal de tarefa quebrada, não de aluno incapaz' : ''}. Fonte da medição: ${sComando ?? '(comando reprodutor não declarado pelo caller)'}.`,
-    );
-  }
-
-  if (o.falsoPasse !== null) {
-    const f = o.falsoPasse;
-    const fComando = comandoDaSecao(o.comandos, ['falso-passe', 'falsoPasse']);
-    secoes.push(
-      `Taxa de falso-passe do revisor contra mutantes (§6.6/§9.2): ${f.taxaGeral} em ${f.frenteAMutantes} mutante(s) (${f.amostras} amostra(s)); limiar que desliga o laço: ${o.limiar}. Fonte da medição: ${fComando ?? '(comando reprodutor não declarado pelo caller)'}.`,
-    );
-  }
-
-  if (o.linhasTelemetria > 0) {
-    const tComando = comandoDaSecao(o.comandos, ['telemetria', 'tokens']);
-    secoes.push(
-      `Tokens por fase somados de telemetry.jsonl (fonte ÚNICA de tokens do REPLAN; ${o.linhasTelemetria} linha(s)). Fonte da medição: ${tComando ?? '(comando reprodutor não declarado pelo caller)'}.`,
-    );
-  }
-
-  secoes.push(
-    `Veredito: ${o.veredito} — regra determinística: reprovado quando há violações de orçamento, ou a medição J3 entregue tem pass^k falso, ou a taxa de falso-passe do revisor entregue é ≥ (1−τ)/2 = ${o.limiar} (τ = 0,10, §6.6). A prova de execução dos desafios NÃO entra neste veredito: é do G-FINAL/laço, e a checagem não executada está declarada em limitacoes[] (protocolo INT-02/P-30: o placar do audit nunca piora sem declaração — este placar é DERIVADO do audit recebido, nunca redigitado aqui).`,
+/** O veredito determinístico — reprovado por violações, J3 falsa ou falso-passe ≥ limiar. */
+function reprovadoPor(
+  audit: AuditReport,
+  solubilidade: MedicaoSolubilidade | null,
+  falsoPasse: MedicaoDeFalsoPasse | null,
+  limiar: number,
+): boolean {
+  return (
+    audit.totals.violacoes > 0 ||
+    (solubilidade !== null && !solubilidade.passou) ||
+    (falsoPasse !== null && falsoPasse.taxaGeral >= limiar)
   );
-
-  return secoes.join('\n');
 }
 
-function montarLimitacoes(opts: {
-  temTelemetria: boolean;
-  temFalsoPasse: boolean;
-  temSolubilidade: boolean;
-  orcamentoInferido: boolean;
-  secoesSemComando: string[];
-}): string[] {
-  const out: string[] = [];
-  // Ordem FIXA e estável — a suíte depende dela.
-  out.push(
-    `${LIMITACAO_PROVA_EXECUCAO}: checagem NÃO executada — a prova de execução dos desafios (solucao_passa, starter_falha, contagem_testes, stub_vazio_falha, §5.4) pertence ao G-FINAL/laço; desafios_que_falham sai vazio até a execução real.`,
-  );
-  out.push(
-    `${LIMITACAO_SIMILARIDADE}: checagem NÃO executada — a similaridade exemplo-da-teoria × solução (Dice ≥ 0.70 sobre tokens normalizados) não é calculada NESTE relatório, que não recebe os códigos das aulas; o detector determinístico (similaridadeDice/acusarCopia) roda onde o código existe (G-FINAL/CLI).`,
-  );
-  if (!opts.temTelemetria) {
-    out.push(
-      `${LIMITACAO_TELEMETRIA}: fonte de tokens AUSENTE — telemetry.jsonl não foi fornecido; tokens_por_fase sai VAZIO (REPLAN: a ÚNICA fonte de tokens é telemetry.jsonl).`,
-    );
-  }
-  if (!opts.temFalsoPasse) {
-    out.push(
-      `${LIMITACAO_FALSO_PASSE}: checagem NÃO executada — a taxa de falso-passe do revisor contra mutantes (§6.6/§9.2) não foi medida; o campo sai com zeros DECLARADOS.`,
-    );
-  }
-  if (!opts.temSolubilidade) {
-    out.push(
-      `${LIMITACAO_SOLUBILIDADE}: checagem NÃO executada — a solubilidade J3 (aluno simulado, pass^k, §9.1) não foi medida; o veredito NÃO considera J3.`,
-    );
-  }
-  for (const secao of opts.secoesSemComando) {
-    out.push(
-      `${LIMITACAO_COMANDO_NAO_DECLARADO}: ${secao} — os números desta seção estão no relatório, mas o caller não declarou o comando reprodutor (campo comandos['${secao}']).`,
-    );
-  }
-  if (opts.orcamentoInferido) {
-    out.push(
-      `${LIMITACAO_ORCAMENTO_INFERIDO}: orçamento DERIVADO por inferência (permissivo, §3.2) — todo número de violações é um PISO: o valor real é maior ou igual ao reportado.`,
-    );
-  }
-  return out;
+/** Proveniência: seções presentes sem comando declarado viram limitação. */
+function secoesSemComandoDe(
+  solubilidade: MedicaoSolubilidade | null,
+  falsoPasse: MedicaoDeFalsoPasse | null,
+  telemetria: readonly Telemetria[],
+  comandos: Readonly<Record<string, string>> | undefined,
+): string[] {
+  const secoesSemComando: string[] = [];
+  if (solubilidade !== null && comandoDaSecao(comandos, ['solubilidade']) === undefined) secoesSemComando.push('solubilidade');
+  if (falsoPasse !== null && comandoDaSecao(comandos, ['falso-passe', 'falsoPasse']) === undefined) secoesSemComando.push('falso-passe');
+  if (telemetria.length > 0 && comandoDaSecao(comandos, ['telemetria', 'tokens']) === undefined) secoesSemComando.push('telemetria');
+  return secoesSemComando;
+}
+
+/** A taxa de falso-passe do relatório — zeros DECLARADOS em limitacoes quando ausente. */
+function taxaFalsoPasseDoRelatorio(falsoPasse: MedicaoDeFalsoPasse | null): Report['taxa_falso_passe_revisor'] {
+  return falsoPasse === null
+    ? { amostras: 0, frente_a_mutantes: 0, taxa: 0 } // zeros DECLARADOS em limitacoes.
+    : { amostras: falsoPasse.amostras, frente_a_mutantes: falsoPasse.frenteAMutantes, taxa: falsoPasse.taxaGeral };
 }
 
 /**
@@ -457,20 +244,12 @@ export function gerarRelatorio(deps: DepsDoRelatorio): Report {
   const porSuperficie = agruparPorSuperficie(audit.violations);
 
   const limiar = limiarDeFalsoPasse();
-  const reprovado =
-    audit.totals.violacoes > 0 ||
-    (solubilidade !== null && !solubilidade.passou) ||
-    (falsoPasse !== null && falsoPasse.taxaGeral >= limiar);
-  const veredito: Report['veredito'] = reprovado ? 'reprovado' : 'aprovado';
+  const veredito: Report['veredito'] = reprovadoPor(audit, solubilidade, falsoPasse, limiar) ? 'reprovado' : 'aprovado';
 
   const comando =
     comandoDaSecao(comandos, ['audit', 'principal']) ?? comandoAuditPadrao(audit.trackSlug);
 
-  // Proveniência: seções presentes sem comando declarado viram limitação.
-  const secoesSemComando: string[] = [];
-  if (solubilidade !== null && comandoDaSecao(comandos, ['solubilidade']) === undefined) secoesSemComando.push('solubilidade');
-  if (falsoPasse !== null && comandoDaSecao(comandos, ['falso-passe', 'falsoPasse']) === undefined) secoesSemComando.push('falso-passe');
-  if (telemetria.length > 0 && comandoDaSecao(comandos, ['telemetria', 'tokens']) === undefined) secoesSemComando.push('telemetria');
+  const secoesSemComando = secoesSemComandoDe(solubilidade, falsoPasse, telemetria, comandos);
 
   const limitacoes = montarLimitacoes({
     temTelemetria: telemetria.length > 0,
@@ -504,10 +283,7 @@ export function gerarRelatorio(deps: DepsDoRelatorio): Report {
     cobertura: montarCobertura(audit),
     distribuicao_construcoes_novas: montarDistribuicao(audit),
     similaridade_exemplo_solucao: [], // ver limitacoes — este relatório não recebe os códigos.
-    taxa_falso_passe_revisor:
-      falsoPasse === null
-        ? { amostras: 0, frente_a_mutantes: 0, taxa: 0 } // zeros DECLARADOS em limitacoes.
-        : { amostras: falsoPasse.amostras, frente_a_mutantes: falsoPasse.frenteAMutantes, taxa: falsoPasse.taxaGeral },
+    taxa_falso_passe_revisor: taxaFalsoPasseDoRelatorio(falsoPasse),
     tokens_por_fase: montarTokensPorFase(telemetria),
     limitacoes,
     justificativa,

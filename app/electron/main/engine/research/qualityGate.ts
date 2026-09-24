@@ -94,23 +94,35 @@ export interface ResultadoDoGate {
   fontesAprovadas: TrackSourceLink[];
 }
 
+/** A URL da fonte, já aparada ('' quando não é string). */
+function urlDaFonte(f: FonteComProcedencia): string {
+  const link = f?.link;
+  return typeof link?.url === 'string' ? link.url.trim() : '';
+}
+
+/** O título da fonte, já aparado ('' quando não é string). */
+function tituloDaFonte(f: FonteComProcedencia): string {
+  return typeof f?.link.title === 'string' ? f.link.title.trim() : '';
+}
+
+/** A descrição da fonte, já aparada ('' quando não é string). */
+function descricaoDaFonte(f: FonteComProcedencia): string {
+  return typeof f?.link.description === 'string' ? f.link.description.trim() : '';
+}
+
 /**
- * O portão. PURO. Roda UMA vez, sobre a colheita CONSOLIDADA de todas as
- * camadas — não por camada: uma camada vazia é normal (a camada 2 pode não
- * achar nada sobre uma lacuna estreita), o que não pode é o conjunto vazio.
+ * As FONTES: URL citável (senão reprova), título (senão reprova), descrição
+ * (sem ela é AVISO — a Brave às vezes devolve resultado sem trecho).
  */
-export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
-  const reprovacoes: Reprovacao[] = [];
-  const avisos: Aviso[] = [];
+function avaliarFontes(
+  fontes: readonly FonteComProcedencia[],
+  reprovacoes: Reprovacao[],
+  avisos: Aviso[],
+): { fontesAprovadas: TrackSourceLink[]; urlsConhecidas: Set<string> } {
   const fontesAprovadas: TrackSourceLink[] = [];
   const urlsConhecidas = new Set<string>();
-
-  const fontes = Array.isArray(colheita?.fontes) ? colheita.fontes : [];
-  const afirmacoes = Array.isArray(colheita?.afirmacoes) ? colheita.afirmacoes : [];
-
   for (const f of fontes) {
-    const link = f?.link;
-    const url = typeof link?.url === 'string' ? link.url.trim() : '';
+    const url = urlDaFonte(f);
     if (!urlCitavel(url)) {
       reprovacoes.push({
         motivo: REPROVACOES.FONTE_SEM_URL,
@@ -119,7 +131,7 @@ export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
       });
       continue;
     }
-    const titulo = typeof link.title === 'string' ? link.title.trim() : '';
+    const titulo = tituloDaFonte(f);
     if (titulo === '') {
       reprovacoes.push({
         motivo: REPROVACOES.FONTE_SEM_TITULO,
@@ -128,7 +140,7 @@ export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
       });
       continue;
     }
-    const descricao = typeof link.description === 'string' ? link.description.trim() : '';
+    const descricao = descricaoDaFonte(f);
     if (descricao === '') {
       avisos.push({
         tipo: 'fonte-sem-descricao',
@@ -139,6 +151,94 @@ export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
     urlsConhecidas.add(url);
     fontesAprovadas.push({ title: titulo, url, description: descricao });
   }
+  return { fontesAprovadas, urlsConhecidas };
+}
+
+/** O id e o texto da afirmação, já aparados. */
+function idDeAfirmacao(a: AfirmacaoComFonte): string {
+  return typeof a?.id === 'string' && a.id.trim() !== '' ? a.id.trim() : '(sem id)';
+}
+
+/** As URLs citadas pela afirmação, só strings não-vazias. */
+function fontesDeAfirmacao(a: AfirmacaoComFonte): string[] {
+  return Array.isArray(a.fontes) ? a.fontes.map((u) => String(u ?? '').trim()).filter((u) => u !== '') : [];
+}
+
+/** Uma AFIRMACAO: texto, fonte e citação conhecida (a citação inventada é a mais grave). */
+function avaliarAfirmacao(
+  a: AfirmacaoComFonte,
+  urlsConhecidas: ReadonlySet<string>,
+  reprovacoes: Reprovacao[],
+): void {
+  const id = idDeAfirmacao(a);
+  const texto = typeof a?.texto === 'string' ? a.texto.trim() : '';
+  if (texto === '') {
+    reprovacoes.push({
+      motivo: REPROVACOES.AFIRMACAO_VAZIA,
+      alvo: id,
+      mensagem: 'afirmação sem texto',
+    });
+    return;
+  }
+  const urls = fontesDeAfirmacao(a);
+  if (urls.length === 0) {
+    reprovacoes.push({
+      motivo: REPROVACOES.AFIRMACAO_SEM_FONTE,
+      alvo: id,
+      mensagem: `afirmação órfã (sem fonte): "${texto.slice(0, 100)}"`,
+    });
+    return;
+  }
+  const desconhecidas = urls.filter((u) => !urlsConhecidas.has(u));
+  if (desconhecidas.length > 0) {
+    reprovacoes.push({
+      motivo: REPROVACOES.AFIRMACAO_COM_FONTE_DESCONHECIDA,
+      alvo: id,
+      mensagem:
+        `a afirmação cita URL que NÃO está na colheita — citação inventada: ${desconhecidas
+          .slice(0, 3)
+          .join(', ')}`,
+    });
+  }
+}
+
+/** As degradações do surf viram AVISOS declarados (nunca escondidas). */
+function avaliarDegradacoes(colheita: ColheitaParaGate, avisos: Aviso[]): void {
+  for (const d of colheita?.degradacoes ?? []) {
+    avisos.push({
+      tipo: 'surf-degradado',
+      alvo: d.stage,
+      mensagem: `etapa "${d.stage}" do surf caiu para heurística: ${d.reason}`,
+    });
+  }
+}
+
+/** `synthesized: false` também é AVISO declarado (a prosa é brief heurístico). */
+function avaliarSinteseDoSurf(colheita: ColheitaParaGate, avisos: Aviso[]): void {
+  if (colheita?.sintetizadoPeloSurf === false) {
+    avisos.push({
+      tipo: 'sintese-do-surf-ausente',
+      alvo: '(surf)',
+      mensagem:
+        'a prosa do surf é o brief heurístico dele, não síntese de LLM. Isto não invalida a colheita: ' +
+        'quem sintetiza nesta engine é o modelo do transporte único, não o surf',
+    });
+  }
+}
+
+/**
+ * O portão. PURO. Roda UMA vez, sobre a colheita CONSOLIDADA de todas as
+ * camadas — não por camada: uma camada vazia é normal (a camada 2 pode não
+ * achar nada sobre uma lacuna estreita), o que não pode é o conjunto vazio.
+ */
+export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
+  const reprovacoes: Reprovacao[] = [];
+  const avisos: Aviso[] = [];
+
+  const fontes = Array.isArray(colheita?.fontes) ? colheita.fontes : [];
+  const afirmacoes = Array.isArray(colheita?.afirmacoes) ? colheita.afirmacoes : [];
+
+  const { fontesAprovadas, urlsConhecidas } = avaliarFontes(fontes, reprovacoes, avisos);
 
   if (fontesAprovadas.length === 0) {
     reprovacoes.push({
@@ -158,55 +258,10 @@ export function portaoDeQualidade(colheita: ColheitaParaGate): ResultadoDoGate {
     });
   }
 
-  for (const a of afirmacoes) {
-    const id = typeof a?.id === 'string' && a.id.trim() !== '' ? a.id.trim() : '(sem id)';
-    const texto = typeof a?.texto === 'string' ? a.texto.trim() : '';
-    if (texto === '') {
-      reprovacoes.push({
-        motivo: REPROVACOES.AFIRMACAO_VAZIA,
-        alvo: id,
-        mensagem: 'afirmação sem texto',
-      });
-      continue;
-    }
-    const urls = Array.isArray(a.fontes) ? a.fontes.map((u) => String(u ?? '').trim()).filter((u) => u !== '') : [];
-    if (urls.length === 0) {
-      reprovacoes.push({
-        motivo: REPROVACOES.AFIRMACAO_SEM_FONTE,
-        alvo: id,
-        mensagem: `afirmação órfã (sem fonte): "${texto.slice(0, 100)}"`,
-      });
-      continue;
-    }
-    const desconhecidas = urls.filter((u) => !urlsConhecidas.has(u));
-    if (desconhecidas.length > 0) {
-      reprovacoes.push({
-        motivo: REPROVACOES.AFIRMACAO_COM_FONTE_DESCONHECIDA,
-        alvo: id,
-        mensagem:
-          `a afirmação cita URL que NÃO está na colheita — citação inventada: ${desconhecidas
-            .slice(0, 3)
-            .join(', ')}`,
-      });
-    }
-  }
+  for (const a of afirmacoes) avaliarAfirmacao(a, urlsConhecidas, reprovacoes);
 
-  for (const d of colheita?.degradacoes ?? []) {
-    avisos.push({
-      tipo: 'surf-degradado',
-      alvo: d.stage,
-      mensagem: `etapa "${d.stage}" do surf caiu para heurística: ${d.reason}`,
-    });
-  }
-  if (colheita?.sintetizadoPeloSurf === false) {
-    avisos.push({
-      tipo: 'sintese-do-surf-ausente',
-      alvo: '(surf)',
-      mensagem:
-        'a prosa do surf é o brief heurístico dele, não síntese de LLM. Isto não invalida a colheita: ' +
-        'quem sintetiza nesta engine é o modelo do transporte único, não o surf',
-    });
-  }
+  avaliarDegradacoes(colheita, avisos);
+  avaliarSinteseDoSurf(colheita, avisos);
 
   return { aprovado: reprovacoes.length === 0, reprovacoes, avisos, fontesAprovadas };
 }

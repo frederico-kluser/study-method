@@ -78,6 +78,22 @@
 import type { ExecFn } from '../exec/proofs';
 import type { Apontamento } from './actionCatalog';
 import { regraExisteNaConstituicao } from './constituicao';
+import {
+  REPRODUZIVEL_MECANICO_PREFIX,
+  R5_TIMEOUT_MS_DEFAULT,
+  r5ExigeReproducao,
+  type ResultadoDeReproducao,
+} from './filterReproducao';
+
+// Re-exportados pelos MESMOS nomes de antes (a implementação do R5 vive em
+// `filterReproducao.ts` desde a refatoração do lote L05).
+export {
+  REPRODUZIVEL_MECANICO_PREFIX,
+  R5_SHELL,
+  R5_TIMEOUT_MS_DEFAULT,
+  r5ExigeReproducao,
+} from './filterReproducao';
+export type { ResultadoDeReproducao } from './filterReproducao';
 
 // ---------------------------------------------------------------------------
 // O resultado do filtro
@@ -104,14 +120,6 @@ export const R8_TETO = 12;
 
 /** R2 (§6.4): o defeito tem de ser frase declarativa — tamanho mínimo. */
 export const TAMANHO_MINIMO_DE_DEFEITO = 10;
-
-/**
- * O prefixo que marca apontamentos MECÂNICOS (produzidos pelo verificador
- * determinístico do laço, não pelo revisor LLM). `reproduzivel_por` começa
- * com ele → R5 pula: a reprodução já aconteceu — foi o próprio verificador
- * que produziu a violação.
- */
-export const REPRODUZIVEL_MECANICO_PREFIX = 'mecanico:';
 
 // ---------------------------------------------------------------------------
 // R1 — span ausente ou irresolvível
@@ -240,86 +248,6 @@ export function r4EvidenciaVerificavel(
 }
 
 // ---------------------------------------------------------------------------
-// R5 — reproduzivel_por roda e NÃO reproduz (execução com timeout DECLARADO)
-// ---------------------------------------------------------------------------
-
-/** O resultado da checagem de reprodução do R5. */
-export type ResultadoDeReproducao =
-  | { reproduz: true }
-  | { reproduz: false; razao: 'nao_reproduziu' }
-  | { reproduz: false; razao: 'falhou_ao_rodar'; erro: string };
-
-/** Teto DEFAULT de tempo para o comando de reprodução do revisor. */
-export const R5_TIMEOUT_MS_DEFAULT = 30_000;
-
-/** O comando arbitrário do revisor roda como `sh -c <comando>` (declarado). */
-export const R5_SHELL = 'sh';
-
-/**
- * R5 — `reproduzivel_por` RODA e NÃO reproduz → descarta (§6.4).
- *
- * Proxy de "reproduz": exit code ≠ 0 (o comando reportou o defeito) OU a
- * saída combinada menciona o token acusador (`alvo.token`). Exit 0 sem o
- * token → o comando rodou limpo → NÃO reproduziu.
- *
- * EXCEÇÃO (fail-closed): exit 126/127 — comando NÃO ENCONTRADO (127) ou NÃO
- * EXECUTÁVEL (126) — é DESCARTADO igual ao comando que não rodou: sem
- * execução não existe evidência de reprodução, e um exit de ambiente NUNCA é
- * o comando "reportando o defeito". Outros exit ≠ 0 seguem como reprodução.
- *
- * Execução com timeout e endurecimento: o `exec` INJETADO é o ExecFn que o
- * chamador compõe com `createHardenedExec` (exec/harness.ts — SEM_EXEC,
- * proxies removidos, `NO_PROXY=*`, `NODE_OPTIONS` removido). SEM executor
- * configurado, a acusação é NÃO verificável → fail-closed: `falhou_ao_rodar`.
- *
- * LIMITE DECLARADO: o endurecimento cobre tráfego via proxy e TLS, mas não
- * bloqueia socket cru (TCP/UDP) — o corte de rede de verdade exige wrapper
- * de SO (`NETWORK_HARDENING.wrapperCommand`, exec/harness.ts).
- */
-export async function r5ExigeReproducao(
-  apontamento: Apontamento,
-  exec: ExecFn | undefined,
-  timeoutMs: number,
-): Promise<ResultadoDeReproducao> {
-  const comando = apontamento.evidencia.reproduzivel_por.trim();
-  if (comando.startsWith(REPRODUZIVEL_MECANICO_PREFIX)) {
-    // Apontamento do VERIFICADOR determinístico: a reprodução já aconteceu —
-    // foi o verificador que produziu a violação. R5 pula por construção.
-    return { reproduz: true };
-  }
-  if (exec === undefined) {
-    return {
-      reproduz: false,
-      razao: 'falhou_ao_rodar',
-      erro: 'sem executor de reprodução configurado (R5 não verificável — fail-closed)',
-    };
-  }
-  try {
-    const resultado = await exec(process.cwd(), [R5_SHELL, '-c', comando], { timeoutMs });
-    const saida = `${resultado.stdout}\n${resultado.stderr}`;
-    if (resultado.exitCode === 126 || resultado.exitCode === 127) {
-      // O comando NÃO RODOU (não encontrado / não executável): sem execução,
-      // sem evidência de reprodução — o exit denuncia o AMBIENTE, não o
-      // defeito. Fail-closed: descarta a acusação, nunca a "reproduz".
-      return {
-        reproduz: false,
-        razao: 'falhou_ao_rodar',
-        erro: `comando não encontrado ou não executável (exit ${resultado.exitCode}) — sem evidência de reprodução (fail-closed)`,
-      };
-    }
-    if (resultado.exitCode !== 0) return { reproduz: true };
-    if (saida.includes(apontamento.alvo.token)) return { reproduz: true };
-    return { reproduz: false, razao: 'nao_reproduziu' };
-  } catch (erro) {
-    return {
-      reproduz: false,
-      razao: 'falhou_ao_rodar',
-      erro: erro instanceof Error ? erro.message : String(erro),
-    };
-  }
-}
-
-// ---------------------------------------------------------------------------
 // R6 — regra_violada fora da constituição C1–C8
 // ---------------------------------------------------------------------------
 
@@ -404,6 +332,101 @@ function detalheDoDescarte(motivo: MotivoDeDescarte, extra: string): string {
   return `[${motivo}] ${extra}`;
 }
 
+/** O detalhe do R1: artefato inexistente nomeia o caminho; senão, o tamanho. */
+function detalheDeR1(apontamento: Apontamento, conteudo: string | null): string {
+  return conteudo === null
+    ? `artefato "${apontamento.alvo.caminho}" não existe no contexto — o span [${apontamento.alvo.span[0]}, ${apontamento.alvo.span[1]}] é irresolvível`
+    : `span [${apontamento.alvo.span[0]}, ${apontamento.alvo.span[1]}] irresolvível no artefato (${conteudo.length} caracteres)`;
+}
+
+/** O detalhe do R5: "rodou e não reproduziu" × "não pôde ser executado" (fail-closed). */
+function detalheDeR5(apontamento: Apontamento, reproducao: Extract<ResultadoDeReproducao, { reproduz: false }>): string {
+  return reproducao.razao === 'nao_reproduziu'
+    ? `"${apontamento.evidencia.reproduzivel_por}" rodou e NÃO reproduziu (exit 0 sem o token "${apontamento.alvo.token}")`
+    : `"${apontamento.evidencia.reproduzivel_por}" não pôde ser executado: ${reproducao.erro} (fail-closed)`;
+}
+
+/**
+ * As regras R1→R7 para UM apontamento, na ORDEM do §6.4. O PRIMEIRO motivo
+ * que descarta vence (um apontamento pode violar várias regras; o motivo
+ * registrado é o primeiro da ordem). Devolve `null` quando o apontamento
+ * sobrevive.
+ */
+async function classificarApontamento(
+  apontamento: Apontamento,
+  ctx: ContextoDoFiltro,
+  timeoutMs: number,
+): Promise<{ motivo: MotivoDeDescarte; detalhe: string } | null> {
+  const conteudo = ctx.obterConteudo(apontamento.alvo.caminho);
+
+  // R1 — span ausente/irresolvível. Artefato inexistente também (onde
+  // verificar a evidência? o span nem sequer resolve a um arquivo).
+  if (!r1SpanResoluvel(apontamento, conteudo)) {
+    return { motivo: 'R1', detalhe: detalheDeR1(apontamento, conteudo) };
+  }
+  const artefato = conteudo as string;
+
+  // R2 — o defeito não é frase declarativa.
+  if (!r2FraseDeclarativa(apontamento)) {
+    return {
+      motivo: 'R2',
+      detalhe: `defeito "${apontamento.defeito.trim()}" não é frase declarativa (≥${TAMANHO_MINIMO_DE_DEFEITO} caracteres, terminando em ".") — proxy determinístico do §6.4`,
+    };
+  }
+
+  // R3 — não pede mudança (pergunta ou elogio).
+  if (!r3PedeMudanca(apontamento)) {
+    return { motivo: 'R3', detalhe: `defeito "${apontamento.defeito.trim()}" não pede mudança (pergunta ou elogio)` };
+  }
+
+  // R4 — evidência fora do span e fora do orçamento (substring no artefato).
+  const naoVerificaveis = r4FragmentosNaoVerificaveis(apontamento, artefato, ctx.orcamento);
+  if (naoVerificaveis.length > 0) {
+    const descricoes = naoVerificaveis
+      .map(
+        (n) =>
+          `"${n.fragmento}" ${n.motivo === 'fora_do_artefato' ? 'não existe no artefato (substring)' : 'fora do span e fora do orçamento'}`,
+      )
+      .join('; ');
+    return { motivo: 'R4', detalhe: `evidência cita fragmento não verificável: ${descricoes}` };
+  }
+
+  // R5 — reproduzivel_por roda e não reproduz (execução com timeout).
+  const reproducao = await r5ExigeReproducao(apontamento, ctx.exec, timeoutMs);
+  if (!reproducao.reproduz) {
+    return { motivo: 'R5', detalhe: detalheDeR5(apontamento, reproducao) };
+  }
+
+  // R6 — regra_violada fora da constituição C1–C8.
+  if (!r6RegraNaConstituicao(apontamento)) {
+    return {
+      motivo: 'R6',
+      detalhe: `regra_violada "${apontamento.regra_violada}" não existe na constituição C1–C8 (catálogo fechado — review/constituicao.ts)`,
+    };
+  }
+
+  // R7 — categoria estilo com correção aberta.
+  if (!r7SemCorrecaoAberta(apontamento)) {
+    return {
+      motivo: 'R7',
+      detalhe: `categoria estilo com correção aberta em acao_sugerida ("${apontamento.acao_sugerida}") — o revisor não escreve código (§7.2)`,
+    };
+  }
+
+  return null;
+}
+
+/** Agrupa os sobreviventes por caminho do alvo (a ordem de chegada vira ordem de grupo). */
+function agruparPorCaminho(sobreviventes: readonly Apontamento[]): Map<string, Apontamento[]> {
+  const porArtefato = new Map<string, Apontamento[]>();
+  for (const s of sobreviventes) {
+    const lista = porArtefato.get(s.alvo.caminho) ?? [];
+    lista.push(s);
+    porArtefato.set(s.alvo.caminho, lista);
+  }
+  return porArtefato;
+}
+
 /**
  * A bateria R1→R8, na ORDEM do §6.4. O PRIMEIRO motivo que descarta vence;
  * R8 trunca no fim (por artefato). `filtrarApontamentos` é síncrona exceto
@@ -424,82 +447,15 @@ export async function filtrarApontamentos(
   };
 
   for (const apontamento of apontamentos) {
-    const conteudo = ctx.obterConteudo(apontamento.alvo.caminho);
-
-    // R1 — span ausente/irresolvível. Artefato inexistente também (onde
-    // verificar a evidência? o span nem sequer resolve a um arquivo).
-    if (!r1SpanResoluvel(apontamento, conteudo)) {
-      const razao =
-        conteudo === null
-          ? `artefato "${apontamento.alvo.caminho}" não existe no contexto — o span [${apontamento.alvo.span[0]}, ${apontamento.alvo.span[1]}] é irresolvível`
-          : `span [${apontamento.alvo.span[0]}, ${apontamento.alvo.span[1]}] irresolvível no artefato (${conteudo.length} caracteres)`;
-      descartar(apontamento, 'R1', razao);
-      continue;
-    }
-    const artefato = conteudo as string;
-
-    // R2 — o defeito não é frase declarativa.
-    if (!r2FraseDeclarativa(apontamento)) {
-      descartar(apontamento, 'R2', `defeito "${apontamento.defeito.trim()}" não é frase declarativa (≥${TAMANHO_MINIMO_DE_DEFEITO} caracteres, terminando em ".") — proxy determinístico do §6.4`);
-      continue;
-    }
-
-    // R3 — não pede mudança (pergunta ou elogio).
-    if (!r3PedeMudanca(apontamento)) {
-      descartar(apontamento, 'R3', `defeito "${apontamento.defeito.trim()}" não pede mudança (pergunta ou elogio)`);
-      continue;
-    }
-
-    // R4 — evidência fora do span e fora do orçamento (substring no artefato).
-    const naoVerificaveis = r4FragmentosNaoVerificaveis(apontamento, artefato, ctx.orcamento);
-    if (naoVerificaveis.length > 0) {
-      const descricoes = naoVerificaveis
-        .map(
-          (n) =>
-            `"${n.fragmento}" ${n.motivo === 'fora_do_artefato' ? 'não existe no artefato (substring)' : 'fora do span e fora do orçamento'}`,
-        )
-        .join('; ');
-      descartar(apontamento, 'R4', `evidência cita fragmento não verificável: ${descricoes}`);
-      continue;
-    }
-
-    // R5 — reproduzivel_por roda e não reproduz (execução com timeout).
-    const reproducao = await r5ExigeReproducao(apontamento, ctx.exec, timeoutMs);
-    if (!reproducao.reproduz) {
-      descartar(
-        apontamento,
-        'R5',
-        reproducao.razao === 'nao_reproduziu'
-          ? `"${apontamento.evidencia.reproduzivel_por}" rodou e NÃO reproduziu (exit 0 sem o token "${apontamento.alvo.token}")`
-          : `"${apontamento.evidencia.reproduzivel_por}" não pôde ser executado: ${reproducao.erro} (fail-closed)`,
-      );
-      continue;
-    }
-
-    // R6 — regra_violada fora da constituição C1–C8.
-    if (!r6RegraNaConstituicao(apontamento)) {
-      descartar(apontamento, 'R6', `regra_violada "${apontamento.regra_violada}" não existe na constituição C1–C8 (catálogo fechado — review/constituicao.ts)`);
-      continue;
-    }
-
-    // R7 — categoria estilo com correção aberta.
-    if (!r7SemCorrecaoAberta(apontamento)) {
-      descartar(apontamento, 'R7', `categoria estilo com correção aberta em acao_sugerida ("${apontamento.acao_sugerida}") — o revisor não escreve código (§7.2)`);
-      continue;
-    }
-
-    sobreviventes.push(apontamento);
+    const classificacao = await classificarApontamento(apontamento, ctx, timeoutMs);
+    if (classificacao !== null) descartar(apontamento, classificacao.motivo, classificacao.detalhe);
+    else sobreviventes.push(apontamento);
   }
 
   // R8 — mais de 12 apontamentos no mesmo artefato → trunca por severidade.
   // A exclusão dos truncados é por artefato: mantém os 12 mais graves de cada
   // caminho (o teto do §6.4 é "no mesmo artefato").
-  const porArtefato = new Map<string, Apontamento[]>();
-  for (const s of sobreviventes) {
-    const lista = porArtefato.get(s.alvo.caminho) ?? [];
-    lista.push(s);
-    porArtefato.set(s.alvo.caminho, lista);
-  }
+  const porArtefato = agruparPorCaminho(sobreviventes);
   const finais: Apontamento[] = [];
   for (const [caminho, lista] of porArtefato) {
     const { mantidos, truncados } = r8TruncaPorSeveridade(lista, teto);

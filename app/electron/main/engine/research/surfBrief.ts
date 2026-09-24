@@ -136,19 +136,8 @@ const CAMPOS_TEXTO: readonly (keyof ContextoDaTrilha)[] = [
   'objetivo',
 ];
 
-/**
- * Valida o contexto. Lança `PesquisaError` CONTEXTO_INVALIDO (campo vazio) ou
- * IMPERATIVO_DE_PROFUNDIDADE (anti-padrão reintroduzido). Nunca "conserta"
- * campo faltando com default — brief genérico é o defeito que este módulo
- * existe para evitar.
- */
-export function validarContexto(ctx: ContextoDaTrilha): void {
-  if (typeof ctx !== 'object' || ctx === null) {
-    throw new PesquisaError({
-      code: PESQUISA_CODES.CONTEXTO_INVALIDO,
-      message: 'contexto da trilha ausente — sem contexto o brief sai genérico e a pesquisa não serve',
-    });
-  }
+/** Os campos de texto obrigatórios, um a um (campo vazio é fail-closed). */
+function validarCamposDeTexto(ctx: ContextoDaTrilha): void {
   for (const campo of CAMPOS_TEXTO) {
     const valor = ctx[campo];
     if (typeof valor !== 'string' || valor.trim() === '') {
@@ -159,16 +148,10 @@ export function validarContexto(ctx: ContextoDaTrilha): void {
       });
     }
   }
-  if (!Array.isArray(ctx.jaEnsinado)) {
-    throw new PesquisaError({
-      code: PESQUISA_CODES.CONTEXTO_INVALIDO,
-      message: '`jaEnsinado` tem que ser um array (vazio é válido: primeira unidade da trilha)',
-    });
-  }
-  const textos = [
-    ...CAMPOS_TEXTO.map((c) => String(ctx[c])),
-    ...ctx.jaEnsinado.filter((x) => typeof x === 'string'),
-  ];
+}
+
+/** Nenhum texto do contexto pode carregar o anti-padrão (fail-closed). */
+function rejeitarImperativos(textos: readonly string[]): void {
   for (const t of textos) {
     if (contemImperativoDeProfundidade(t)) {
       throw new PesquisaError({
@@ -182,6 +165,32 @@ export function validarContexto(ctx: ContextoDaTrilha): void {
   }
 }
 
+/**
+ * Valida o contexto. Lança `PesquisaError` CONTEXTO_INVALIDO (campo vazio) ou
+ * IMPERATIVO_DE_PROFUNDIDADE (anti-padrão reintroduzido). Nunca "conserta"
+ * campo faltando com default — brief genérico é o defeito que este módulo
+ * existe para evitar.
+ */
+export function validarContexto(ctx: ContextoDaTrilha): void {
+  if (typeof ctx !== 'object' || ctx === null) {
+    throw new PesquisaError({
+      code: PESQUISA_CODES.CONTEXTO_INVALIDO,
+      message: 'contexto da trilha ausente — sem contexto o brief sai genérico e a pesquisa não serve',
+    });
+  }
+  validarCamposDeTexto(ctx);
+  if (!Array.isArray(ctx.jaEnsinado)) {
+    throw new PesquisaError({
+      code: PESQUISA_CODES.CONTEXTO_INVALIDO,
+      message: '`jaEnsinado` tem que ser um array (vazio é válido: primeira unidade da trilha)',
+    });
+  }
+  rejeitarImperativos([
+    ...CAMPOS_TEXTO.map((c) => String(ctx[c])),
+    ...ctx.jaEnsinado.filter((x) => typeof x === 'string'),
+  ]);
+}
+
 // ─── montagem do brief ──────────────────────────────────────────────────────
 
 function listaCurta(itens: string[], teto: number): string {
@@ -193,6 +202,35 @@ function listaCurta(itens: string[], teto: number): string {
 
 /** Quantos itens de `jaEnsinado` cabem no `--insights` sem virar parede de texto. */
 export const TETO_ITENS_JA_ENSINADO = 12;
+
+/** A linha do `--insights` comum às duas camadas (primeira unidade × histórico). */
+function insightsBaseDe(jaEnsinado: string): string {
+  return jaEnsinado === ''
+    ? 'esta é a PRIMEIRA unidade da trilha: o leitor ainda não viu nada da linguagem, ' +
+      'então qualquer conteúdo que pressuponha conhecimento anterior está fora'
+    : `o currículo já ensinou, nesta ordem: ${jaEnsinado}. ` +
+      'Conteúdo já coberto não é achado novo; o que interessa é o que ainda não foi ensinado';
+}
+
+/** A lacuna alvo da camada de aprofundamento, validada (fail-closed). */
+function validarAlvoDeAprofundamento(alvo: Lacuna | undefined): Lacuna {
+  if (!alvo || typeof alvo.pergunta !== 'string' || alvo.pergunta.trim() === '') {
+    throw new PesquisaError({
+      code: PESQUISA_CODES.CONFIG_INVALIDA,
+      message:
+        'camada de aprofundamento sem lacuna alvo — uma camada N>1 ataca UMA lacuna nomeada, ' +
+        'nunca repete a busca da camada anterior mais larga',
+    });
+  }
+  if (contemImperativoDeProfundidade(alvo.pergunta) || contemImperativoDeProfundidade(alvo.porque ?? '')) {
+    throw new PesquisaError({
+      code: PESQUISA_CODES.IMPERATIVO_DE_PROFUNDIDADE,
+      message: 'a lacuna carrega o imperativo de profundidade no texto — profundidade é parâmetro, não prompt',
+      details: { lacuna: alvo.id },
+    });
+  }
+  return alvo;
+}
 
 /**
  * Monta o brief a partir do contexto. `alvo` só é usado — e é OBRIGATÓRIO —
@@ -212,12 +250,7 @@ export function montarBrief(
     `escrevendo a unidade "${ctx.unidade}" de uma trilha de ${ctx.linguagem} sobre ${ctx.tema}, ` +
     `para ${ctx.publico}; o material sai em ${idioma} e cada afirmação dele precisa citar a fonte de onde veio`;
 
-  const insightsBase =
-    jaEnsinado === ''
-      ? 'esta é a PRIMEIRA unidade da trilha: o leitor ainda não viu nada da linguagem, ' +
-        'então qualquer conteúdo que pressuponha conhecimento anterior está fora'
-      : `o currículo já ensinou, nesta ordem: ${jaEnsinado}. ` +
-        'Conteúdo já coberto não é achado novo; o que interessa é o que ainda não foi ensinado';
+  const insightsBase = insightsBaseDe(jaEnsinado);
 
   if (camada === 'levantamento') {
     return {
@@ -235,28 +268,14 @@ export function montarBrief(
     };
   }
 
-  if (!alvo || typeof alvo.pergunta !== 'string' || alvo.pergunta.trim() === '') {
-    throw new PesquisaError({
-      code: PESQUISA_CODES.CONFIG_INVALIDA,
-      message:
-        'camada de aprofundamento sem lacuna alvo — uma camada N>1 ataca UMA lacuna nomeada, ' +
-        'nunca repete a busca da camada anterior mais larga',
-    });
-  }
-  if (contemImperativoDeProfundidade(alvo.pergunta) || contemImperativoDeProfundidade(alvo.porque ?? '')) {
-    throw new PesquisaError({
-      code: PESQUISA_CODES.IMPERATIVO_DE_PROFUNDIDADE,
-      message: 'a lacuna carrega o imperativo de profundidade no texto — profundidade é parâmetro, não prompt',
-      details: { lacuna: alvo.id },
-    });
-  }
+  const lacuna = validarAlvoDeAprofundamento(alvo);
 
   return {
-    question: alvo.pergunta.trim(),
+    question: lacuna.pergunta.trim(),
     task,
     goal:
       `fechar UMA lacuna que a camada anterior deixou aberta na unidade "${ctx.unidade}": ` +
-      `${alvo.porque?.trim() || 'a camada anterior não achou evidência suficiente sobre isto'}`,
+      `${lacuna.porque?.trim() || 'a camada anterior não achou evidência suficiente sobre isto'}`,
     insights:
       `${insightsBase}. A camada anterior já cobriu o panorama de "${ctx.unidade}" — ` +
       'repetir a busca larga não acrescenta nada; o que falta é evidência específica sobre esta lacuna',
@@ -297,50 +316,61 @@ export interface OpcoesDoComando {
   binario?: string;
 }
 
-/**
- * Brief + opções → argv. `--json` é SEMPRE passado: sem ele a saída é markdown
- * e a procedência viraria texto para regex. `--quiet` NÃO é passado de
- * propósito: o stderr do surf é onde ele explica, em tempo real, uma etapa
- * degradada, e essa explicação vai para os `details` do erro estruturado.
- */
-export function montarArgv(brief: BriefDoSurf, opcoes: OpcoesDoComando): { bin: string; args: string[] } {
+/** O brief tem pergunta não-vazia (senão o surf recusaria com exit 2). */
+function validarBrief(brief: BriefDoSurf): void {
   if (!brief || typeof brief.question !== 'string' || brief.question.trim() === '') {
     throw new PesquisaError({
       code: PESQUISA_CODES.CONFIG_INVALIDA,
       message: 'brief sem pergunta — o surf recusaria com exit 2 (usage)',
     });
   }
-  if (!Number.isInteger(opcoes.subAgents) || opcoes.subAgents < 1 || opcoes.subAgents > MAX_SUB_AGENTS) {
+}
+
+/** `--sub-agents` na faixa que o surf aceita. */
+function validarSubAgents(subAgents: number): void {
+  if (!Number.isInteger(subAgents) || subAgents < 1 || subAgents > MAX_SUB_AGENTS) {
     throw new PesquisaError({
       code: PESQUISA_CODES.CONFIG_INVALIDA,
       message: `subAgents fora de 1..${MAX_SUB_AGENTS} (o surf recusa com exit 2)`,
-      details: { subAgents: opcoes.subAgents },
+      details: { subAgents },
     });
   }
-  if (opcoes.maxDepth !== undefined) {
-    if (!Number.isInteger(opcoes.maxDepth) || opcoes.maxDepth < 1 || opcoes.maxDepth > MAX_DEPTH) {
+}
+
+/** `--max-depth`, quando presente, na faixa que o surf aceita. */
+function validarMaxDepth(maxDepth: number | undefined): void {
+  if (maxDepth !== undefined) {
+    if (!Number.isInteger(maxDepth) || maxDepth < 1 || maxDepth > MAX_DEPTH) {
       throw new PesquisaError({
         code: PESQUISA_CODES.CONFIG_INVALIDA,
         message: `maxDepth fora de 1..${MAX_DEPTH}`,
-        details: { maxDepth: opcoes.maxDepth },
+        details: { maxDepth },
       });
     }
   }
-  if (opcoes.maxRounds !== undefined) {
-    if (opcoes.ferramenta !== 'unlimit') {
+}
+
+/** `--max-rounds` só existe no `unlimit`, e na faixa que o surf aceita. */
+function validarMaxRounds(maxRounds: number | undefined, ferramenta: FerramentaDoSurf): void {
+  if (maxRounds !== undefined) {
+    if (ferramenta !== 'unlimit') {
       throw new PesquisaError({
         code: PESQUISA_CODES.CONFIG_INVALIDA,
         message: '`--max-rounds` só existe no surf-search-unlimit (o normal roda UMA onda por design)',
       });
     }
-    if (!Number.isInteger(opcoes.maxRounds) || opcoes.maxRounds < 1 || opcoes.maxRounds > MAX_ROUNDS) {
+    if (!Number.isInteger(maxRounds) || maxRounds < 1 || maxRounds > MAX_ROUNDS) {
       throw new PesquisaError({
         code: PESQUISA_CODES.CONFIG_INVALIDA,
         message: `maxRounds fora de 1..${MAX_ROUNDS}`,
-        details: { maxRounds: opcoes.maxRounds },
+        details: { maxRounds },
       });
     }
   }
+}
+
+/** Nenhum dos cinco campos do brief carrega o imperativo de profundidade. */
+function validarImperativosDoBrief(brief: BriefDoSurf): void {
   const texto = [brief.question, brief.task, brief.goal, brief.insights, brief.deliverable];
   for (const t of texto) {
     if (contemImperativoDeProfundidade(t)) {
@@ -351,6 +381,20 @@ export function montarArgv(brief: BriefDoSurf, opcoes: OpcoesDoComando): { bin: 
       });
     }
   }
+}
+
+/**
+ * Brief + opções → argv. `--json` é SEMPRE passado: sem ele a saída é markdown
+ * e a procedência viraria texto para regex. `--quiet` NÃO é passado de
+ * propósito: o stderr do surf é onde ele explica, em tempo real, uma etapa
+ * degradada, e essa explicação vai para os `details` do erro estruturado.
+ */
+export function montarArgv(brief: BriefDoSurf, opcoes: OpcoesDoComando): { bin: string; args: string[] } {
+  validarBrief(brief);
+  validarSubAgents(opcoes.subAgents);
+  validarMaxDepth(opcoes.maxDepth);
+  validarMaxRounds(opcoes.maxRounds, opcoes.ferramenta);
+  validarImperativosDoBrief(brief);
 
   const args = [
     brief.question,
