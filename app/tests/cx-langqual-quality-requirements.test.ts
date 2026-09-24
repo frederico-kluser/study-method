@@ -114,16 +114,26 @@ describe('requirements — (1) derivação JS: um requirement por test(), com o 
     assert.ok(atoms.includes('node:NumericLiteral'));
   });
 
-  it('função que NÃO está na solução cai no fallback: átomos do trecho do assert (determinístico)', () => {
+  it('função que NÃO está na solução cai no fallback: a lista EXATA de átomos do trecho do assert', () => {
     const r = derivarRequirements(
       "test('usa f', () => { assert.equal(f(1), 2); });",
       'export function outra() { return 1; }\n',
       '',
     );
-    const atoms = r.cobertura[0].atoms;
-    for (const esperada of ['api:assert.equal', 'node:CallExpression', 'node:NumericLiteral']) {
-      assert.ok(atoms.includes(esperada), `fallback sem ${esperada}`);
-    }
+    // O pin era sub-pinado (só `includes` de 3 chaves sobre as 7 produzidas —
+    // `node:EndOfFileToken` etc. estavam livres para mudar em silêncio). A
+    // lista abaixo é a EXATA produzida pelo fallback (`atomsDoTrechoDoAssert`,
+    // sorted + únicos): qualquer chave a mais, a menos ou trocada — e qualquer
+    // troca de ordem — vira teste vermelho. Decisão registrada no lote L04.
+    assert.deepEqual(r.cobertura[0].atoms, [
+      'api:assert.equal',
+      'node:CallExpression',
+      'node:EndOfFileToken',
+      'node:ExpressionStatement',
+      'node:Identifier',
+      'node:NumericLiteral',
+      'node:PropertyAccessExpression',
+    ]);
   });
 });
 

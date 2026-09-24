@@ -749,7 +749,11 @@ const SITES_DE_TESTSCODE_COM_SURFACE = [
   // desafio de MÓDULO (`auditModulo.ts`).
   'electron/main/engine/auditAula.ts#code', // superfícies do desafio de aula (A2/A3)
   'electron/main/engine/auditModulo.ts#code', // superfícies do desafio de módulo (A2/A3)
-  'electron/main/engine/quality/progressao.ts#desafio.tests', // A13c lê o teste
+  // Refatoração L04 (qualidade): a A13c saiu de `quality/progressao.ts` para
+  // `quality/progressaoRegras.ts` (o caminho público virou fachada). O site é
+  // o MESMO — `desafio.tests` com `surface: 'testsCode'` — e continua sendo o
+  // único da bateria A13–A16 a ler o teste.
+  'electron/main/engine/quality/progressaoRegras.ts#desafio.tests', // A13c lê o teste
 ];
 
 /**
@@ -770,7 +774,9 @@ const SITES_DE_TESTSCODE_COM_SURFACE = [
  * ("declarar não é demonstrar") reprovaria a aula correta.
  */
 const SITES_DE_TEORIA_COM_SURFACE = [
-  'electron/main/engine/quality/barra.ts#bloco.code', // Demo(i) da barra A17–A23
+  // Refatoração L04 (qualidade): a Demo(i) da barra saiu de `quality/barra.ts`
+  // para `quality/barraDemo.ts` (fachada). O site é o mesmo.
+  'electron/main/engine/quality/barraDemo.ts#bloco.code', // Demo(i) da barra A17–A23
   'electron/main/engine/modes/convergencia.ts#bloco.code', // posicoesDasChaves (ordem dos grupos na quebra)
 ];
 
@@ -786,19 +792,30 @@ const ISENTOS_COM_LANGUAGE: Record<string, string> = {
   'electron/main/engine/auditSuperficies.ts#s.code': 'starterCode — o starter de C parseia standalone (a macro é do testsCode)',
   'electron/main/engine/budget.ts#block.code': 'teoria — bloco cercado parseia standalone',
   'electron/main/engine/modes/curriculumGap.ts#bloco.codigo': 'teoria da aula nova (A4 do laço)',
-  'electron/main/engine/quality/discriminacao.ts#desafio.solutionCode': 'solutionCode parseia standalone',
-  'electron/main/engine/quality/minimalPython.ts#candidato': 'minimal Python (solutionCode), guarda própria',
-  'electron/main/engine/quality/minimalC.ts#candidato': 'minimal C (solutionCode sintetizado, parseia standalone), guarda própria',
+  // Refatoração L04 (qualidade): os call-sites de `engine/quality/*` mudaram de
+  // arquivo (cada caminho público virou fachada fina e a implementação foi para
+  // módulos irmãos). As CHAVES acompanham os novos caminhos; as RAZÕES são as
+  // mesmas de antes — nenhum call-site mudou de superfície, de linguagem ou de
+  // argumento, só de arquivo.
+  'electron/main/engine/quality/discriminacaoAvaliacao.ts#desafio.solutionCode': 'solutionCode parseia standalone',
+  'electron/main/engine/quality/minimalPythonSintese.ts#candidato': 'minimal Python (solutionCode), guarda própria',
+  'electron/main/engine/quality/minimalCSintese.ts#candidato': 'minimal C (solutionCode sintetizado, parseia standalone), guarda própria',
   // PRÉ-EXISTENTE, registrado em 2026-09-22: `minimalRust.ts` entrou com o
   // adaptador de Rust (commit c6621212) e este catálogo não acompanhou — o
   // check estava VERMELHO desde então, apesar da mensagem daquele commit
-  // ("suíte 4818 testes 0 falhas"). A razão é a mesma dos dois irmãos.
-  'electron/main/engine/quality/minimalRust.ts#candidato': 'minimal Rust (solutionCode sintetizado, parseia standalone), guarda própria',
-  'electron/main/engine/quality/progressao.ts#arquivo.solution': 'solutionCode da bateria (javascript-only)',
-  'electron/main/engine/quality/progressao.ts#arquivo.starter': 'starterCode da bateria (javascript-only)',
-  'electron/main/engine/quality/progressao.ts#codigo': 'teoria (demoDaAula) — bloco cercado parseia standalone',
-  'electron/main/engine/quality/requirements.ts#solutionCode': 'solutionCode para cobertura de requirements',
-  'electron/main/engine/quality/requirements.ts#trecho': 'trecho do assert Python (fallback declarado)',
+  // ("suíte 4818 testes 0 falhas"). A razão é a mesma dos dois irmãos. (L04: o
+  // site mudou para `minimalRustSintese.ts`.)
+  'electron/main/engine/quality/minimalRustSintese.ts#candidato': 'minimal Rust (solutionCode sintetizado, parseia standalone), guarda própria',
+  'electron/main/engine/quality/progressaoRegras.ts#arquivo.solution': 'solutionCode da bateria (javascript-only)',
+  'electron/main/engine/quality/progressaoRegras.ts#arquivo.starter': 'starterCode da bateria (javascript-only)',
+  'electron/main/engine/quality/progressaoRegrasAvanco.ts#arquivo.solution': 'solutionCode da bateria (javascript-only) — A15/A16',
+  'electron/main/engine/quality/progressaoRegrasAvanco.ts#arquivo.starter': 'starterCode da bateria (javascript-only) — A15/A16',
+  'electron/main/engine/quality/progressaoDemo.ts#codigo': 'teoria (demoDaAula) — bloco cercado parseia standalone',
+  'electron/main/engine/quality/requirementsC.ts#solutionCode': 'solutionCode para cobertura de requirements',
+  'electron/main/engine/quality/requirementsPy.ts#solutionCode': 'solutionCode para cobertura de requirements',
+  'electron/main/engine/quality/requirementsRust.ts#solutionCode': 'solutionCode para cobertura de requirements',
+  'electron/main/engine/quality/requirementsPy.ts#trecho': 'trecho do assert Python (fallback declarado)',
+  'electron/main/engine/quality/requirementsRust.ts#trecho': 'trecho do assert Rust (fallback declarado)',
 };
 
 describe('audit C — o catálogo dos call-sites de extração (nenhum testsCode sem surface)', () => {
