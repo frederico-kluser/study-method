@@ -199,10 +199,22 @@ export const C_PY_BINARIOS: readonly string[] = ['python3', 'python'];
  */
 export const C_RUNNER_BINARY = 'sh';
 
-/** `Apple clang version 17.0.0 …` → `17.0.0`. Aceita stdout OU stderr. */
+/**
+ * `Apple clang version 17.0.0 …` → `17.0.0`; `cc (GCC) 16.2.1 20260810` →
+ * `16.2.1`. Aceita stdout OU stderr e as DUAS famílias de banner: a do clang
+ * (que traz a palavra `version`) e a do gcc (que NÃO a traz — a versão do
+ * compilador é o `N.N[.N]` depois do parêntese do vendor: p.ex.
+ * `gcc (Debian 12.2.0-14) 12.2.0`). Sem a segunda família, uma máquina cujo
+ * `cc`/`gcc` responde primeiro ficava com `version: null` em `detect()`
+ * apesar de `ok: true` — e a versão é membro do contrato `detect()`
+ * (`docs/research/08-multilingua-trava-deterministica.md` §6: "`command -v`
+ * + versão, e a mensagem de degradação").
+ */
 function versaoDoTexto(texto: string): string | null {
   const m = /version\s+(\d+(?:\.\d+)+)/.exec(texto);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  const g = /\([^)]*\)\s+(\d+(?:\.\d+)+)/.exec(texto);
+  return g ? g[1] : null;
 }
 
 /** O estado das ferramentas — sondado UMA vez, consumido por detect() e parse(). */

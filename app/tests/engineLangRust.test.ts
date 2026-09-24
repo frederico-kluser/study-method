@@ -171,7 +171,38 @@ describe('rust — identidade e registro', () => {
       assert.match(d.version ?? '', /^\d+\.\d+/);
       // o binário é o cargo REAL da toolchain (não o proxy do rustup) — é o
       // que roda sob a allowlist do filho (sem RUSTUP_HOME/CARGO_HOME).
-      assert.ok(!d.binary.includes('/.rustup/'), `binário não deveria ser proxy: ${d.binary}`);
+      // PROVA POR EXECUÇÃO (contrato: decisão 6 do cabeçalho de lang/rust.ts
+      // — "`detect()` resolve o cargo REAL (`<sysroot>/bin/cargo`)"): com
+      // RUSTUP_HOME e CARGO_HOME apontando para diretórios VAZIOS, o PROXY do
+      // rustup morre ("rustup could not choose a version of cargo to run") e o
+      // cargo REAL da toolchain responde normalmente. O caminho do real É
+      // `<sysroot>/bin/cargo` — que numa instalação rustup mora em
+      // `~/.rustup/toolchains/…` (o PROXY é que vive em `~/.cargo/bin/`):
+      // proxy se prova pela EXECUÇÃO, nunca por trecho de caminho.
+      const rustupVazio = fs.mkdtempSync(path.join(os.tmpdir(), 'rs-detect-rustup-'));
+      const cargoVazio = fs.mkdtempSync(path.join(os.tmpdir(), 'rs-detect-cargo-'));
+      try {
+        const r = spawnSync(d.binary, ['--version'], {
+          encoding: 'utf8',
+          timeout: 10_000,
+          env: {
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            RUSTUP_HOME: rustupVazio,
+            CARGO_HOME: cargoVazio,
+          },
+        });
+        assert.equal(r.error, undefined, `binário não executa: ${d.binary} — ${r.error?.message ?? ''}`);
+        assert.equal(
+          r.status,
+          0,
+          `binário é o PROXY do rustup (não roda sem toolchain configurada): ${d.binary} — ${r.stderr ?? ''}`,
+        );
+        assert.match(`${r.stdout}`.trim(), /^cargo \d+\.\d+/, 'o cargo REAL responde a --version com a sua versão');
+      } finally {
+        fs.rmSync(rustupVazio, { recursive: true, force: true });
+        fs.rmSync(cargoVazio, { recursive: true, force: true });
+      }
     } else {
       assert.ok((d.degradacao ?? '').length > 0, 'toolchain ausente sem mensagem é falha em silêncio');
     }
