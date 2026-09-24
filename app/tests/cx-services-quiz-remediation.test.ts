@@ -310,16 +310,13 @@ describe('cx/quizRemediation: askedQuestionsOf (nunca-repetir)', () => {
     assert.deepEqual(lista, ['O que é uma função em JavaScript?', 'Outra?']);
   });
 
-  it('caracterização: duplicata com espaço à direita ESCAPA do dedup (ver BUG ao final)', () => {
-    // Efeito prático do defeito de normalizeForCompare: o mesmo texto com
-    // whitespace à direita gera outra chave de comparação.
+  it('caracterização (bug F corrigido): duplicata com espaço à direita CASA no dedup', () => {
+    // normalizeForCompare não depende mais de whitespace à direita: o mesmo
+    // texto com espaço no fim gera a MESMA chave de comparação e deduplica.
     const lista = askedQuestionsOf(
       remedialReq({ askedQuestions: ['O que é uma função em JavaScript?  '] }),
     );
-    assert.deepEqual(lista, [
-      'O que é uma função em JavaScript?',
-      'O que é uma função em JavaScript?',
-    ]);
+    assert.deepEqual(lista, ['O que é uma função em JavaScript?']);
   });
 });
 
@@ -498,23 +495,23 @@ describe('cx/quizRemediation: remedial — o quiz novo validado antes de chegar 
   });
 });
 
-// ─── BUG marcado (não corrigido aqui) ───────────────────────────────────────
+// ─── bug F CORRIGIDO: normalizeForCompare não depende de whitespace à direita ─
 
-describe('cx/quizRemediation: defeitos nomeados (NÃO corrigidos — apenas registrados)', () => {
-  it('caracterização atual: o trim final SÓ acontece sem espaço à direita', () => {
-    assert.equal(normalizeForCompare('  Olá, Mundo!!  '), 'ola, mundo!!');
+describe('cx/quizRemediation: normalizeForCompare (bug F corrigido — trim ANTES do strip)', () => {
+  it('caracterização corrigida: o strip de pontuação final NÃO depende de espaço à direita', () => {
+    assert.equal(normalizeForCompare('  Olá, Mundo!!  '), 'ola, mundo');
     assert.equal(normalizeForCompare('Olá, Mundo!!'), 'ola, mundo');
+    assert.equal(
+      normalizeForCompare('  Olá, Mundo!!  '),
+      normalizeForCompare('Olá, Mundo!!'),
+      'whitespace à direita não cria chave nova',
+    );
   });
 
-  it(
-    'BUG: normalizeForCompare não tira pontuação final quando há espaço à direita — quizRemediation.ts:146-154',
-    {
-      todo: 'BUG: normalizeForCompare("Q?! ") !== normalizeForCompare("Q") — a pontuação final só é removida sem whitespace à direita, e o nunca-repetir/unicidade deixa de casar duplicatas — quizRemediation.ts:146-154',
-    },
-    () => {
-      // Comportamento CORRETO: a normalização para comparação não pode depender
-      // de whitespace à direita — 'Q?! ' e 'q' são a MESMA pergunta.
-      assert.equal(normalizeForCompare('O que é?!  '), normalizeForCompare('O que é'));
-    },
-  );
+  it('normalizeForCompare("Q?! ") === normalizeForCompare("Q") — quizRemediation.ts:153-161', () => {
+    // Comportamento CORRETO: a normalização para comparação não pode depender
+    // de whitespace à direita — 'Q?! ' e 'q' são a MESMA pergunta.
+    assert.equal(normalizeForCompare('O que é?!  '), normalizeForCompare('O que é'));
+    assert.equal(normalizeForCompare('Q?! '), normalizeForCompare('Q'));
+  });
 });

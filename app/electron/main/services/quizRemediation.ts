@@ -142,15 +142,22 @@ function isFilled(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
-/** Normaliza texto para comparação (nunca-repetir e unicidade de alternativa). */
+/**
+ * Normaliza texto para comparação (nunca-repetir e unicidade de alternativa).
+ * O `trim` vem ANTES do strip de pontuação: com whitespace à direita DEPOIS da
+ * pontuação ("Q?! "), um strip `$`-ancorado não casaria e a pontuação sobraria —
+ * 'Q?! ' viraria outra chave que 'Q', e a duplicata escaparia do dedup. O strip
+ * também tolera espaço entre/DEPOIS das pontuações finais ("Q? !" e "Q?! "
+ * continuam casando "Q").
+ */
 export function normalizeForCompare(text: string): string {
   return text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
-    .replace(/[.?!;:,]+$/g, '')
-    .trim();
+    .trim()
+    .replace(/(?:[.?!;:,]|\s)+$/g, '');
 }
 
 /**
