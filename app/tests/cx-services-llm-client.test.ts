@@ -208,29 +208,45 @@ describe('cx/llmClient: renderSanitizedBodyFragment (máscara ANTES do truncamen
     assert.doesNotThrow(() => renderSanitizedBodyFragment(circular, KEY));
   });
 
-  it('campo `field` que NÃO existe ainda devolve string utilizável (nunca lança)', () => {
+  it('campo `field` que NÃO existe cai para o CORPO INTEIRO sanitizado (e nunca lança)', () => {
+    const corpo = { error: { message: 'boom' } };
     assert.equal(
-      typeof renderSanitizedBodyFragment({ error: { message: 'boom' } }, KEY, 'nao.existe'),
-      'string',
+      renderSanitizedBodyFragment(corpo, KEY, 'nao.existe'),
+      JSON.stringify(corpo),
+      'docstring: "o corpo inteiro se `field` não existir"',
     );
+    // A garantia "nunca lança" segue valendo no fallback (corpo circular).
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    assert.doesNotThrow(() => renderSanitizedBodyFragment(circular, KEY, 'nao.existe'));
   });
 
-  it(
-    'BUG: campo inexistente devolve a string "undefined" em vez do corpo inteiro — llmClient.ts:322-347',
-    { todo: 'BUG: renderSanitizedBodyFragment(payload, key, field-inexistente) devolve "undefined" em vez do corpo — llmClient.ts:322-347' },
-    () => {
-      // O docstring da função promete: "Devolve o campo alvo … ou o corpo
-      // inteiro se `field` não existir". O código faz `target = undefined` no
-      // break do else e a mensagem de erro termina com "Corpo (sanitizado):
-      // undefined".
-      const corpo = { error: { message: 'boom' } };
-      assert.equal(
-        renderSanitizedBodyFragment(corpo, KEY, 'nao.existe'),
-        JSON.stringify(corpo),
-        'comportamento CORRETO prometido pelo docstring (o corpo inteiro sanitizado)',
-      );
-    },
-  );
+  it('REGRESSÃO (bug E): campo inexistente devolve o corpo INTEIRO SANITIZADO, nunca a string "undefined"', () => {
+    // O docstring da função promete: "Devolve o campo alvo … ou o corpo
+    // inteiro se `field` não existir". O código antigo fazia `target = undefined`
+    // no break do else e a mensagem de erro terminava com "Corpo (sanitizado):
+    // undefined" (é o caminho de llmClient.ts:526 quando a resposta vem sem
+    // `choices`).
+    const corpo = { error: { message: 'boom' } };
+    assert.equal(
+      renderSanitizedBodyFragment(corpo, KEY, 'nao.existe'),
+      JSON.stringify(corpo),
+      'comportamento CORRETO prometido pelo docstring (o corpo inteiro sanitizado)',
+    );
+    // "SANITIZADO" também vale no fallback do corpo inteiro: máscara da chave
+    // exata, do par Bearer e do padrão sk-… (inclui hífen/underscore).
+    const comChave = { error: { message: `boom ${KEY}`, hint: 'parcial sk-or-v1-abc' } };
+    const texto = renderSanitizedBodyFragment(comChave, KEY, 'nao.existe');
+    assert.ok(!texto.includes(KEY), 'a chave NUNCA aparece, nem no fallback do corpo inteiro');
+    assert.ok(!texto.includes('sk-or-v1-abc'), 'o padrão sk-… também é mascarado no fallback');
+    assert.ok(texto.includes('***'));
+    // …e truncamento DEPOIS da máscara (nunca corta uma chave ao meio).
+    const grande = { error: { message: 'x'.repeat(400) }, extra: KEY };
+    const truncado = renderSanitizedBodyFragment(grande, KEY, 'nao.existe');
+    assert.ok(truncado.endsWith('…'), 'o fallback também trunca a 160 chars + …');
+    assert.equal(truncado.length, 161, '160 chars + …');
+    assert.ok(!truncado.includes(KEY));
+  });
 });
 
 // ─── createLlmClient — contrato do transporte (fetch injetado) ───────────────

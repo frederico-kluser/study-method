@@ -323,6 +323,7 @@ export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, fi
   let target: unknown = payload;
   if (field) {
     let node: unknown = payload;
+    let achou = true;
     for (const part of field.split('.')) {
       if (
         node &&
@@ -331,12 +332,16 @@ export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, fi
         typeof (node as Record<string, unknown>)[part] !== 'undefined'
       ) {
         node = (node as Record<string, unknown>)[part];
-        target = node;
       } else {
-        target = undefined;
+        achou = false;
         break;
       }
     }
+    // CONTRATO do docstring acima: campo INEXISTENTE ⇒ o CORPO INTEIRO (que
+    // passa pela máscara/truncamento abaixo como sempre). O bug E fazia
+    // `target = undefined` aqui — `String(undefined)` virava a STRING
+    // "undefined" na mensagem ("Corpo (sanitizado): undefined").
+    target = achou ? node : payload;
   }
   let text: string;
   try {
