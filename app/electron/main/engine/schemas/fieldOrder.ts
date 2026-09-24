@@ -100,54 +100,61 @@ function caminhoFilho(prefixo: string, chave: string): string {
   return prefixo === '' ? chave : `${prefixo}.${chave}`;
 }
 
+/** Um filho do nó atual: o schema filho e o caminho acumulado até ele. */
+interface NoFilho {
+  schema: z.ZodTypeAny;
+  prefixo: string;
+}
+
+type ExtratorDeFilhos = (def: unknown, schema: z.ZodTypeAny, prefixo: string) => NoFilho[];
+
 /**
- * Percorre a árvore de um schema zod visitando TODOS os nós (objetos,
- * arrays, tuplas, uniões, nullables, effects, records e lazy) com o caminho
- * acumulado — ex.: `acoes[].alvo.span`. Nós terminais (string, number,
- * boolean, enum, literal) não têm filhos.
+ * Extratores de filhos POR tipo de nó (`_def.typeName` do zod 3.x). Tipo sem
+ * entrada aqui é TERMINAL (string, number, boolean, enum, literal, …) e não
+ * tem filhos. Cada extrator devolve os filhos NA ORDEM em que o walker sempre
+ * os visitou — a ordem de visita é observável (é a ordem dos problemas no
+ * relatório do lint), e a refatoração L06 a preserva literalmente.
  *
  * Acessa a API interna `_def` do zod 3.x — estável e a única forma portátil
  * de examinar a ESTRUTURA (e não o resultado) de um schema. A versão
  * instalada é fixada em `zod@3.25.76` (app/package.json).
  */
+const EXTRATORES_DE_FILHOS: Readonly<Record<string, ExtratorDeFilhos>> = {
+  ZodObject: (_def, schema, prefixo) =>
+    Object.entries((schema as z.ZodObject<z.ZodRawShape>).shape).map(([chave, filho]) => ({
+      schema: filho as z.ZodTypeAny,
+      prefixo: caminhoFilho(prefixo, chave),
+    })),
+  ZodArray: (def, _schema, prefixo) => [{ schema: (def as z.ZodArrayDef).type, prefixo: `${prefixo}[]` }],
+  ZodTuple: (def, _schema, prefixo) =>
+    (def as z.ZodTupleDef).items.map((item) => ({ schema: item as z.ZodTypeAny, prefixo: `${prefixo}[]` })),
+  ZodUnion: (def, _schema, prefixo) =>
+    (def as z.ZodUnionDef).options.map((opcao) => ({ schema: opcao as z.ZodTypeAny, prefixo })),
+  ZodOptional: (def, _schema, prefixo) => [{ schema: (def as { innerType: z.ZodTypeAny }).innerType, prefixo }],
+  ZodNullable: (def, _schema, prefixo) => [{ schema: (def as { innerType: z.ZodTypeAny }).innerType, prefixo }],
+  ZodDefault: (def, _schema, prefixo) => [{ schema: (def as { innerType: z.ZodTypeAny }).innerType, prefixo }],
+  ZodEffects: (def, _schema, prefixo) => [{ schema: (def as { schema: z.ZodTypeAny }).schema, prefixo }],
+  ZodRecord: (def, _schema, prefixo) => [{ schema: (def as { valueType: z.ZodTypeAny }).valueType, prefixo: `${prefixo}[]` }],
+  ZodLazy: (def, _schema, prefixo) => [{ schema: (def as { getter: () => z.ZodTypeAny }).getter(), prefixo }],
+};
+
+/**
+ * Percorre a árvore de um schema zod visitando TODOS os nós (objetos,
+ * arrays, tuplas, uniões, nullables, effects, records e lazy) com o caminho
+ * acumulado — ex.: `acoes[].alvo.span`. Nós terminais (string, number,
+ * boolean, enum, literal) não têm filhos. A DESCIDA por tipo de nó é a tabela
+ * `EXTRATORES_DE_FILHOS` (refatoração L06): mesma visita, mesma ordem, um
+ * ponto de decisão por nó — `lintSchemasDaEngine` continua varrendo a ÁRVORE
+ * INTEIRA.
+ */
 function caminhar(schema: z.ZodTypeAny, prefixo: string, visitarNo: VisitanteDeNo): void {
   const def = schema._def as { typeName?: string };
   const tipo = def.typeName ?? 'desconhecido';
   visitarNo(schema, prefixo, tipo);
-  switch (tipo) {
-    case 'ZodObject': {
-      const forma = (schema as z.ZodObject<z.ZodRawShape>).shape;
-      for (const [chave, filho] of Object.entries(forma)) {
-        caminhar(filho, caminhoFilho(prefixo, chave), visitarNo);
-      }
-      return;
-    }
-    case 'ZodArray':
-      caminhar((def as z.ZodArrayDef).type, `${prefixo}[]`, visitarNo);
-      return;
-    case 'ZodTuple':
-      for (const item of (def as z.ZodTupleDef).items) caminhar(item, `${prefixo}[]`, visitarNo);
-      return;
-    case 'ZodUnion':
-      for (const opcao of (def as z.ZodUnionDef).options) caminhar(opcao, prefixo, visitarNo);
-      return;
-    case 'ZodOptional':
-    case 'ZodNullable':
-    case 'ZodDefault':
-      caminhar((def as { innerType: z.ZodTypeAny }).innerType, prefixo, visitarNo);
-      return;
-    case 'ZodEffects':
-      caminhar((def as { schema: z.ZodTypeAny }).schema, prefixo, visitarNo);
-      return;
-    case 'ZodRecord':
-      caminhar((def as { valueType: z.ZodTypeAny }).valueType, `${prefixo}[]`, visitarNo);
-      return;
-    case 'ZodLazy':
-      caminhar((def as { getter: () => z.ZodTypeAny }).getter(), prefixo, visitarNo);
-      return;
-    default:
-      // Nós terminais — sem filhos.
-      return;
+  const extrairFilhos = EXTRATORES_DE_FILHOS[tipo];
+  if (!extrairFilhos) return; // nós terminais — sem filhos
+  for (const filho of extrairFilhos(def, schema, prefixo)) {
+    caminhar(filho.schema, filho.prefixo, visitarNo);
   }
 }
 

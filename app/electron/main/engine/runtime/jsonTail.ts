@@ -54,6 +54,75 @@
  */
 
 /**
+ * Estado da leitura do objeto: profundidade de chaves + a máquina de estados
+ * da string (`emString`/`escapado`). A transição por caractere está dividida
+ * em `avancarEmString`/`avancarForaDeString` (refatoração L06, CC≤8): o
+ * comportamento é byte a byte o do laço original, agora auditável por partes.
+ */
+interface EstadoLeitura {
+  profundidade: number;
+  emString: boolean;
+  escapado: boolean;
+}
+
+/**
+ * Avança o estado DENTRO de uma string: `\` abre fuga (o próximo caractere é
+ * literal, inclusive `"` e `\`), `"` fecha a string. É o ramo `if (emString)`
+ * do laço original, semântica preservada caractere a caractere.
+ */
+function avancarEmString(estado: EstadoLeitura, c: string): void {
+  if (estado.escapado) {
+    estado.escapado = false;
+    return;
+  }
+  if (c === '\\') {
+    estado.escapado = true;
+    return;
+  }
+  if (c === '"') estado.emString = false;
+}
+
+/**
+ * Avança o estado FORA de string: `"` abre string, `{` aprofunda, `}` rasa —
+ * devolve `true` quando o `}` fecha o objeto de topo. `[`, `]`, `,`, `:` e
+ * prosa qualquer são ignorados pela contagem de profundidade (como no laço
+ * original: só `{`/`}` contam, e só fora de string).
+ */
+function avancarForaDeString(estado: EstadoLeitura, c: string): boolean {
+  if (c === '"') {
+    estado.emString = true;
+    return false;
+  }
+  if (c === '{') {
+    estado.profundidade += 1;
+    return false;
+  }
+  if (c === '}') {
+    estado.profundidade -= 1;
+    return estado.profundidade === 0;
+  }
+  return false;
+}
+
+/**
+ * Percorre `conteudo` a partir do `{` em `inicio` e devolve o índice do `}`
+ * que fecha o objeto de topo — ou `null` quando ele nunca fecha (fail-closed:
+ * sem objeto balanceado não há o que extrair).
+ */
+function encontrarFimDoObjeto(conteudo: string, inicio: number): number | null {
+  const estado: EstadoLeitura = { profundidade: 0, emString: false, escapado: false };
+  for (let i = inicio; i < conteudo.length; i += 1) {
+    const c = conteudo[i];
+    if (estado.emString) {
+      avancarEmString(estado, c);
+      continue;
+    }
+    if (avancarForaDeString(estado, c)) return i;
+  }
+  return null;
+}
+
+/**
  * Extrai o objeto JSON da resposta do autor. O prompt canônico do §7.1 TERMINA
  * pedindo o checksum de cauda (a repetição da lista de construções permitidas)
  * DEPOIS do JSON — então `JSON.parse` do conteúdo inteiro falha por
@@ -64,25 +133,7 @@
 export function separarJsonECauda(conteudo: string): { json: string; cauda: string } | null {
   const inicio = conteudo.indexOf('{');
   if (inicio < 0) return null;
-  let profundidade = 0;
-  let emString = false;
-  let escapado = false;
-  for (let i = inicio; i < conteudo.length; i += 1) {
-    const c = conteudo[i];
-    if (emString) {
-      if (escapado) escapado = false;
-      else if (c === '\\') escapado = true;
-      else if (c === '"') emString = false;
-      continue;
-    }
-    if (c === '"') emString = true;
-    else if (c === '{') profundidade += 1;
-    else if (c === '}') {
-      profundidade -= 1;
-      if (profundidade === 0) {
-        return { json: conteudo.slice(inicio, i + 1), cauda: conteudo.slice(i + 1) };
-      }
-    }
-  }
-  return null;
+  const fim = encontrarFimDoObjeto(conteudo, inicio);
+  if (fim === null) return null;
+  return { json: conteudo.slice(inicio, fim + 1), cauda: conteudo.slice(fim + 1) };
 }

@@ -147,21 +147,22 @@ export class ErroDossieIncompleto extends Error {
 }
 
 /**
- * O PORTÃO do spawn do autor (A-P11-2): valida o dossiê completo e RECUSA
- * com `ErroDossieIncompleto` nomeando o campo quando qualquer um dos 13
- * campos obrigatórios falta. Depois da checagem de presença, valida TIPOS via
- * `DossierSchema` (fail-closed: presente mas com o tipo errado também recusa,
- * nomeando o campo).
- *
- * Função pura, sem IO e sem efeitos: mesmo dossiê → mesmo resultado.
+ * 1) A ENTRADA precisa ser um objeto (não array, não null, não primitivo).
+ * Refatoração L06: passo próprio de `montarDossie` (CC≤8) — mesmo recuso, na
+ * mesma ordem.
  */
-export function montarDossie(entrada: unknown): Dossier {
+function objetoBruto(entrada: unknown): Record<string, unknown> {
   if (typeof entrada !== 'object' || entrada === null || Array.isArray(entrada)) {
     throw new ErroDossieIncompleto(null, 'entrada do dossiê não é um objeto — o spawn do autor é recusado (docs §7.1, A-P11-2)');
   }
-  const bruto = entrada as Record<string, unknown>;
+  return entrada as Record<string, unknown>;
+}
 
-  // 1) PRESENÇA — na ordem canônica; o PRIMEIRO campo faltante é nomeado.
+/**
+ * 2) PRESENÇA — na ordem canônica; o PRIMEIRO campo faltante é nomeado
+ * (`undefined` conta como ausente).
+ */
+function exigirPresenca(bruto: Record<string, unknown>): void {
   for (const campo of CAMPOS_DO_DOSSIE) {
     if (!(campo in bruto) || bruto[campo] === undefined) {
       throw new ErroDossieIncompleto(
@@ -170,8 +171,13 @@ export function montarDossie(entrada: unknown): Dossier {
       );
     }
   }
+}
 
-  // 2) TIPO — valor presente mas com a forma errada também recusa (fail-closed).
+/**
+ * 3) TIPO — valor presente mas com a forma errada também recusa (fail-closed);
+ * o campo nomeado é a RAIZ do primeiro issue do zod.
+ */
+function parsearDossie(bruto: Record<string, unknown>): Dossier {
   const parseado = DossierSchema.safeParse(bruto);
   if (!parseado.success) {
     const primeiro = parseado.error.issues[0];
@@ -182,4 +188,19 @@ export function montarDossie(entrada: unknown): Dossier {
     );
   }
   return parseado.data;
+}
+
+/**
+ * O PORTÃO do spawn do autor (A-P11-2): valida o dossiê completo e RECUSA
+ * com `ErroDossieIncompleto` nomeando o campo quando qualquer um dos 13
+ * campos obrigatórios falta. Depois da checagem de presença, valida TIPOS via
+ * `DossierSchema` (fail-closed: presente mas com o tipo errado também recusa,
+ * nomeando o campo).
+ *
+ * Função pura, sem IO e sem efeitos: mesmo dossiê → mesmo resultado.
+ */
+export function montarDossie(entrada: unknown): Dossier {
+  const bruto = objetoBruto(entrada);
+  exigirPresenca(bruto);
+  return parsearDossie(bruto);
 }

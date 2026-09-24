@@ -118,6 +118,36 @@ export function maxRetriesFor(code: LlmErrorCode, config: BackoffConfig = {}): n
 }
 
 /**
+ * O atraso HONRADO do servidor (`Retry-After`, já em ms): presente, finito e
+ * ≥ 0 ⇒ é esse o valor; qualquer outra coisa ⇒ `undefined` (caminho
+ * exponencial). Refatoração L06: regra única, compartilhada por
+ * `backoffDelayMs` (o atraso) e `retryDecision` (a flag `honoredRetryAfter`)
+ * — os dois nunca podem discordar sobre o que é um Retry-After válido.
+ */
+function atrasoHonrado(retryAfterMs?: number): number | undefined {
+  if (retryAfterMs === undefined || !Number.isFinite(retryAfterMs) || retryAfterMs < 0) return undefined;
+  return retryAfterMs;
+}
+
+/**
+ * Atraso exponencial com jitter: `min(maxDelayMs, baseDelayMs · 2^(attempt−1))`
+ * multiplicado por [1−j/2, 1+j/2]. Com `jitterRatio ≤ 0` é determinístico (o
+ * caminho dos testes). Nunca estoura o teto; nunca fica negativo.
+ */
+function atrasoExponencial(
+  attempt: number,
+  policy: RetryPolicy,
+  config: Pick<BackoffConfig, 'jitterRatio' | 'random'>,
+): number {
+  const jitterRatio = config.jitterRatio ?? DEFAULT_JITTER_RATIO;
+  const random = config.random ?? DEFAULT_RANDOM;
+  const exponential = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** (attempt - 1));
+  if (jitterRatio <= 0) return Math.floor(exponential);
+  const jitter = 1 - jitterRatio / 2 + random() * jitterRatio; // [1−j/2, 1+j/2]
+  return Math.max(0, Math.floor(exponential * jitter));
+}
+
+/**
  * Atraso da `attempt`-ésima retentativa (1 = primeira retentativa).
  *
  * - COM `retryAfterMs` (o servidor disse quando voltar): `min(maxDelayMs,
@@ -134,17 +164,13 @@ export function backoffDelayMs(
   if (!Number.isInteger(attempt) || attempt < 1) {
     throw new RangeError(`backoffDelayMs: attempt precisa ser inteiro ≥ 1 (recebido ${attempt}).`);
   }
-  if (retryAfterMs !== undefined && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
+  const honrado = atrasoHonrado(retryAfterMs);
+  if (honrado !== undefined) {
     // O teto da política continua valendo: uma etapa não pode ser segurada
     // por um `Retry-After` arbitrariamente longo (isso é a onda inteira).
-    return Math.floor(Math.min(policy.maxDelayMs, retryAfterMs));
+    return Math.floor(Math.min(policy.maxDelayMs, honrado));
   }
-  const jitterRatio = config.jitterRatio ?? DEFAULT_JITTER_RATIO;
-  const random = config.random ?? DEFAULT_RANDOM;
-  const exponential = Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** (attempt - 1));
-  if (jitterRatio <= 0) return Math.floor(exponential);
-  const jitter = 1 - jitterRatio / 2 + random() * jitterRatio; // [1−j/2, 1+j/2]
-  return Math.max(0, Math.floor(exponential * jitter));
+  return atrasoExponencial(attempt, policy, config);
 }
 
 /** Decisão de retry para um erro na `attempt`-ésima retentativa (1-based). */
@@ -182,8 +208,7 @@ export function retryDecision(
         : `código ${code} esgotou o teto de ${policy.maxRetries} retentativas`;
     return { retry: false, delayMs: 0, reason, honoredRetryAfter: false };
   }
-  const honoredRetryAfter =
-    retryAfterMs !== undefined && Number.isFinite(retryAfterMs) && retryAfterMs >= 0;
+  const honoredRetryAfter = atrasoHonrado(retryAfterMs) !== undefined;
   const delayMs = backoffDelayMs(attempt, policy, config, retryAfterMs);
   return {
     retry: true,
