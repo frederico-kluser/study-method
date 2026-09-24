@@ -633,7 +633,11 @@ describe('repararTrilha aplicar — o caminho feliz inteiro, com gravação e pl
     assert.equal(r.modo, 'aplicar');
     assert.ok(r.modo === 'aplicar' && r.loopRodado === true);
     assert.ok(r.modo === 'aplicar' && r.melhorou === true, 'A-P23-5: o placar tem de melhorar');
-    assert.ok(r.modo === 'aplicar' && r.placarFinal.violacoes < r.placarInicial.violacoes);
+    // placar INICIAL e FINAL em LITERAIS (a comparação relativa `<` não dizia
+    // QUANTO o reparo resolve — a reescrita tira 6 dos 10 erros do audit)
+    assert.ok(r.modo === 'aplicar');
+    assert.deepEqual(r.placarInicial, { violacoes: 10, desafiosComViolacao: 1, lacunas: 1, aulas: 3, desafios: 1 });
+    assert.deepEqual(r.placarFinal, { violacoes: 4, desafiosComViolacao: 1, lacunas: 1, aulas: 3, desafios: 1 });
     assert.deepEqual(r.escritos, [CAMINHO_C2]);
     assert.equal(escrita.chamadas, 1);
     const gravado = JSON.parse(escrita.arquivos.get(CAMINHO_C2) as string) as { solutionCode: string };

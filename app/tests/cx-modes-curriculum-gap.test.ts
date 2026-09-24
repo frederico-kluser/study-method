@@ -984,7 +984,17 @@ describe('fecharLacunasDeCurriculo — dry-run puro; aplicar fail-closed', () =>
     assert.deepEqual(r.escritos, []);
     assert.equal(chamadas.length, 0);
     assert.equal(escritos.size, 0);
-    assert.ok(r.plano.aulasNovas.length > 0);
+    // contagem e VALORES exatos da aula planejada (o `length > 0` aceitava
+    // qualquer plano — inclusive o errado)
+    assert.equal(r.plano.aulasNovas.length, 1, 'a lacuna `typeof` vira UMA aula planejada');
+    const aula = r.plano.aulasNovas[0];
+    assert.equal(aula.slug, 'lacuna-node-typeofexpression-op-unary-typeof-1bf56845');
+    assert.deepEqual(aula.construcoes, ['node:TypeOfExpression', 'op:unary:typeof']);
+    assert.equal(aula.inserirAntesDe, 'm01/a02');
+    assert.equal(aula.indiceDeInsercao, 1);
+    assert.deepEqual(aula.alvos, ['m01/a02']);
+    assert.equal(aula.acao, 'INSERT_INTERMEDIATE');
+    assert.deepEqual(aula.cobradaEm, ['modules/m01/lessons/a02/challenges/d1/challenge.json']);
     assert.match(r.declaracoes[0], /DRY-RUN: zero escrita, zero chamada de LLM/);
   });
 
@@ -1030,7 +1040,12 @@ describe('fecharLacunasDeCurriculo — dry-run puro; aplicar fail-closed', () =>
     );
     assert.equal(r.recusadas.length, 0);
     assert.equal(r.aceitas.length, r.plano.aulasNovas.length);
-    assert.ok(r.escritos.length >= 2, 'lesson.json + module.json');
+    // a lista EXATA de arquivos gravados (o `>= 2` aceitava escrita extra em
+    // silêncio): o lesson.json da aula nova e o module.json do módulo, nada mais
+    assert.deepEqual(r.escritos, [
+      'modules/m01/lessons/lacuna-node-typeofexpression-op-unary-typeof-1bf56845/lesson.json',
+      'modules/m01/module.json',
+    ]);
     assert.equal(escritos.size, r.escritos.length);
     // CAMIMBRO determinístico (P1): o autor não escolhe slug/hash/estado
     const aceita = r.aceitas[0];

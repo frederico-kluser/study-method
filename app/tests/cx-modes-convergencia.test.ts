@@ -369,8 +369,11 @@ describe('vetor de estado — componentes pinadas na ordem do hash', () => {
     assert.equal(v.secoesInsuficientes, 1);
     // erros do audit sem regras da barra: A3×2 + A2 = 3 (aviso fora)
     assert.equal(v.violacoesDeOrcamento, 3);
-    assert.equal(v.lacunasDeCurriculo, audit.totals.lacunasDeCurriculo);
-    assert.equal(v.errosDaBarra, b.totais.erros);
+    // LITERAIS, não relidos do próprio input (as duas A3 sem aula que ensina
+    // são as lacunas; a A17-aviso e a A2-sem-construção não contam; a barra
+    // deste caso não tem achado nenhum)
+    assert.equal(v.lacunasDeCurriculo, 2);
+    assert.equal(v.errosDaBarra, 0);
   });
 
   it('LIMITE: tudo zero mede zero (e o hash é estável)', () => {
@@ -482,9 +485,47 @@ describe('classificarAchados — cada achado cai em EXATAMENTE UM ramo', () => {
     assert.equal(daBarra.porRamo.DEMONSTRACAO, 0, 'aviso não abre rodada');
   });
 
-  it('barra: TODA regra de REGRAS_DA_BARRA tem ramo (A24→PROVA) e o arquivo é derivado da ref', () => {
+  it('barra: RAMO_DA_BARRA é esta tabela LITERAL (chave E ramo) — regra sem linha é defeito', () => {
+    const RAMO_ESPERADO: Record<string, 'QUEBRA' | 'DEMONSTRACAO' | 'PROVA'> = {
+      A17: 'QUEBRA',
+      A18: 'QUEBRA',
+      A21: 'QUEBRA',
+      A19: 'DEMONSTRACAO',
+      A22: 'DEMONSTRACAO',
+      A23: 'DEMONSTRACAO',
+      A20: 'PROVA',
+      A24: 'PROVA',
+    };
+    assert.deepEqual({ ...RAMO_DA_BARRA }, RAMO_ESPERADO, 'a tabela é FECHADA: chave ou ramo mudou, atualize o golden');
     for (const regra of REGRAS_DA_BARRA) {
-      assert.ok(RAMO_DA_BARRA[regra] !== undefined, `regra ${regra} sem linha na tabela RAMO_DA_BARRA`);
+      assert.equal(
+        RAMO_DA_BARRA[regra],
+        RAMO_ESPERADO[regra],
+        `regra ${regra}: sem linha na tabela RAMO_DA_BARRA ou com ramo diferente do literal`,
+      );
+    }
+  });
+
+  it('a classificação segue o ramo LITERAL regra a regra (A17/A19/A22/A24…) e o arquivo é derivado da ref', () => {
+    const ramoPorRegra = {
+      A17: 'QUEBRA',
+      A18: 'QUEBRA',
+      A21: 'QUEBRA',
+      A19: 'DEMONSTRACAO',
+      A22: 'DEMONSTRACAO',
+      A23: 'DEMONSTRACAO',
+      A20: 'PROVA',
+      A24: 'PROVA',
+    } as const;
+    for (const [regra, ramo] of Object.entries(ramoPorRegra)) {
+      const r = classificarAchados({
+        audit: reportDe([]),
+        barra: barraDe([achadoDaBarra({ regra: regra as AchadoDaBarra['regra'], acao: 'REWRITE_IN_BUDGET' })]),
+        ensinadoAntesNaCadeia: cadeiaVazia,
+      });
+      assert.equal(r.achados.length, 1, `regra ${regra}`);
+      assert.equal(r.achados[0].ramo, ramo, `regra ${regra}: ramo classificado`);
+      assert.equal(r.achados[0].acao, 'REWRITE_IN_BUDGET', `regra ${regra}: a ação vem do próprio achado`);
     }
     const r = classificarAchados({
       audit: reportDe([]),

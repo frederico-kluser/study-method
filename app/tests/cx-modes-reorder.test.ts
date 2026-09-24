@@ -408,7 +408,13 @@ describe('planejarReordenacao — movimento mínimo, zero LLM, polaridade §5.5'
     assert.ok(mov !== undefined && mov.tipo === 'MOVER_MODULO');
     assert.equal(mov.moduleSlug, 'm02');
     assert.equal(mov.antesDe, 'm01');
-    assert.ok(mov.ordensNovas.length > 0);
+    // os pares antes/depois LITERAIS de `ordensNovas` — o produto REAL que
+    // `aplicarMovimentos` grava como `order` (renumerarModulos REUSA os
+    // valores existentes: m02 (2) passa a 1; m01 (1), a 2)
+    assert.deepEqual(mov.ordensNovas, [
+      { moduleSlug: 'm02', antes: 2, depois: 1 },
+      { moduleSlug: 'm01', antes: 1, depois: 2 },
+    ]);
     assert.ok(plano.declaracoes.some((d) => d.includes('MÓDULOS diferentes')));
   });
 
@@ -572,7 +578,11 @@ describe('reordenarTrilha — dry-run não escreve; aplicar só grava depois do 
     assert.deepEqual(r.escritos, ['modules/m01/module.json']);
     assert.equal(escritos.size, 1);
     assert.ok(r.modo === 'aplicar' && r.melhorou === true);
-    assert.ok(r.modo === 'aplicar' && r.placarFinal.violacoes < r.placarInicial.violacoes);
+    // placar INICIAL e FINAL em LITERAIS (a comparação relativa `<` não dizia
+    // QUANTO o movimento resolve — e os dois lados vêm do audit REAL)
+    assert.ok(r.modo === 'aplicar');
+    assert.deepEqual(r.placarInicial, { violacoes: 10, desafiosComViolacao: 2, lacunas: 2, aulas: 3, desafios: 2 });
+    assert.deepEqual(r.placarFinal, { violacoes: 4, desafiosComViolacao: 2, lacunas: 2, aulas: 3, desafios: 2 });
   });
 
   it('aplicar com veredicto RECUSADO: nada gravado (recusa é resultado, não exceção)', async () => {
@@ -616,13 +626,22 @@ describe('reordenarTrilha — dry-run não escreve; aplicar só grava depois do 
 
 describe('placarDeReordenacao — o recorte comparável do audit', () => {
   it('GOLDEN: os cinco campos saem do totals do relatório, sem recontagem', () => {
-    const report = auditTrack(trilhaComOrdemSimples());
-    assert.deepEqual(placarDeReordenacao(report), {
-      violacoes: report.totals.violacoes,
-      desafiosComViolacao: report.totals.desafiosComViolacao,
-      lacunas: report.totals.lacunasDeCurriculo,
-      aulas: report.totals.aulas,
-      desafios: report.totals.desafios,
+    // relatório SINTÉTICO com LITERAIS — o par correto de cx-modes-repair.test.ts
+    assert.deepEqual(placarDeReordenacao(reportDe([violacao()])), {
+      violacoes: 1,
+      desafiosComViolacao: 1,
+      lacunas: 0,
+      aulas: 3,
+      desafios: 2,
+    });
+    // e o audit REAL da fixture de ordem, byte a byte (10 erros de orçamento;
+    // o movimento de ORDEM os deixa em 4 — ver o teste de `aplicar` feliz)
+    assert.deepEqual(placarDeReordenacao(auditTrack(trilhaComOrdemSimples())), {
+      violacoes: 10,
+      desafiosComViolacao: 2,
+      lacunas: 2,
+      aulas: 3,
+      desafios: 2,
     });
   });
 });
