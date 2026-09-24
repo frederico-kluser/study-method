@@ -7,8 +7,9 @@
  * §8): exit `0` sem violação · `1` violações encontradas · `2` uso incorreto /
  * barreira estrutural. SEM REDE, SEM LLM real e SEM chaves: os caminhos LLM são
  * testados só na RECUSA com env limpa (`generate` → `erro estruturado
- * [SEM_CHAVE]`; `repair/gap --aplicar` → portão de uso do §6.2), nunca numa
- * chamada real.
+ * [SEM_CHAVE]`; `repair --aplicar` → portão de uso do §6.2 e a guarda
+ * `[SEM_CHAVE]` antes do laço; `gap --aplicar` → portão de uso do §6.2), nunca
+ * numa chamada real.
  *
  * Os modos de escrita gravam artefato em `content-src/<slug>` (run/ledger/
  * revisão) e, no `--aplicar`, na própria trilha: os testes usam slug ÚNICO,
@@ -284,6 +285,20 @@ async function limparRun(slug: string): Promise<void> {
   await fs.rm(path.join(APP_DIR, 'resources', 'tracks', slug), { recursive: true, force: true }).catch(() => {});
 }
 
+/** digest estável da árvore de uma trilha (`caminho + conteúdo`) — a prova de que NADA foi gravado. */
+async function digestArvore(dir: string): Promise<string[]> {
+  const saida: string[] = [];
+  async function andar(rel: string): Promise<void> {
+    for (const e of await fs.readdir(path.join(dir, rel), { withFileTypes: true })) {
+      const r = rel === '' ? e.name : `${rel}/${e.name}`;
+      if (e.isDirectory()) await andar(r);
+      else saida.push(`${r}\n${await fs.readFile(path.join(dir, r), 'utf8')}`);
+    }
+  }
+  await andar('');
+  return saida.sort();
+}
+
 // ─── portões de USO (exit 2) de todos os modos ───────────────────────────────
 
 describe('engine CLI — modos: portões de uso (caracterização)', () => {
@@ -445,36 +460,34 @@ describe('engine CLI — repair (caracterização)', () => {
     assert.deepEqual(rel.placarInicial, { violacoes: 28, desafiosComViolacao: 2, lacunas: 28, aulas: 2, desafios: 2 });
   });
 
-  it('--aplicar com modelo mas SEM chave: o laço MECÂNICO roda sem LLM e nada é gravado (exit 1)', async () => {
+  it('--aplicar com modelo mas SEM chave: aborta ANTES do laço com exit 2 [SEM_CHAVE] — escrita fail-safe, nada gravado', async () => {
+    // CONTRATO (§8.1: "2 quando falta `--modelo-revisor` ou chave"): sem chave
+    // não existe correção, e o comando aborta DECLARANDO — o relatório do
+    // laço mecânico ("nada a reparar mecanicamente", exit 1) dizia "não há o
+    // que fazer" quando a verdade é "não há como fazer".
+    const arvoreAntes = await digestArvore(fixBad);
     const r = await runEngine(
       ['repair', 'cx-fix', '--dir', fixBad, '--aplicar', '--modelo-revisor', 'outro/modelo', '--json'],
       { env: envIsolada() },
     );
-    assert.equal(r.code, 1);
-    const rel = JSON.parse(r.stdout) as Record<string, any>;
-    assert.equal(rel.modo, 'aplicar');
-    assert.equal(Boolean(rel.llmChamado), false);
-    assert.deepEqual(rel.escritos, [], 'sem chave o --aplicar NÃO pode gravar nada');
-    assert.ok(
-      rel.declaracoes.some((d: string) => d.includes('nada a reparar mecanicamente')),
-      JSON.stringify(rel.declaracoes).slice(0, 400),
-    );
+    assert.equal(r.code, 2);
+    assert.ok(r.stderr.includes('erro estruturado [SEM_CHAVE]'), r.stderr.slice(0, 300));
+    // o aborto é ANTES do laço mecânico: nem relatório sai (mesmo com --json)…
+    assert.equal(r.stdout.trim(), '', 'com SEM_CHAVE o laço mecânico não roda: nenhum relatório sai');
+    // …e a escrita é fail-safe: a trilha fica byte a byte igual (escritos: []).
+    assert.deepEqual(await digestArvore(fixBad), arvoreAntes, 'sem chave o --aplicar NÃO pode gravar nada');
   });
 
-  it.skip(
-    'BUG: repair --aplicar sem OPENROUTER_API_KEY não aborta com exit 2 como o --help e docs/00-contratos §8.1 prometem — app/tools/track-engine/cli.ts:1853',
-    { skip: 'BUG: repair --aplicar sem chave não aborta exit 2 (roda o laço mecânico e sai 1) — app/tools/track-engine/cli.ts:1853' },
-    async () => {
-      // COMPORTAMENTO CORRETO segundo o contrato congelado: "EXIGE
-      // --modelo-revisor e a chave de API; sem elas aborta DECLARANDO (exit 2)".
-      const r = await runEngine(
-        ['repair', 'cx-fix', '--dir', fixBad, '--aplicar', '--modelo-revisor', 'outro/modelo'],
-        { env: envIsolada() },
-      );
-      assert.equal(r.code, 2);
-      assert.ok(r.stderr.includes('erro estruturado [SEM_CHAVE]'), r.stderr.slice(0, 300));
-    },
-  );
+  it('repair --aplicar sem OPENROUTER_API_KEY aborta com exit 2 — erro estruturado [SEM_CHAVE] (contrato do --help e docs §8.1)', async () => {
+    // COMPORTAMENTO CORRETO segundo o contrato congelado: "EXIGE
+    // --modelo-revisor e a chave de API; sem elas aborta DECLARANDO (exit 2)".
+    const r = await runEngine(
+      ['repair', 'cx-fix', '--dir', fixBad, '--aplicar', '--modelo-revisor', 'outro/modelo'],
+      { env: envIsolada() },
+    );
+    assert.equal(r.code, 2);
+    assert.ok(r.stderr.includes('erro estruturado [SEM_CHAVE]'), r.stderr.slice(0, 300));
+  });
 });
 
 // ─── reorder ─────────────────────────────────────────────────────────────────
@@ -604,6 +617,124 @@ describe('engine CLI — convergir (caracterização)', () => {
         secoesInsuficientes: 2,
       });
     } finally {
+      await limparRun(slug);
+    }
+  });
+
+  it('FIX-PENHASCO --aplicar: a ação APLICÁVEL (SPLIT_LESSON/QUEBRA) EXECUTA — esqueleto + ordem de `lessons` gravados, exit 1 pós-aplicação', async () => {
+    // A fixture commitada `trilha-rust-minima` é a AULA DE PASSO GRANDE: 6
+    // produtivas novas numa aula só (A17/A18/A21 → ramo QUEBRA). Sobre uma
+    // CÓPIA (nunca sobre a fixture do repositório), `convergir --aplicar`
+    // executa a ação DETERMINÍSTICA do catálogo — SPLIT_LESSON — e grava pela
+    // dep `gravarArquivo` do CLI (tools/track-engine/cli.ts, escrita atômica
+    // por arquivo) os DOIS arquivos do movimento: o ESQUELETO da aula nova e o
+    // `module.json` com o array `lessons` movido (a aula nova ANTES da
+    // original). Era o único modo cuja ação APLICÁVEL nenhum teste executava.
+    const slug = slugUnico('cx-conv');
+    const dirRaiz = await fs.mkdtemp(path.join(os.tmpdir(), 'do-fixc-quebra-'));
+    const dir = path.join(dirRaiz, 'track');
+    await fs.cp(path.join(APP_DIR, 'tests', 'fixtures', 'tracks', 'trilha-rust-minima'), dir, { recursive: true });
+    try {
+      const r = await runEngine(['convergir', slug, '--dir', dir, '--aplicar', '--json'], {
+        env: envIsolada(),
+        timeoutMs: 300_000,
+      });
+      // EXIT PÓS-APLICAÇÃO: a quebra é honesta — o esqueleto NÃO zera μ (falta
+      // a autoria) e o laço para em SEM-PROGRESSO, exit 1 e ESCALA (§6.6).
+      assert.equal(r.code, 1, r.stderr.slice(0, 500));
+      const rel = JSON.parse(r.stdout) as Record<string, any>;
+      assert.equal(rel.modo, 'aplicar');
+      assert.equal(rel.veredito, 'SEM-PROGRESSO');
+      assert.equal(rel.iteracoes.length, 2, 'a iteração 1 aplica; a 2 RECARREGA do disco e mede o esqueleto');
+
+      const it1 = rel.iteracoes[0];
+      const it2 = rel.iteracoes[1];
+
+      // A AÇÃO APLICÁVEL foi EXECUTADA (o gap que este caso fecha).
+      const planejada = it1.acoesPlanejadas.find((a: Record<string, any>) => a.acao === 'SPLIT_LESSON');
+      assert.ok(planejada, 'o plano precisa ter a SPLIT_LESSON');
+      assert.equal(planejada.aplicavel, true);
+      assert.equal(planejada.ramo, 'QUEBRA');
+      assert.deepEqual(it1.acoesAplicadas, [
+        {
+          acao: 'SPLIT_LESSON',
+          ramo: 'QUEBRA',
+          ref: 'modulo-1/a-primeira-funcao',
+          arquivos: [
+            'modules/modulo-1/lessons/passo-node-functionitem-15c0fd88/lesson.json',
+            'modules/modulo-1/module.json',
+          ],
+        },
+      ]);
+      // `escritos` — os DOIS caminhos determinísticos do gravarArquivo, em
+      // ordem de gravação: o esqueleto e o movimento de ORDEM do `lessons`.
+      assert.deepEqual(rel.escritos, [
+        'modules/modulo-1/lessons/passo-node-functionitem-15c0fd88/lesson.json',
+        'modules/modulo-1/module.json',
+      ]);
+
+      // O DISCO concorda com o relatório — esqueleto + movimento de ORDEM.
+      const modulo = JSON.parse(await fs.readFile(path.join(dir, 'modules', 'modulo-1', 'module.json'), 'utf8'));
+      assert.deepEqual(
+        modulo.lessons,
+        ['passo-node-functionitem-15c0fd88', 'a-primeira-funcao'],
+        'o movimento de ORDEM do array `lessons`: a aula nova ANTES da original',
+      );
+      const esqueleto = JSON.parse(
+        await fs.readFile(
+          path.join(dir, 'modules', 'modulo-1', 'lessons', 'passo-node-functionitem-15c0fd88', 'lesson.json'),
+          'utf8',
+        ),
+      ) as Record<string, any>;
+      assert.equal(esqueleto.introduces, undefined, 'declarar sem demonstrar seria A19 — o esqueleto nasce SEM introduces');
+      assert.deepEqual(esqueleto.challenges, []);
+      assert.ok(esqueleto.autoria && typeof esqueleto.autoria.ensina === 'string', 'a ficha `autoria` diz o que autorar');
+      assert.deepEqual(esqueleto.origem, {
+        subfluxo: 'convergencia-quebra-v1',
+        acao: 'SPLIT_LESSON',
+        deAula: 'modulo-1/a-primeira-funcao',
+        chaves: ['node:FunctionItem', 'node:Parameter', 'node:Parameters', 'node:PrimitiveType', 'node:VisibilityModifier'],
+        grupos: [['node:FunctionItem', 'node:Parameter', 'node:Parameters', 'node:PrimitiveType', 'node:VisibilityModifier']],
+        gruposProdutivos: 1,
+      });
+      // O `introduces` da aula EXISTENTE nunca é reescrito (§5.5): a original
+      // continua com as 6 produtivas — é por isso que o laço para em
+      // SEM-PROGRESSO em vez de fingir que convergiu.
+      const original = JSON.parse(
+        await fs.readFile(path.join(dir, 'modules', 'modulo-1', 'lessons', 'a-primeira-funcao', 'lesson.json'), 'utf8'),
+      ) as Record<string, any>;
+      assert.deepEqual(original.introduces.productive, [
+        'node:FunctionItem',
+        'node:Parameters',
+        'node:Parameter',
+        'node:IntegerLiteral',
+        'op:binary:*',
+        'node:BinaryExpression',
+      ]);
+
+      // MEDIDA DE TERMINAÇÃO, golden master da medição documentada no cabeçalho
+      // de `modes/convergencia.ts`: μ 12 → 13 (o esqueleto soma
+      // `aulasSemDesafio` — A20 reprova a aula em autoria) e a iteração 2 NÃO
+      // aplica nada (a quebra é IDEMPOTENTE: o slug derivado já existe).
+      assert.equal(it1.mu, 12);
+      assert.deepEqual(it1.vetor, {
+        violacoesDeOrcamento: 0,
+        lacunasDeCurriculo: 0,
+        errosDaBarra: 5,
+        excessoDePasso: 11,
+        chavesSemDemonstracao: 1,
+        aulasSemDesafio: 0,
+        secoesInsuficientes: 1,
+      });
+      assert.deepEqual(it1.achadosPorRamo, { ORDEM: 0, CADEIA: 0, LACUNA: 0, QUEBRA: 5, DEMONSTRACAO: 0, PROVA: 0 });
+      assert.equal(it1.veredito, null, 'a iteração que APLICA nunca fecha o laço');
+      assert.equal(it2.mu, 13);
+      assert.deepEqual(it2.achadosPorRamo, { ORDEM: 0, CADEIA: 0, LACUNA: 0, QUEBRA: 3, DEMONSTRACAO: 1, PROVA: 2 });
+      assert.deepEqual(it2.acoesAplicadas, [], 'idempotência: o esqueleto já existe (jaExiste) e nada mais é aplicável');
+      assert.equal(it2.planosDeQuebra[0].aulasNovas[0].jaExiste, true);
+      assert.equal(it2.veredito, 'SEM-PROGRESSO');
+    } finally {
+      await fs.rm(dirRaiz, { recursive: true, force: true }).catch(() => {});
       await limparRun(slug);
     }
   });

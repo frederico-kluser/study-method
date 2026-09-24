@@ -1864,6 +1864,45 @@ async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Se
     fail("'--mover' so vale com --aplicar (o dry-run nao grava; o plano da movimentacao ja sai sem flag nenhuma).");
   }
 
+  // O PORTÃO DA CHAVE (exit 2) — a guarda SEM_CHAVE, ANTES do laço mecânico.
+  // O contrato trata as DUAS faltas igual: o `--help` acima ("EXIGE
+  // --modelo-revisor (§6.2) e a chave de API; sem elas aborta DECLARANDO
+  // (exit 2), nunca em silencio") e docs/00-contratos.md §8.1 ("2 quando falta
+  // `--modelo-revisor` ou chave"). Sem esta guarda, uma trilha SEM violação de
+  // ORDEM executável caía no "nada a reparar mecanicamente" do laço e saía 1 —
+  // dizendo "não há o que fazer" quando a verdade é "não há como fazer": a
+  // correção é da LLM e sem chave ela não existe. A guarda resolve a chave
+  // como o resto do CLI resolve (`resolverChaveOpenRouter`: env →
+  // settingsStore → legado) e aborta ANTES de qualquer gravação (escrita
+  // fail-safe).
+  //
+  // ASIMETRIA PRESERVADA (pinada = contrato, engineFiacaoCli.test.ts):
+  // `--mover` é a escrita ZERO-LLM da movimentação — "grava EXATAMENTE o
+  // module.json da ordem nova, sem chave e sem gastar rodada do laço" — e
+  // `--criar-aulas` aborta DENTRO do sub-fluxo v2 de lacuna ("quem abortou tem
+  // de ser o sub-fluxo v2 de LACUNA, não o laço de reescrita"); com as duas
+  // flags o §5.5 manda MOVER antes, e o movimento fica gravado quando a
+  // autoria aborta (limitação MEDIDA). Esta guarda NÃO intercepta nenhum dos
+  // dois caminhos.
+  //
+  // Sobre os DOIS códigos na mensagem: o código do caminho é `[SEM_CHAVE]` (o
+  // padrão do `generate` sem chave), e o `[REPAIR_SEM_LLM]` citado é o código
+  // que o fail-closed do laço usaria lá dentro (§9.3) — a menção nomeia o
+  // MESMO aborto que este portão antecipa.
+  if (modo === 'aplicar' && !bools.has('mover') && !bools.has('criar-aulas') && (await resolverChaveOpenRouter()) === '') {
+    console.error('');
+    console.error(
+      'erro estruturado [SEM_CHAVE] na etapa aplicar: a chave de API nao foi resolvida ' +
+        '(OPENROUTER_API_KEY: env, settingsStore nem legado) e "repair --aplicar" EXIGE --modelo-revisor ' +
+        '(§6.2) e a chave de API; sem elas aborta DECLARANDO (exit 2), nunca em silencio. O laço mecanico ' +
+        'nem comecou e NADA foi gravado (escritos: [], escrita fail-safe): sem a chave a correcao nao ' +
+        'existe, e o fail-closed do laço la dentro seria o mesmo (erro estruturado [REPAIR_SEM_LLM], §9.3) — ' +
+        'este portao antecipa o aborto e o declara com o codigo do generate sem chave. O dry-run — ' +
+        'sem --aplicar — roda sem chave e sem modelo.',
+    );
+    process.exit(2);
+  }
+
   const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
   const deps = fiarDepsDoReparo(dirTrilha, {
     roteamento,
