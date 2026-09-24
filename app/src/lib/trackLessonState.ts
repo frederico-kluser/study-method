@@ -1900,6 +1900,34 @@ export function pendingQuizzes(
 }
 
 /**
+ * ONDA-UMA-PERGUNTA-POR-VEZ (pedido do dono, literal: "uma pergunta por vez,
+ * logo após a seção que as cobre — responder uma libera a próxima; nunca duas
+ * cards juntas"): a pergunta EM CENA — a PRIMEIRA da fila de `pendingQuizzes`,
+ * e a ÚNICA que a UI deve apresentar para resposta.
+ *
+ * O DEFEITO QUE ISTO MATA: a fila era renderizada INTEIRA, então as
+ * assertions ancoradas na MESMA bolha nasciam juntas — numa seção com duas
+ * assertions (47 das 330 aulas da base; ex. `a-primeira-linha`, seção
+ * `as-tres-partes-da-linha`) o aluno via "as duas perguntas de uma vez", e a
+ * seção anterior, sem quiz, ficava sem pergunta nenhuma ("a pergunta não veio,
+ * e quando cliquei em continuar vieram as duas juntas").
+ *
+ * O QUE NÃO MUDA: a ORDEM (a mesma determinística de `pendingQuizzes` — ordem
+ * das bolhas; dentro da bolha, ordem das assertions) e os GATES —
+ * `pendingQuizzes`/`pendingQuizzesForCurrentSection`/`lessonFinishBlock`
+ * continuam contendo TODAS as não dominadas; as seguintes só saem da fila
+ * visual, nunca do gate ("Próximo"/"Concluir aula" seguem travados até a
+ * última). Errar NÃO libera a próxima: o ciclo de remediação mantém a chave
+ * corrente como head até o acerto. PURA.
+ */
+export function nextPendingQuiz(
+  state: TrackLessonUiState,
+  assertions: readonly TrackAssertionDto[],
+): TrackAssertionDto | null {
+  return pendingQuizzes(state, assertions)[0] ?? null;
+}
+
+/**
  * Quizzes da seção ATUAL (a ÚLTIMA apresentada) ainda NÃO DOMINADOS — o gate
  * do "Próximo". Inclui os quizzes de assertions SEM sectionId, que ancoram
  * justamente na última seção apresentada (mesma regra de

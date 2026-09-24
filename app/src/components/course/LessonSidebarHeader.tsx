@@ -102,6 +102,14 @@ import Typography from '@mui/material/Typography';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
+ * Os botões de ação vêm em `size="small"` para não competir com o título na
+ * coluna estreita: a CAIXA cresce até o piso, o glifo e o rótulo continuam.
+ */
+const TOUCH_TARGET_PX = 44;
+
 export interface LessonSidebarHeaderProps {
   /** Título da aula (o h1 da coluna — quebra linha, nunca recorta). */
   title: string;
@@ -282,6 +290,8 @@ export function LessonSidebarHeader({
                 // Quebra, nunca recorta (ver o bloco AÇÕES acima).
                 whiteSpace: 'normal',
                 overflowWrap: 'anywhere',
+                // Piso de alvo de toque (TOUCH_TARGET_PX).
+                minHeight: TOUCH_TARGET_PX,
               })}
             >
               {t('translation:lesson.challengesButton')}
@@ -298,6 +308,8 @@ export function LessonSidebarHeader({
             borderColor: theme.vars.palette.nonText.neutral,
             whiteSpace: 'normal',
             overflowWrap: 'anywhere',
+            // Piso de alvo de toque (TOUCH_TARGET_PX).
+            minHeight: TOUCH_TARGET_PX,
           })}
         >
           {t('translation:lesson.sourcesButton')}

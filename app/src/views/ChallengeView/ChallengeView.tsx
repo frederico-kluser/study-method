@@ -134,7 +134,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
 
   // Estado da listagem e do desafio ativo.
   const [challenges, setChallenges] = useState<ChallengeInfo[]>([]);
-  const [listing, setListing] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [listing, setListing] = useState<'idle' | 'loading' | 'error' | 'empty'>('idle');
   const [listError, setListError] = useState('');
   // Desafio ativo (do contexto OU selecionado da lista).
   const [active, setActive] = useState<ChallengeInfo | null>(nav.selectedChallenge);
@@ -239,8 +239,11 @@ export default function ChallengeView(props: ViewProps): ReactElement {
       ) => Promise<ChallengeInfo[]>)(args);
       setChallenges(list);
       if (list.length === 0) {
-        setListing('error');
-        setListError(t('translation:challenge.noChallengesEmpty'));
+        // ONDA-UX-VAZIO: lista vazia NÃO é erro — o app se acusava de quebrado
+        // por uma pasta vazia (o anti-padrão que a ONDA9 removeu do
+        // Roadmap/Home). Estado `empty` próprio, renderizado como aviso
+        // informativo com CTA (ver o render).
+        setListing('empty');
       } else {
         setListing('idle');
       }
@@ -916,7 +919,24 @@ export default function ChallengeView(props: ViewProps): ReactElement {
         <Alert severity="error" sx={{ mt: 1 }}>{listError}</Alert>
       ) : null}
 
-      {!active ? (
+      {/* ONDA-UX-VAZIO: o estado vazio legítimo (nenhum desafio gerado ainda)
+          é INFORMATIVO e vem com o CTA que o texto pedia a palavras — quem
+          quer desafio gera uma aula primeiro, e a aula é na aba Aula. */}
+      {listing === 'empty' && !active ? (
+        <Alert
+          severity="info"
+          sx={{ mt: 1 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => props.onNavigate('lesson')}>
+              {t('translation:challenge.emptyGoToLesson')}
+            </Button>
+          }
+        >
+          {t('translation:challenge.noChallengesEmpty')}
+        </Alert>
+      ) : null}
+
+      {!active && listing !== 'empty' ? (
         <Typography variant="body1" sx={{ color: 'text.secondary', mt: 2 }}>
           {t('translation:challenge.selectPrompt')}
         </Typography>
@@ -1064,7 +1084,11 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                       // do editor e do terminal (§7.4 do redesign).
                       fontFamily: CODE_TYPOGRAPHY.fontFamily,
                       fontSize: CODE_TYPOGRAPHY.fontSize,
-                      bgcolor: 'action.hover',
+                      // ONDA-UX-SUPERFÍCIE: era `action.hover` — a "única
+                      // superfície fora da rampa" que a ONDA12 removeu da
+                      // conversa. O painel passa a um degrau REAL da rampa
+                      // tonal (nível 2), como o resto da base.
+                      bgcolor: (tema) => tema.vars.palette.surface.level2,
                       borderRadius: 1,
                       p: 1,
                       mt: 0.5,
@@ -1078,9 +1102,13 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                           component="div"
                           sx={{
                             whiteSpace: 'pre-wrap',
+                            // ONDA-UX-CONTRASTE: `error.main` é PREENCHIMENTO
+                            // (2,x:1 como texto). Neste painel (nível 2 da
+                            // rampa) o contrato calibra `error.accentText`
+                            // como o valor de TEXTO da família (≥ 4,5:1).
                             color:
                               b.kind === 'error'
-                                ? 'error.main'
+                                ? (tema) => tema.vars.palette.error.accentText
                                 : b.kind === 'tool'
                                   ? 'text.secondary'
                                   : 'text.primary',

@@ -1,12 +1,15 @@
 /**
- * e2e-theme.spec.ts — toggle de tema claro/escuro na AppBar (onda 11/13).
+ * e2e-theme.spec.ts — seletor de tema claro/escuro no shell (onda 11/13 →
+ * onda tema-seletor).
  *
- * O ThemeToggleButton na AppBar cicla light → dark → system (via
- * useColorScheme do MUI com colorSchemeSelector:'class'). Esta spec valida:
- *   - a classe `.light`/`.dark` no <html> muda a cada clique (useColorScheme +
- *     colorSchemeSelector class — ver src/theme.ts);
+ * O ThemeModeSelector (segmentado claro/sistema/escuro no pé da coluna lateral
+ * e em Configurações → Aparência) escolhe o modo DIRETAMENTE via
+ * useColorScheme do MUI com colorSchemeSelector:'class' — sem ciclo. Esta spec
+ * valida:
+ *   - a classe `.light`/`.dark` no <html> muda ao escolher cada modo (segments
+ *     `data-theme-mode` — alça ESTÁVEL e agnóstica de idioma);
  *   - o `localStorage['theme-mode']` é gravado (modeStorageKey do ThemeProvider);
- *   - no fim do ciclo volta a `system` (e o scheme efetivo segue o SO);
+ *   - escolher "Sistema" volta a `system` (e o scheme efetivo segue o SO);
  *   - as cores COMPUTADAS de cada esquema são as do contrato "Cartucho"
  *     (`src/lib/designTokens.ts`) — medidas no Electron buildado, não deduzidas;
  *     desde a onda 2 isso inclui o CHROME do shell novo (quadro de estado da
@@ -19,7 +22,7 @@
  *     exatamente o que inverteu h4/h5 (25px contra 27,43px).
  * Tudo determinístico em modo stub (E2E_GATE='ready', janela oculta).
  */
-import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
+import { test, expect, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { launchApp, closeApp } from './helpers';
 
 let app: ElectronApplication | undefined;
@@ -29,15 +32,19 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-mode; ciclo volta a system', async () => {
+test('e2e-theme: seletor → classe .light/.dark no <html> + localStorage theme-mode; "Sistema" volta a system', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready' } });
   app = launched.app;
   page = launched.page;
 
-  // App montou: AppBar com o título e o botão de tema.
+  // App montou: AppBar com o título e o seletor de tema no pé da coluna.
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
-  const toggle = page.getByRole('button', { name: 'Tema:' });
-  await expect(toggle).toBeVisible();
+  /** Segmento do seletor NO SIDEBAR (o de Configurações tem a mesma alça). */
+  const segment = (mode: 'light' | 'dark' | 'system'): Locator =>
+    page.locator(`[data-onboarding-target="theme-toggle"] [data-theme-mode="${mode}"]`);
+  await expect(segment('light')).toBeVisible();
+  await expect(segment('system')).toBeVisible();
+  await expect(segment('dark')).toBeVisible();
 
   const html = page.locator('html');
   const storedMode = async (): Promise<string | null> =>
@@ -52,7 +59,7 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   const rail = page.locator('[data-onboarding-target="nav-tabs"]');
   const selectedTab = page.getByRole('tab', { selected: true });
 
-  // 1º clique: system → light → .light no <html> e 'light' no localStorage.
+  // Segmento CLARO: → .light no <html> e 'light' no localStorage.
   // Cartucho claro: o body é o NÍVEL 0 da rampa tonal (#faf7f2 →
   // rgb(250,247,242)), não mais o branco default do MUI.
   //
@@ -67,7 +74,7 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   // O RAIL vive na MESMA superfície de chrome (nível 3) e o destino selecionado
   // sobe para o NÍVEL 4 (#ddd5c6 → rgb(221,213,198)) — a rampa é a elevação, não
   // a sombra.
-  await toggle.click();
+  await segment('light').click();
   await expect(html).toHaveClass(/light/);
   expect(await storedMode()).toBe('light');
   // ONDA-SIDEBAR: o quadro de sessão é a COLUNA lateral agora — a fronteira
@@ -79,7 +86,7 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   await expect(selectedTab).toHaveCSS('background-color', 'rgb(221, 213, 198)');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 247, 242)');
 
-  // 2º clique: light → dark → .dark. A mesma leitura no escuro: header e rail no
+  // Segmento ESCURO: → .dark. A mesma leitura no escuro: header e rail no
   // NÍVEL 3, destino selecionado no NÍVEL 4 e o body no NÍVEL 0.
   //
   // ONDA 11 — A RAMPA ESCURA VIROU CINZA NEUTRO (R=G=B). O dono, literal: *"as
@@ -95,7 +102,7 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   // do cabeçalho existia no DOM e era invisível na tela. O `divider` escuro
   // agora é #4d4d4d (rgb(77,77,77)), um degrau acima do nível 3: a separação
   // entre o chrome e o conteúdo passou a ser vista, e o teste mede isso.
-  await toggle.click();
+  await segment('dark').click();
   await expect(html).toHaveClass(/dark/);
   expect(await storedMode()).toBe('dark');
   await expect(banner).toHaveCSS('background-color', 'rgb(49, 49, 49)');
@@ -104,8 +111,8 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   await expect(selectedTab).toHaveCSS('background-color', 'rgb(59, 59, 59)');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(14, 14, 14)');
 
-  // 3º clique: dark → system → volta a ter exatamente um de light/dark (segue o SO).
-  await toggle.click();
+  // Segmento SISTEMA: volta a ter exatamente um de light/dark (segue o SO).
+  await segment('system').click();
   await expect(html).toHaveClass(/light|dark/);
   expect(await storedMode()).toBe('system');
 });
@@ -143,7 +150,7 @@ test('e2e-theme: a escala tipográfica renderizada é estritamente monotônica (
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('button', { name: 'Tema:' })).toBeVisible();
+  await expect(page.locator('[data-onboarding-target="theme-toggle"] [data-theme-mode="light"]')).toBeVisible();
 
   /** Varre a tela atual e devolve variante -> maior font-size computado (px). */
   const sweep = async (): Promise<Record<string, number>> =>

@@ -262,7 +262,9 @@ export function ChatBubble({
           {isUser ? (
             // A mensagem do ALUNO não é markdown — é o que ele digitou, e
             // renderizá-la como markdown transformaria um `*` dele em itálico.
-            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+            // `overflow-wrap: anywhere`: um URL/token longo sem espaços quebra
+            // em vez de estourar o balão (teto de 78% da coluna).
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
               {message.content}
             </Typography>
           ) : (

@@ -81,6 +81,15 @@ export interface RegenerateInput {
    * `false` preserva o opt-out de quem só exercita o laço de execução.
    */
   requireSemanticGate?: boolean;
+  /**
+   * CONTROLE DE COBERTURA (pedido do dono): itens de REVISÃO selecionados
+   * (engine/coverage/practiceLedger.ts — o chamador monta com
+   * services/reviewSelection.ts). Entregues ao prompt como "TAMBÉM REVISE":
+   * os TESTES do novo desafio devem exercitar estes conteúdos de aulas
+   * anteriores junto com o da aula atual (misturar na prova o que ele já
+   * possui). Ausente/vazio → nada muda.
+   */
+  reviewAtoms?: Array<{ atom: string; origem: string | null }>;
 }
 
 export interface RegenerateOutcome {
@@ -191,6 +200,15 @@ export interface RegenerationPromptInput {
    * SÓ pode cobrar isto + o conteúdo da aula atual).
    */
   previousLessons?: Array<{ title: string; concepts: string[]; theoryExcerpt: string }>;
+  /**
+   * CONTROLE DE COBERTURA (pedido do dono: "misturando na prova conhecimentos
+   * que ele já possui … ter um controle de modo que o aluno sempre pratique …
+   * todo o conhecimento anterior"): itens de REVISÃO selecionados sobre o
+   * ledger de prática (`engine/coverage/practiceLedger.ts`) — conhecimento de
+   * aulas ANTERIORES que os TESTES do novo desafio devem exercitar, junto com
+   * o da aula atual. Ausente/vazio → prompt anterior, byte a byte.
+   */
+  reviewAtoms?: Array<{ atom: string; origem: string | null }>;
 }
 
 /**
@@ -233,6 +251,19 @@ export function buildRegenerationPrompt(input: RegenerationPromptInput): string 
           .join('\n\n')
       : '(nenhuma — esta é a primeira aula da trilha)';
 
+  // CONTROLE DE COBERTURA (pedido do dono): a seção de REVISÃO só entra quando
+  // há itens selecionados — sem ela o prompt é byte-idêntico ao anterior.
+  const reviewBlock =
+    input.reviewAtoms && input.reviewAtoms.length > 0
+      ? `TAMBÉM REVISE (intercalado — conhecimento de aulas anteriores que os TESTES deste desafio devem exercitar, junto com o da aula atual):\n${input.reviewAtoms
+          .map((r) => `- ${r.atom}${r.origem ? ` (ensinado em ${r.origem})` : ''}`)
+          .join('\n')}\n`
+      : '';
+  const reviewRule =
+    input.reviewAtoms && input.reviewAtoms.length > 0
+      ? '\n- misture nos TESTES os itens de TAMBÉM REVISE (retrieval practice): o desafio deve exercitar esses conteúdos já estudados junto com o da aula atual, sem cobrar nada fora do que as aulas anteriores + esta aula ensinaram;'
+      : '';
+
   // ONDA 2 (autoria): caso de erro SÓ se o contexto ensinou validação/erros —
   // cobrar assert.throws sem ter ensinado validação de tipos é exatamente o
   // defeito pedagógico que esta onda elimina (caso "somar" da onda 1).
@@ -250,7 +281,7 @@ ${previousLessons}
 
 CRITÉRIOS DE ENTRADA DA TRILHA (o aluno sabia antes de começar):
 ${entryCriteria}
-
+${reviewBlock}
 DESAFIOS QUE O ALUNO JÁ ERROU NESTA AULA — NÃO REPITA NENHUM DESTES (nem o conceito específico cobrado, nem o enunciado):
 ${failedList}
 
@@ -270,7 +301,7 @@ REGRAS:
 - a assinatura da função deve ser a MESMA em starterCode e solutionCode;
 - o teste deve falhar com o starter (aluno tem o que fazer) e passar com a solução;
 - NUNCA cobrar algo não ensinado — o aluno só conhece as aulas anteriores e esta aula; se um conceito (ex.: validação de tipos, assert.throws, tratamento de erro) não aparece no conteúdo, NÃO crie teste que o exija;
-- o desafio deve ser DIFERENTE de tudo que o aluno já errou.`;
+- o desafio deve ser DIFERENTE de tudo que o aluno já errou.${reviewRule}`;
 }
 
 function parseDraft(raw: unknown): GeneratedChallengeDraft | null {
@@ -356,6 +387,7 @@ export async function regenerateChallenge(input: RegenerateInput): Promise<Regen
       concepts: l.concepts,
       theoryExcerpt: l.theoryExcerpt,
     })),
+    reviewAtoms: input.reviewAtoms,
   };
   for (let attempt = 0; attempt < MAX_REGEN_ATTEMPTS; attempt += 1) {
     let content: string;

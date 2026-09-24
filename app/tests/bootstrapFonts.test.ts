@@ -78,7 +78,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { FONT_STACK } from '../src/lib/designTokens';
+import { FONT_BUNDLED, FONT_STACK } from '../src/lib/designTokens';
 
 const APP_ROOT = join(__dirname, '..');
 
@@ -134,27 +134,36 @@ function firstFamily(stack: string): string {
   return first.replace(/^['"]|['"]$/g, '');
 }
 
+/**
+ * Os pacotes empacotados, papel por papel. `display` e `body` são a MESMA
+ * família porque o design system é o da Apple, que usa uma só família de sans
+ * (SF Pro) em toda a escala: o que separa um título de um parágrafo é tamanho,
+ * peso e entreletra. O SF não é redistribuível, então a stack começa por
+ * `-apple-system` e o Inter empacotado é o fallback que resolve fora da
+ * plataforma da Apple. `FONT_BUNDLED` é o contrato daquilo que ESTE bundle
+ * carrega de verdade.
+ */
 const FONT_PACKAGES = [
   {
-    // ONDA 11: display Chakra Petch → Nunito, de volta ao pacote VARIÁVEL
-    // (eixo wght 200..1000 num arquivo por subset). É a família que a spec
-    // sempre documentou e que a onda 1 tinha trocado sem atualizar a spec.
     role: 'display',
-    pkg: '@fontsource-variable/nunito',
-    entry: '@fontsource-variable/nunito/wght.css',
+    pkg: '@fontsource-variable/inter',
+    entry: '@fontsource-variable/inter/wght.css',
     stack: FONT_STACK.display,
+    bundled: FONT_BUNDLED.display,
   },
   {
     role: 'body',
     pkg: '@fontsource-variable/inter',
     entry: '@fontsource-variable/inter/wght.css',
     stack: FONT_STACK.body,
+    bundled: FONT_BUNDLED.body,
   },
   {
     role: 'mono',
     pkg: '@fontsource-variable/jetbrains-mono',
     entry: '@fontsource-variable/jetbrains-mono/wght.css',
     stack: FONT_STACK.mono,
+    bundled: FONT_BUNDLED.mono,
   },
 ] as const;
 
@@ -220,26 +229,52 @@ describe('src/fonts.ts — os três pacotes, nos arquivos que o tema pilota', ()
   });
 });
 
-describe('FONT_STACK abre com a família que o pacote REALMENTE registra', () => {
-  for (const { role, pkg, entry, stack } of FONT_PACKAGES) {
-    it(`${role}: ${pkg} registra a primeira família de FONT_STACK.${role}`, () => {
+describe('FONT_STACK carrega uma família que o pacote REALMENTE registra', () => {
+  for (const { role, pkg, entry, stack, bundled } of FONT_PACKAGES) {
+    it(`${role}: ${pkg} registra '${bundled}', que está em FONT_STACK.${role}`, () => {
       const registered = registeredFamilies(pkg, entry);
-      const expected = firstFamily(stack);
       assert.deepEqual(
         registered,
-        [expected],
-        `${pkg} registra ${JSON.stringify(registered)}, mas FONT_STACK.${role} ` +
-          `abre com '${expected}'. É assim que a troca silenciosa de ` +
+        [bundled],
+        `${pkg} registra ${JSON.stringify(registered)}, mas FONT_BUNDLED.${role} ` +
+          `espera '${bundled}'. É assim que a troca silenciosa de ` +
           '`@fontsource-variable/x` por `@fontsource/x` quebra a tipografia: o ' +
-          "pacote estático registra 'X' (sem o sufixo Variable), o primeiro item " +
-          'da stack deixa de resolver e o app cai no segundo sem avisar.',
+          "pacote estático registra 'X' (sem o sufixo Variable), a entrada da " +
+          'stack deixa de resolver e o app cai na seguinte sem avisar.',
+      );
+      assert.ok(
+        stack.includes(`'${bundled}'`),
+        `FONT_STACK.${role} não cita '${bundled}': "${stack}". A stack começa ` +
+          'pela fonte de SISTEMA da Apple (que só existe na plataforma dela) e ' +
+          'precisa continuar citando a família empacotada, ou o app renderiza ' +
+          'com a fonte padrão do SO em Linux, Windows e offline.',
       );
     });
   }
+
+  it('display e body são a MESMA família (a Apple usa uma só família de sans)', () => {
+    assert.equal(FONT_BUNDLED.display, FONT_BUNDLED.body);
+  });
+
+  it('a frente de cada stack é a fonte de SISTEMA da Apple, quando existe', () => {
+    assert.ok(
+      FONT_STACK.display.startsWith('-apple-system'),
+      `FONT_STACK.display deveria abrir por -apple-system: "${FONT_STACK.display}"`,
+    );
+    assert.ok(
+      FONT_STACK.body.startsWith('-apple-system'),
+      `FONT_STACK.body deveria abrir por -apple-system: "${FONT_STACK.body}"`,
+    );
+    assert.ok(
+      FONT_STACK.mono.startsWith("'SF Mono'"),
+      `FONT_STACK.mono deveria abrir por 'SF Mono': "${FONT_STACK.mono}"`,
+    );
+    assert.ok(firstFamily(FONT_STACK.display).length > 0);
+  });
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * ONDA 11 — "a fonte nao quero retro" (pedido do dono, verbatim)
+ * "a fonte nao quero retro" (pedido do dono, verbatim) — travado para sempre
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /**
@@ -280,9 +315,8 @@ describe('ONDA 11 — nenhuma família RETRO/PIXEL na tipografia', () => {
         assert.ok(
           !stack.toLowerCase().includes(family.toLowerCase()),
           `FONT_STACK.${role} contém '${family}': "${stack}". O dono pediu, ` +
-            'com estas palavras, "a fonte nao quero retro" — o display é ' +
-            'Nunito Variable (geométrica-humanista, a voz da referência ' +
-            'Nintendo Switch) e não existe mais um papel de acento pixel.',
+            'com estas palavras, "a fonte nao quero retro" — a tipografia é a ' +
+            'do sistema da Apple, e não existe mais um papel de acento pixel.',
         );
       }
     }

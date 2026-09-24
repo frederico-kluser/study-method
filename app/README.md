@@ -306,13 +306,15 @@ Variáveis de caminho/execução:
 - **Material UI v9.** O renderer inteiro roda dentro de um
   `<ThemeProvider theme={theme} defaultMode="system">` + `<CssBaseline>` (único ponto
   onde o fundo é aplicado no `<body>`, definido em `src/main.tsx` e `src/theme.ts`).
-- **Tema claro + escuro (onda 11)** — o app suporta os **dois** esquemas
-  (`colorSchemes: { light, dark }`), o **default segue o SO**
-  (`defaultMode="system"` → `prefers-color-scheme`/nativeTheme), e um
-  **`ThemeToggleButton`** na AppBar cicla `light → dark → system →
-  light` via `useColorScheme()` do MUI. O `colorSchemeSelector: 'class'`
-  aplica `.light`/`.dark` no `<html>` (obrigatório para o toggle manual
-  funcionar). **Persistência:** `modeStorageKey="theme-mode"` → a escolha fica
+- **Tema claro + escuro (onda 11 → onda tema-seletor)** — o app suporta os
+  **dois** esquemas (`colorSchemes: { light, dark }`), o **default segue o SO**
+  (`defaultMode="system"` → `prefers-color-scheme`/nativeTheme), e o
+  **`ThemeModeSelector`** — segmentado `Claro · Sistema · Escuro` (SELEÇÃO
+  direta, sem ciclo) — aparece no pé da coluna lateral (só ícones) e em
+  **Configurações → Aparência** (ícone + rótulo), ambos via `useColorScheme()`
+  do MUI. O `colorSchemeSelector: 'class'` aplica `.light`/`.dark` no `<html>`
+  (obrigatório para a troca manual funcionar). **Persistência:**
+  `modeStorageKey="theme-mode"` → a escolha fica
   em `localStorage['theme-mode']`, lida no boot e gravada no `setMode`;
   sem valor salvo = `system` (segue o SO). **Anti-flash:** com `cssVariables:
   true` o MUI resolve o scheme de forma síncrona antes do 1º paint, e o
@@ -552,7 +554,7 @@ app/
 │  │                           (ChallengeView) / Trilha (RoadmapView) / Settings
 │  ├─ features/onboarding/     OnboardingHost (tutorial interativo) + overlay/modal/steps
 │  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton),
-│  │               theme (ThemeToggleButton + themeModeState)
+│  │               theme (ThemeModeSelector + themeModeState)
 │  └─ lib/                     lógica pura (incl. codeTheme.ts, a paleta de código
 │                              bi-polar que editor e terminal compartilham,
 │                              challengeStars.ts, researchProgress.ts, roadmap.ts,

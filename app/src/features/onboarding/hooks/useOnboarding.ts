@@ -246,7 +246,17 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
     [currentStep, hasAction],
   );
 
-  const canAdvance = !hasAction || isActionSatisfied || targetAbsentFallback;
+  // ONDA-UX (bug do tutorial TRAVADO): `continueAlwaysEnabled` é o contrato
+  // dos passos do Desafio sem aba no rail — ação `open-challenge` insatisfazível
+  // por tab + alvo nav-tabs presente = o botão nascia DESABILITADO para sempre.
+  // Com a flag, "Continuar" é o caminho manual SEMPRE disponível; o
+  // auto-avanço por ação (quem chega ao Desafio por challengeNav) continua a
+  // valer por `isActionSatisfied`. Ver o doc de `continueAlwaysEnabled`.
+  const canAdvance =
+    !hasAction ||
+    isActionSatisfied ||
+    targetAbsentFallback ||
+    currentStep.continueAlwaysEnabled === true;
 
   // Persiste o progresso sempre que muda (exceto hint in-memory).
   useEffect(() => {

@@ -55,6 +55,7 @@ import {
   type QuizOverlayContent,
 } from '../src/components/quiz/quizOverlayContent';
 import type { TrackAssertionDto } from '../shared/ipc-contract';
+import { SHAPE } from '../src/lib/designTokens';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -600,7 +601,11 @@ describe('o modal segue a referência: cinza neutro, sem borda e sem brilho colo
       !html.includes('background-color:var(--mui-palette-surface-level3)'),
       'o degrau fixo nos dois esquemas era exatamente o defeito',
     );
-    assert.match(html, /border-radius:14px/, 'o raio do cartão vem de SHAPE.md');
+    assert.match(
+      html,
+      new RegExp(`border-radius:${SHAPE.md}px`),
+      'o raio do cartão vem de SHAPE.md',
+    );
   });
 
   // ─── ONDA12: O SCRIM ────────────────────────────────────────────────────
@@ -608,12 +613,14 @@ describe('o modal segue a referência: cinza neutro, sem borda e sem brilho colo
   // (o contrato de designTokens.ts proíbe) e AZULADA (B 20 contra R 8) num app
   // cuja rampa é cinza neutro desde a onda 11. O conserto passou por um
   // `color-mix` de 62% escrito à mão e terminou no TOKEN: `palette.scrim`,
-  // preto puro a 55%, que é também o que o `MuiBackdrop` do tema aplica.
+  // preto puro, que é também o que o `MuiBackdrop` do tema aplica. O degrau de
+  // opacidade é o do sheet do iOS (o que fica atrás continua legível como
+  // contexto).
   //
   // A asserção mede a variável, e não a cor resolvida, DE PROPÓSITO: é a
   // variável que amarra este overlay ao mesmo valor do Backdrop e do irmão. Um
-  // teste que casasse com `color-mix(... 55% ...)` continuaria verde no dia em
-  // que alguém reescrevesse os 55% à mão aqui — que foi exatamente como a
+  // teste que casasse com `color-mix(... 40% ...)` continuaria verde no dia em
+  // que alguém reescrevesse os 40% à mão aqui — que foi exatamente como a
   // divergência nasceu.
   it('o scrim emitido é a VARIÁVEL do token (a mesma do MuiBackdrop)', () => {
     const html = renderOpen();
@@ -627,7 +634,7 @@ describe('o modal segue a referência: cinza neutro, sem borda e sem brilho colo
     // que o MUI imprime é o lugar onde o valor pode ser lido de verdade.
     assert.match(
       html,
-      /--mui-palette-scrim:color-mix\(in srgb, #000000 55%, transparent\)/,
+      /--mui-palette-scrim:color-mix\(in srgb, #000000 40%, transparent\)/,
       'o valor por trás da variável é preto puro, sem viés de matiz',
     );
   });
@@ -694,7 +701,11 @@ describe('o modal segue a referência: cinza neutro, sem borda e sem brilho colo
     const html = renderOpen();
     // A regra é de DESCENDENTE e não olha para índice nenhum: ela vale para as
     // quatro de uma vez. É isso que mantém o invariante sagrado de pé.
-    assert.match(html, /\.MuiButton-root\{border-radius:999px;min-height:52px/, 'raio stadium, alvo alto');
+    assert.match(
+      html,
+      new RegExp(`\\.MuiButton-root\\{border-radius:${SHAPE.pill}px;min-height:52px`),
+      'raio stadium, alvo alto',
+    );
     // ─── O CONTORNO MUDOU DE DONO NA INTEGRAÇÃO ───────────────────────────
     // Esta asserção cobrava 1px a 55% declarados AQUI, por descendência
     // (`.css-host .MuiButton-outlined:not(.Mui-disabled)` = 0,3,0). Na mesma

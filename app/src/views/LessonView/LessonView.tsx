@@ -260,9 +260,11 @@ import {
   isQuizMastered,
   isTheoryPresentationBubble,
   lessonFinishBlock,
+  nextPendingQuiz,
   pendingQuizzes,
   pendingQuizzesForCurrentSection,
   pushUserMessage,
+  quizKeyFor,
   quizzesByMessageIndex,
   registerQuizExplanation,
   reopenStalledQuiz,
@@ -2517,12 +2519,32 @@ export function LessonView(props: ViewProps): ReactElement {
     return out;
   }, [chat, quizzesByIndex]);
 
-  // Os que ainda pedem alguma coisa do aluno (não dominados) e cuja bolha JÁ
-  // terminou de ser escrita — um quiz nunca interrompe a leitura da seção que
-  // o demonstra.
+  // ONDA-UMA-PERGUNTA-POR-VEZ (pedido do dono: "uma pergunta por vez … nunca
+  // duas cards juntas"): a pergunta EM CENA é o HEAD da fila de não dominadas
+  // — a regra é a função PURA `nextPendingQuiz`; aqui só se resolve o ENTRY da
+  // view (a assertion autoral, o `visible` da geração corrente e a bolha). As
+  // seguintes CONTAM nos gates (`pendingQuizzes`/`lessonFinishBlock` seguem
+  // vendo todas — o "{{n}} ainda sem" do texto e o travamento do
+  // "Próximo"/"Concluir aula" não mudam) mas NÃO aparecem: a atual dominada é
+  // quem libera a próxima. Onde isso doía: as assertions ancoradas na MESMA
+  // bolha nasciam juntas (47 das 330 aulas da base têm 2+ assertions numa
+  // seção — ex. `a-primeira-linha`, `as-tres-partes-da-linha`), e o aluno via
+  // "as duas de uma vez" logo depois de uma seção sem pergunta nenhuma.
+  const questionInScene = useMemo((): QuizCardEntry | null => {
+    const head = nextPendingQuiz(chat, lessonAssertions);
+    if (head === null) return null;
+    const key = quizKeyFor(head);
+    return quizCards.find((c) => c.visible.key === key) ?? null;
+  }, [chat, lessonAssertions, quizCards]);
+
+  // A pergunta em cena só ENTRA EM CENA quando a bolha âncora terminou de ser
+  // escrita — um quiz nunca interrompe a leitura da seção que o demonstra.
   const pendingQuizCards = useMemo(
-    () => quizCards.filter((c) => c.visible.step.kind !== 'dominado' && !streamingIds.has(c.anchorIndex)),
-    [quizCards, streamingIds],
+    () =>
+      questionInScene !== null && !streamingIds.has(questionInScene.anchorIndex)
+        ? [questionInScene]
+        : [],
+    [questionInScene, streamingIds],
   );
 
   /**
@@ -3266,7 +3288,9 @@ export function LessonView(props: ViewProps): ReactElement {
   if (!lesson) {
     return (
       <Box sx={{ p: 2, maxWidth: 640, mx: 'auto', pt: 4 }}>
-        <LinearProgress />
+        {/* ONDA-UX-FEEDBACK: o carregamento da aula era um progresso MUDO (sem
+            nome acessível — leitores de ecrã não anunciavam a espera). */}
+        <LinearProgress aria-label={t('translation:common.loading')} />
       </Box>
     );
   }
@@ -3669,6 +3693,13 @@ export function LessonView(props: ViewProps): ReactElement {
                             // destino do "minimizar" e a porta de volta para o
                             // overlay — responder acontece SOBRE A TELA, num
                             // card só, nunca em dois ao mesmo tempo.
+                            //
+                            // ONDA-UMA-PERGUNTA-POR-VEZ: da fila de pendentes
+                            // SÓ a pergunta em cena (`questionInScene` — o head
+                            // da ordem determinística) nasce como card; as
+                            // seguintes não renderizam nada até ela ser
+                            // dominada. NUNCA duas perguntas na tela.
+                            if (questionInScene?.visible.key !== visible.key) return null;
                             return (
                               // <div> cru (e não Box): ele não pinta nada, só
                               // carrega o ref do card EM CENA para o efeito

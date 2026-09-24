@@ -18,6 +18,7 @@
 import { type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -44,6 +45,13 @@ export function TutorialSelectionModal({
   onOpenSettings,
 }: TutorialSelectionModalProps): ReactElement | null {
   const { t } = useTranslation();
+  const theme = useTheme();
+  // SCRIM: o TOKEN do tema (`palette.scrim` — preto acromático a 55%), não a
+  // `rgba(0,0,0,0.5)` crua que este modal pintava. Os overlays da base passaram
+  // todos a ler o mesmo token (MuiBackdrop, quiz, onboarding): um valor, um
+  // lugar — quando a opacidade mudar, muda em UM ponto (ver SCRIM em
+  // designTokens.ts).
+  const scrim = theme.vars.palette.scrim;
 
   if (!isOpen || typeof document === 'undefined') {
     return null;
@@ -61,7 +69,7 @@ export function TutorialSelectionModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'rgba(0,0,0,0.5)',
+        bgcolor: scrim,
         p: 2,
       }}
     >
@@ -117,7 +125,14 @@ export function TutorialSelectionModal({
                       py: 0.25,
                       borderRadius: 1,
                       bgcolor: 'action.selected',
-                      color: 'primary.main',
+                      // TINTA, e não o acento (regra 3b, medida): o fundo deste
+                      // badge é `action.selected` — o "estado selecionado" da
+                      // rampa, superfície de nível 4 —, e `primary.accentText`
+                      // sobre a lavagem composta mede 4,16:1 no escuro, abaixo
+                      // do piso AA do texto de 11px. Em tinta: 9,24:1 no
+                      // escuro e 15,01:1 no claro. (O `primary.main` de antes é
+                      // o PREENCHIMENTO da família e media 2,60:1 como texto.)
+                      color: 'text.primary',
                     }}
                   >
                     {t('translation:tutorial.selection.badgeRecommended')}
@@ -165,7 +180,12 @@ export function TutorialSelectionModal({
                         py: 0.25,
                         borderRadius: 1,
                         bgcolor: 'action.selected',
-                        color: 'primary.main',
+                        // Mesma receita do badge de cima (medido): em tinta —
+                        // 9,24:1 no escuro e 15,01:1 no claro sobre a lavagem
+                        // `action.selected`; `primary.accentText` reprovava
+                        // (4,16:1 no escuro) e `primary.main` (fill) media
+                        // 2,60:1 como texto.
+                        color: 'text.primary',
                       }}
                     >
                       {t('translation:tutorial.selection.badgeFull')}
@@ -213,7 +233,12 @@ export function TutorialSelectionModal({
                   display: 'inline-block',
                   mt: 0.5,
                   pl: 2,
-                  color: 'primary.main',
+                  // `primary.accentText`, não `primary.main` (fill): este CTA é
+                  // TEXTO sobre o Paper do modal (nível 1, superfície de
+                  // leitura) e o acento pode ser texto nos níveis 0–2 — o
+                  // valor calibrado mede 5,21:1 no escuro e 5,46:1 no claro,
+                  // contra os 4,26:1/4,75:1 do fill.
+                  color: 'primary.accentText',
                   fontWeight: 600,
                   cursor: 'pointer',
                   textDecoration: 'none',

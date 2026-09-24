@@ -21,6 +21,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -34,6 +35,7 @@ import {
   Box,
   Button,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
   Collapse,
@@ -41,13 +43,13 @@ import {
   IconButton,
   LinearProgress,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -67,7 +69,41 @@ import { createUnlockDiffHolder, peekLastTrackSlug, setLastTrackSlug } from '../
 import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
 
-/** Estado visual de uma aula (ícone + cor). */
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
+ */
+const TOUCH_TARGET_PX = 44;
+
+/**
+ * Span visualmente escondido que carrega o ESTADO da aula por extenso para o
+ * `aria-describedby` do tile (mesma receita do `HIDDEN_HINT_SX` do SplitDivider).
+ * Fica FORA do botão de propósito: o nome acessível do tile é só o conteúdo
+ * visível (título, resumo, dificuldade — SC 2.5.3 label-in-name) e o estado
+ * chega como DESCRIÇÃO, sem duplicar texto na leitura.
+ */
+const HIDDEN_STATE_SX = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: -1,
+  padding: 0,
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+} as const;
+
+/**
+ * Estado visual de uma aula (ícone + cor) e a chave i18n do estado por extenso.
+ *
+ * O `labelKey` deixou de ser letra morta: ele alimenta o span escondido que o
+ * `aria-describedby` do tile aponta (ver LessonRow) — sem ele o leitor de tela
+ * não sabia NADA do estado (o ícone é aria-hidden). E os íCONES diferem por
+ * FORMA, não só por cor: "Em andamento" (play_circle CHEIO) vs "Disponível"
+ * (play_circle VAZADO) era o par que se distinguia apenas pela tinta —
+ * SC 1.4.1 proíbe cor como único meio visual de transmitir a informação.
+ */
 function lessonStateMeta(state: { locked: boolean; done: boolean; current: boolean }): {
   icon: ReactElement;
   labelKey: string;
@@ -75,7 +111,7 @@ function lessonStateMeta(state: { locked: boolean; done: boolean; current: boole
   if (state.done) return { icon: <CheckCircleIcon fontSize="small" color="success" />, labelKey: 'roadmap.done' };
   if (state.current) return { icon: <PlayCircleIcon fontSize="small" color="primary" />, labelKey: 'roadmap.current' };
   if (state.locked) return { icon: <LockIcon fontSize="small" color="disabled" />, labelKey: 'roadmap.locked' };
-  return { icon: <PlayCircleIcon fontSize="small" color="disabled" />, labelKey: 'roadmap.pending' };
+  return { icon: <PlayCircleOutlinedIcon fontSize="small" color="disabled" />, labelKey: 'roadmap.pending' };
 }
 
 /** Uma aula da trilha (clique abre o chat da aula). */
@@ -93,6 +129,12 @@ function LessonRow({
 }): ReactElement {
   const theme = useTheme();
   const meta = lessonStateMeta(lesson);
+  // ONDA (a11y — estado da aula): o tile NÃO substitui mais o nome acessível
+  // por um aria-label ("Aula concluída: …") — aquilo engolia o resumo e a
+  // dificuldade visíveis (SC 2.5.3 label-in-name). O nome passa a ser o
+  // CONTEÚDO VISÍVEL do botão e o estado viaja como descrição
+  // (`aria-describedby` → span escondido), incluído na leitura do tile.
+  const stateId = useId();
   // ONDA 4 (next-glow): cor do glow = success do tema (= ACCENT_*.success.fill
   // do designTokens — o mapping do theme.ts faz success.main === pair.fill; o
   // CheckCircleIcon de done já usa success.main). Família success NUNCA
@@ -121,71 +163,84 @@ function LessonRow({
   );
 
   const tile = (
-    <Box
-      component="button"
-      onClick={() => onOpen(lesson)}
-      disabled={lesson.locked}
-      aria-label={
-        lesson.done ? tI('roadmap.lessonDoneGlowAria', { title: lesson.title }) : undefined
-      }
-      sx={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 1,
-        width: '100%',
-        textAlign: 'left',
-        // ONDA 1 (game-foundations): tile da trilha — borda de jogo 2px.
-        // Transparente em repouso (o hover continua só o fundo), mas o tile da
-        // AULA ATUAL vira um quadro de acento (borda = preenchimento, não
-        // texto — regra 3b do contrato).
-        border: '2px solid transparent',
-        background: 'none',
-        cursor: lesson.locked ? 'not-allowed' : 'pointer',
-        p: 0.75,
-        borderRadius: 1,
-        opacity: lesson.locked ? 0.55 : 1,
-        '&:hover:not(:disabled)': { bgcolor: 'action.hover' },
-        ...(lesson.current
-          ? { borderColor: 'primary.main' }
-          : {}),
-        // ONDA 4 (next-glow): reduce → glow ESTÁTICO (borda de sucesso, sem
-        // animação) — o pulso fica só para quem não pediu menos movimento.
-        ...(lesson.done && reduced ? { borderColor: glowColor } : {}),
-        // ONDA11-CADEADO: a aula que ACABOU de abrir ganha o quadro de
-        // sucesso ESTÁTICO (cor, nunca animação — quem pediu menos movimento
-        // vê exatamente o mesmo quadro). É moldura, não texto: a informação
-        // continua no selo escrito ao lado, nunca só na cor.
-        ...(justUnlocked ? { borderColor: glowColor } : {}),
-        color: 'inherit',
-      }}
-    >
-      <Box sx={{ mt: 0.25 }}>{meta.icon}</Box>
-      <Box sx={{ flexGrow: 1 }}>
-        <Typography variant="body2" sx={{ fontWeight: lesson.current ? 700 : 500 }}>
-          {lesson.title}
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          {lesson.summary}
-        </Typography>
-      </Box>
-      {/* ONDA11-CADEADO — A INFORMAÇÃO, que NUNCA depende da animação.
-          O selo é TEXTO dentro do próprio botão: quem desligou o movimento o
-          lê igual, e o leitor de tela o inclui no nome acessível do tile ("…
-          Destravou agora"). Ele é INFORMATIVO, não comemorativo (§8.2 do
-          ux-redesign: feedback informativo d=+0,43; elogio ritualizado
-          d=-0,40) — diz que aquilo abriu, e para. Cor: `success` do tema (a
-          mesma família do glow de conclusão), nunca hex cru. */}
-      {justUnlocked ? (
+    <>
+      <Box
+        component="button"
+        onClick={() => onOpen(lesson)}
+        disabled={lesson.locked}
+        aria-describedby={stateId}
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1,
+          width: '100%',
+          textAlign: 'left',
+          // ONDA 1 (game-foundations): tile da trilha — borda de jogo 2px.
+          // Transparente em repouso (o hover continua só o fundo), mas o tile da
+          // AULA ATUAL vira um quadro de acento (borda = preenchimento, não
+          // texto — regra 3b do contrato).
+          border: '2px solid transparent',
+          background: 'none',
+          cursor: lesson.locked ? 'not-allowed' : 'pointer',
+          p: 0.75,
+          borderRadius: 1,
+          opacity: lesson.locked ? 0.55 : 1,
+          '&:hover:not(:disabled)': { bgcolor: 'action.hover' },
+          ...(lesson.current
+            ? { borderColor: 'primary.main' }
+            : {}),
+          // ONDA 4 (next-glow): reduce → glow ESTÁTICO (borda de sucesso, sem
+          // animação) — o pulso fica só para quem não pediu menos movimento.
+          ...(lesson.done && reduced ? { borderColor: glowColor } : {}),
+          // ONDA11-CADEADO: a aula que ACABOU de abrir ganha o quadro de
+          // sucesso ESTÁTICO (cor, nunca animação — quem pediu menos movimento
+          // vê exatamente o mesmo quadro). É moldura, não texto: a informação
+          // continua no selo escrito ao lado, nunca só na cor.
+          ...(justUnlocked ? { borderColor: glowColor } : {}),
+          color: 'inherit',
+        }}
+      >
+        <Box sx={{ mt: 0.25 }}>{meta.icon}</Box>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: lesson.current ? 700 : 500 }}>
+            {lesson.title}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {lesson.summary}
+          </Typography>
+        </Box>
+        {/* ONDA11-CADEADO — A INFORMAÇÃO, que NUNCA depende da animação.
+            O selo é TEXTO dentro do próprio botão: quem desligou o movimento o
+            lê igual, e o leitor de tela o inclui no nome acessível do tile ("…
+            Destravou agora"). Ele é INFORMATIVO, não comemorativo (§8.2 do
+            ux-redesign: feedback informativo d=+0,43; elogio ritualizado
+            d=-0,40) — diz que aquilo abriu, e para. Cor: `success` do tema (a
+            mesma família do glow de conclusão), nunca hex cru. */}
+        {justUnlocked ? (
+          <Chip
+            size="small"
+            color="success"
+            variant="outlined"
+            label={tI('roadmap.justUnlockedBadge')}
+            sx={{ ml: 1, flexShrink: 0 }}
+          />
+        ) : null}
+        {/* `flexShrink: 0`: com título longo o chip de dificuldade era o único
+            que encolhia (e truncava o rótulo) — os chips são moldura fixa. */}
         <Chip
           size="small"
-          color="success"
           variant="outlined"
-          label={tI('roadmap.justUnlockedBadge')}
+          label={tI('roadmap.difficulty', { n: lesson.difficulty })}
           sx={{ ml: 1, flexShrink: 0 }}
         />
-      ) : null}
-      <Chip size="small" variant="outlined" label={tI('roadmap.difficulty', { n: lesson.difficulty })} sx={{ ml: 1 }} />
-    </Box>
+      </Box>
+      {/* O ESTADO por extenso ("Em andamento" / "Disponível" / …) — visível só
+          para o leitor de tela (span escondido), ligado ao tile por
+          `aria-describedby`. Sem ele o estado era só ícone+cor. */}
+      <Box component="span" id={stateId} sx={HIDDEN_STATE_SX}>
+        {tI(meta.labelKey)}
+      </Box>
+    </>
   );
 
   // ONDA11-CADEADO — O EFEITO do destravamento: a aula que abriu ENTRA na
@@ -258,7 +313,14 @@ function ModuleCard({
               {tI('roadmap.moduleCount', { done: doneCount, total: mod.lessons.length })}
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setOpen((v) => !v)} aria-label={tI('roadmap.toggleModule', { module: mod.title })}>
+          {/* Piso de alvo de toque (TOUCH_TARGET_PX): o IconButton small nasce
+              30×30 — a caixa cresce, o ícone continua pequeno. */}
+          <IconButton
+            size="small"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={tI('roadmap.toggleModule', { module: mod.title })}
+            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+          >
             <ExpandMoreIcon sx={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </IconButton>
         </Stack>
@@ -287,6 +349,7 @@ function ModuleCard({
                 onClick={() => onOpenModuleChallenge(mod)}
                 startIcon={<EmojiEventsIcon fontSize="small" />}
                 aria-label={`${tI('roadmap.moduleChallenge')} ${mod.challenge.title}`}
+                sx={{ minHeight: TOUCH_TARGET_PX }}
               >
                 {tI('roadmap.moduleChallenge')}
                 {mod.challengeLastVerdict === 'passed'
@@ -508,21 +571,29 @@ export function RoadmapView(props: ViewProps): ReactElement {
         </Typography>
  <Stack spacing={1}>
           {tracks.map((tr) => (
-            <Card key={tr.slug} variant="outlined" sx={{ cursor: 'pointer' }} onClick={() => {
-              // ONDA1-NAV-UI: abrir uma trilha GRAVA no roadmapNav — a próxima
-              // montagem (voltar de outra aba) restaura o detalhe.
-              setSelected(tr.slug);
-              setLastTrackSlug(tr.slug);
-              loadTrack(tr.slug);
-            }}>
-              <CardContent>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {tr.title}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {tI('roadmap.trackCount', { done: tr.doneCount, total: tr.lessonCount })}
-                </Typography>
-              </CardContent>
+            // CardActionArea (o padrão do SubjectCard) em vez de `onClick` no
+            // <Card>: um div não é alcançável por teclado — o cartão inteiro
+            // passa a ser um botão real (Tab + Enter/Espaço), com o mesmo
+            // visual e os mesmos handlers.
+            <Card key={tr.slug} variant="outlined">
+              <CardActionArea
+                onClick={() => {
+                  // ONDA1-NAV-UI: abrir uma trilha GRAVA no roadmapNav — a próxima
+                  // montagem (voltar de outra aba) restaura o detalhe.
+                  setSelected(tr.slug);
+                  setLastTrackSlug(tr.slug);
+                  loadTrack(tr.slug);
+                }}
+              >
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {tr.title}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {tI('roadmap.trackCount', { done: tr.doneCount, total: tr.lessonCount })}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
             </Card>
           ))}
         </Stack>
@@ -558,8 +629,15 @@ export function RoadmapView(props: ViewProps): ReactElement {
             )
           : ''}
       </Typography>
-      {selected !== null && !track && loadError === null ? <LinearProgress /> : null}
-      {selected === null && loading && loadError === null ? <LinearProgress /> : null}
+      {/* Nome acessível nas duas barras de carga: sem ele o progressbar
+          indeterminado anunciava só "progressbar" sem dizer o que carrega
+          (SC 4.1.2) — `common.loading` é a chave existente adequada. */}
+      {selected !== null && !track && loadError === null ? (
+        <LinearProgress aria-label={t('translation:common.loading')} />
+      ) : null}
+      {selected === null && loading && loadError === null ? (
+        <LinearProgress aria-label={t('translation:common.loading')} />
+      ) : null}
       {/* ONDA9 (cache-reconcilia): pasta de trilhas vazia — estado legítimo e
           legível (info + como criar a primeira), NUNCA um alerta de erro. */}
       {noTracks && loadError === null && selected === null ? (
@@ -574,10 +652,13 @@ export function RoadmapView(props: ViewProps): ReactElement {
         <Box sx={{ mt: 1 }}>
           <Alert severity="warning">{loadError}</Alert>
           <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            {/* minHeight = piso de alvo de toque (TOUCH_TARGET_PX): o
+                size="small" sozinho nasce ~30px de alto. */}
             <Button
               variant="outlined"
               size="small"
               onClick={() => (selected !== null ? loadTrack(selected) : loadTracks())}
+              sx={{ minHeight: TOUCH_TARGET_PX }}
             >
               {t('translation:common.tryAgain')}
             </Button>
@@ -591,6 +672,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
                 size="small"
                 startIcon={<ArrowBackIcon fontSize="small" />}
                 onClick={goBackToList}
+                sx={{ minHeight: TOUCH_TARGET_PX }}
               >
                 {t('translation:roadmap.backButton')}
               </Button>
@@ -612,7 +694,10 @@ export function RoadmapView(props: ViewProps): ReactElement {
               startIcon={<ArrowBackIcon fontSize="small" />}
               onClick={goBackToList}
               aria-label={t('translation:roadmap.backButton')}
-              sx={{ mb: 0.5, px: 1, textTransform: 'none', minHeight: 0 }}
+              // O visual de link (variant text, px curtinho) fica; o antigo
+              // `minHeight: 0` encolhia o ALVO abaixo do piso de toque — a
+              // caixa cresce até TOUCH_TARGET_PX, o glifo continua igual.
+              sx={{ mb: 0.5, px: 1, textTransform: 'none', minHeight: TOUCH_TARGET_PX }}
             >
               {t('translation:roadmap.backButton')}
             </Button>
@@ -699,11 +784,13 @@ export function RoadmapView(props: ViewProps): ReactElement {
             />
           ))}
 
-          <Tooltip title={t('translation:roadmap.sequentialHint')}>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }} align="center">
-              {t('translation:roadmap.sequentialHint')}
-            </Typography>
-          </Tooltip>
+          {/* A dica sequencial é TEXTO VISÍVEL — o Tooltip que a repetia
+              literalmente era ruído para o leitor de tela (o mesmo conteúdo
+              lido duas vezes: tooltip + nó de texto) e não acrescentava nada a
+              quem vê. Fica só o texto. */}
+          <Typography variant="caption" sx={{ color: 'text.secondary' }} align="center">
+            {t('translation:roadmap.sequentialHint')}
+          </Typography>
         </Stack>
       ) : null}
     </Box>

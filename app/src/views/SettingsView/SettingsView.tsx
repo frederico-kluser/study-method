@@ -1,9 +1,10 @@
 /**
  * src/views/SettingsView/SettingsView.tsx — tela de Configurações em Material UI.
  *
- * Compõe o painel de chaves de API (KeysPanel) e o painel de LLM local
- * (LocalAiPanel) num Container com maxWidth="md", seções em Typography e
- * separadores (Divider). Responsivo, mobile-first, tema dark.
+ * Compõe o painel de aparência (tema da interface — ThemeModeSelector), o painel
+ * de chaves de API (KeysPanel) e o painel de LLM local (LocalAiPanel) num
+ * Container com maxWidth="md", seções em Typography e separadores (Divider).
+ * Responsivo, mobile-first, tema dark.
  */
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,7 @@ import Container from '@mui/material/Container';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import ThemeModeSelector from '../../components/theme/ThemeModeSelector';
 import { KeysPanel } from './KeysPanel';
 import { LocalAiPanel } from './LocalAiPanel';
 import { OrphanTracksPanel } from './OrphanTracksPanel';
@@ -27,6 +29,22 @@ export default function SettingsView(): ReactElement {
           </Typography>
 
           <Stack spacing={3}>
+            {/* ONDA-TEMA-SELETOR: o tema JÁ podia ser trocado no pé da coluna
+                lateral — aqui fica o mesmo controlo com rótulos, o lugar que o
+                utilizador procura quando quer "mudar o tema". SELEÇÃO direTA
+                (claro/sistema/escuro), nunca ciclo. */}
+            <section aria-labelledby="settings-appearance-title">
+              <Typography variant="h6" id="settings-appearance-title">
+                {t('translation:settings.section.appearance')}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                {t('translation:settings.appearanceDescription')}
+              </Typography>
+              <ThemeModeSelector variant="full" />
+            </section>
+
+            <Divider />
+
             <section aria-labelledby="settings-keys-title" data-onboarding-target="settings-keys-section">
               <Typography variant="h6" id="settings-keys-title">
                 {t('translation:settings.keysTitle')}

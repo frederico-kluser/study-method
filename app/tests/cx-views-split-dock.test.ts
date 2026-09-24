@@ -77,7 +77,7 @@ import {
   type DockState,
   type DockTabId,
 } from '../src/lib/dockState';
-import { SPATIAL_ALLOWED_PROPERTIES } from '../src/lib/designTokens';
+import { MOTION, SPATIAL_ALLOWED_PROPERTIES } from '../src/lib/designTokens';
 
 /* ─── Um storage de memória que registra e pode FALHAR (as duas direções) ── */
 
@@ -339,10 +339,14 @@ describe('persistência do split — a do Desafio e a do SHELL não brigam', () 
   });
 
   it('constantes de movimento: o split anima flex-basis com a curva SPATIAL', () => {
+    // Os NÚMEROS não são deste componente: ele pede o degrau `fast` do nível
+    // `spatial` do contrato, e é `MOTION` que decide o valor. O que este teste
+    // trava é o CASAMENTO — o split tem que animar geometria com a curva que
+    // pode ultrapassar, e nunca com a curva de cor.
     assert.deepEqual({ ...SPLIT_MOTION }, {
       property: 'flex-basis',
-      durationMs: 105,
-      easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      durationMs: MOTION.spatial.fast,
+      easing: MOTION.spatial.easing,
     });
     assert.ok(
       (SPATIAL_ALLOWED_PROPERTIES as readonly string[]).includes(SPLIT_MOTION.property),

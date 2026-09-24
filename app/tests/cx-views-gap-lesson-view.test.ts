@@ -138,10 +138,15 @@ REACT.useState = (initializer) => {
  * A ASSINATURA dos `useState` do render da LessonView, por posição (o slot 0
  * é interno — do `useTranslation`/harness do react-i18next). Medida no render
  * real; é a guarda de refatoração descrita no cabeçalho.
+ *
+ * ONDA-UX-I18N: o useMicSTT passou a chamar `useTranslation` (as mensagens de
+ * erro dele eram hardcoded em português) e o `useState` interno do hook do
+ * react-i18next entra como slot 21 — depois dos 3 do próprio useMicSTT
+ * (transcribing/partial/error, slots 18-20).
  */
 const ASSINATURA_ESTADO = [
   '0', 'null', 'null', 'fn', 'false', 'null', '""', 'null', 'false', 'null', 'null', 'null',
-  '"cabecalho"', 'false', 'null', 'null', 'fn', 'null', 'false', '""', 'undefined',
+  '"cabecalho"', 'false', 'null', 'null', 'fn', 'null', 'false', '""', 'undefined', '0',
 ] as const;
 
 /**

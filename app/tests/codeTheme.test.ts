@@ -243,21 +243,21 @@ describe('CODE_LIGHT / CODE_DARK — as duas paletas existem e são completas', 
       // `codeTheme.ts` declara: "Cursor/caret. É o acento `action` — o único
       // ponto vivo da superfície quieta." O piso de 3:1 sozinho aceitaria a
       // tinta primária aqui (ela passa folgado), então a identidade precisa de
-      // asserção própria. O `action` desta paleta é o mesmo hex que pinta
-      // `keyword`, `state.error` e `ansi.red`.
-      assert.equal(p.chrome.cursor, p.syntax.keyword, `cursor ${p.chrome.cursor} deixou de ser o acento action`);
-      assert.equal(p.chrome.cursor, p.state.error);
-      assert.equal(p.chrome.cursor, p.ansi.red);
-      // ...e é a família `action` de `designTokens` DE VERDADE: mesma matiz,
-      // só o L foi re-resolvido contra o well (é isso que "derivada dos
-      // acentos" significa). Sem esta linha, mover cursor E keyword juntos
-      // para outra família passaria.
+      // asserção própria.
+      //
+      // O cursor é a família `action` de `designTokens` DE VERDADE: mesma matiz,
+      // com o L re-resolvido contra o well (é isso que "derivada do acento"
+      // significa). Ele NÃO é o mesmo hex do `keyword`, do `state.error` nem do
+      // `ansi.red` — no Xcode, que é a referência desta paleta, o cursor é a cor
+      // de acento do sistema e a palavra-chave é a cor de palavra-chave. Duas
+      // coisas diferentes desenhadas com a mesma cor é que seria a confusão.
       const accent = scheme === 'dark' ? ACCENT_DARK : ACCENT_LIGHT;
       const d = hueDistance(hueOf(p.chrome.cursor), hueOf(accent.action.text));
       assert.ok(
         d <= HUE_TOLERANCE_DEG,
         `cursor ${p.chrome.cursor} está a ${d.toFixed(2)}° da família action (${accent.action.text}) em ${scheme}`,
       );
+      assert.notEqual(p.chrome.cursor, p.syntax.keyword, 'cursor e palavra-chave não podem ser a mesma cor');
       // um cursor da cor da tinta é um cursor invisível dentro do texto
       assert.notEqual(p.chrome.cursor, p.chrome.ink);
       assert.notEqual(p.chrome.cursor, p.syntax.variable);
@@ -473,19 +473,25 @@ describe('tabela ANSI — 16 cores DISTINTAS e o invariante do `bright`', () => 
       assert.equal(p.ansi.green, p.state.success);
       assert.equal(p.ansi.yellow, p.state.warn);
       assert.equal(p.ansi.cyan, p.state.info);
-      assert.equal(p.ansi.magenta, p.syntax.constant);
-      // `blue` é a ÚNICA cromática exclusiva do ANSI: a família `info` (h=196)
-      // é ciano e ocupa o slot `cyan`; sem uma matiz própria, `blue` e `cyan`
-      // sairiam iguais. Ver `blue (ansi)` em `docs/ux-redesign/coderamp.ts`.
+      // `blue` e `magenta` são as DUAS cromáticas exclusivas do ANSI. A tabela
+      // de 16 precisa de seis matizes; o app só tem quatro semânticas (erro,
+      // sucesso, aviso, informação). As outras duas são vocabulário do próprio
+      // terminal, e são justamente as duas que o app não tem: o azul (a família
+      // `info` é CIANO e já ocupa o slot `cyan`) e o magenta (a família `study`
+      // é roxa, e o Xcode desenha palavra-chave e constante em matizes próprias,
+      // não em magenta de tabela).
       const roles = new Set([
         ...CODE_SYNTAX_ROLES.map((r) => p.syntax[r]),
         ...CODE_STATE_ROLES.map((r) => p.state[r]),
       ]);
-      assert.ok(
-        !roles.has(p.ansi.blue),
-        `${scheme}: ansi.blue ${p.ansi.blue} reciclou uma cor de sintaxe/estado — ele é matiz PRÓPRIA (h≈222)`,
-      );
+      for (const exclusive of ['blue', 'magenta'] as const) {
+        assert.ok(
+          !roles.has(p.ansi[exclusive]),
+          `${scheme}: ansi.${exclusive} ${p.ansi[exclusive]} reciclou uma cor de sintaxe/estado — ele é matiz PRÓPRIA`,
+        );
+      }
       assert.ok(hueDistance(hueOf(p.ansi.blue), hueOf(p.ansi.cyan)) > HUE_TOLERANCE_DEG);
+      assert.ok(hueDistance(hueOf(p.ansi.magenta), hueOf(p.ansi.blue)) > HUE_TOLERANCE_DEG);
     });
   }
 });
@@ -696,7 +702,7 @@ describe('hexToRgb / truecolorForeground — SGR real para o xterm', () => {
     assert.equal(truecolorForeground('#2dbe75'), '\x1b[38;2;45;190;117m');
     assert.equal(
       truecolorForeground(TERMINAL_CODE_COLORS_LIGHT.red),
-      `\x1b[38;2;${0xaf};${0x2a};${0x16}m`,
+      `\x1b[38;2;${0xb8};${0x24};${0x1c}m`,
     );
   });
 

@@ -130,7 +130,7 @@ test('e2e-setup-timeout: validação pendurada no KeysPanel (Settings) → erro 
   app = launched.app;
   page = launched.page;
 
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
   const validar = page.getByRole('button', { name: 'Validar' }).first();
   await expect(validar).toBeVisible();
 

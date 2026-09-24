@@ -52,9 +52,11 @@ export const QUICK_START_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
   },
   // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" saiu do rail (pedido do dono) —
   // este passo não pode mais exigir clicar nela. Vira informativo com
-  // "Continuar" (o expectedAction permanece para quem chegar ao painel
-  // Desafio por Aula/Trilha via challengeNav) — sem isso o Quick Start
-  // TRAVAVA aqui (alvo nav-tabs presente ⇒ não pula; ação insatisfazível).
+  // "Continuar" SEMPRE habilitado (`continueAlwaysEnabled` — sem ele o botão
+  // nascia DESABILITADO e o Quick Start TRAVAVA aqui: alvo nav-tabs presente
+  // ⇒ não pula; ação insatisfazível ⇒ sem canAdvance). O expectedAction
+  // permanece para quem chegar ao painel Desafio por Aula/Trilha via
+  // challengeNav (auto-avanço).
   {
     id: 'qs-open-challenge',
     chapterId: 'challenge',
@@ -63,6 +65,7 @@ export const QUICK_START_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
     targetSelector: '[data-onboarding-target="nav-tabs"]',
     view: 'challenge',
     expectedAction: 'open-challenge',
+    continueAlwaysEnabled: true,
   },
   {
     id: 'qs-challenge-test-answer',

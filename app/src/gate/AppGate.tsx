@@ -180,10 +180,21 @@ export function AppGate(): ReactElement {
   } else if (status.phase === 'blocked') {
     content = <SetupView onDone={() => void runCheck()} />;
   } else if (status.phase === 'offline') {
+    // ONDA-INPUT-ANCORADO (bug: "o input sobe quando a view tem menos
+    // conteúdo"): o wrapper antigo era um BLOCO de altura auto — e o root do
+    // Shell declara `height: '100%'` (App.tsx), que contra um pai auto resolve
+    // para AUTO. Em offline a cadeia inteira (#root → shell → main → view) caía
+    // para altura de conteúdo: o chat deixava de rolar internamente, `flexGrow`
+    // não tinha espaço livre e o composer/inputs passavam a seguir o fluxo do
+    // conteúdo — "subindo" para o meio do ecrã quando havia pouco conteúdo.
+    // O wrapper agora ESTABELECE a altura (flex column de 100%): o banner fica
+    // no topo e o App preenche o resto com a mesma geometria do modo 'ready'.
     content = (
-      <Box component="div">
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <OfflineBanner />
-        <App />
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <App />
+        </Box>
       </Box>
     );
   } else {

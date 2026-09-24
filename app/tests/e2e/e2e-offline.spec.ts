@@ -30,6 +30,6 @@ test('e2e-offline: chaves ok + rede fora → banner offline e app acessível', a
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
 
   // Aba Settings alcançável (LLM local — mock — segue utilizável).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
   await expect(page.getByRole('heading', { name: 'LLM local' })).toBeVisible();
 });

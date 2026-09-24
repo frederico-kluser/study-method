@@ -368,8 +368,18 @@ export function QuizOverlayHost(): ReactElement {
             inset: 0,
             zIndex: 1300,
             display: 'flex',
-            alignItems: 'center',
+            // ONDA-UX-SCROLL (bug: um card de quiz ALTO — pergunta/opções
+            // longas — transbordava o overlay fixed sem rolagem e ficava
+            // INALCANÇÁVEL, cortado no topo e no fundo). O centrado seguro é
+            // `alignItems: 'flex-start'` + `margin: 'auto'` no filho: com
+            // espaço livre as margens auto centram; com card mais alto que a
+            // janela elas resolvem para 0, o card encosta ao topo e o wrapper
+            // rola (`overflowY: 'auto'`) até ao fim. (`alignItems: 'center'`
+            // com overflow corta o topo SEM deixar alcançá-lo; `safe center`
+            // não está tipado no csstype.)
+            alignItems: 'flex-start',
             justifyContent: 'center',
+            overflowY: 'auto',
             padding: 16,
             // Scrim NEUTRO (o token do tema, não uma cor crua) + o MESMO blur
             // do irmão ChallengeGenerateModal.
@@ -386,7 +396,7 @@ export function QuizOverlayHost(): ReactElement {
             animate="animate"
             exit="exit"
             transition={reduceMotion ? springs.snappy : springs.window}
-            style={{ width: '100%', maxWidth: 520 }}
+            style={{ width: '100%', maxWidth: 520, margin: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
             <Box

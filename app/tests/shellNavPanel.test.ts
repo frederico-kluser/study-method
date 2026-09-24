@@ -385,6 +385,15 @@ describe('4. onboarding — nenhum step aponta para alvo que não existe', () =>
         !step.hideContinueButton,
         `step ${step.id}: alvo = rail (presente ⇒ não pula) + ação insatisfazível pelo rail + Continuar escondido = tutorial TRAVADO`,
       );
+      // ONDA-UX: visível NÃO chega — com canAdvance=false o botão nascia
+      // DESABILITADO e o tutorial travava na mesma (o bug que o e2e do Quick
+      // Start apanhava como "Continuar" não clicável). Os passos do Desafio
+      // carregam `continueAlwaysEnabled` para o avanço manual ser sempre
+      // possível.
+      assert.ok(
+        step.continueAlwaysEnabled === true,
+        `step ${step.id}: Continuar visível mas DESABILITADO = tutorial TRAVADO (falta continueAlwaysEnabled)`,
+      );
     }
   });
 

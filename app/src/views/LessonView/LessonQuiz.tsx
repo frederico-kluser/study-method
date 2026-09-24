@@ -50,8 +50,19 @@
  *
  * a11y: os botões têm aria-label i18n (chave lesson.quizOptionAria — "Opção 2
  * de 4: …") e o feedback usa role="status" (SC 4.1.3 — o veredito nunca
- * depende só da cor; contraste pelos pares calibrados do tema: success.main /
- * error.main sobre background.paper).
+ * depende só da cor).
+ *
+ * ONDA-UX (contraste do veredito e da borda): o parágrafo anterior dizia que o
+ * contraste vinha "dos pares calibrados do tema: success.main / error.main
+ * sobre background.paper" — e estava ERRADO nos dois pontos. `main` é o
+ * PREENCHIMENTO da família (o papel de fundo de botão), não o valor de TEXTO:
+ * como texto/cor de borda ele media 2,74:1 sobre o cartão do modal, que é o
+ * NÍVEL 4 da rampa no escuro (o card fica transparente dentro do overlay — ver
+ * o wrapper do QuizOverlayHost). A receita da casa é a do QuizOverlayHost:
+ * PALAVRA em TINTA (9,83:1 no pior caso, 17,90:1 no claro) e ÍCONE no
+ * `*.accentText` da família — o papel de TEXTO calibrado, que no papel de
+ * ÍCONE tem piso de 3:1 e entrega 3,39:1 sobre o mesmo nível 4. A borda do
+ * card, que também é não-texto (piso 3:1), usa o mesmo `*.accentText`.
  */
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -147,7 +158,11 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
       <Box
         sx={{
           border: '1px solid',
-          borderColor: answered ? (correct ? 'success.main' : 'error.main') : 'divider',
+          // BORDA É NÃO-TEXTO (piso 3:1, SC 1.4.11) e `*.main` é PREENCHIMENTO:
+          // sobre o cartão do modal (nível 4 no escuro) a borda media 2,74:1.
+          // Vai para o `*.accentText` da família — pior caso 3,39:1 (nível 4 do
+          // escuro), 5,22:1 sobre o nível 1 e 4,93:1 no claro sobre o nível 0.
+          borderColor: answered ? (correct ? 'success.accentText' : 'error.accentText') : 'divider',
           borderRadius: 2,
           bgcolor: 'background.paper',
           p: 1.5,
@@ -270,13 +285,25 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 1,
-                color: correct ? 'success.main' : 'error.main',
                 mt: 0.5,
               }}
             >
-              {correct ? <CheckCircleIcon fontSize="small" sx={{ mt: 0.25 }} /> : <CancelIcon fontSize="small" sx={{ mt: 0.25 }} />}
+              {/* ÍCONE NO ACENTO, PALAVRA EM TINTA (a receita do
+                  QuizOverlayHost). Este box aparece sobre o cartão do modal —
+                  nível 4 da rampa no escuro —, onde o `*.accentText` da família
+                  mede 3,39:1: acima do piso NÃO-TEXTO de 3:1 (válido para o
+                  ícone) mas ABAIXO do piso de texto de 4,5:1 (não serve para a
+                  palavra). O `*.main` antigo não servia a nenhum dos papéis
+                  (2,74:1). Em tinta a palavra vai a 9,83:1 no escuro e 17,90:1
+                  no claro, e o verde/vermelho que o dono quer ver continua vivo
+                  — no ícone e na borda do card. */}
+              {correct ? (
+                <CheckCircleIcon fontSize="small" sx={{ mt: 0.25, color: 'success.accentText' }} />
+              ) : (
+                <CancelIcon fontSize="small" sx={{ mt: 0.25, color: 'error.accentText' }} />
+              )}
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                   {correct ? t('translation:lesson.quizCorrect') : t('translation:lesson.quizWrong')}
                 </Typography>
                 {!correct && assertion.feedback ? (

@@ -38,8 +38,9 @@ solução.
 3. **Primeiro uso:** pós-startup-gate (app liberado) o **quick tour** pode oferecer o tutorial
    (overlay com spotlight + modal). Você pode Concluir/Skip — não reaparece (persistido). Se
    pular, reabra pelo botão de ajuda se houver (ver §2.11).
-4. **Tema:** o toggle na AppBar cicla **claro ↔ escuro ↔ sistema** (default segue o SO);
-   a escolha fica salva em `localStorage['theme-mode']` (ver §2.9).
+4. **Tema:** o seletor de tema (segmentado **Claro · Sistema · Escuro**) vive no pé da
+   coluna lateral e em **Configurações → Aparência**; a escolha fica salva em
+   `localStorage['theme-mode']` (ver §2.9).
 
 ### 1.3 Aula (aba Aula)
 
@@ -195,7 +196,7 @@ juiz ausente, apply esgotado).
 ┌───────────────▼───────────────────────────────────────────────┐
 │  Renderer React (SPA sobre file://)                           │
 │  Views: Settings / LessonView / ChallengeView                 │
-│  OnboardingHost (tutorial) · ThemeToggleButton                │
+│  OnboardingHost (tutorial) · ThemeModeSelector                │
 │  Editor (CodeMirror/Dracula) · Terminal (xterm/Dracula)       │
 │  apiBridge · themeModeState                                   │
 └───────────────────────────────────────────────────────────────┘
@@ -359,10 +360,12 @@ O renderer roda sob `<ThemeProvider theme={theme} defaultMode="system">` + `<Css
   custom: `#4f8cff` em **dark**, `#1565c0` (WCAG AA) em **light**.
 - **Default segue o SO** — `defaultMode="system"` → `prefers-color-scheme`
   (nativeTheme do Electron espelha o SO no Chromium).
-- **Toggle manual** — `ThemeToggleButton` na AppBar cicla `light → dark →
-  system → light` via `useColorScheme()` do MUI. O `colorSchemeSelector:
+- **Seleção manual** — `ThemeModeSelector` (segmentado `Claro · Sistema ·
+  Escuro` — seleção direta, sem ciclo) via `useColorScheme()` do MUI: no pé da
+  coluna lateral (só ícones, `variant="compact"`) e em **Configurações →
+  Aparência** (ícone + rótulo, `variant="full"`). O `colorSchemeSelector:
   'class'` aplica `.light`/`.dark` no `<html>` (obrigatório: com o default
-  `'media'` o `setMode` não teria efeito). Lógica pura do ciclo em
+  `'media'` o `setMode` não teria efeito). Lógica pura dos modos em
   `src/components/theme/themeModeState.ts` (testável sem jsdom).
 - **Persistência** — `modeStorageKey="theme-mode"` → escolha em
   `localStorage['theme-mode']`, lida no boot e gravada no `setMode`; sem valor

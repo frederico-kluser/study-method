@@ -37,13 +37,13 @@
  * fronteira ainda mais apertada: só alcança 3:1 nos níveis 0 e 1, e é por isso
  * que o anel de foco daqui é de DUAS cores.
  *
- * ─── DECISÃO 1b: erro NÃO é o vermelho da ação ─────────────────────────────
- * `error` tem família PRÓPRIA no contrato (carmim, matiz 338), a 30° do
- * vermelho-laranja da `action` (matiz 8). Enquanto os dois compartilhavam
- * `accents.action`, `error.main` era byte-idêntico a `primary.main` — e este app
- * tem exclusão real (`editor.confirmDelete`, `challenge.confirmDelete`): um
- * "Apagar" com exatamente a cor do "Testar resposta" é risco de usabilidade,
- * não risco semântico abstrato.
+ * ─── DECISÃO 1b: erro NÃO é o acento da ação ──────────────────────────────
+ * `error` tem família PRÓPRIA no contrato (systemRed) e `action` é systemBlue:
+ * as duas cores de sistema mais distantes que a Apple publica. Enquanto os dois
+ * compartilhavam a família, `error.main` era byte-idêntico a `primary.main` —
+ * e este app tem exclusão real (`editor.confirmDelete`,
+ * `challenge.confirmDelete`): um "Apagar" com exatamente a cor do "Testar
+ * resposta" é risco de usabilidade, não risco semântico abstrato.
  *
  * ─── DECISÃO 2: elevação por COR, não por sombra ───────────────────────────
  * A rampa tonal de superfície (níveis 0–4) entra como slot de paleta
@@ -68,20 +68,28 @@
  * `body2`/`subtitle2` usam o degrau de 16.
  *
  * FRONTEIRA DISPLAY/CORPO — é SEMÂNTICA, não de tamanho: TÍTULO (h1–h6) é
- * `FONT_STACK.display` (Nunito Variable, 800 no topo e 700 do h4 para baixo);
- * TEXTO — corpo, subtítulo, rótulo de botão, legenda, overline — é
- * `FONT_STACK.body` (Inter). Traçar a fronteira por tamanho é o que produzia um
- * H1 em display 700 seguido de um H2 em Inter 400: a hierarquia trocava de VOZ
- * no meio do caminho. Como h6 empata com `body1` em 18px, quem separa os dois é
- * a família e o peso, não o corpo — e é de propósito que o menor título nunca
- * fique ABAIXO do texto que ele encabeça. (A variante `pixel` — nome LEGADO,
- * ver a seção da escala — é um RÓTULO de HUD em display, não um nível de
- * hierarquia.)
+ * `FONT_STACK.display` (800 no topo e 700 do h4 para baixo); TEXTO — corpo,
+ * subtítulo, rótulo de botão, legenda, overline — é `FONT_STACK.body`. Traçar a
+ * fronteira por tamanho é o que produzia um H1 em display 700 seguido de um H2
+ * em corpo 400: a hierarquia trocava de VOZ no meio do caminho.
+ *
+ * A referência deste tema é a Apple, e a Apple usa UMA família de sans (SF Pro)
+ * em toda a escala: o que separa um título de um parágrafo é tamanho, peso e
+ * entreletra, não o nome da fonte. Aqui `display` e `body` são portanto a mesma
+ * família com nomes ópticos diferentes na frente (SF Pro Display x SF Pro Text,
+ * ambos via `-apple-system`), e os TRÊS sinais de hierarquia são aplicados:
+ * tamanho (escala modular), peso (800/700 contra 400/600) e entreletra
+ * (`TYPE.displayTracking`, o tracking negativo da Apple nos títulos grandes).
+ * Como h6 empata com `body1` em 18px, quem separa os dois é peso E entreletra,
+ * e é de propósito que o menor título nunca fique ABAIXO do texto que ele
+ * encabeça. (A variante `pixel` — nome LEGADO, ver a seção da escala — é um
+ * RÓTULO de HUD em display, não um nível de hierarquia.)
  *
  * ─── DECISÃO 3: dois níveis de movimento, separados por PROPRIEDADE ────────
  * `theme.transitions` ganha, por module augmentation, os nomes `spatial` e
  * `effects` (easing) e `spatialFast|Normal|Slow` / `effectsFast|Normal|Slow`
- * (duração). O nível `spatial` PODE ultrapassar (overshoot ~9,5%) e por isso só
+ * (duração). O nível `spatial` PODE ultrapassar (o ressalto discreto da mola
+ * `.snappy` do SwiftUI, quantificado em designTokens.ts) e por isso só
  * pode animar transform/geometria; aplicar `spatial` a `color`,
  * `background-color` ou `opacity` é o bug que faz texto longo cintilar.
  * A regra é imposta pelo TIPO: `spatialTransition()` aceita apenas
@@ -405,14 +413,14 @@ export function effectsTransition(
  * PREENCHIDA por um halo de `text.primary` (box-shadow com spread 2px, exatamente
  * a largura do offset). O halo não é enfeite: `nonText.focus` foi calibrado em
  * >= 3:1 contra os níveis 0 e 1 —
- *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level0 = 3,02:1
- *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level1 = 3,23:1
- *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level0 = 3,51:1
- *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level1 = 3,13:1
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level0 = 4,70:1
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level1 = 5,12:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level0 = 5,42:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level1 = 4,66:1
  * — e CAI abaixo do piso nos níveis 3–4, que são justamente o chrome (rail,
  * dock, menu) onde há muito alvo focável:
- *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level4 = 2,21:1
- *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,04:1
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level4 = 3,65:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,84:1
  * (Este parágrafo dizia "3,35 e 3,03 no escuro" desde a onda 11, quando o
  * `focus` escuro mudou de valor e ninguém recalculou — o número certo é o
  * medido acima. A forma `[medido]` existe para que a próxima troca de hex
@@ -420,7 +428,7 @@ export function effectsTransition(
  * de designTokens.ts.)
  * A tinta primária, essa, alcança o piso não-texto contra TODOS os cinco níveis
  * nos dois esquemas — o pior caso é
- * [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,83:1 —, então o indicador
+ * [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,50:1 —, então o indicador
  * composto continua válido em qualquer superfície: é a técnica de indicador de
  * duas cores do Understanding do SC 1.4.11.
  *
@@ -464,8 +472,10 @@ export function focusRingStyles(theme: FocusRingTheme): {
  * ONDA 12: isto era um `styleOverrides` do `MuiDialog` e mais nada; o overlay do
  * quiz (`src/components/quiz/QuizOverlayHost.tsx`), que NÃO é um `<Dialog>`,
  * pintava o próprio cartão no nível 3 nos DOIS esquemas — e no CLARO o nível 3
- * (#e9e2d6) é mais ESCURO que a página (#faf7f2), então o modal lia como buraco
- * em vez de elevação. Era o único modal da base fora da regra. Extraído para cá
+ * era mais ESCURO que a página (os valores da rampa de então), então o modal
+ * lia como buraco em vez de elevação. A assimetria continua sendo a mesma: o
+ * cartão do modal é o topo da rampa no escuro e a superfície de leitura no
+ * claro. Era o único modal da base fora da regra. Extraído para cá
  * como função para que o `MuiDialog` e todo overlay feito à mão consumam a MESMA
  * decisão em vez de reimplementá-la:
  *
@@ -537,32 +547,65 @@ function scaleSize(step: number): number {
 /** Peso dos subtítulos e rótulos — corpo com autoridade, sem virar título. */
 const LABEL_WEIGHT = 600;
 
-/* ── PESO DOS TÍTULOS: 800 no topo, 700 na base (ONDA 11) ───────────────────
- * O display voltou a ser VARIÁVEL (Nunito, eixo wght 200..1000). O Chakra Petch
- * da onda 1 era estático e parava em 700, então h1 e h6 tinham exatamente o
- * MESMO peso e a hierarquia dependia só do tamanho — que no piso da escala é
- * zero (h6 e body1 empatam em 18px).
- * Com o eixo aberto, os TRÊS níveis de topo (h1–h3, os títulos de tela) sobem
- * para 800 e os TRÊS de baixo (h4–h6, títulos dentro de um cartão) ficam em
- * 700. Assim a hierarquia passa a ter DOIS sinais em vez de um, e o h6 continua
- * separado do body1 por família (Nunito x Inter) E por peso (700 x 400).
- * O piso é 700 de propósito: abaixo disso o Nunito, que é arredondado, deixa de
- * ler como título ao lado do Inter 600 dos subtítulos. */
+/* ── PESO DOS TÍTULOS: 800 no topo, 700 na base ────────────────────────────
+ * O display é VARIÁVEL (o eixo wght vai de 100 a 900, tanto no SF Pro quanto
+ * no Inter Variable que faz o papel de corpo fora da plataforma da Apple). Com
+ * o eixo aberto, os TRÊS níveis de topo (h1–h3, os títulos de tela) sobem para
+ * 800 e os TRÊS de baixo (h4–h6, títulos dentro de um cartão) ficam em 700.
+ * Assim a hierarquia tem DOIS sinais em vez de um, e o h6 continua separado do
+ * body1 por peso E por entreletra. O piso é 700 de propósito: abaixo disso o
+ * título deixa de ler como título ao lado dos subtítulos 600. */
 const DISPLAY_WEIGHT_TOP = 800;
 const DISPLAY_WEIGHT_BASE = 700;
+
+/* ── ENTRELETRA: o tracking da Apple ───────────────────────────────────────
+ * Título grande na Apple é sempre com tracking NEGATIVO (o SF Pro Display fecha
+ * o ritmo do tamanho grande) e rótulo pequeno é sempre com tracking POSITIVO
+ * (o small caps largo do sistema). É o terceiro sinal de hierarquia do tema, e
+ * é o que sustenta a fronteira display/corpo agora que os dois papéis são a
+ * MESMA família. Os valores vêm de `TYPE.displayTracking`/`TYPE.labelTracking`.
+ * O tracking se abre conforme o título encolhe: o fechamento que cai bem em
+ * 62px aperta demais um h6 de 18px, que empata com o corpo. */
+function displayTracking(sizePx: number): string {
+  const open = sizePx <= 20 ? 1.6 : sizePx <= 30 ? 1.2 : 1;
+  return `${(TYPE.displayTracking * open).toFixed(3)}em`;
+}
+
+/* ── SOMBRA DE CONTROLE: o degrau de elevação da Apple ─────────────────────
+ * Três degraus, todos NEUTROS e tingidos da tinta do esquema (a regra é
+ * "sombra tingida do fundo", nunca preto puro sobre papel claro). É a sombra
+ * que a Apple põe em controle flutuante: praticamente invisível em repouso,
+ * um degrau maior no hover, e praticamente zero no press, onde o gesto é o
+ * transform. A cor da sombra é `effects`, nunca `spatial`. */
+function controlShadow(theme: StyleTheme): {
+  readonly rest: string;
+  readonly hover: string;
+  readonly active: string;
+} {
+  const ink = theme.vars.palette.text.primary;
+  return {
+    rest: `0 1px 2px color-mix(in srgb, ${ink} 10%, transparent), ` +
+      `0 6px 14px -8px color-mix(in srgb, ${ink} 16%, transparent)`,
+    hover: `0 2px 6px color-mix(in srgb, ${ink} 14%, transparent), ` +
+      `0 12px 24px -10px color-mix(in srgb, ${ink} 22%, transparent)`,
+    active: `0 1px 2px color-mix(in srgb, ${ink} 10%, transparent)`,
+  };
+}
 
 /** Famílias padrão do MUI que recebem os dois papéis de acento. */
 const ACCENT_SLOTS = ['primary', 'secondary', 'error', 'warning', 'info', 'success'] as const;
 
-/* ── Forma das SUPERFÍCIES (cartão, papel, chip, modal) — ONDA 11 ───────────
- * Um número só para os três, porque eles têm que combinar: a referência
- * (Nintendo Switch Online) é feita de retângulos de canto generoso SEM contorno
+/* ── Forma das SUPERFÍCIES (cartão, papel, chip, modal) ─────────────────────
+ * Um número só para os três, porque eles têm que combinar: a referência (o
+ * sistema da Apple) é feita de retângulos de canto contínuo SEM contorno
  * pesado, e um card de borda 2px ao lado de um modal de borda 0 lê como duas
  * bases de design diferentes na mesma tela.
- * `SURFACE_RADIUS` = 16 fica um degrau acima do `SHAPE.base` (14) que rege
- * botão e campo, exatamente como no mock: o container é mais macio que o
- * controle dentro dele. */
-const SURFACE_RADIUS = 16;
+ * `SURFACE_RADIUS` = `SHAPE.lg` fica um degrau acima do `SHAPE.base` que rege o
+ * campo de formulário, exatamente como no sistema da Apple: o contêiner é mais
+ * macio que o controle dentro dele. O botão de ação é a EXCEÇÃO documentada da
+ * regra de forma: ele é cápsula (`SHAPE.pill`), que é o formato do botão de ação
+ * da Apple em toda plataforma. */
+const SURFACE_RADIUS = SHAPE.lg;
 /** 1px: aresta, não moldura. A onda 1 usava 2px (traço "game" do leet-code-rpg). */
 const SURFACE_BORDER_WIDTH = 1;
 
@@ -697,50 +740,56 @@ export const theme = createTheme({
     fontSize: TYPE_BODY_SIZE,
 
     // ── TÍTULOS (h1–h6): stack de DISPLAY, sem exceção ────────────────────
-    // ONDA 11: Nunito Variable (geométrica-humanista, arredondada — a voz da
-    // referência Nintendo Switch) no lugar do Chakra Petch, que era techno e
-    // quadrada. "A fonte nao quero retro", verbatim do dono. 800 nos três
-    // níveis de topo, 700 nos três de baixo (ver DISPLAY_WEIGHT_*). A fronteira
-    // display/corpo é SEMÂNTICA: título é display, texto é corpo. Nenhum nível
-    // de título troca de família no meio da hierarquia.
+    // 800 nos três níveis de topo, 700 nos três de baixo (ver
+    // DISPLAY_WEIGHT_*), mais o tracking negativo da Apple (ver
+    // `displayTracking`). A fronteira display/corpo é SEMÂNTICA: título é
+    // display, texto é corpo. Nenhum nível de título troca de voz no meio da
+    // hierarquia — e, como as duas papéis são a MESMA família, quem separa h6
+    // de body1 é peso e entreletra.
     h1: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(5),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(5)),
     },
     h2: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(4),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(4)),
     },
     h3: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(3),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(3)),
     },
     h4: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(2),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(2)),
     },
     h5: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(1),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(1)),
     },
     // h6 empata com body1 em 18px — é o PISO da escala de título, e de
-    // propósito ele nunca cai abaixo do texto que encabeça. Quem separa os
-    // dois é a família (Nunito x Inter) e o peso (700 x 400), não o corpo.
+    // propósito ele nunca cai abaixo do texto que ele encabeça. Quem separa os
+    // dois é o peso (700 x 400) e a entreletra, não o corpo.
     h6: {
       fontFamily: FONT_STACK.display,
       fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(0),
       lineHeight: DISPLAY_LINE_HEIGHT,
+      letterSpacing: displayTracking(scaleSize(0)),
     },
 
     // ── TEXTO: stack de CORPO ─────────────────────────────────────────────
@@ -781,6 +830,7 @@ export const theme = createTheme({
       fontFamily: FONT_STACK.body,
       fontWeight: LABEL_WEIGHT,
       fontSize: scaleSize(-1),
+      letterSpacing: `${TYPE.labelTracking}em`,
     },
 
     // `pixel` — NOME LEGADO. ONDA 11: a família que dava nome à variante
@@ -791,9 +841,10 @@ export const theme = createTheme({
     // renomeá-la para `label` exige tocar nesses dois arquivos.
     //
     // O PAPEL não mudou — rótulo de HUD, uppercase pequeno, nunca corpo nem
-    // título —, mudou a VOZ: agora é o próprio display (Nunito) em 700, o que
-    // mantém o rótulo na mesma família dos títulos sem competir com eles (13px
-    // fica abaixo do menor degrau da escala, os 14px de `caption`).
+    // título —, e a VOZ é a do próprio display em 700, o que mantém o rótulo
+    // na mesma família dos títulos sem competir com eles (13px fica abaixo do
+    // menor degrau da escala, os 14px de `caption`), com o tracking largo de
+    // rótulo do sistema.
     // A entrelinha caiu de 1,8 para 1,5: os 1,8 existiam porque glifo de pixel
     // é cortado quando a caixa aperta, e essa razão morreu junto com a fonte.
     pixel: {
@@ -801,7 +852,7 @@ export const theme = createTheme({
       fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: 13,
       lineHeight: 1.5,
-      letterSpacing: '0.06em',
+      letterSpacing: `${TYPE.labelTracking}em`,
       textTransform: 'uppercase',
     },
 
@@ -922,7 +973,11 @@ export const theme = createTheme({
       },
       styleOverrides: {
         root: ({ theme: t }: { theme: StyleTheme }) => ({
-          borderRadius: SHAPE.md,
+          // REGRA DE FORMA da Apple: toda AÇÃO é cápsula. Contêiner é
+          // arredondado (SURFACE_RADIUS), campo é SHAPE.md, e o que se clica
+          // para fazer algo acontecer é pílula. É o gesto mais reconhecível do
+          // design system da apple.com e do iOS.
+          borderRadius: SHAPE.pill,
           // ── O HALO DO ANEL DE FOCO, DE VOLTA (ONDA 13) ──────────────────
           // O `disableElevation` logo acima tem um efeito colateral que não
           // está no nome dele: o MUI, para a variante `disableElevation`,
@@ -935,10 +990,10 @@ export const theme = createTheme({
           // O que a prova visual mediu na pílula: `outline: 2.4px solid
           // rgb(12,113,150)` com `outline-offset: 2px` e `box-shadow: none` —
           // as duas cores adjacentes ao anel eram o próprio cartão (#3b3b3b),
-          // e [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,04:1, abaixo do
+          // e [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,84:1, abaixo do
           // piso NÃO-TEXTO de 3:1. Com o halo de volta, quem encosta no anel é
           // `text.primary`, cujo pior par é
-          // [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,83:1 — que é
+          // [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,50:1 — que é
           // exatamente a razão de o indicador ser de duas cores.
           // `styleOverrides` do tema é aplicado DEPOIS das variantes do
           // componente, então esta declaração vence a do `disableElevation`.
@@ -967,14 +1022,16 @@ export const theme = createTheme({
           // estado NORMAL enquanto a aula não foi respondida, ou seja, o que o
           // aluno mais vê. O default do MUI pinta `action.disabled`, que no
           // escuro é branco a 30%: composto sobre o nível 0 isso vira #565656 e
-          // mede [medido] #565656 x SURFACE_DARK.level0 = 2,63:1, abaixo até do
-          // piso NÃO-TEXTO.
+          // mede [medido] #565656 x SURFACE_DARK.level0 = 2,70:1, abaixo até do
+          // piso NÃO-TEXTO. O outro caminho — deixar a tinta secundária sobre o
+          // preenchimento da ação, como faria o `pop` sem a correção abaixo — é
+          // igualmente ilegível: [medido] INK_DARK.secondary x ACCENT_DARK.action.fill = 1,85:1.
           // Um controle desabilitado é dispensado do contraste pela própria
           // WCAG ("inactive user interface component"), mas ESTE carrega o
           // motivo do bloqueio e vem com explicação ao lado: ele precisa ser
           // LIDO. Vai para a tinta SECUNDÁRIA, que o contrato calibra contra os
           // cinco níveis dos dois esquemas — o pior par é
-          // [medido] INK_DARK.secondary x SURFACE_DARK.level4 = 4,99:1, ainda
+          // [medido] INK_DARK.secondary x SURFACE_DARK.level4 = 5,24:1, ainda
           // sobre o piso AA. O que sinaliza "desligado" passa a ser a ausência
           // de preenchimento, o cursor e o cadeado, não a ilegibilidade.
           '&.Mui-disabled': {
@@ -983,7 +1040,7 @@ export const theme = createTheme({
             // A borda do `outlined` desabilitado é `action.disabledBackground`
             // (branco a 12% no escuro): sobre o nível 0 ela some, e o botão
             // vira texto solto no meio da tela. O divisor decorativo é fraco de
-            // propósito — [medido] DIVIDER_DARK x SURFACE_DARK.level0 = 2,28:1 —
+            // propósito — [medido] DIVIDER_DARK x SURFACE_DARK.level0 = 2,70:1 —
             // mas DESENHA a moldura, que é o que faltava. `borderColor`
             // (longhand) vem depois do `border` (shorthand) do MUI porque
             // styleOverrides do tema é aplicado por último; nas variantes sem
@@ -1029,30 +1086,31 @@ export const theme = createTheme({
               },
             ]),
 
-            // ONDA 1 (game-foundations): SOMBRA COLORIDA nos botões de
-            // preenchimento — o glow do leet-code-rpg (shadow-indigo-500/25),
-            // na tinta do próprio acento via color-mix (nenhum hex novo). A
-            // sombra é `effects` (cor), nunca `spatial`. O `contained` default
-            // do MUI fica coberto aqui para TODOS os slots de acento.
+            // SOMBRA nos botões de preenchimento: NEUTRA e sutil, tingida da
+            // tinta do esquema (nunca preto puro sobre superfície clara, e
+            // nunca o glow colorido de ondas antigas — glow é o que faz um
+            // botão parecer brinquedo). A referência é a sombra de controle da
+            // Apple: quase imperceptível em repouso, um degrau maior no hover.
+            // A sombra é `effects` (cor), nunca `spatial`.
             ...ACCENT_SLOTS.flatMap((slot) => [
               {
                 props: { variant: 'contained' as const, color: slot },
                 style: ({ theme: t2 }: { theme: StyleTheme }) => ({
-                  boxShadow: `0 4px 14px -4px color-mix(in srgb, ${t2.vars.palette[slot].fill} 40%, transparent)`,
+                  boxShadow: controlShadow(t2).rest,
                   '&:hover': {
-                    boxShadow: `0 6px 18px -4px color-mix(in srgb, ${t2.vars.palette[slot].fill} 55%, transparent)`,
+                    boxShadow: controlShadow(t2).hover,
                   },
                   '&:active': {
-                    boxShadow: `0 2px 8px -2px color-mix(in srgb, ${t2.vars.palette[slot].fill} 30%, transparent)`,
+                    boxShadow: controlShadow(t2).active,
                   },
                 }),
               },
             ]),
 
-            // `pop` — o botão "kimochi ii". Preenchimento chapado da família
-            // action, raio generoso, resposta ao toque como MOVIMENTO ESPACIAL
-            // (sobe 2% no hover, afunda para 0,97 no press) e o glow colorido
-            // do acento em cima da sombra cinza que o disableElevation zera.
+            // `pop` — o CTA da ação primária. Preenchimento chapado da família
+            // action, CÁPSULA (a regra de forma da ação), resposta ao toque
+            // como MOVIMENTO ESPACIAL (sobe 2% no hover, afunda para 0,97 no
+            // press) e a sombra neutra de controle sobre o preenchimento.
             // A cor não participa do overshoot (é `effects`); só o transform é
             // `spatial`.
             {
@@ -1060,24 +1118,24 @@ export const theme = createTheme({
               style: ({ theme: t2 }: { theme: StyleTheme }) => ({
                 backgroundColor: t2.vars.palette.primary.fill,
                 color: t2.vars.palette.primary.onFill,
-                borderRadius: SHAPE.lg,
+                borderRadius: SHAPE.pill,
                 paddingInline: t2.spacing(2.5),
                 paddingBlock: t2.spacing(1),
                 fontWeight: 700,
-                boxShadow: `0 4px 14px -4px color-mix(in srgb, ${t2.vars.palette.primary.fill} 40%, transparent)`,
+                boxShadow: controlShadow(t2).rest,
                 transition: [
                   effectsTransition(t2, ['background-color', 'color', 'border-color', 'box-shadow'], 'fast'),
                   spatialTransition(t2, ['transform'], 'fast'),
                 ].join(', '),
                 '&:hover': {
                   // acento CHAPADO: o hover não muda a cor, muda a geometria
-                  // e a Sombra cresce.
+                  // e a sombra cresce um degrau.
                   backgroundColor: t2.vars.palette.primary.fill,
-                  boxShadow: `0 6px 18px -4px color-mix(in srgb, ${t2.vars.palette.primary.fill} 55%, transparent)`,
+                  boxShadow: controlShadow(t2).hover,
                   transform: 'scale(1.02)',
                 },
                 '&:active': {
-                  boxShadow: `0 2px 8px -2px color-mix(in srgb, ${t2.vars.palette.primary.fill} 30%, transparent)`,
+                  boxShadow: controlShadow(t2).active,
                   transform: 'scale(0.97)',
                 },
                 '&.Mui-disabled': {
@@ -1088,8 +1146,8 @@ export const theme = createTheme({
                   // desabilitado nela), então a tinta tem que continuar sendo a
                   // do preenchimento. Sem esta linha ele herdaria a tinta
                   // secundária do `.Mui-disabled` da raiz, e aí sim ficaria
-                  // ilegível: [medido] INK_DARK.secondary x ACCENT_DARK.action.fill
-                  // = 1,80:1. Com ela, segue no par calibrado do contrato.
+                  // ilegível. Com ela, segue no par calibrado do contrato,
+                  // cuja folga é medida em tests/theme.test.ts.
                   color: t2.vars.palette.primary.onFill,
                 },
                 '@media (prefers-reduced-motion: reduce)': {
@@ -1149,6 +1207,30 @@ export const theme = createTheme({
                 backgroundColor: t.vars.palette.surface.level3,
                 border: `${SURFACE_BORDER_WIDTH}px solid ${t.vars.palette.divider}`,
                 boxShadow: 'none',
+                // MATERIAL DA APPLE (vidro fosco do chrome), por trás de
+                // `@supports` e com fallback sólido. `raised` é o chrome do app
+                // (rail, dock, menu) e é justamente onde o sistema da Apple põe
+                // o material: painel de sistema translúcido sobre o conteúdo.
+                //
+                // A declaração opaca ACIMA continua sendo a cor declarada da
+                // superfície — é ela que o contrato de elevação por cor mede e
+                // que os testes de contraste conferem. O que o material faz é,
+                // em navegador que suporta, rebaixar a opacidade e desfocar o
+                // que está atrás: a profundidade passa a vir do desfoque, e o
+                // papel do nível na rampa não muda.
+                //
+                // `prefers-reduced-transparency` volta para a superfície opaca:
+                // quem pediu menos transparência não pode receber vidro.
+                '@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))': {
+                  backgroundColor: `color-mix(in srgb, ${t.vars.palette.surface.level3} 78%, transparent)`,
+                  backdropFilter: 'blur(24px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                },
+                '@media (prefers-reduced-transparency: reduce)': {
+                  backgroundColor: t.vars.palette.surface.level3,
+                  backdropFilter: 'none',
+                  WebkitBackdropFilter: 'none',
+                },
               }),
             },
             {
@@ -1203,7 +1285,7 @@ export const theme = createTheme({
      *
      * A ESCOLHA DE NÍVEL É ASSIMÉTRICA ENTRE OS ESQUEMAS, e por isso passa por
      * `applyStyles` (ver o comentário de `StyleTheme.applyStyles`):
-     *   - ESCURO: nível 4, o TOPO da rampa (#3b3b3b). Sob polaridade negativa,
+     *   - ESCURO: nível 4, o TOPO da rampa. Sob polaridade negativa,
      *     elevação é LUZ — o objeto mais alto da tela é o mais claro, e é
      *     justamente esse valor que bate com o cinza médio da referência.
      *   - CLARO: nível 1, a superfície de leitura (#ffffff). Sob polaridade
@@ -1295,8 +1377,8 @@ export const theme = createTheme({
         // era o `notchedOutline` de 1,6px no acento (`rgb(217,81,60)` no
         // escuro), com `box-shadow: none` e `outline: 0px`. Dois problemas, e
         // nenhum deles é contraste — o acento contra o campo mede
-        // [medido] ACCENT_DARK.action.fill x SURFACE_DARK.level1 = 4,26:1 e
-        // [medido] ACCENT_LIGHT.action.fill x SURFACE_LIGHT.level1 = 4,75:1:
+        // [medido] ACCENT_DARK.action.fill x SURFACE_DARK.level1 = 4,66:1 e
+        // [medido] ACCENT_LIGHT.action.fill x SURFACE_LIGHT.level1 = 4,70:1:
         //   1. UMA cor só. O indicador desta base é de DUAS cores de propósito
         //      (`focusRingStyles` — técnica do Understanding do SC 1.4.11), e
         //      o campo era a única exceção da tela.
@@ -1314,8 +1396,8 @@ export const theme = createTheme({
         // indicação de teclado, então o clique de mouse segue sem anel. A
         // SEGUNDA cor entra como halo de `text.primary` colado na borda de
         // acento, o mesmo par do resto do app.
-        // [medido] INK_DARK.primary x SURFACE_DARK.level1 = 15,11:1 e
-        // [medido] INK_LIGHT.primary x SURFACE_LIGHT.level1 = 17,90:1 — o halo
+        // [medido] INK_DARK.primary x SURFACE_DARK.level1 = 15,63:1 e
+        // [medido] INK_LIGHT.primary x SURFACE_LIGHT.level1 = 16,83:1 — o halo
         // é a cor que carrega o piso, exatamente como no anel padrão.
         root: ({ theme: t }) => ({
           '&:has(:focus-visible)': {

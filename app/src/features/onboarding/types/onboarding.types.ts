@@ -130,6 +130,19 @@ export interface OnboardingStepDefinition {
   expectedAction?: OnboardingExpectedAction;
   /** Oculta o botão "Continuar" (steps de auto-avanço por input/navegação). */
   hideContinueButton?: boolean;
+  /**
+   * "Continuar" SEMPRE habilitado, mesmo com `expectedAction` por satisfazer.
+   *
+   * É o contrato dos passos do Desafio pós ONDA-SEM-DESAFIO-NO-RAIL: a aba
+   * "Desafio" saiu do rail, então a ação `open-challenge` não se satisfaz por
+   * tab — o passo é INFORMATIVO na prática e o "Continuar" é o ÚNICO caminho
+   * de quem não vem da Aula/Trilha. Sem esta flag, `canAdvance` ficava `false`
+   * para sempre (alvo nav-tabs presente ⇒ sem fallback) e o botão nascia
+   * DESABILITADO: o tutorial TRAVAVA no passo (o bug que o e2e do Quick Start
+   * apanhava como "Continuar" não clicável). O `expectedAction` permanece
+   * para o auto-avanço de quem chega ao painel Desafio por challengeNav.
+   */
+  continueAlwaysEnabled?: boolean;
   /** True no último step (troca o rótulo para "Concluir"). */
   isLast?: boolean;
 }

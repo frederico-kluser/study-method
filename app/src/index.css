@@ -187,37 +187,32 @@ body,
 /* ─── Cromo do documento ─────────────────────────────────────────────────── */
 /* O polegar da barra de rolagem é COMPONENTE DE UI, não divisor decorativo:
    o piso dele é 3:1 (SC 1.4.11), então ele usa a camada não-texto do contrato
-   (`nonText.neutral`, 3,03:1 no claro e 3,36:1 no escuro contra o nível 0) e
-   NÃO o `divider`, que fica abaixo de 3:1 de propósito.
-   ONDA 1 (game-foundations): o polegar ganha o TINTE do acento via color-mix
-   (estilo leet-code-rpg — scrollbar colorida de jogo). A base continua sendo a
-   camada não-texto (o piso de 3:1 não muda); o acento entra como tonalidade
-   sobre ela. Nenhum hex novo: só vars do tema + color-mix. */
+   (`nonText.neutral`) e NÃO o `divider`, que fica abaixo de 3:1 de propósito.
+   O polegar é NEUTRO: scrollbar tingida de acento é enfeite, e o gesto do
+   sistema da Apple é o inverso — a barra desaparece quando ninguém rola e
+   volta como uma pílula cinza, sem cor própria. */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--mui-palette-surface-level2);
-  border-radius: 999px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: color-mix(
-    in srgb,
-    var(--mui-palette-primary-fill) 40%,
-    var(--mui-palette-nonText-neutral)
-  );
-  border: 2px solid var(--mui-palette-surface-level1);
+  background: var(--mui-palette-nonText-neutral);
+  border: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(
     in srgb,
-    var(--mui-palette-primary-fill) 65%,
-    var(--mui-palette-nonText-neutral)
+    var(--mui-palette-nonText-neutral) 72%,
+    var(--mui-palette-text-primary)
   );
+  background-clip: padding-box;
 }
 
 /* Seleção = "estado selecionado / hover forte", que é literalmente o papel do

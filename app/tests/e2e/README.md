@@ -64,7 +64,7 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 
 - `e2e-gate.spec.ts` — SetupView bloqueada (sem chaves) e alerta de inválido.
 - `e2e-settings.spec.ts` — preencher OpenRouter+Brave → destrava o app.
-- `e2e-theme.spec.ts` — toggle na AppBar → classe `.light`/`.dark` no `<html>` + `localStorage['theme-mode']`; ciclo volta a `system`.
+- `e2e-theme.spec.ts` — seletor de tema (segmentos `data-theme-mode`) → classe `.light`/`.dark` no `<html>` + `localStorage['theme-mode']`; escolher "Sistema" volta a `system`.
 - `e2e-lesson.spec.ts` — assunto → aula (Stepper + fases + markdown + desafios).
 - `e2e-onboarding.spec.ts` — modal de tutorial na 1ª execução pós-gate, overlay com spotlight no alvo, concluir/skip → não reaparece.
 - `e2e-editor.spec.ts` — abrir/editar/salvar no editor (persistência em disco real).

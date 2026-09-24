@@ -3,19 +3,19 @@
     "home": "Home",
     "settings": "Settings",
     "lesson": "Lesson",
-    "challenge": "Challenge (open it from the Lesson or the Track)",
-    "roadmap": "Trail"
+    "challenge": "Challenge",
+    "roadmap": "Track"
   },
   "app": {
-    "title": "Study Method — Tutor",
+    "title": "Study Method: Tutor",
     "tagline": "Learn for real, with AI-generated lessons and hands-on challenges."
   },
   "theme": {
     "mode": {
       "toggle": "Theme",
-      "light": "Light mode",
-      "dark": "Dark mode",
-      "system": "System default"
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
     }
   },
   "settings": {
@@ -23,6 +23,7 @@
     "keysDescription": "Configure the OpenRouter (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
     "localAiTitle": "Local LLM",
     "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud.",
+    "appearanceDescription": "Choose the interface theme: light, dark, or following your system. Your choice is saved automatically.",
     "section": {
       "keys": "API keys",
       "localAi": "Local AI",
@@ -50,7 +51,7 @@
     "clearProgressTimeout": "The app did not respond in time. Try again.",
     "orphansTitle": "Courses not installed",
     "orphansDescription": "Progress kept for tracks that are no longer in resources/tracks. It is hidden from Home so it cannot become a dead link, but it stays here: reinstall the track under the same slug and the progress comes back on its own.",
-    "orphansEmpty": "Nothing orphaned — every stored progress has an installed track or lessons of its own.",
+    "orphansEmpty": "Nothing orphaned: every stored progress has an installed track or lessons of its own.",
     "orphansLoadFailed": "Could not check for leftovers.",
     "orphansTimeout": "The check did not respond in time. Try again.",
     "orphansRowCount": "{{n}} row(s) in the database",
@@ -95,10 +96,11 @@
     "errorNetworkValidate": "Network error while validating",
     "needKeyBeforeSave": "Enter the key before saving.",
     "saveError": "Failed to save the key.",
-    "saveTimeout": "Could not save the key — the app did not respond. Try again."
+    "saveTimeout": "Could not save the key: the app did not respond. Try again."
   },
   "localAi": {
     "title": "Local model",
+    "downloadAria": "Download model {{id}}",
     "detect": "Detect hardware",
     "ram": "RAM",
     "vram": "VRAM",
@@ -126,7 +128,7 @@
   "lesson": {
     "subjectLabel": "Subject",
     "subjectPlaceholder": "What do you want to learn about?",
-    "subjectHelper": "Programming and math — e.g. invert a binary tree or solve a quadratic equation.",
+    "subjectHelper": "Programming and math: e.g. invert a binary tree or solve a quadratic equation.",
     "generate": "Generate lesson",
     "generating": "Generating lesson…",
     "busy": {
@@ -135,7 +137,7 @@
       "digitando": "Writing the section…",
       "explicando": "Explaining the mistake…",
       "gerando": "Generating a new quiz…",
-      "aguardandoVez": "Waiting for a turn — the tutor is busy…",
+      "aguardandoVez": "Waiting for a turn: the tutor is busy…",
       "concluindo": "Finishing the lesson…"
     },
     "phase": {
@@ -189,7 +191,7 @@
       "error": "Could not check the answer right now."
     },
     "emptyTitle": "No lesson selected",
-    "emptyDescription": "Pick a track in the Track tab and open a lesson — the content is ready, just study.",
+    "emptyDescription": "Pick a track in the Track tab and open a lesson: the content is ready, just study.",
     "emptyCta": "Browse tracks",
     "sourcesButton": "Sources",
     "theoryProgress": "Theory progress: {{percent}}%",
@@ -208,13 +210,13 @@
     "quizCorrect": "That is what the section shows.",
     "quizWrong": "That option parts ways with what the section shows.",
     "quizFeedback": "Why:",
-    "quizGateNext": "This section's quiz is still waiting for the right answer. Picking off target opens, in the conversation, an explanation of where that option parts ways with the section — and a new quiz on the same passage.",
-    "quizGateTyping": "Finish reading this section — its quiz shows up in the conversation as soon as the text is done being written. You can click (or press any key) to show it all at once.",
+    "quizGateNext": "This section's quiz is still waiting for the right answer. Picking off target opens, in the conversation, an explanation of where that option parts ways with the section: and a new quiz on the same passage.",
+    "quizGateTyping": "Finish reading this section: its quiz shows up in the conversation as soon as the text is done being written. You can click (or press any key) to show it all at once.",
     "revealGateTyping": "This section is still being written. “Advance” shows all of it at once.",
     "revealTypingTooltip": "Show the whole section now (does not move on)",
-    "challengeGateFinish": "The theory is over. What is left is this lesson's challenge — it is the next step, and finishing it unlocks the lesson.",
-    "challengeGateQuiz": "The challenge opens once this lesson's quiz has the right answer ({{n}} still missing) — it is the proof the passage was understood.",
-    "quizGateFinish": "The lesson wraps up once every quiz has the right answer ({{n}} still open). Picking off target opens, in the conversation, an explanation of where that option parts ways with the section — and a new quiz on the same passage.",
+    "challengeGateFinish": "The theory is over. What is left is this lesson's challenge: it is the next step, and finishing it unlocks the lesson.",
+    "challengeGateQuiz": "The challenge opens once this lesson's quiz has the right answer ({{n}} still missing): it is the proof the passage was understood.",
+    "quizGateFinish": "The lesson wraps up once every quiz has the right answer ({{n}} still open). Picking off target opens, in the conversation, an explanation of where that option parts ways with the section: and a new quiz on the same passage.",
     "quizOverlayTitle": "Show that it landed",
     "quizOverlayAria": "Section quiz, over the screen",
     "quizOverlayMinimize": "Minimize into the conversation",
@@ -222,7 +224,7 @@
     "quizAttemptLabel": "Quiz {{n}} for this statement",
     "quizChatOnScreen": "This quiz is open over the screen.",
     "quizChatWaiting": "Waiting for your answer.",
-    "quizChatQueued": "Queued — the tutor is finishing a reply, and the quiz cycle continues right after.",
+    "quizChatQueued": "Queued: the tutor is finishing a reply, and the quiz cycle continues right after.",
     "quizChatExplaining": "Writing where the option you picked parts ways with what the section shows…",
     "quizChatGenerating": "Preparing a new quiz on the same passage…",
     "quizChatUnavailable": "The cycle stopped here. You can ask again.",
@@ -232,8 +234,8 @@
     "quizChatReopen": "Answer this question again",
     "quizExplanationTitle": "Where that option parts ways with what the section shows",
     "quizExplanationChosen": "Option picked",
-    "quizExplainUnavailable": "The explanation could not be written right now — the AI is offline. The new quiz on the same passage is still on its way.",
-    "quizRemedialUnavailable": "The new quiz could not be generated right now — the AI is offline. Nothing you answered was lost.",
+    "quizExplainUnavailable": "The explanation could not be written right now: the AI is offline. The new quiz on the same passage is still on its way.",
+    "quizRemedialUnavailable": "The new quiz could not be generated right now: the AI is offline. Nothing you answered was lost.",
     "quizAttemptNotSaved": "This answer did not reach your history on disk; it still counts for this session.",
     "quizHistoryUnavailable": "This lesson's quiz history could not be read right now, so quizzes you had already mastered show up to be answered again. Whatever you answer in this session is still recorded.",
     "skipTypingButton": "Show all",
@@ -263,20 +265,20 @@
     "difficulty": "difficulty {{n}}",
     "generatedBadge": "generated for you",
     "challengePassed": "Passed with {{stars}} star(s)",
-    "challengeFailedCount": "Failed {{n}} time(s) — try again",
+    "challengeFailedCount": "Failed {{n}} time(s): try again",
     "challengeNotPassed": "Attempt not completed",
     "challengeUntried": "Never tried",
     "viewLessonButton": "View the lesson",
     "sourcesTitle": "Sources for this lesson",
     "sourcesViewerClose": "Close",
     "sourcesViewerOpenExternal": "Open in browser",
-    "sourcesViewerFrameHint": "Some sites refuse to be displayed inside the app — in that case use “Open in browser”.",
+    "sourcesViewerFrameHint": "Some sites refuse to be displayed inside the app: in that case use “Open in browser”.",
     "trackNotFound": "Lesson not found in the track.",
     "trackLoadFailed": "Could not load the lesson.",
     "trackLoadTimeout": "The lesson did not respond in time. Try again.",
     "nextTimeout": "The tutor did not respond when advancing the section. Try again.",
     "answerTimeout": "The tutor took too long to reply. Try again.",
-    "doneTimeout": "Could not finish the lesson — the app did not respond. Try again.",
+    "doneTimeout": "Could not finish the lesson: the app did not respond. Try again.",
     "errorBubbleTitle": "Your code failed the tests",
     "errorBubbleFilesTitle": "Submitted code",
     "errorQuestion": "What do you think went wrong? Type here or speak into the microphone. If you don't know, just say \"I don't know\".",
@@ -297,6 +299,8 @@
     "providerOpenrouter": "OpenRouter",
     "confirmDelete": "Delete {{name}}?",
     "noChallengesEmpty": "No challenges available. Generate a lesson first in the \"Lesson\" tab.",
+    "emptyGoToLesson": "Go to the lesson",
+    "outputTruncated": "Output truncated to the first {{n}} characters.",
     "listError": "Could not list the challenges",
     "statementUnavailable": "Statement (README.md) unavailable.",
     "workspaceLoadError": "Error loading the workspace",
@@ -318,8 +322,8 @@
     "timerAria": "Time left: {{time}}",
     "timedOut": "Time's up",
     "timedOutAnnounce": "Time's up.",
-    "starLostFocus": "Focus lost — 1 star less.",
-    "starLostSlow": "Time limit approaching — 1 star less.",
+    "starLostFocus": "Focus lost: 1 star less.",
+    "starLostSlow": "Time limit approaching: 1 star less.",
     "announcePassed": "Tests passed: {{testsRun}} of {{expectedTests}} cases.",
     "announceFailed": "Tests failed: {{testsRun}} of {{expectedTests}} cases passed. The failing case is in the output.",
     "dock": {
@@ -349,7 +353,11 @@
     "regenerateButton": "Generate new challenge",
     "checksTitle": "Result per test",
     "partialCount": "{{passed}} of {{total}} tests passed",
-    "proficiencyPassed": "Proficiency approved — the whole track is unlocked!",
+    "masteryTitle": "What this attempt demonstrated",
+    "masteryDemonstrated": "You demonstrated mastery of:",
+    "masteryRedo": "Let's redo:",
+    "masteryNothing": "Nothing was proven in this attempt: no lesson is waived without strong evidence. Redoing is not punishment — it is practice of what has not settled yet.",
+    "proficiencyPassed": "Proficiency approved: the whole track is unlocked!",
     "filesTitle": "Challenge files",
     "fileTabAria": "File {{file}}",
     "submitTimeout": "Code testing took too long. Try again.",
@@ -368,13 +376,14 @@
     "tryAgain": "Try again",
     "title": "Before you start",
     "readError": "Could not query the API key status. Check that the app started correctly and try again.",
-    "startupTimeout": "Could not start — the app did not respond. Try again."
+    "startupTimeout": "Could not start: the app did not respond. Try again."
   },
   "editor": {
     "openFile": "Open file",
     "save": "Save",
     "unsaved": "Unsaved changes",
     "newFile": "New file",
+    "newFilePlaceholder": "new.txt (relative path)",
     "deleteFile": "Delete file",
     "confirmDelete": "Delete {{name}}?",
     "refresh": "Refresh",
@@ -406,9 +415,13 @@
     "close": "Close",
     "tryAgain": "Try again"
   },
+  "voice": {
+    "engineUnavailable": "Speech engine unavailable (too many failures).",
+    "captureFailed": "Could not start voice capture: {{msg}}"
+  },
   "home": {
     "title": "Learn programming and math with AI-generated lessons",
-    "description": "Type a subject — such as \"Invert a binary tree\" or \"Quadratic equations\" — and get a lesson with explanation, analogy, visualization and hands-on challenges validated by tests.",
+    "description": "Type a subject: such as \"Invert a binary tree\" or \"Quadratic equations\": and get a lesson with explanation, analogy, visualization and hands-on challenges validated by tests.",
     "cta": {
       "setup": "Set up keys",
       "start": "Start a lesson"
@@ -440,7 +453,7 @@
     },
     "subjects": {
       "answeredOfTotal": "{{answered}} of {{total}} lessons answered",
-      "noLessonsYet": "No lessons yet — start now"
+      "noLessonsYet": "No lessons yet: start now"
     },
     "suggestions": {
       "title": "Ideas to get started",
@@ -454,13 +467,13 @@
     },
     "switchDialog": {
       "title": "Subject in progress",
-      "description": "You can't switch subjects mid-lesson — the current lesson is assessed by the LLM. Finish or end the current lesson before starting another subject.",
+      "description": "You can't switch subjects mid-lesson: the current lesson is assessed by the LLM. Finish or end the current lesson before starting another subject.",
       "continueCurrent": "Continue with the current subject",
       "goToLesson": "Go to the lesson"
     },
     "trail": {
       "title": "Where you left off",
-      "empty": "Nothing in progress — pick a subject below",
+      "empty": "Nothing in progress: pick a subject below",
       "resume": "Resume",
       "lastSubject": "Last subject"
     },
@@ -470,9 +483,9 @@
     "tracksTimeout": "The tracks did not respond in time. Try again.",
     "trackProgress": "{{done}}/{{total}}",
     "tracksEmptyTitle": "No tracks installed",
-    "tracksEmptyDescription": "This app does not author tracks on its own: content lives in resources/tracks and is created by the authoring CLI (npm run track -- track:new). Until a track is installed this section stays like this — it is not an error.",
+    "tracksEmptyDescription": "This app does not author tracks on its own: content lives in resources/tracks and is created by the authoring CLI (npm run track -- track:new). Until a track is installed this section stays like this: it is not an error.",
     "orphansAction": "See in Settings",
-    "orphansNotice": "Courses from your history that are not installed: {{n}}. Your progress is kept — nothing was deleted."
+    "orphansNotice": "Courses from your history that are not installed: {{n}}. Your progress is kept: nothing was deleted."
   },
   "tutorial": {
     "progress": {
@@ -510,7 +523,7 @@
       },
       "shellThemeToggle": {
         "title": "Light/dark theme",
-        "description": "Switch between light, dark or system theme using the theme button in the top bar."
+        "description": "Choose the light, dark or system theme in the theme selector at the bottom of the side column: or in Settings, under Appearance."
       },
       "shellLanguageSwitcher": {
         "title": "Language",
@@ -530,7 +543,7 @@
       },
       "challengeEditor": {
         "title": "Code editor",
-        "description": "Open a challenge and write your solution in this editor (CodeMirror), without autocomplete — practice coding from memory."
+        "description": "Open a challenge and write your solution in this editor (CodeMirror), without autocomplete: practice coding from memory."
       },
       "challengeTerminal": {
         "title": "Test output",
@@ -599,7 +612,7 @@
       "openSettings": "Set up keys"
     },
     "status": {
-      "readyToContinue": "Ready — you can continue",
+      "readyToContinue": "Ready: you can continue",
       "waitingForAction": "Waiting for the action…"
     },
     "audio": {
@@ -685,7 +698,7 @@
       "pending": "Pending"
     },
     "progress": "{{done}} of {{total}} lessons completed",
-    "completed": "Trail complete — congratulations!",
+    "completed": "Trail complete: congratulations!",
     "aria": {
       "sectionToggle": "Toggle {{level}} section",
       "subjectSelector": "Choose trail subject"
@@ -700,7 +713,7 @@
   "roadmap": {
     "done": "Done",
     "current": "In progress",
-    "locked": "Locked — finish the previous one (or pass the proficiency test)",
+    "locked": "Locked: finish the previous one (or pass the proficiency test)",
     "pending": "Available",
     "difficulty": "difficulty {{n}}",
     "moduleCount": "{{done}} of {{total}} lessons done",
@@ -716,7 +729,7 @@
     "proficiencyStart": "Take the test",
     "proficiencyRetake": "Retake",
     "proficientBadge": "proficiency approved ✓",
-    "sequentialHint": "Lessons unlock in order: finish one to release the next — or pass the proficiency test to unlock everything.",
+    "sequentialHint": "Lessons unlock in order: finish one to release the next: or pass the proficiency test to unlock everything.",
     "moduleChallenge": "Module challenge",
     "moduleChallengeDone": "Completed ✓",
     "moduleChallengeTried": "Tried",

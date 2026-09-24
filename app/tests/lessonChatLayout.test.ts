@@ -110,6 +110,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { SHAPE } from '../src/lib/designTokens';
 import { createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '@mui/material/styles';
@@ -714,7 +715,11 @@ describe('3. a barra de entrada segue a referência de chat', () => {
       'o piso vence o min-width:0 do FormControl (declaração posterior no MESMO corpo de regra)',
     );
     const campo = classOfElementWith(html, 'MuiInputBase-root');
-    assert.match(cssOfClass(html, campo), /border-radius:\s*999px/, 'raio total (stadium)');
+    assert.match(
+      cssOfClass(html, campo),
+      new RegExp(`border-radius:\\s*${SHAPE.pill}px`),
+      'raio total (stadium)',
+    );
   });
 
   it('o enviar fica DENTRO do campo, na borda direita', () => {

@@ -71,7 +71,7 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
       const onClick = (ev: unknown): void => {
         const target = ev as { target?: { closest?: (sel: string) => { textContent?: string | null } | null } };
         const tab = target.target?.closest?.('[role="tab"]');
-        if (tab && tab.textContent?.includes('Settings') && g.__tClick === undefined) {
+        if (tab && tab.textContent?.includes('Configurações') && g.__tClick === undefined) {
           g.__tClick = performance.now();
         }
       };
@@ -81,7 +81,7 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
         const elapsed = Math.round(performance.now() - g.__tClick);
         if (
           g.__perfResults.h1 === undefined &&
-          Array.from(doc.querySelectorAll('h1')).some((h) => h.textContent?.includes('Settings'))
+          Array.from(doc.querySelectorAll('h1')).some((h) => h.textContent?.includes('Configurações'))
         ) {
           g.__perfResults.h1 = elapsed;
         }
@@ -118,7 +118,7 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
 
   // ── 1ª abertura (fria: cache do painel vazio nesta sessão) ──
   await installObservers();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
   const cold = await readResults();
   // eslint-disable-next-line no-console
   console.log(`[perf-settings] 1ª abertura (fria):  h1=${cold.h1}ms painéis=${cold.paneis}ms`);
@@ -134,14 +134,14 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
       }).document;
       if (!doc) return true;
       return !Array.from(doc.querySelectorAll('h1')).some((h) =>
-        h.textContent?.includes('Settings'),
+        h.textContent?.includes('Configurações'),
       );
     },
     undefined,
     { polling: 250, timeout: 30_000 },
   );
   await installObservers();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
   const warm = await readResults();
   // eslint-disable-next-line no-console
   console.log(`[perf-settings] 2ª abertura (morna): h1=${warm.h1}ms painéis=${warm.paneis}ms`);

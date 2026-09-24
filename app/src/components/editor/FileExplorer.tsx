@@ -34,6 +34,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import type { WorkspaceFile } from '../../../shared/ipc-contract';
 import { buildTreeFromFiles, sortTree, type FileTreeNode } from '../../lib/editorFiles';
 
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
+ * Os botões/ícones da toolbar nascem pequenos (`size="small"`): a CAIXA cresce
+ * até o piso, o glifo continua do tamanho compacto.
+ */
+const TOUCH_TARGET_PX = 44;
+
 /** Callbacks de ação da toolbar/árvore. */
 export interface FileExplorerCallbacks {
   /** Clique num arquivo → abre a aba. */
@@ -100,7 +108,10 @@ function TreeNodeRow({
         </ListItemIcon>
         <ListItemText
           primary={
-            <Typography component="span" variant="body2" noWrap>
+            // Regra da base (SC 1.4.12): o nome do arquivo QUEBRA, nunca
+            // trunca — `noWrap` era overflow:hidden + ellipsis (F104). O
+            // `title` acima continua com o path completo para o rato.
+            <Typography component="span" variant="body2" sx={{ overflowWrap: 'anywhere' }}>
               {node.name}
             </Typography>
           }
@@ -176,19 +187,25 @@ export function FileExplorer({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Toolbar */}
+      {/* Toolbar — alvos no piso de toque (TOUCH_TARGET_PX) */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, py: 0.25 }}>
         <Tooltip title={t('translation:editor.newFile')}>
           <IconButton
             size="small"
             aria-label={t('translation:editor.newFile')}
             onClick={() => setShowNew((s) => !s)}
+            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
           >
             <NoteAddIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title={t('translation:editor.refresh')}>
-          <IconButton size="small" aria-label={t('translation:editor.refresh')} onClick={onRefresh}>
+          <IconButton
+            size="small"
+            aria-label={t('translation:editor.refresh')}
+            onClick={onRefresh}
+            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+          >
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -200,6 +217,7 @@ export function FileExplorer({
               disabled={!selectedPath}
               onClick={confirmDelete}
               color="error"
+              sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -216,14 +234,27 @@ export function FileExplorer({
             fullWidth
             variant="outlined"
             value={newName}
-            placeholder="novo.txt (path relativo)"
+            // i18n: o placeholder era string crua em pt ("novo.txt (path
+            // relativo)") — a chave `editor.newFilePlaceholder` já existe.
+            placeholder={t('translation:editor.newFilePlaceholder')}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submitNew();
               if (e.key === 'Escape') setShowNew(false);
             }}
+            sx={{
+              // Piso de alvo de toque (TOUCH_TARGET_PX): o campo small nasce
+              // ~34px — o ALVO é o próprio input, então o minHeight vai para ele.
+              '& .MuiInputBase-input': { minHeight: TOUCH_TARGET_PX },
+            }}
           />
-          <Button size="small" variant="contained" onClick={submitNew} disabled={!newName.trim()}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={submitNew}
+            disabled={!newName.trim()}
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+          >
             {t('translation:editor.create')}
           </Button>
         </Box>

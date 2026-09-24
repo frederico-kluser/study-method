@@ -6,12 +6,11 @@
  * merge dela vem ANTES e esta definição é a fonte única; se ambos criarem,
  * o merge resolve (mesmos nomes, valores calibrados pela casa).
  *
- * Springs (motion `Transition` com type: 'spring'):
- *   - `window`   — janelas/diálogos: entrada controlada, sem rebound agressivo;
- *   - `playful`  — micro-confirmações (glow de sucesso, "Nintendo"): bounce
- *                  curto e alegre;
- *   - `gentle`   — entradas de conteúdo (bolhas do chat): suave e leve
- *                  (y 8-12px → 0, sem exagero);
+ * Springs (motion `Transition` com type: 'spring'), cada um a tradução de uma
+ * mola nomeada do SwiftUI (ver a tabela junto da definição):
+ *   - `window`   — janelas/diálogos: entrada controlada, ressalto discreto;
+ *   - `playful`  — micro-confirmações (celebração, chip de sucesso);
+ *   - `gentle`   — entradas de conteúdo (bolhas do chat): suave, sem rebound;
  *   - `snappy`   — press/hover feedback (scale 0.98): rápido e contido.
  *
  * Variants (contrato da casa):
@@ -36,12 +35,25 @@
  */
 import type { Transition, Variants } from 'motion/react';
 
-/** Springs por uso (contrato: window/playful/gentle/snappy). */
+/* ─── Springs: as molas do SwiftUI ───────────────────────────────────────
+ * A referência do movimento deste app é o SwiftUI. Cada spring abaixo é a
+ * tradução de uma mola nomeada da Apple (resposta + fração de amortecimento,
+ * massa 1), convertida por ω0 = 2π/resposta e k = ω0², c = 2·ζ·ω0:
+ *
+ *   window  ← .snappy      (resposta 0,35 · ζ 0,90)  entrada de janela
+ *   playful ← .bouncy      (resposta 0,50 · ζ 0,72)  micro-confirmação
+ *   gentle  ← .smooth      (resposta 0,50 · ζ 1,00)  entrada de conteúdo
+ *   snappy  ← .interactiveSpring (resposta 0,15 · ζ 0,90)  press/hover
+ *
+ * `gentle` é a única criticamente amortecida: conteúdo que entra não pode
+ * ficar quicando, ou a leitura cintila. As outras três têm o ressalto discreto
+ * que dá a física do gesto.
+ */
 export const springs: Record<'window' | 'playful' | 'gentle' | 'snappy', Transition> = {
-  window: { type: 'spring', stiffness: 220, damping: 28 },
-  playful: { type: 'spring', stiffness: 420, damping: 20 },
-  gentle: { type: 'spring', stiffness: 180, damping: 26 },
-  snappy: { type: 'spring', stiffness: 540, damping: 36 },
+  window: { type: 'spring', stiffness: 320, damping: 32 },
+  playful: { type: 'spring', stiffness: 160, damping: 18 },
+  gentle: { type: 'spring', stiffness: 160, damping: 25 },
+  snappy: { type: 'spring', stiffness: 700, damping: 40 },
 };
 
 /**

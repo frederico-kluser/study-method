@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -82,6 +83,19 @@ export interface OnboardingOverlayProps {
 
 const SPOTLIGHT_PADDING = 10;
 const SPOTLIGHT_RADIUS = 12;
+
+/* Tudo que pode receber Tab dentro de um painel `aria-modal` — a lista canônica
+ * do laço de foco, COPIADA do exemplar (QuizOverlayHost.tsx) para os dois
+ * painéis deste overlay. Sem o laço, o `aria-modal="true"` mente: o leitor de
+ * tela ignora o resto da tela, mas o Tab passeia pelo app inteiro atrás do
+ * scrim (SC 2.4.3). */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Nome acessível do diálogo de confirmação = o título que ele renderiza. */
+const CONFIRM_TITLE_ID = 'onboarding-confirm-title';
+/** Nome acessível do painel de instruções = o título do passo em curso. */
+const PANEL_TITLE_ID = 'onboarding-panel-title';
 
 const NAV_TAB_KEY: Record<PanelKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.challenge'> = {
   home: 'translation:nav.home',
@@ -154,6 +168,13 @@ export function OnboardingOverlay({
   onPause,
 }: OnboardingOverlayProps): React.ReactElement | null {
   const { t } = useTranslation();
+  const theme = useTheme();
+  // SCRIM: o TOKEN do tema (`palette.scrim` — preto acromático a 55%), não uma
+  // rgba() escrita à mão. As máscaras do spotlight (`rgba(0,0,0,0.55)`) e o
+  // backdrop do diálogo de confirmação (`rgba(0,0,0,0.5)`) eram DOIS scrims
+  // divergentes do `MuiBackdrop`/quiz; ler o token fecha a conta num valor só
+  // (o mesmo ciclo que o QuizOverlayHost documenta — um valor, um lugar).
+  const scrim = theme.vars.palette.scrim;
   const [viewport, setViewport] = useState<ViewportSize>(() => getViewportSize());
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
   const [panelSize, setPanelSize] = useState<PanelSize>({ width: 420, height: 320 });
@@ -161,6 +182,14 @@ export function OnboardingOverlay({
   const [panelVisible, setPanelVisible] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'skip' | 'close' | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  /** O painel do diálogo de confirmação (o segundo painel `aria-modal`).
+   *  `HTMLDivElement` porque o Paper dele é `component="div"` (o de instruções
+   *  é `component="aside"` e por isso aceita `HTMLElement`). */
+  const confirmRef = useRef<HTMLDivElement | null>(null);
+  /** Quem tinha o foco quando o OVERLAY abriu (para o devolver ao fechar). */
+  const panelOpenerRef = useRef<HTMLElement | null>(null);
+  /** Quem tinha o foco quando o DIÁLOGO de confirmação abriu. */
+  const confirmOpenerRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<ViewportSize>(viewport);
   const spotlightRef = useRef<SpotlightRect | null>(spotlight);
 
@@ -216,6 +245,109 @@ export function OnboardingOverlay({
     window.addEventListener('keydown', handleEscape, true);
     return () => window.removeEventListener('keydown', handleEscape, true);
   }, [shouldRender, confirmAction, handleCloseRequest]);
+
+  // ─── FOCO DOS PAINÉIS `aria-modal` (SC 2.4.3) ────────────────────────────
+  // Os DOIS painéis (o de instruções e o alertdialog de confirmação) declaram
+  // `aria-modal="true"`, e a promessa desse atributo só se cumpre com gestão de
+  // foco: ao abrir, o foco ENTRA no painel (o teclado não fica no app atrás do
+  // scrim); ao fechar, o foco VOLTA para o elemento que o tinha (o mesmo
+  // contrato do QuizOverlayHost — SC 2.4.3). `<body>` não conta como abridor:
+  // ele está sempre conectado e o `focus()` dele é um no-op que PARECE ter
+  // funcionado (a falha exata documentada no exemplar).
+  useEffect(() => {
+    if (!shouldRender) return;
+    const ativo = document.activeElement;
+    if (ativo instanceof HTMLElement && ativo !== document.body) {
+      panelOpenerRef.current = ativo;
+    }
+    panelRef.current?.focus();
+    return () => {
+      const alvo = panelOpenerRef.current;
+      panelOpenerRef.current = null;
+      if (alvo !== null && alvo.isConnected) alvo.focus();
+    };
+  }, [shouldRender]);
+
+  // O alertdialog é uma pilha em cima do painel: quando ele abre, o foco vai
+  // para ele; quando ele fecha (cancela), o foco volta ao elemento do painel
+  // que o abriu (o "Pular"/"Fechar"). Quando ele fecha porque o utilizador
+  // CONFIRMOU, o overlay inteiro desmonta logo a seguir e é o efeito de cima
+  // quem dá a palavra final — a guarda `isConnected` descarta este retorno.
+  useEffect(() => {
+    if (!shouldRender || confirmAction === null) return;
+    const ativo = document.activeElement;
+    if (ativo instanceof HTMLElement && ativo !== document.body) {
+      confirmOpenerRef.current = ativo;
+    }
+    confirmRef.current?.focus();
+    return () => {
+      const alvo = confirmOpenerRef.current;
+      confirmOpenerRef.current = null;
+      if (alvo !== null && alvo.isConnected) alvo.focus();
+    };
+  }, [shouldRender, confirmAction]);
+
+  // O LAÇO DE TAB — o miolo do exemplar (QuizOverlayHost), com uma única
+  // EXTENSÃO declarada e medida: nos passos que pedem AÇÃO sobre o alvo
+  // (`expectedAction` — preencher as chaves, digitar no editor, testar a
+  // resposta), o alvo REVELADO pelo spotlight entra no ciclo junto do painel.
+  // Ele NÃO está "atrás do scrim": é o recorte que o scrim deixa à mostra, e é
+  // justamente o alvo que o passo está a ensinar. Sem esta extensão, um
+  // utilizador só de teclado ficaria TRANCADO fora da ação ensinada (o
+  // "Continuar" só nasce com `canAdvance`, que depende da ação) e a única saída
+  // seria pular o tutorial — trocar o P1 "o Tab passeia pelo app" por um P1
+  // pior "o teclado não consegue concluir o tutorial". Para todo o resto —
+  // incluindo o alertdialog — o laço é exatamente o do exemplar: o Tab circula
+  // DENTRO do painel.
+  useEffect(() => {
+    if (!shouldRender) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Tab') return;
+      const confirmando = confirmAction !== null;
+      const container = confirmando ? confirmRef.current : panelRef.current;
+      if (container === null) return;
+      const alvos = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      // O alvo revelado entra no ciclo só nos passos de AÇÃO (ver acima), e só
+      // enquanto o alertdialog está fechado — quando ele abre, o foco pertence
+      // ao diálogo.
+      if (!confirmando && currentStep.expectedAction !== undefined) {
+        const alvo =
+          findTargetElement(currentStep.alternateTargetSelector) ??
+          findTargetElement(currentStep.targetSelector, currentStep.targetSelectorIndex);
+        if (alvo !== null) {
+          if (alvo instanceof HTMLElement && alvo.matches(FOCUSABLE)) alvos.unshift(alvo);
+          alvos.push(...alvo.querySelectorAll<HTMLElement>(FOCUSABLE));
+        }
+      }
+      // Sem nada focável dentro, o Tab não pode sair do painel mesmo assim:
+      // o próprio painel (tabIndex -1) recebe o foco de volta.
+      if (alvos.length === 0) {
+        event.preventDefault();
+        container.focus();
+        return;
+      }
+      const primeiro = alvos[0]!;
+      const ultimo = alvos[alvos.length - 1]!;
+      const atual = document.activeElement;
+      if (event.shiftKey && (atual === primeiro || atual === container)) {
+        event.preventDefault();
+        ultimo.focus();
+      } else if (!event.shiftKey && atual === ultimo) {
+        event.preventDefault();
+        primeiro.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    shouldRender,
+    confirmAction,
+    currentStep.expectedAction,
+    currentStep.targetSelector,
+    currentStep.alternateTargetSelector,
+    currentStep.targetSelectorIndex,
+  ]);
 
   const handleMaskClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -289,14 +421,24 @@ export function OnboardingOverlay({
       rafId = window.requestAnimationFrame(tick);
     };
 
+    // POR QUE ESTE `scroll` LISTENER EXISTE (e não é o padrão proibido):
+    // a regra proíbe `scroll` como MOTOR DE ANIMAÇÃO — quem anima com ele
+    // re-renderiza a árvore em todo quadro e some no mobile. Este aqui não
+    // anima: ele acompanha o RETÂNGULO de um alvo do DOM, que é a única coisa
+    // que o navegador não entrega por `IntersectionObserver` (que dá
+    // interseção, não posição). Os dois cuidados que fazem a diferença já
+    // estão aqui: `syncLayout` só chama `setState` quando o valor MUDOU (as
+    // comparações por ref logo acima), e o efeito tem cleanup. O `passive` é o
+    // que falta — este handler não chama `preventDefault`, então ele não pode
+    // atrasar o scroll.
     syncLayout();
     rafId = window.requestAnimationFrame(tick);
     window.addEventListener('resize', syncLayout);
-    window.addEventListener('scroll', syncLayout, true);
+    window.addEventListener('scroll', syncLayout, { capture: true, passive: true });
     return () => {
       if (rafId !== null) window.cancelAnimationFrame(rafId);
       window.removeEventListener('resize', syncLayout);
-      window.removeEventListener('scroll', syncLayout, true);
+      window.removeEventListener('scroll', syncLayout, { capture: true } as EventListenerOptions);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -434,7 +576,10 @@ export function OnboardingOverlay({
           key={segment.key}
           sx={{
             position: 'fixed',
-            background: 'rgba(0,0,0,0.55)',
+            // O TOKEN do scrim (ver o comentário do `scrim` no topo): as
+            // máscaras eram uma terceira rgba() crua divergente do resto da
+            // base. O spotlight é o recorte que este fundo deixa à mostra.
+            background: scrim,
             pointerEvents: 'auto',
             cursor: 'not-allowed',
           }}
@@ -459,6 +604,11 @@ export function OnboardingOverlay({
         data-onboarding-panel
         role="dialog"
         aria-modal="true"
+        // Nome acessível = o título do passo (o h6 logo abaixo) e alvo do foco
+        // de abertura (`tabIndex={-1}`: focável por script, fora da ordem de
+        // Tab — o laço de foco descrito no efeito de teclado).
+        aria-labelledby={PANEL_TITLE_ID}
+        tabIndex={-1}
         elevation={6}
         className={`${responsiveClass} ${isStepTransitioning ? styles.panelTransitioning : ''} ${panelVisible ? styles.panelVisible : styles.panelHidden}`}
         sx={{
@@ -481,9 +631,15 @@ export function OnboardingOverlay({
         style={{ position: 'fixed' }}
       >
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* `primary.accentText`, não `primary.main`: `main` é o
+              PREENCHIMENTO da família e como texto sobre o painel (nível 1 da
+              rampa) media 4,26:1 no escuro — abaixo do piso AA. O valor de
+              TEXTO calibrado entrega 5,21:1 no escuro e 5,46:1 no claro
+              (regra 3b: o painel é superfície de leitura, níveis 0–2, onde o
+              acento PODE ser texto). */}
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.08, color: 'primary.main' }}
+            sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.08, color: 'primary.accentText' }}
           >
             {`${t('translation:tutorial.progress.chapter')} ${currentChapterIndex + 1} / ${totalChapters}`}
           </Typography>
@@ -513,7 +669,8 @@ export function OnboardingOverlay({
           </Stack>
         </Stack>
 
-        <Typography variant="h6" component="h3">
+        {/* O título do passo — e o NOME ACESSÍVEL do painel (aria-labelledby). */}
+        <Typography variant="h6" component="h3" id={PANEL_TITLE_ID}>
           {t(currentStep.titleKey)}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -594,18 +751,26 @@ export function OnboardingOverlay({
             sx={{
               position: 'absolute',
               inset: 0,
-              bgcolor: 'rgba(0,0,0,0.5)',
+              // O MESMO token das máscaras do spotlight — era a quarta rgba()
+              // crua deste overlay (0,5 contra 0,55, sem razão para divergir).
+              bgcolor: scrim,
             }}
             onClick={handleConfirmCancel}
           />
           <Paper
+            ref={confirmRef}
             component="div"
             role="alertdialog"
             aria-modal="true"
+            // Nome acessível = a mensagem que ele renderiza (o título de facto
+            // deste diálogo), e alvo do foco de abertura — ver os efeitos de
+            // foco/laço de Tab acima.
+            aria-labelledby={CONFIRM_TITLE_ID}
+            tabIndex={-1}
             elevation={8}
             sx={{ p: 3, maxWidth: 380, width: 'calc(100vw - 48px)', position: 'relative', borderRadius: 2 }}
           >
-            <Typography variant="body2" sx={{ mb: 0, textAlign: 'center' }}>
+            <Typography variant="body2" id={CONFIRM_TITLE_ID} sx={{ mb: 0, textAlign: 'center' }}>
               {t(confirmAction === 'skip'
                 ? 'translation:tutorial.confirm.skipMessage'
                 : 'translation:tutorial.confirm.closeMessage')}

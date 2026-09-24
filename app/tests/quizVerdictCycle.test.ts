@@ -140,6 +140,23 @@ function onScreen(html: string): string {
     .trim();
 }
 
+/* A COR EMITIDA pelo elemento cujo texto é `text` (técnica de
+ * tests/inkPropReachesScreen.test.ts: medir a REGRA da classe do elemento real,
+ * não o HTML bruto — o emotion imprime a folha inteira, com regras de
+ * componentes que ninguém montou). `null` = o elemento não declara cor
+ * (herda). */
+function emittedColorOf(html: string, text: string): string | null {
+  const at = html.indexOf(`>${text}<`);
+  assert.ok(at >= 0, `não achei na marcação o texto ${JSON.stringify(text)}`);
+  const abertura = html.slice(0, at);
+  const tag = abertura.slice(abertura.lastIndexOf('<'));
+  const classe = /css-[a-zA-Z0-9-]+/.exec(tag);
+  assert.ok(classe, `o elemento de ${JSON.stringify(text)} não tem classe do emotion`);
+  const regra = new RegExp(`\\.${classe[0]}\\s*\\{([^{}]*)\\}`).exec(html);
+  const corpo = regra?.[1] ?? '';
+  return (/(?:^|;)color:([^;]+)/.exec(corpo) ?? [null, null])[1];
+}
+
 function renderHost(): string {
   return renderToStaticMarkup(
     createElement(ThemeProvider, { theme }, createElement(QuizOverlayHost, {})),
@@ -277,10 +294,30 @@ describe('FQ1 — o veredito aparece antes de o card sumir (acerto E erro)', () 
     assert.ok(html.includes('role="dialog"'), 'a janela é o overlay aberto sobre a tela');
     assert.ok(html.includes('role="status"'), 'o veredito é anunciado por role=status (SC 4.1.3)');
     assert.ok(onScreen(html).includes(ptBR.lesson.quizCorrect), 'o texto do ACERTO está na tela');
+    // ONDA-UX (migração de `*.main` → papéis DUPLA): o assert antigo media
+    // `color:var(--mui-palette-success-main)` — o PREENCHIMENTO da família como
+    // texto — e aprovava o "verde" medindo a cor errada: sobre o cartão do
+    // modal (nível 4 da rampa no escuro) ele dá 2,74:1, reprovado no piso AA de
+    // texto (4,5:1). Nota que o regex antigo também casava com o
+    // `background-color` do botão `contained` — um falso positivo que passaria
+    // mesmo com o veredito sem cor nenhuma. O contrato de hoje, medido:
+    //   PALAVRA em tinta   `text.primary`  → 9,83:1 no nível 4 do escuro;
+    //   ÍCONE em `success.accentText`      → 3,39:1 (piso NÃO-TEXTO de 3:1).
+    // O verde que o dono pediu para ver continua vivo — no ícone (e na borda do
+    // card); o que sai é a cor de FILL fazendo papel de texto.
+    assert.equal(
+      emittedColorOf(html, ptBR.lesson.quizCorrect),
+      'var(--mui-palette-text-primary)',
+      'a palavra do veredito é TINTA — o fill da família reprovava AA como texto',
+    );
     assert.match(
       html,
-      /color:\s*var\(--mui-palette-success-main\)/,
-      'o veredito de acerto é VERDE (a cor é o que o dono pediu para ver)',
+      /(?:^|[;{])color:var\(--mui-palette-success-accentText\)/,
+      'o VERDE sobrevive no ícone, no papel de TEXTO calibrado da família (accentText)',
+    );
+    assert.ok(
+      !/(?:^|[;{])color:var\(--mui-palette-success-main\)/.test(html),
+      'success.main (fill) não volta a ser cor de texto neste card',
     );
   });
 
@@ -299,7 +336,24 @@ describe('FQ1 — o veredito aparece antes de o card sumir (acerto E erro)', () 
       A.feedback !== undefined && tela.includes(A.feedback),
       'o feedback da assertion é o que o aluno lê durante a janela',
     );
-    assert.match(html, /color:\s*var\(--mui-palette-error-main\)/, 'o veredito de erro é VERMELHO');
+    // Mesma migração do par acerto/erro: a PALAVRA em tinta e o VERMELHO no
+    // ícone (`error.accentText`, a família carmim — 3,40:1 no nível 4 do
+    // escuro, sobre o piso não-texto de 3:1). `error.main` (fill) media 2,74:1
+    // como texto e saiu do papel de cor de texto.
+    assert.equal(
+      emittedColorOf(html, ptBR.lesson.quizWrong),
+      'var(--mui-palette-text-primary)',
+      'a palavra do veredito é TINTA — o fill da família reprovava AA como texto',
+    );
+    assert.match(
+      html,
+      /(?:^|[;{])color:var\(--mui-palette-error-accentText\)/,
+      'o VERMELHO sobrevive no ícone, no papel de TEXTO calibrado da família (accentText)',
+    );
+    assert.ok(
+      !/(?:^|[;{])color:var\(--mui-palette-error-main\)/.test(html),
+      'error.main (fill) não volta a ser cor de texto neste card',
+    );
   });
 
   it('sem resposta: NENHUM veredito na tela — o box só existe quando answered', () => {

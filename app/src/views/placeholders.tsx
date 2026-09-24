@@ -90,6 +90,12 @@ export interface ViewProps {
 
 /* ─── Passos numerados do fluxo recém-instalado (UX notes item 3) ─────────── */
 
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
+ */
+const TOUCH_TARGET_PX = 44;
+
 type HomeStepKey = 'configureKeys' | 'subject' | 'learn';
 
 const HOME_STEPS: ReadonlyArray<{
@@ -279,10 +285,14 @@ function SubjectCard({
           )}
         </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle1" noWrap>
+          {/* SEM noWrap (a regra da base, SC 1.4.12): nome e progresso
+              QUEBRAM em vez de truncar com reticências. `overflowWrap:
+              'anywhere'` + `minWidth: 0` seguram o cartão mesmo com um nome
+              longo sem espaços — o texto cresce em altura, nunca estoura. */}
+          <Typography variant="subtitle1" sx={{ overflowWrap: 'anywhere' }}>
             {subject.name}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
+          <Typography variant="body2" sx={{ color: 'text.secondary', overflowWrap: 'anywhere' }}>
             {progressLabel}
           </Typography>
         </Box>
@@ -407,7 +417,14 @@ function TracksSection({
     return (
       <Box>
         <Alert severity="error">{tracksError}</Alert>
-        <Button variant="outlined" size="small" onClick={loadTracks} sx={{ mt: 1 }}>
+        {/* minHeight = piso de alvo de toque (TOUCH_TARGET_PX) — o size="small"
+            sozinho nasce ~30px de alto. */}
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={loadTracks}
+          sx={{ mt: 1, minHeight: TOUCH_TARGET_PX }}
+        >
           {t('translation:common.tryAgain')}
         </Button>
       </Box>
@@ -451,29 +468,33 @@ function TracksSection({
       </Typography>
  <Stack spacing={1}>
         {tracks.map((tr) => (
+          // CardActionArea (o padrão do SubjectCard acima) em vez de `onClick`
+          // no <Card>: div não alcança teclado — o cartão vira botão real
+          // (Tab + Enter/Espaço), mesmo visual e mesmos handlers.
           <Card
             key={tr.slug}
             variant="outlined"
-            sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-            onClick={() => onOpen(tr.slug)}
+            sx={{ '&:hover': { bgcolor: 'action.hover' } }}
           >
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <CardActionArea onClick={() => onOpen(tr.slug)}>
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {tr.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {tr.description}
-                  </Typography>
-                </Box>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  label={tI('home.trackProgress', { done: tr.doneCount, total: tr.lessonCount })}
-                />
-              </Stack>
-            </CardContent>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {tr.title}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {tr.description}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={tI('home.trackProgress', { done: tr.doneCount, total: tr.lessonCount })}
+                  />
+                </Stack>
+              </CardContent>
+            </CardActionArea>
           </Card>
         ))}
       </Stack>
@@ -645,7 +666,12 @@ export function HomeView(props: ViewProps): ReactElement {
             severity="info"
             data-testid="home-orphans-notice"
             action={
-              <Button color="inherit" size="small" onClick={() => navigate('settings')}>
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => navigate('settings')}
+                sx={{ minHeight: TOUCH_TARGET_PX }}
+              >
                 {t('translation:home.orphansAction')}
               </Button>
             }
@@ -684,8 +710,11 @@ export function HomeView(props: ViewProps): ReactElement {
           </Typography>
         </DialogContent>
         <DialogActions>
-          {/* Sem NENHUM pendingSubject: ir para a aula mantém a sessão atual. */}
+          {/* Sem NENHUM pendingSubject: ir para a aula mantém a sessão atual.
+              minHeight nos dois: piso de alvo de toque (TOUCH_TARGET_PX) — o
+              botão default do MUI nasce ~36px de alto. */}
           <Button
+            sx={{ minHeight: TOUCH_TARGET_PX }}
             onClick={() => {
               setPendingPick(null);
               navigate('lesson');
@@ -693,7 +722,11 @@ export function HomeView(props: ViewProps): ReactElement {
           >
             {t('translation:home.switchDialog.goToLesson')}
           </Button>
-          <Button variant="contained" onClick={() => setPendingPick(null)}>
+          <Button
+            variant="contained"
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+            onClick={() => setPendingPick(null)}
+          >
             {t('translation:home.switchDialog.continueCurrent')}
           </Button>
         </DialogActions>

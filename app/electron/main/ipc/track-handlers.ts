@@ -147,6 +147,14 @@ import {
   type FailedChallengeInfo,
 } from '../services/challengeRegenerator';
 import { buildChallengeContext, type ChallengeContext } from '../services/challengeContextValidator';
+// ANÁLISE DE DOMÍNIO do desafio do módulo (pedido do dono): a régua
+// criteriosa "só marca aula com evidência forte" vive em
+// services/moduleMastery.ts — este arquivo só chama e mantém o cache.
+import { analyzeAndMarkModuleMastery } from '../services/moduleMastery';
+// CONTROLE DE COBERTURA (pedido do dono): a seleção de REVISÃO que o novo
+// desafio deve misturar nos testes (services/reviewSelection.ts sobre o
+// engine/coverage/practiceLedger.ts).
+import { buildReviewSelection } from '../services/reviewSelection';
 import type { LlmClient } from '../services/llmClient';
 // ONDA 2 (python-roda): o ciclo de remediação do quiz. A ASSINATURA é
 // congelada (commit de PREP da onda); o CORPO é substituído por outro agente
@@ -765,6 +773,41 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         console.warn('[track:challenge-submit] destrave automático falhou:', (err as Error).message);
       }
     }
+    // ANÁLISE DE DOMÍNIO do desafio do MÓDULO (pedido do dono: "analisar
+    // profundamente usando o conteúdo das aulas e propor o conhecimento que o
+    // aluno demonstrou possuir e marcar como finalizado as aulas que ele não
+    // precisaria fazer — porém sendo criterioso"). A régua é a pura
+    // `analyzeModuleMastery` (services/moduleMastery.ts): só marca aula com
+    // evidência forte (testes que cobrem a aula passaram, nenhum reprovou, e o
+    // código submetido usa as construções dela). Efeito colateral como o
+    // destrave automático — a análise NUNCA transforma o veredito do aluno em
+    // erro: falha dela é warn e o submit segue igual.
+    if (base.ok && p.target === 'module' && p.moduleSlug && repo) {
+      try {
+        const track = await loadTrackOrError(p.trackSlug);
+        if (!('error' in track)) {
+          const mod = track.modules.find((m) => m.meta.slug === p.moduleSlug);
+          if (mod?.challenge) {
+            const mastery = await analyzeAndMarkModuleMastery({
+              trackSlug: p.trackSlug,
+              trackTitle: track.root.title,
+              moduleTitle: mod.meta.title,
+              lessons: mod.lessons,
+              challenge: mod.challenge,
+              checks: base.checks,
+              output: base.output,
+              submitted: { code: p.code, files: p.files },
+              progress: repo,
+              chat: chatFn,
+            });
+            if (mastery.marcadas.length > 0) bumpProgressEpoch();
+            base.mastery = mastery;
+          }
+        }
+      } catch (err) {
+        console.warn('[track:challenge-submit] análise de domínio falhou:', (err as Error).message);
+      }
+    }
     return base;
   });
   map.set(TRACK_CHANNELS.PROFICIENCY_SUBMIT, async (_event, payload: unknown): Promise<TrackSubmitResult> => {
@@ -883,6 +926,18 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       return { ok: false, error: { code: REGEN_ERROR_CODES.SEMANTIC_NOT_RUN, message } };
     }
 
+    // CONTROLE DE COBERTURA (pedido do dono): o que os TESTES do novo desafio
+    // devem REVISAR — itens do conhecimento anterior selecionados pelo ledger
+    // de prática (nunca-praticado primeiro, prática mais antiga depois,
+    // intercalando aula de origem, com teto). Falha na apuração degrada para
+    // [] — a regeneração nunca trava por causa da seleção.
+    let reviewAtoms: Array<{ atom: string; origem: string | null }> = [];
+    try {
+      reviewAtoms = buildReviewSelection(loaded, found.moduleSlug, found.lesson.meta.slug);
+    } catch (err) {
+      console.warn('[track:challenge-regenerate] seleção de revisão falhou:', (err as Error).message);
+    }
+
     // ONDA3 (generate-flow): 'generating' ANTES da 1ª chamada LLM — o draft
     // (pensar o desafio + escrever os testes) é o polo longo da geração e
     // pulsa na etapa 1 do modal enquanto a LLM trabalha.
@@ -892,6 +947,7 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       lesson: found.lesson.meta,
       failed,
       context,
+      reviewAtoms,
       // FAIL-CLOSED (§9.3): este é o caminho do ALUNO — sem veredito semântico
       // não há entrega. Redundante com o `context` garantido acima, e é essa a
       // intenção: a exigência viaja no CONTRATO da chamada, então nem um

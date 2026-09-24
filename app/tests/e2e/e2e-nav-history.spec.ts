@@ -49,8 +49,8 @@ test('e2e-nav-history: trilha → detalhe → settings → voltar mantém o deta
   await expect(page.getByText('Aula E2E sobre funções', { exact: false })).toBeVisible();
 
   // Troca de aba: Settings desmonta a RoadmapView (o shell monta SÓ a view ativa).
-  await page.getByRole('tab', { name: 'Settings' }).click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
+  await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible();
 
   // VOLTA à Trilha: o DETALHE é RESTAURADO sem clicar no cartão (roadmapNav —
   // o histórico de navegação sobreviveu à desmontagem). A LISTA não aparece.
@@ -71,7 +71,7 @@ test('e2e-nav-history: trilha → detalhe → settings → voltar mantém o deta
   // NOTA: o TÍTULO do CARD da lista também é um heading (h6 do MUI), então a
   // ausência do DETALHE é verificada pelo conteúdo exclusivo dele (a aula do
   // módulo e o botão VOLTAR — que só existem no detalhe).
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
   await page.getByRole('tab', { name: 'Trilha' }).click();
   await expect(page.getByText('Escolha uma trilha', { exact: false })).toBeVisible();
   await expect(page.getByText('Aula E2E sobre funções', { exact: false })).toHaveCount(0);
@@ -86,7 +86,7 @@ test('e2e-nav-history: reset de progresso — botão na Settings pede CONFIRMAÇ
   page = launched.page;
 
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('tab', { name: 'Configurações' }).click();
 
   // Botão destrutivo — um clique NÃO limpa direto: abre o diálogo de confirmação.
   const clearBtn = page.getByRole('button', { name: 'Limpar todos os dados de avanço' });

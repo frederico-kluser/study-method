@@ -42,6 +42,7 @@ import {
   CONTRAST_FLOOR,
   DIVIDER_DARK,
   DIVIDER_LIGHT,
+  FONT_BUNDLED,
   FONT_STACK,
   INK_DARK,
   INK_LIGHT,
@@ -432,32 +433,51 @@ describe('relativeLuminance / contrastRatio (fórmula normativa do WCAG 2.x)', (
 describe('rampas, tinta e camada não-texto — os hex EXATOS do contrato', () => {
   it('SURFACE_LIGHT / SURFACE_DARK (5 níveis cada)', () => {
     assert.deepEqual({ ...SURFACE_LIGHT }, {
-      level0: '#faf7f2', level1: '#ffffff', level2: '#f3eee5', level3: '#e9e2d6', level4: '#ddd5c6',
+      level0: '#f5f5f7', level1: '#ffffff', level2: '#ececf2', level3: '#e0e0e8', level4: '#d9d9e3',
     });
     assert.deepEqual({ ...SURFACE_DARK }, {
-      level0: '#0e0e0e', level1: '#1b1b1b', level2: '#272727', level3: '#313131', level4: '#3b3b3b',
+      level0: '#0a0a0c', level1: '#1c1c1e', level2: '#2c2c2e', level3: '#363638', level4: '#404042',
     });
   });
 
-  it('a rampa escura é NEUTRA (R = G = B nos cinco níveis — elevação só por luminância)', () => {
+  it('a rampa escura é NEUTRA: o sussurro de azul é LIMITADO, e a escada é luminância', () => {
+    // O que esta regra existe para matar é o "quase-preto AZULADO": a rampa de
+    // outrora, com o canal B de 8 a 22 pontos acima do R em todos os níveis,
+    // que lia como véu azul sobre a tela inteira. O teto abaixo é 5 pontos de
+    // canal, o mesmo de tests/theme.test.ts, e ele cobre exatamente o passo dos
+    // systemGray publicados pela Apple (`#1c1c1e`, `#2c2c2e` — B = R + 2) sem
+    // abrir porta para a rampa ganhar matiz própria.
+    //
+    // Exigir R = G = B EXATO seria outra coisa: proibir a referência deste
+    // redesenho, que é o design system da Apple, cujos cinzas não são
+    // acromáticos. O que não se negocia é que o que separa um nível do vizinho
+    // é LUMINÂNCIA, e isso é medido pelo passo de L* (testado em
+    // tests/theme.test.ts), não pelo desvio de canal.
+    const NEUTRAL_SPREAD_MAX = 5;
     for (const [nivel, hex] of Object.entries(SURFACE_DARK)) {
       const h = hex.slice(1);
-      const [r, g, b] = [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)];
-      assert.equal(r, g, `${nivel} (${hex})`);
-      assert.equal(g, b, `${nivel} (${hex})`);
+      const [r, g, b] = [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)].map((v) =>
+        parseInt(v, 16),
+      ) as [number, number, number];
+      const spread = Math.max(r, g, b) - Math.min(r, g, b);
+      assert.ok(
+        spread <= NEUTRAL_SPREAD_MAX,
+        `${nivel} (${hex}) tem desvio cromático de ${spread}/255 ` +
+          `(teto ${NEUTRAL_SPREAD_MAX}): a rampa escura não pode ganhar matiz própria`,
+      );
     }
   });
 
   it('INK (primária e secundária nos dois esquemas) e NONTEXT (neutral/action/focus)', () => {
-    assert.deepEqual({ ...INK_LIGHT }, { primary: '#191713', secondary: '#544e45' });
-    assert.deepEqual({ ...INK_DARK }, { primary: '#f0f0f0', secondary: '#adadad' });
-    assert.deepEqual({ ...NONTEXT_LIGHT }, { neutral: '#978e7f', action: '#dd6b5a', focus: '#109acb' });
-    assert.deepEqual({ ...NONTEXT_DARK }, { neutral: '#7a7a7a', action: '#c9432c', focus: '#0c7196' });
+    assert.deepEqual({ ...INK_LIGHT }, { primary: '#1d1d1f', secondary: '#525255' });
+    assert.deepEqual({ ...INK_DARK }, { primary: '#f5f5f7', secondary: '#b8b8bd' });
+    assert.deepEqual({ ...NONTEXT_LIGHT }, { neutral: '#89898e', action: '#0071e3', focus: '#006bd9' });
+    assert.deepEqual({ ...NONTEXT_DARK }, { neutral: '#8e8e93', action: '#4a9eff', focus: '#0a84ff' });
   });
 
   it('os divisores decorativos ficam ABAIXO de 3:1 de propósito', () => {
-    assert.equal(DIVIDER_LIGHT, '#ddd5c6');
-    assert.equal(DIVIDER_DARK, '#4d4d4d');
+    assert.equal(DIVIDER_LIGHT, '#c6c6c8');
+    assert.equal(DIVIDER_DARK, '#565659');
     assert.ok(contrastRatio(DIVIDER_LIGHT, SURFACE_LIGHT.level0) < CONTRAST_FLOOR.nonText);
     assert.ok(contrastRatio(DIVIDER_DARK, SURFACE_DARK.level0) < CONTRAST_FLOOR.nonText);
   });
@@ -470,23 +490,23 @@ describe('rampas, tinta e camada não-texto — os hex EXATOS do contrato', () =
 describe('acentos — as seis famílias, com os papéis texto/preenchimento/onFill', () => {
   it('ACCENT_LIGHT, família a família', () => {
     assert.deepEqual({ ...ACCENT_LIGHT }, {
-      action: { text: '#be3b27', fill: '#cf402a', onFill: '#ffffff' },
-      success: { text: '#1d7b4c', fill: '#1f8653', onFill: '#ffffff' },
-      info: { text: '#0d759b', fill: '#0e7ea7', onFill: '#ffffff' },
-      warn: { text: '#966106', fill: '#a46a07', onFill: '#ffffff' },
-      study: { text: '#9146d3', fill: '#9a54d7', onFill: '#ffffff' },
-      error: { text: '#cd2462', fill: '#db306f', onFill: '#ffffff' },
+      action: { text: '#0066cc', fill: '#0071e3', onFill: '#ffffff' },
+      success: { text: '#127029', fill: '#188032', onFill: '#ffffff' },
+      info: { text: '#0b698f', fill: '#0a739e', onFill: '#ffffff' },
+      warn: { text: '#8a5400', fill: '#a26300', onFill: '#ffffff' },
+      study: { text: '#7c2fa3', fill: '#8e2fbe', onFill: '#ffffff' },
+      error: { text: '#b3241c', fill: '#c2281f', onFill: '#ffffff' },
     });
   });
 
   it('ACCENT_DARK, família a família (onFill é o nível 0 neutro)', () => {
     assert.deepEqual({ ...ACCENT_DARK }, {
-      action: { text: '#eb614c', fill: '#d9513c', onFill: '#0e0e0e' },
-      success: { text: '#26a163', fill: '#218f58', onFill: '#0e0e0e' },
-      info: { text: '#1698c7', fill: '#1489b3', onFill: '#0e0e0e' },
-      warn: { text: '#c37f0a', fill: '#ae7209', onFill: '#0e0e0e' },
-      study: { text: '#b171e8', fill: '#a45be4', onFill: '#0e0e0e' },
-      error: { text: '#e55f90', fill: '#e03e79', onFill: '#0e0e0e' },
+      action: { text: '#4aa4ff', fill: '#0a84ff', onFill: '#0a0a0c' },
+      success: { text: '#3ddc65', fill: '#30d158', onFill: '#0a0a0c' },
+      info: { text: '#7fdaff', fill: '#64d2ff', onFill: '#0a0a0c' },
+      warn: { text: '#ffb94d', fill: '#ff9f0a', onFill: '#0a0a0c' },
+      study: { text: '#d88cff', fill: '#bf5af2', onFill: '#0a0a0c' },
+      error: { text: '#ff7870', fill: '#ff453a', onFill: '#0a0a0c' },
     });
   });
 
@@ -504,14 +524,16 @@ describe('acentos — as seis famílias, com os papéis texto/preenchimento/onFi
 });
 
 describe('scrim, movimento, forma, tipografia e celebração', () => {
-  it('SCRIM é preto ACROMÁTICO a 55% (escurecer não pode tingir)', () => {
-    assert.deepEqual({ ...SCRIM }, { color: '#000000', opacityPercent: 55 });
+  // SCRIM.opacityPercent = 40 é o valor do token E a decisão de design: o degrau
+  // do sheet do iOS (o que está atrás continua legível como contexto).
+  it('SCRIM é preto ACROMÁTICO a 40% (o degrau do sheet do iOS; escurecer não pode tingir)', () => {
+    assert.deepEqual({ ...SCRIM }, { color: '#000000', opacityPercent: 40 });
   });
 
   it('MOTION: dois níveis com easings distintos (spatial com overshoot, effects sem)', () => {
     assert.deepEqual({ ...MOTION }, {
-      spatial: { easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fast: 105, normal: 150, slow: 230 },
-      effects: { easing: 'cubic-bezier(0.2, 0, 0, 1)', fast: 100, normal: 160, slow: 240 },
+      spatial: { easing: 'cubic-bezier(0.34, 1.28, 0.64, 1)', fast: 140, normal: 220, slow: 340 },
+      effects: { easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)', fast: 110, normal: 180, slow: 280 },
     });
   });
 
@@ -522,7 +544,7 @@ describe('scrim, movimento, forma, tipografia e celebração', () => {
   });
 
   it('SHAPE / TYPE / CELEBRATION / FONT_STACK', () => {
-    assert.deepEqual({ ...SHAPE }, { sm: 8, md: 14, lg: 20, pill: 999, base: 14 });
+    assert.deepEqual({ ...SHAPE }, { sm: 8, md: 12, lg: 18, pill: 999, base: 12 });
     assert.deepEqual({ ...TYPE }, {
       bodySize: 16,
       proseLineHeight: 1.6,
@@ -531,6 +553,8 @@ describe('scrim, movimento, forma, tipografia e celebração', () => {
       measureMaxCh: 80,
       codeSize: 14,
       codeLineHeight: 1.5,
+      displayTracking: -0.022,
+      labelTracking: 0.06,
       largeTextBoldPx: 18.67,
       largeTextRegularPx: 24,
     });
@@ -543,9 +567,30 @@ describe('scrim, movimento, forma, tipografia e celebração', () => {
     // Três papéis de fonte — e o papel `accent` NÃO existe mais (nada de porta
     // aberta para fonte retro voltar sem ninguém notar).
     assert.deepEqual(Object.keys(FONT_STACK).sort(), ['body', 'display', 'mono']);
-    assert.match(FONT_STACK.display, /Nunito/);
-    assert.match(FONT_STACK.mono, /JetBrains Mono/);
-    assert.match(FONT_STACK.body, /Inter/);
+    // O contrato da tipografia tem duas metades, e as duas são travadas aqui:
+    //   1. a FRENTE de cada stack é a fonte de SISTEMA da Apple (é ela que
+    //      desenha onde existe, e é ela que "fiel aos produtos Apple" significa
+    //      de verdade em tipografia);
+    //   2. a família EMPACOTADA aparece em toda stack que precisa dela — sem
+    //      ela o app renderiza com a fonte padrão do SO em Linux, Windows e
+    //      offline, e nada avisaria.
+    assert.match(FONT_STACK.display, /^-apple-system/);
+    assert.match(FONT_STACK.body, /^-apple-system/);
+    assert.match(FONT_STACK.mono, /^'SF Mono'/);
+    for (const role of ['display', 'body', 'mono'] as const) {
+      assert.ok(
+        FONT_STACK[role].includes(`'${FONT_BUNDLED[role]}'`),
+        `FONT_STACK.${role} não cita a família empacotada '${FONT_BUNDLED[role]}': "${FONT_STACK[role]}"`,
+      );
+    }
+    // A Apple usa UMA família de sans em toda a escala: display e body são a
+    // mesma família, separados por tamanho, peso e entreletra.
+    assert.equal(FONT_BUNDLED.display, FONT_BUNDLED.body);
+    assert.deepEqual({ ...FONT_BUNDLED }, {
+      display: 'Inter Variable',
+      body: 'Inter Variable',
+      mono: 'JetBrains Mono Variable',
+    });
   });
 });
 

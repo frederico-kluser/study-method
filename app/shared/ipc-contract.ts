@@ -731,6 +731,35 @@ export interface TrackSubmitResult {
   passedCount: number;
   /** nº total de checks do relatório. */
   totalCount: number;
+  /**
+   * ADITIVO (análise de domínio): presente SÓ no `target 'module'` — o que a
+   * tentativa demonstrou dominar, aula por aula. O main GRAVA as aulas de
+   * `marcadas` como concluídas (régua criteriosa em
+   * services/moduleMastery.ts); o aluno só refaz as de `refazer`.
+   */
+  mastery?: TrackModuleMasteryReport;
+}
+
+/** Veredito de domínio de UMA aula do módulo (análise de domínio). */
+export interface TrackModuleMasteryLesson {
+  lessonId: string;
+  title: string;
+  /** a tentativa demonstrou domínio (ou a aula já estava concluída). */
+  dominada: boolean;
+  /** já estava concluída antes desta tentativa (não é mérito dela). */
+  alreadyDone: boolean;
+  /** o porquê, em pt-BR (o que a tela mostra). */
+  motivo: string;
+}
+
+/** Análise de domínio do desafio do módulo (services/moduleMastery.ts). */
+export interface TrackModuleMasteryReport {
+  /** aulas MARCADAS como concluídas por esta análise (ids). */
+  marcadas: string[];
+  /** aulas a refazer (não demonstradas e não concluídas) — ids. */
+  refazer: string[];
+  /** todos os vereditos, na ordem pedagógica. */
+  lessons: TrackModuleMasteryLesson[];
 }
 
 /** Regeneração de desafio — a LLM vê os desafios que o aluno errou na aula. */

@@ -95,9 +95,10 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
   // ─── Capítulo 4: Desafio — editor + testar ───────────────────────────
   // ONDA-SEM-DESAFIO-NO-RAIL: a aba "Desafio" saiu do rail (pedido do dono),
   // então o aluno não consegue mais SATISFAZER este passo clicando numa tab.
-  // O passo vira INFORMATIVO com "Continuar" (hideContinueButton removido):
-  // sem ele o tutorial TRAVAVA aqui (alvo nav-tabs presente ⇒ não pula;
-  // ação insatisfazível ⇒ sem Continuar). O expectedAction permanece: quem
+  // O passo vira INFORMATIVO com "Continuar" SEMPRE habilitado
+  // (`continueAlwaysEnabled` — sem ele o botão nascia DESABILITADO e o
+  // tutorial TRAVAVA aqui: alvo nav-tabs presente ⇒ não pula; ação
+  // insatisfazível ⇒ sem canAdvance). O expectedAction permanece: quem
   // chegar ao painel Desafio por Aula/Trilha (challengeNav) ainda auto-avança.
   {
     id: 'open-challenge',
@@ -107,6 +108,7 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
     targetSelector: '[data-onboarding-target="nav-tabs"]',
     view: 'challenge',
     expectedAction: 'open-challenge',
+    continueAlwaysEnabled: true,
   },
   {
     id: 'challenge-editor-type',

@@ -112,6 +112,12 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
     brave: { ...IDLE },
   });
   const [saving, setSaving] = useState(false);
+  // FALHA AO SALVAR as chaves (onda-ux). O catch do `handleContinue` engolia o
+  // erro (`void err`) e o gate obrigatório ficava sem resposta nenhuma: o
+  // utilizador clicava em "Salvar" e nada acontecia. O erro agora tem estado
+  // próprio e vira um <Alert severity="error"> ao lado do botão — que continua
+  // HABILITADO para retry, e o estado limpa a cada nova tentativa.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const patch = (provider: Provider, fn: (s: ProviderState) => ProviderState): void => {
     setProviders((prev) => ({ ...prev, [provider]: fn(prev[provider]) }));
@@ -166,6 +172,9 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
 
   const handleContinue = async (): Promise<void> => {
     if (!allValid) return;
+    // Nova tentativa → o erro da anterior some (o Alert só mostra a falha da
+    // tentativa em curso, nunca uma morta).
+    setSaveError(null);
     setSaving(true);
     try {
       await getApi().keys.setKey('openrouter', providers.openrouter.value.trim());
@@ -174,8 +183,12 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
       onDone();
     } catch (err) {
       setSaving(false);
-      // Sem toast disponível: o gate re-executado (ou a próxima ação) revela o erro.
-      void err;
+      // A FALHA DEIXA DE SER SILINCIOSA (onda-ux): o gate é obrigatório e o
+      // utilizador precisa de saber que o save não aconteceu. A mensagem é a
+      // chave `keys.saveError` (existente nos dois locales) + o detalhe bruto,
+      // a mesma receita do `handleValidate` logo acima — e o botão continua
+      // habilitado porque `saving` volta a false e `allValid` continua true.
+      setSaveError(`${t('translation:keys.saveError')} ${String(err)}`);
     }
   };
 
@@ -226,9 +239,18 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             {t('translation:keys.validate')}
           </Button>
           {st.valid ? (
-            <Typography variant="body2" sx={{ color: 'success.main' }}>{t('translation:keys.valid')}</Typography>
+            // `*.accentText`, não `*.main`: `main` é o PREENCHIMENTO da família
+            // e como texto sobre o Paper (nível 1) media 4,21:1 no escuro —
+            // abaixo do piso AA. O valor de TEXTO calibrado entrega 5,22:1 no
+            // escuro e 5,26:1 no claro (regra 3b: nível 1 é superfície de
+            // leitura, o acento pode ser texto).
+            <Typography variant="body2" sx={{ color: 'success.accentText' }}>{t('translation:keys.valid')}</Typography>
           ) : st.invalidMsg ? (
-            <Typography variant="body2" color="error">{st.invalidMsg}</Typography>
+            // Mesma receita da linha de cima para a família `error` (carmim):
+            // `color="error"` como prop pintava `error.main` (fill) — 4,21:1
+            // no escuro; `error.accentText` mede 5,23:1. E vai por `sx`, que é
+            // o caminho que chega à tela (ver tests/inkPropReachesScreen).
+            <Typography variant="body2" sx={{ color: 'error.accentText' }}>{st.invalidMsg}</Typography>
           ) : null}
         </Stack>
       </Box>
@@ -270,6 +292,13 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
           >
             {t('translation:keys.save')}
           </Button>
+          {/* A falha de save AGORA fala (onda-ux): antes o catch engolia o erro
+              e o gate obrigatório respondia ao "Salvar" com silêncio. O Alert
+              fica colado no botão que falhou, o MUI já lhe dá `role="alert"`
+              (anunciado no ato), e o botão continua habilitado para retry. */}
+          {saveError !== null ? (
+            <Alert severity="error">{saveError}</Alert>
+          ) : null}
           {!allValid ? (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {t('translation:gate.invalidKeys')}

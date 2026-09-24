@@ -68,21 +68,21 @@ describe('i18n wiring: initI18n → instância default → t()', () => {
     assert.equal(getI18n() === inst, true, 'useTranslation() deve enxergar a instância default');
   });
 
-  it("resolve 'translation:app.title' no default (pt-BR → 'Study Method — Tutor')", async () => {
+  it("resolve 'translation:app.title' no default (pt-BR → 'Study Method: Tutor')", async () => {
     await initI18n();
     const inst = getDefaultI18n();
     assert.ok(inst, 'instância default deve existir');
     assert.equal(inst!.language, DEFAULT_LANGUAGE);
     // `t('translation:app.title')` com o namespace explícito: mesmo idioma nos
     // dois locales, então é estável; o que importa é não cair na chave crua.
-    assert.equal(inst!.t('translation:app.title'), 'Study Method — Tutor');
+    assert.equal(inst!.t('translation:app.title'), 'Study Method: Tutor');
   });
 
   it("changeLanguage('en') faz a mesma chave resolver para o valor en", async () => {
     const inst = await initI18n('en');
     assert.equal(inst.language, 'en');
     // app.title é idêntico nos dois locales; nav.home prova a troca real.
-    assert.equal(inst.t('translation:app.title'), 'Study Method — Tutor');
+    assert.equal(inst.t('translation:app.title'), 'Study Method: Tutor');
     assert.equal(inst.t('translation:nav.home'), 'Home');
   });
 });

@@ -188,6 +188,31 @@ export default function SplitDivider({
         // Alvo de mouse mais generoso que o traço visual (6px é fino demais
         // para agarrar de primeira) — área estendida SEM mudar o layout.
         position: 'relative',
+        // PEGA VISUAL (ONDA-UX-DESCOBERTA): a dica de arrasto era SÓ para
+        // leitores de ecrã (o `hint` vive num span escondido) — quem olhava
+        // não sabia que a coluna é ajustável, e é ela que dita a largura do
+        // texto da aula. Os três puntinhos centrados (o grip canónico dos
+        // painéis redimensionáveis) dizem "agarre aqui"; no hover/foco ganham
+        // a tinta do preenchimento que o traço assume.
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 2,
+          height: 14,
+          backgroundImage: `radial-gradient(${theme.vars.palette.text.disabled} 1px, transparent 1.2px)`,
+          backgroundSize: '2px 4px',
+          backgroundRepeat: 'repeat-y',
+          backgroundPosition: 'center',
+        },
+        '&:hover::before': {
+          backgroundImage: `radial-gradient(${theme.vars.palette.primary.onFill} 1px, transparent 1.2px)`,
+        },
+        '&:focus-visible::before': {
+          backgroundImage: `radial-gradient(${theme.vars.palette.text.primary} 1px, transparent 1.2px)`,
+        },
         '&::after': {
           content: '""',
           position: 'absolute',

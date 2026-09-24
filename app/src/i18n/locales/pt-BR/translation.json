@@ -1,21 +1,21 @@
 {
   "nav": {
     "home": "Início",
-    "settings": "Settings",
+    "settings": "Configurações",
     "lesson": "Aula",
-    "challenge": "Desafio (abra pela Aula ou pela Trilha)",
+    "challenge": "Desafio",
     "roadmap": "Trilha"
   },
   "app": {
-    "title": "Study Method — Tutor",
+    "title": "Study Method: Tutor",
     "tagline": "Aprenda de verdade, com aulas geradas por IA e desafios práticos."
   },
   "theme": {
     "mode": {
       "toggle": "Tema",
-      "light": "Modo claro",
-      "dark": "Modo escuro",
-      "system": "Padrão do sistema"
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema"
     }
   },
   "settings": {
@@ -23,6 +23,7 @@
     "keysDescription": "Configure as chaves do OpenRouter (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
     "localAiTitle": "LLM local",
     "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem.",
+    "appearanceDescription": "Escolha o tema da interface: claro, escuro ou seguindo o sistema. A preferência é salva automaticamente.",
     "section": {
       "keys": "Chaves de API",
       "localAi": "IA local",
@@ -50,7 +51,7 @@
     "clearProgressTimeout": "O app não respondeu a tempo. Tente novamente.",
     "orphansTitle": "Cursos não instalados",
     "orphansDescription": "Progresso guardado de trilhas que não estão mais em resources/tracks. Ele não aparece no Início para não virar link morto, mas continua aqui: reinstale a trilha com o mesmo slug e o progresso volta sozinho.",
-    "orphansEmpty": "Nada órfão — todo o progresso guardado tem trilha instalada ou aula própria.",
+    "orphansEmpty": "Nada órfão: todo o progresso guardado tem trilha instalada ou aula própria.",
     "orphansLoadFailed": "Não foi possível verificar os resquícios.",
     "orphansTimeout": "A verificação não respondeu a tempo. Tente novamente.",
     "orphansRowCount": "{{n}} linha(s) no banco",
@@ -95,10 +96,11 @@
     "errorNetworkValidate": "Erro de rede ao validar",
     "needKeyBeforeSave": "Digite a chave antes de salvar.",
     "saveError": "Falha ao salvar a chave.",
-    "saveTimeout": "Não foi possível salvar a chave — o aplicativo não respondeu. Tente de novo."
+    "saveTimeout": "Não foi possível salvar a chave: o aplicativo não respondeu. Tente de novo."
   },
   "localAi": {
     "title": "Modelo local",
+    "downloadAria": "Baixar modelo {{id}}",
     "detect": "Detectar hardware",
     "ram": "RAM",
     "vram": "VRAM",
@@ -126,7 +128,7 @@
   "lesson": {
     "subjectLabel": "Assunto",
     "subjectPlaceholder": "Sobre o que você quer aprender?",
-    "subjectHelper": "Programação e matemática — ex.: inverter uma árvore binária ou uma equação do 2º grau.",
+    "subjectHelper": "Programação e matemática, ex.: inverter uma árvore binária ou uma equação do 2º grau.",
     "generate": "Gerar aula",
     "generating": "Gerando aula…",
     "busy": {
@@ -135,7 +137,7 @@
       "digitando": "Escrevendo a seção…",
       "explicando": "Explicando o erro…",
       "gerando": "Gerando novo quiz…",
-      "aguardandoVez": "Aguardando a vez — o tutor está ocupado…",
+      "aguardandoVez": "Aguardando a vez: o tutor está ocupado…",
       "concluindo": "Concluindo a aula…"
     },
     "phase": {
@@ -189,7 +191,7 @@
       "error": "Não consegui verificar a resposta agora."
     },
     "emptyTitle": "Nenhuma aula selecionada",
-    "emptyDescription": "Escolha uma trilha na aba Trilha e depois abra uma aula — o conteúdo já está pronto, é só estudar.",
+    "emptyDescription": "Escolha uma trilha na aba Trilha e depois abra uma aula: o conteúdo já está pronto, é só estudar.",
     "emptyCta": "Ver trilhas",
     "sourcesButton": "Fontes",
     "theoryProgress": "Progresso da teoria: {{percent}}%",
@@ -208,13 +210,13 @@
     "quizCorrect": "É isso que a seção mostra.",
     "quizWrong": "Essa alternativa se separa do que a seção mostra.",
     "quizFeedback": "Por quê:",
-    "quizGateNext": "O quiz desta seção ainda espera a resposta certa. Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra — e um quiz novo sobre o mesmo trecho.",
-    "quizGateTyping": "Termine de ler esta seção — o quiz dela aparece na conversa assim que o texto acabar de ser escrito. Você pode clicar (ou apertar qualquer tecla) para mostrar tudo de uma vez.",
+    "quizGateNext": "O quiz desta seção ainda espera a resposta certa. Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra, e um quiz novo sobre o mesmo trecho.",
+    "quizGateTyping": "Termine de ler esta seção: o quiz dela aparece na conversa assim que o texto acabar de ser escrito. Você pode clicar (ou apertar qualquer tecla) para mostrar tudo de uma vez.",
     "revealGateTyping": "Esta seção ainda está sendo escrita. “Avançar” mostra tudo de uma vez.",
     "revealTypingTooltip": "Mostrar a seção inteira agora (não avança)",
-    "challengeGateFinish": "A teoria acabou. Falta o desafio desta aula — ele é o próximo passo, e concluí-lo libera a conclusão da aula.",
-    "challengeGateQuiz": "O desafio abre depois que o quiz da aula tiver a resposta certa ({{n}} ainda sem) — é a prova de que o trecho foi entendido.",
-    "quizGateFinish": "A aula conclui quando os quizzes tiverem a resposta certa ({{n}} ainda sem). Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra — e um quiz novo sobre o mesmo trecho.",
+    "challengeGateFinish": "A teoria acabou. Falta o desafio desta aula: ele é o próximo passo, e concluí-lo libera a conclusão da aula.",
+    "challengeGateQuiz": "O desafio abre depois que o quiz da aula tiver a resposta certa ({{n}} ainda sem): é a prova de que o trecho foi entendido.",
+    "quizGateFinish": "A aula conclui quando os quizzes tiverem a resposta certa ({{n}} ainda sem). Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra, e um quiz novo sobre o mesmo trecho.",
     "quizOverlayTitle": "Prove que entendeu",
     "quizOverlayAria": "Quiz da seção, sobre a tela",
     "quizOverlayMinimize": "Minimizar para a conversa",
@@ -222,7 +224,7 @@
     "quizAttemptLabel": "Quiz {{n}} desta afirmação",
     "quizChatOnScreen": "Este quiz está aberto sobre a tela.",
     "quizChatWaiting": "Esperando a sua resposta.",
-    "quizChatQueued": "Na fila — o tutor está terminando uma resposta e o ciclo do quiz continua em seguida…",
+    "quizChatQueued": "Na fila: o tutor está terminando uma resposta e o ciclo do quiz continua em seguida…",
     "quizChatExplaining": "Escrevendo onde a alternativa marcada se separa do que a seção mostra…",
     "quizChatGenerating": "Preparando um quiz novo sobre o mesmo trecho…",
     "quizChatUnavailable": "O ciclo parou aqui. Você pode pedir de novo.",
@@ -232,8 +234,8 @@
     "quizChatReopen": "Responder esta pergunta de novo",
     "quizExplanationTitle": "Onde essa alternativa se separa do que a seção mostra",
     "quizExplanationChosen": "Alternativa marcada",
-    "quizExplainUnavailable": "A explicação não pôde ser escrita agora — a IA está fora do ar. O quiz novo sobre o mesmo trecho continua a caminho.",
-    "quizRemedialUnavailable": "O quiz novo não pôde ser gerado agora — a IA está fora do ar. Nada do que você respondeu se perdeu.",
+    "quizExplainUnavailable": "A explicação não pôde ser escrita agora: a IA está fora do ar. O quiz novo sobre o mesmo trecho continua a caminho.",
+    "quizRemedialUnavailable": "O quiz novo não pôde ser gerado agora: a IA está fora do ar. Nada do que você respondeu se perdeu.",
     "quizAttemptNotSaved": "Esta resposta não chegou ao seu histórico no disco; ela vale nesta sessão.",
     "quizHistoryUnavailable": "O histórico de quiz desta aula não pôde ser lido agora; os quizzes já dominados voltam a aparecer para responder. O que você responder nesta sessão continua sendo gravado.",
     "skipTypingButton": "Mostrar tudo",
@@ -263,20 +265,20 @@
     "difficulty": "dificuldade {{n}}",
     "generatedBadge": "gerado para você",
     "challengePassed": "Passou com {{stars}} estrela(s)",
-    "challengeFailedCount": "Falhou {{n}} vez(es) — tente de novo",
+    "challengeFailedCount": "Falhou {{n}} vez(es): tente de novo",
     "challengeNotPassed": "Tentativa não concluída",
     "challengeUntried": "Nunca tentado",
     "viewLessonButton": "Ver a aula",
     "sourcesTitle": "Fontes desta aula",
     "sourcesViewerClose": "Fechar",
     "sourcesViewerOpenExternal": "Abrir no navegador",
-    "sourcesViewerFrameHint": "Algum site proíbe ser exibido dentro do app — nesse caso use “Abrir no navegador”.",
+    "sourcesViewerFrameHint": "Algum site proíbe ser exibido dentro do app: nesse caso use “Abrir no navegador”.",
     "trackNotFound": "Aula não encontrada na trilha.",
     "trackLoadFailed": "Não foi possível carregar a aula.",
     "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente.",
     "nextTimeout": "O tutor não respondeu ao avançar a seção. Tente de novo.",
     "answerTimeout": "O tutor demorou demais para responder. Tente de novo.",
-    "doneTimeout": "Não foi possível concluir a aula — o aplicativo não respondeu. Tente de novo.",
+    "doneTimeout": "Não foi possível concluir a aula: o aplicativo não respondeu. Tente de novo.",
     "errorBubbleTitle": "Seu código falhou nos testes",
     "errorBubbleFilesTitle": "Código submetido",
     "errorQuestion": "O que você acha que errou? Escreva aqui ou fale no microfone. Se não souber, diga \"não sei\".",
@@ -297,6 +299,8 @@
     "providerOpenrouter": "OpenRouter",
     "confirmDelete": "Apagar {{name}}?",
     "noChallengesEmpty": "Nenhum desafio disponível. Gere uma aula primeiro na aba \"Aula\".",
+    "emptyGoToLesson": "Ir para a aula",
+    "outputTruncated": "Saída truncada aos primeiros {{n}} caracteres.",
     "listError": "Não consegui listar os desafios",
     "statementUnavailable": "Enunciado (README.md) indisponível.",
     "workspaceLoadError": "Erro ao carregar o workspace",
@@ -318,8 +322,8 @@
     "timerAria": "Tempo restante: {{time}}",
     "timedOut": "Tempo esgotado",
     "timedOutAnnounce": "Tempo esgotado.",
-    "starLostFocus": "Foco perdido — 1 estrela a menos.",
-    "starLostSlow": "Limite de tempo se aproximando — 1 estrela a menos.",
+    "starLostFocus": "Foco perdido: 1 estrela a menos.",
+    "starLostSlow": "Limite de tempo se aproximando: 1 estrela a menos.",
     "announcePassed": "Os testes passaram: {{testsRun}} de {{expectedTests}} casos.",
     "announceFailed": "Os testes falharam: {{testsRun}} de {{expectedTests}} casos passaram. O caso que falhou está na saída.",
     "dock": {
@@ -349,7 +353,11 @@
     "regenerateButton": "Gerar novo desafio",
     "checksTitle": "Resultado por teste",
     "partialCount": "{{passed}} de {{total}} testes passaram",
-    "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!",
+    "masteryTitle": "O que esta tentativa demonstrou",
+    "masteryDemonstrated": "Você demonstrou dominar:",
+    "masteryRedo": "Vamos refazer:",
+    "masteryNothing": "Nada ficou provado nesta tentativa: nenhuma aula é dispensada sem evidência forte. Refazer não é punição — é a prática do que ainda não firmou.",
+    "proficiencyPassed": "Proficiência aprovada: a trilha inteira está destravada!",
     "filesTitle": "Arquivos do desafio",
     "fileTabAria": "Arquivo {{file}}",
     "submitTimeout": "O teste do código demorou demais para terminar. Tente de novo.",
@@ -368,13 +376,14 @@
     "tryAgain": "Tentar novamente",
     "title": "Antes de começar",
     "readError": "Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.",
-    "startupTimeout": "Não foi possível iniciar — o aplicativo não respondeu. Tente novamente."
+    "startupTimeout": "Não foi possível iniciar: o aplicativo não respondeu. Tente novamente."
   },
   "editor": {
     "openFile": "Abrir arquivo",
     "save": "Salvar",
     "unsaved": "Alterações não salvas",
     "newFile": "Novo arquivo",
+    "newFilePlaceholder": "novo.txt (caminho relativo)",
     "deleteFile": "Excluir arquivo",
     "confirmDelete": "Apagar {{name}}?",
     "refresh": "Atualizar",
@@ -406,9 +415,13 @@
     "close": "Fechar",
     "tryAgain": "Tentar de novo"
   },
+  "voice": {
+    "engineUnavailable": "Motor de voz indisponível (muitas falhas).",
+    "captureFailed": "Não foi possível iniciar a captura de voz: {{msg}}"
+  },
   "home": {
     "title": "Aprenda programação e matemática com aulas geradas por IA",
-    "description": "Digite um assunto — como \"Inverter uma árvore binária\" ou \"Equações do 2º grau\" — e receba uma aula com explicação, analogia, visualização e desafios práticos validados por testes.",
+    "description": "Digite um assunto, como \"Inverter uma árvore binária\" ou \"Equações do 2º grau\", e receba uma aula com explicação, analogia, visualização e desafios práticos validados por testes.",
     "cta": {
       "setup": "Configurar chaves",
       "start": "Começar aula"
@@ -440,7 +453,7 @@
     },
     "subjects": {
       "answeredOfTotal": "{{answered}} de {{total}} aulas respondidas",
-      "noLessonsYet": "Sem aulas ainda — comece agora"
+      "noLessonsYet": "Sem aulas ainda: comece agora"
     },
     "suggestions": {
       "title": "Ideias para começar",
@@ -454,13 +467,13 @@
     },
     "switchDialog": {
       "title": "Matéria em andamento",
-      "description": "Não dá para trocar de matéria no meio da aula — a avaliação da aula atual é feita pela LLM. Termine ou encerre a aula atual antes de começar outra matéria.",
+      "description": "Não dá para trocar de matéria no meio da aula: a avaliação da aula atual é feita pela LLM. Termine ou encerre a aula atual antes de começar outra matéria.",
       "continueCurrent": "Continuar na matéria atual",
       "goToLesson": "Ir para a aula"
     },
     "trail": {
       "title": "De onde você parou",
-      "empty": "Nada em andamento — escolha um assunto abaixo",
+      "empty": "Nada em andamento: escolha um assunto abaixo",
       "resume": "Retomar",
       "lastSubject": "Último assunto"
     },
@@ -470,9 +483,9 @@
     "tracksTimeout": "As trilhas não responderam a tempo. Tente novamente.",
     "trackProgress": "{{done}}/{{total}}",
     "tracksEmptyTitle": "Nenhuma trilha instalada",
-    "tracksEmptyDescription": "Este app não gera trilha sozinho: o conteúdo vive em resources/tracks e é criado pelo CLI de autoria (npm run track -- track:new). Enquanto não houver trilha instalada, esta seção fica assim mesmo — não é erro.",
+    "tracksEmptyDescription": "Este app não gera trilha sozinho: o conteúdo vive em resources/tracks e é criado pelo CLI de autoria (npm run track -- track:new). Enquanto não houver trilha instalada, esta seção fica assim mesmo: não é erro.",
     "orphansAction": "Ver em Configurações",
-    "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado — nada foi apagado."
+    "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado: nada foi apagado."
   },
   "tutorial": {
     "progress": {
@@ -510,7 +523,7 @@
       },
       "shellThemeToggle": {
         "title": "Tema claro/escuro",
-        "description": "Alterne entre os temas claro, escuro ou padrão do sistema pelo botão de tema na barra superior."
+        "description": "Escolha o tema claro, escuro ou o padrão do sistema no seletor de tema no pé da coluna lateral, ou em Configurações, na secção Aparência."
       },
       "shellLanguageSwitcher": {
         "title": "Idioma",
@@ -530,7 +543,7 @@
       },
       "challengeEditor": {
         "title": "Editor de código",
-        "description": "Abra um desafio e escreva sua solução neste editor (CodeMirror), sem autocomplete — treine o código de memória."
+        "description": "Abra um desafio e escreva sua solução neste editor (CodeMirror), sem autocomplete: treine o código de memória."
       },
       "challengeTerminal": {
         "title": "Saída dos testes",
@@ -599,7 +612,7 @@
       "openSettings": "Configurar chaves"
     },
     "status": {
-      "readyToContinue": "Pronto — pode continuar",
+      "readyToContinue": "Pronto: pode continuar",
       "waitingForAction": "Aguardando a ação…"
     },
     "audio": {
@@ -685,7 +698,7 @@
       "pending": "Pendente"
     },
     "progress": "{{done}} de {{total}} aulas concluídas",
-    "completed": "Trilha concluída — parabéns!",
+    "completed": "Trilha concluída: parabéns!",
     "aria": {
       "sectionToggle": "Alternar seção {{level}}",
       "subjectSelector": "Escolher matéria da trilha"
@@ -700,7 +713,7 @@
   "roadmap": {
     "done": "Concluída",
     "current": "Em andamento",
-    "locked": "Travada — conclua a anterior (ou passe na proficiência)",
+    "locked": "Travada: conclua a anterior (ou passe na proficiência)",
     "pending": "Disponível",
     "difficulty": "dificuldade {{n}}",
     "moduleCount": "{{done}} de {{total}} aulas concluídas",
@@ -716,7 +729,7 @@
     "proficiencyStart": "Fazer o teste",
     "proficiencyRetake": "Refazer",
     "proficientBadge": "proficiência aprovada ✓",
-    "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima — ou passe no teste de proficiência para liberar tudo.",
+    "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima, ou passe no teste de proficiência para liberar tudo.",
     "moduleChallenge": "Desafio do módulo",
     "moduleChallengeDone": "Concluído ✓",
     "moduleChallengeTried": "Tentado",

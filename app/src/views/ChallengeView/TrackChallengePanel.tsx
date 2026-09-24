@@ -75,6 +75,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 // ONDA2 (falha-ver-aula): ícone do botão "Ver a aula" na tela de veredito
 // terminal do desafio de aula tentado antes da aula.
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -448,6 +449,17 @@ export function TrackChallengePanel({
   const generateRunning = generateState.status === 'running';
 
   const markedRef = useRef<string | null>(null);
+
+  // ─── ANÁLISE DE DOMÍNIO (target 'module' — pedido do dono) ────────────────
+  // O main já GRAVOU as aulas demonstradas como concluídas (a régua criteriosa
+  // vive em electron/main/services/moduleMastery.ts — "apenas parecer dominar
+  // não significa dominar"). A tela só traduz o relatório: o que a tentativa
+  // demonstrou (e foi marcado) e o que resta refazer ("só faço as aulas que
+  // reprovei"). Sem `mastery` no resultado (erro de análise, alvo não-module),
+  // o bloco não renderiza — o veredito continua sendo o do runner.
+  const mastery = result?.mastery ?? null;
+  const masteryDemonstradas = mastery === null ? [] : mastery.lessons.filter((l) => l.dominada && !l.alreadyDone);
+  const masteryRefazer = mastery === null ? [] : mastery.lessons.filter((l) => !l.dominada && !l.alreadyDone);
 
   // ─── ONDA-RETOMAR: rascunho de SESSÃO (cache em memória de módulo) ────────
   // O shell monta SÓ a view ativa: trocar de aba desmonta este painel. O
@@ -1101,9 +1113,12 @@ export function TrackChallengePanel({
   }, [spec, selection.trackSlug, selection.target, selection.lessonId, nav, onNavigate]);
 
   if (loading) {
+    // ONDA-UX-FEEDBACK: o carregamento do spec era um spinner MUDO (sem texto
+    // nem nome acessível). `role="status"` + nome com `common.loading` anunciam
+    // a espera a leitores de ecrã.
     return (
-      <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
+      <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }} role="status">
+        <CircularProgress aria-label={t('translation:common.loading')} />
       </Box>
     );
   }
@@ -1132,11 +1147,43 @@ export function TrackChallengePanel({
       : code.trim().length > 0);
 
   return (
-    <Box sx={{ p: 2, maxWidth: 720, mx: 'auto' }}>
- <Stack spacing={2}>
+    // ONDA-INPUT-ANCORADO (bug: "o input sobe quando a view tem menos
+    // conteúdo"): a raiz era fluxo de CONTEÚDO puro — o bloco de resposta
+    // (editor + Testar) seguia o enunciado e, com enunciado curto, o input
+    // nascia no meio/topo do ecrã. Agora a raiz reivindica a altura do `main`
+    // (flex column de altura definida por stretch; `flexGrow: 1` sem
+    // `height: '100%'`, para não criar scroll duplo) e o grupo do TOPO
+    // ("histórico": cabeçalho + enunciado) cresce, empurrando o grupo de
+    // RESPOSTA para o fundo — o comportamento de chat pedido (histórico em
+    // cima, input colado em baixo). Com conteúdo demais, `min-height: auto`
+    // dos flex items devolve a altura de conteúdo e o `main` rola como antes.
+    <Box sx={{ p: 2, maxWidth: 720, mx: 'auto', width: '100%', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* useFlexGap: sem ele o Stack apaga as margens dos filhos (armadilha
+          ONDA11) — aqui o espaçamento é `gap` e nenhum filho é reescrito. */}
+      <Stack useFlexGap spacing={2} sx={{ flexGrow: 1 }}>
+        {/* Grupo TOPO — o "histórico" do desafio (cabeçalho + enunciado):
+            cresce e empurra o bloco de resposta para o fundo do painel. */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Cabeçalho: título + dificuldade + cronômetro + estrelas. */}
- <Stack direction="row" spacing={1}  sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap',  }}>
+        <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
           <Box>
+            {/* ONDA-UX-WAYFINDING: o painel Desafio não tem aba no rail
+                (ONDA-SEM-DESAFIO-NO-RAIL) e o utilizador não tinha NENHUMA
+                forma de voltar — perdia a noção de onde estava. O destino
+                segue a ORIGEM da navegação (selection.target): desafio de AULA
+                volta ao chat da aula; módulo/proficiência voltam à Trilha (o
+                mesmo mapeamento dos fluxos de advance/fallback já existentes).
+                Alvo de toque 44px (piso do design system). */}
+            <Button
+              size="small"
+              startIcon={<ArrowBackIcon />}
+              onClick={() =>
+                selection.target === 'lesson' ? nav.navigateToLesson() : onNavigate?.('roadmap')
+              }
+              sx={{ minHeight: 44, mb: 0.5 }}
+            >
+              {t('translation:common.back')}
+            </Button>
             <Typography variant="h5" component="h1">
               {spec.title}
             </Typography>
@@ -1148,8 +1195,18 @@ export function TrackChallengePanel({
               ) : null}
             </Stack>
           </Box>
- <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <Box>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            {/* ONDA-UX-A11Y: estrelas e cronómetro COM nome acessível (o fluxo
+                legado já os tinha — `challenge.starsAria`/`timerAria`; o fluxo
+                track, que é o principal, ficava mudo para leitores de ecrã).
+                Mesmo padrão da ChallengeView: `role="img"` no agrupamento de
+                estrelas e rótulo próprio no `role="timer"`. */}
+            <Box
+              component="span"
+              role="img"
+              aria-label={tI('challenge.starsAria', { current: starsLeft, total: 3 })}
+              sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}
+            >
               {[0, 1, 2].map((i) =>
                 i < starsLeft ? (
                   <StarIcon key={i} fontSize="small" sx={{ color: 'warning.main' }} />
@@ -1158,7 +1215,14 @@ export function TrackChallengePanel({
                 ),
               )}
             </Box>
-            <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }} role="timer">
+            <Typography
+              variant="body2"
+              sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
+              role="timer"
+              aria-label={tI('challenge.timerAria', {
+                time: started ? clock : formatClock(spec.timeLimitMs),
+              })}
+            >
               {started ? clock : formatClock(spec.timeLimitMs)}
             </Typography>
           </Stack>
@@ -1196,7 +1260,10 @@ export function TrackChallengePanel({
             </Button>
           ) : null}
         </Box>
+        </Box>
 
+        {/* Grupo RESPOSTA — colado ao fundo do painel: o "input" do fluxo de
+            desafio (editor + Testar + vereditos) nunca sobe com pouco conteúdo. */}
         {started ? (
           <>
             <Divider />
@@ -1217,14 +1284,17 @@ export function TrackChallengePanel({
                     onChange={(_e, v: unknown) => setActiveFile(String(v))}
                     variant="scrollable"
                     scrollButtons="auto"
-                    sx={{ mb: 1, minHeight: 36 }}
+                    // ONDA-UX-TOQUE: as abas nasciam com 36px — abaixo do piso
+                    // de 44px que o design system cobra para qualquer controle
+                    // apontável (TOUCH_TARGET_PX).
+                    sx={{ mb: 1, minHeight: 44 }}
                   >
                     {spec.files!.map((f) => (
                       <Tab
                         key={f.path}
                         value={f.path}
                         label={f.path}
-                        sx={{ textTransform: 'none', minHeight: 36 }}
+                        sx={{ textTransform: 'none', minHeight: 44 }}
                         aria-label={tI('challenge.fileTabAria', { file: f.path })}
                       />
                     ))}
@@ -1236,6 +1306,7 @@ export function TrackChallengePanel({
                     }
                     filename={activeFile ?? 'solution.mjs'}
                     ariaLabel={tI('challenge.fileTabAria', { file: activeFile ?? '' })}
+                    minHeight="220px"
                     readOnly={concluded !== null}
                   />
                 </>
@@ -1245,6 +1316,7 @@ export function TrackChallengePanel({
                   onChange={setCode}
                   filename="solution.mjs"
                   ariaLabel={t('translation:challenge.editorLabel')}
+                  minHeight="220px"
                   readOnly={concluded !== null}
                 />
               )}
@@ -1331,13 +1403,50 @@ export function TrackChallengePanel({
                     </Box>
                   </Box>
                 ) : null}
+                {/* ONDA-UX-FEEDBACK: a saída continua capada (4000 chars — o
+                    runner pode vomitar milhares de linhas), mas AGORA o corte
+                    é avisado: truncar em silêncio escondia diagnóstico de
+                    falha que o aluno precisa de ler. */}
                 <Box component="pre" sx={{ m: 0, mt: 1, maxHeight: 200, overflowY: 'auto' }}>
                   {result.output.slice(0, 4000)}
+                  {result.output.length > 4000
+                    ? `\n${tI('challenge.outputTruncated', { n: 4000 })}`
+                    : ''}
                 </Box>
               </Alert>
             ) : null}
 
             {submissionError ? <Alert severity="error">{submissionError}</Alert> : null}
+
+            {/* ANÁLISE DE DOMÍNIO do desafio do MÓDULO: o que esta tentativa
+                demonstrou. As aulas demonstradas JÁ foram marcadas como
+                concluídas pelo main (régua criteriosa — evidência de teste +
+                evidência de código; ver services/moduleMastery.ts); o que sobra
+                é exatamente o que o aluno refaz. Erro de análise nunca chega
+                aqui: sem `mastery`, nada renderiza. */}
+            {mastery !== null ? (
+              <Alert severity="info">
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {t('translation:challenge.masteryTitle')}
+                </Typography>
+                {masteryDemonstradas.length > 0 ? (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {t('translation:challenge.masteryDemonstrated')}{' '}
+                    {masteryDemonstradas.map((l) => l.title).join(' · ')}
+                  </Typography>
+                ) : (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {t('translation:challenge.masteryNothing')}
+                  </Typography>
+                )}
+                {masteryRefazer.length > 0 ? (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {t('translation:challenge.masteryRedo')}{' '}
+                    {masteryRefazer.map((l) => l.title).join(' · ')}
+                  </Typography>
+                ) : null}
+              </Alert>
+            ) : null}
 
             {/* Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
                 erro + botão de NOVO desafio. Veredito parcial (passou alguns

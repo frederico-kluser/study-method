@@ -81,7 +81,12 @@ import { extensionsForFilename } from './language';
  */
 const BASIC_SETUP = { autocompletion: false, completionKeymap: false } as const;
 
-/** Altura mínima do editor, igual ao painel circundante. */
+/**
+ * Altura de PREENCHIMENTO do editor (não é piso): `100%` só resolve quando a
+ * cadeia de pais tem altura definida (EditorPane). Contra um pai de altura
+ * AUTO (ex.: o bloco de resposta do TrackChallengePanel) resolve para `auto` e
+ * o editor colapsa para o conteúdo — o PISO é a prop `minHeight` de cada uso.
+ */
 const EDITOR_HEIGHT = '100%';
 
 /**
@@ -164,6 +169,12 @@ export interface CodeMirrorFieldProps {
   ariaLabel?: string;
   /** Classes de layout aplicadas ao wrapper do editor. */
   className?: string;
+  /**
+   * Piso de altura (ex.: '220px') — obrigatório quando o pai não tem altura
+   * definida: sem ele o editor colapsa para a altura do conteúdo (uma linha
+   * quando vazio). Ver o comentário de {@link EDITOR_HEIGHT}.
+   */
+  minHeight?: string;
   /** Quando true o conteúdo é somente-leitura. */
   readOnly?: boolean;
   /**
@@ -186,6 +197,7 @@ export function CodeMirrorField({
   filename,
   ariaLabel,
   className,
+  minHeight,
   readOnly,
   onSave,
 }: CodeMirrorFieldProps): React.JSX.Element {
@@ -240,6 +252,7 @@ export function CodeMirrorField({
       basicSetup={BASIC_SETUP}
       readOnly={readOnly}
       height={EDITOR_HEIGHT}
+      minHeight={minHeight}
       className={className}
       aria-label={ariaLabel}
     />

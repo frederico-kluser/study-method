@@ -1,5 +1,5 @@
 /**
- * src/components/theme/themeModeState.ts — lógica PURA do toggle de tema.
+ * src/components/theme/themeModeState.ts — lógica PURA do modo de tema.
  *
  * Extraída do componente para testes node:test (sem jsdom). Nada aqui depende
  * de DOM/React: ordem de ciclo, validação do modo persistido e parse do valor
@@ -7,7 +7,9 @@
  *
  * Contrato (alinha com main.tsx e com o useColorScheme do MUI):
  *   - modos suportados: 'light' | 'dark' | 'system';
- *   - ciclo do botão: light → dark → system → light …
+ *   - a UI seleciona o modo DIRETAMENTE (ThemeModeSelector — segmentado
+ *     claro/sistema/escuro); `nextThemeMode` continua aqui como utilitário
+ *     puro do ciclo light → dark → system → light (coberto pelos testes);
  *   - default (não-guardado) = 'system' (segue o SO);
  *   - persistência: o ThemeProvider usa `modeStorageKey="theme-mode"`, então o
  *     MUI lê no boot e grava no setMode — ver main.tsx.

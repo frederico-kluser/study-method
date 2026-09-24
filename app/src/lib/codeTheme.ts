@@ -1,71 +1,38 @@
 /**
- * src/lib/codeTheme.ts — paleta de CÓDIGO do redesign "Cartucho", em DUAS
+ * src/lib/codeTheme.ts — paleta de CÓDIGO do design system "Apple", em DUAS
  * polaridades, compartilhada pelo editor CodeMirror e pelo terminal xterm.
  *
  * ─── O DEFEITO QUE ESTE MÓDULO EXISTE PARA CORRIGIR ───────────────────────
  * `src/lib/draculaTheme.ts` prende editor e terminal a Dracula escuro FIXO nos
- * dois esquemas — um retângulo preto dentro de um app claro. A §7.4 de
- * `docs/ux-redesign.md` troca isso por uma paleta derivada dos acentos do app,
- * existindo em claro E escuro, com editor e terminal pintando da MESMA fonte de
- * verdade (a propriedade boa que o Dracula já tinha e que se mantém).
+ * dois esquemas — um retângulo preto dentro de um app claro. Este módulo troca
+ * isso por uma paleta existindo em claro E escuro, com editor e terminal
+ * pintando da MESMA fonte de verdade.
  *
  * ─── DE ONDE VEM CADA HEX ─────────────────────────────────────────────────
- * Nada aqui foi escolhido a olho. As matizes e saturações são EXATAMENTE as
- * cinco famílias de `ramp2.py` que geraram `ACCENT_LIGHT`/`ACCENT_DARK` em
- * `designTokens.ts` (é isso que "derivada dos acentos" quer dizer); só a
- * LUMINOSIDADE foi re-resolvida, porque o fundo mudou: o acento da UI é medido
- * contra o nível 0 e o token de código é lido contra o well.
- * Três matizes novas existem só aqui:
- *   - `rose` (h=330) para constante/magenta — o roxo `study` (h=272) é violeta,
- *     não magenta, e ocupar os dois slots com ele apagaria a distinção;
- *   - `slate` (h=215, s≈0.15) para comentário — FRIO de propósito, para não
- *     colidir com a tinta secundária QUENTE do esquema claro (#544e45), que é
- *     quem pinta o operador. Dois cinzas mornos lado a lado viram um só;
- *   - `blue` (h≈222, s≈0.62) para o slot `blue` do ANSI — ele não pertence a
- *     nenhuma família de acento: a família `info` (h=196) é CIANO e já ocupa o
- *     slot `cyan`, então sem matiz própria `blue` e `cyan` sairiam iguais na
- *     tabela de 16. O `coderamp.ts` o imprime como família à parte,
- *     `blue (ansi)`; ele é a única cromática do ANSI sem par em sintaxe/estado.
- * A varredura que produziu os valores está em `docs/ux-redesign/coderamp.ts`
- * (mesmo método do `ramp2.py`, rodável: `npx tsx ../docs/ux-redesign/coderamp.ts`).
+ * As MATIZES são as do Xcode: a preferência "Syntax Coloring" do editor da
+ * Apple, papel por papel. A LUMINOSIDADE é re-resolvida para as superfícies
+ * deste app, com a varredura em `tools/design/codepalette.ts` (rodável:
+ * `npx tsx tools/design/codepalette.ts`). O contrato completo das decisões está
+ * em `docs/ux-apple.md`, §7.
  *
  * ─── O PISO É MEDIDO CONTRA A SELEÇÃO, NÃO CONTRA O FUNDO ─────────────────
- * Bloco de código é texto de 15px na ONDA 1 (game-foundations — subiu de 14
- * com o resto da tipografia; `TYPE.codeSize` segue 14 no contrato): não existe
- * alívio de "large scale text" (só a partir de 24px regular / 18,67px bold),
- * então TODO token fica preso ao piso cheio de 4,5:1 do SC 1.4.3 — comentário
- * incluído.
- * E o token não é lido só sobre o fundo: quando o usuário seleciona uma linha
- * ele passa a ser lido sobre a FAIXA DE SELEÇÃO. Por isso a varredura mira o
- * nível 4 (a superfície mais hostil em que o token ainda precisa ser lido), o
- * que dá de brinde folga no nível 3 (linha atual) e no nível 2 (o well):
- *   claro  — seleção ≈4,5:1 · linha atual ≈5,2:1 · well ≈5,7:1
- *   escuro — seleção ≈4,5:1 · linha atual ≈5,3:1 · well ≈6,1:1
- * "O piso não negocia": onde um cinza bonito não passava, ele foi trocado.
- *
- * ─── SATURAÇÃO É LIMITADA PELO RED FLASH, NÃO PELO GOSTO ──────────────────
- * Achado medido durante a varredura (família `action`, esquema claro):
- *     s=0,78 → #af2a16   R/(R+G+B) = 0,732   ok
- *     s=0,90 → #b5200a   R/(R+G+B) = 0,812   É RED FLASH (SC 2.3.1) — proibido
- *     s=1,00 → #b71800   R/(R+G+B) = 0,884   É RED FLASH — proibido
- * Ou seja: turbinar o vermelho do erro do terminal para "ficar mais Nintendo"
- * o empurra para dentro do gatilho de fotossensibilidade, exatamente como o
- * #E60012 da Nintendo (0,927) documentado na §3.4. As saturações do `ramp2.py`
- * JÁ SÃO o teto seguro — por isso foram mantidas letra por letra. A folga real
- * de toda cor desta paleta está medida em `tests/codeTheme.test.ts`.
+ * Bloco de código é texto de 15px: não existe alívio de "large scale text" (só
+ * a partir de 24px regular / 18,67px bold), então TODO token fica preso ao piso
+ * cheio de 4,5:1 do SC 1.4.3 — comentário incluído. E o token não é lido só
+ * sobre o fundo: quando o usuário seleciona uma linha ele passa a ser lido
+ * sobre a FAIXA DE SELEÇÃO. "O piso não negocia": onde um cinza bonito não
+ * passava, ele foi trocado.
  *
  * ─── ZERO IMPORT DE RUNTIME (de propósito) ────────────────────────────────
  * Este módulo é só DADO. Não importa `@xterm/xterm`, `@uiw/codemirror-themes`
- * nem `@codemirror/*` em runtime:
- *   1. `@uiw/codemirror-themes`, `@codemirror/language` e `@lezer/highlight`
- *      são dependências FANTASMA (resolvem hoje por hoist, mas não estão
- *      declaradas em `app/package.json` — ver "Para a onda 2" no fim);
- *   2. `src/lib` é compilado pelo `tsconfig.node.json`, cujo `lib` é `ES2022`
- *      SEM DOM, e é dali que os testes unitários (node:test, sem jsdom) leem;
- *   3. dado puro é testável sem montar editor nem terminal.
- * Os tipos abaixo são ESTRUTURALMENTE compatíveis com `ITheme` do
- * `@xterm/xterm` e com `Settings` do `@uiw/codemirror-themes` (todos os campos
- * de lá são `string` opcionais), então o consumidor passa os objetos direto.
+ * nem `@codemirror/*` em runtime, por três razões:
+ *   1. `src/lib` é compilado pelo `tsconfig.node.json`, cujo `lib` é `ES2022`
+ *      SEM DOM, e é daqui que os testes unitários (node:test, sem jsdom) leem;
+ *   2. dado puro é testável sem montar editor nem terminal;
+ *   3. os tipos abaixo são ESTRUTURALMENTE compatíveis com `ITheme` do
+ *      `@xterm/xterm` e com `Settings` do `@uiw/codemirror-themes` (todos os
+ *      campos de lá são `string` opcionais), então o consumidor passa os
+ *      objetos direto, sem conversão.
  */
 import {
   SURFACE_LIGHT,
@@ -239,21 +206,57 @@ export interface CodePalette {
   readonly ansi: CodeAnsi;
 }
 
+/* ─── DE ONDE VEM CADA HOJE ───────────────────────────────────────────────
+ * As MATIZES são as do Xcode, o editor da Apple: cada papel de sintaxe herda a
+ * cor que o Xcode publica na preferência "Syntax Coloring" (Comments, Keywords,
+ * Strings, Numbers, Project Function Names, Project Class Names, Attributes).
+ * É isso que "fiel aos produtos Apple" significa aqui — não uma paleta inventada
+ * com ar de Apple, e sim a paleta que a própria Apple usa para ler código.
+ *
+ * O que NÃO vem do Xcode é a LUMINOSIDADE. Ela é re-resolvida porque o fundo é
+ * outro: no Xcode a seleção é azul e o editor é quase branco (ou quase preto);
+ * aqui a seleção é o nível 4 da rampa tonal do app, e é contra ela que cada
+ * token precisa ser lido. A varredura que produz os valores está em
+ * `tools/design/codepalette.ts` (rodável: `npx tsx tools/design/codepalette.ts`).
+ *
+ * Três decisões de composição ficam explícitas:
+ *   - `variable` é a TINTA primária e `operator` a secundária. O token mais
+ *     frequente do código fica NEUTRO: código inteiro colorido é arco-íris, e
+ *     arco-íris é ruído, não informação.
+ *   - o `normal` de cada cromática ANSI é o MESMO valor do estado do terminal
+ *     correspondente. "Teste falhou" em vermelho e a saída ANSI em vermelho
+ *     têm que ser o mesmo vermelho, ou o terminal fala duas línguas.
+ *   - `function` (Project Function Names) e `type` (Project Class Names) são os
+ *     dois teals adjacentes do Xcode. Eles são próximos POR REFERÊNCIA: é assim
+ *     que o Xcode desenha, e separá-los por invenção quebraria a fidelidade que
+ *     este módulo existe para ter.
+ *
+ * ─── O PISO É MEDIDO CONTRA A SELEÇÃO, NÃO CONTRA O FUNDO ─────────────────
+ * Bloco de código é texto de 15px: não existe alívio de "large scale text" (só
+ * a partir de 24px regular / 18,67px bold), então TODO token fica preso ao piso
+ * cheio de 4,5:1 do SC 1.4.3 — comentário incluído. E o token não é lido só
+ * sobre o fundo: quando o usuário seleciona uma linha ele passa a ser lido
+ * sobre a FAIXA DE SELEÇÃO, que é a superfície mais hostil da paleta.
+ *
+ * ─── A TABELA ANSI TEM DOIS NÍVEIS DE ÊNFASE ─────────────────────────────
+ * O `bright` é levado A 7:1 contra o well, com teto: o invariante é "levado a
+ * 7:1", não "escurecido à vontade". O `normal` fica ABAIXO dessa faixa, para o
+ * par não empatar em ênfase, e ainda acima do piso de texto sobre a seleção.
+ * Essa janela só existe porque a distância em luminância entre o well (nível 2)
+ * e a seleção (nível 4) foi calibrada para ela — ver SURFACE_DARK em
+ * `designTokens.ts`.
+ *
+ * ─── SATURAÇÃO É LIMITADA PELO RED FLASH, NÃO PELO GOSTO ──────────────────
+ * A família do erro é a que mais se aproxima do teto do SC 2.3.1 e é por isso
+ * que ela desce de saturação: turbinar o vermelho do terminal empurra a cor
+ * para dentro do gatilho de fotossensibilidade. A folga real de toda cor desta
+ * paleta está medida em `tests/codeTheme.test.ts`.
+ */
+
 /* ─── CLARO ───────────────────────────────────────────────────────────────
- * well #f3eee5 · linha atual #e9e2d6 · seleção #ddd5c6
- * Varredura: o L mais CLARO (mais vívido) de cada matiz que ainda alcança
- * 4,5:1 contra a SELEÇÃO. Ratios medidos (well / linha / seleção):
- *   keyword  #af2a16  5,74 / 5,15 / 4,55
- *   string   #196941  5,79 / 5,20 / 4,59
- *   function #0b6484  5,73 / 5,15 / 4,54
- *   number   #7f5305  5,78 / 5,19 / 4,59
- *   type     #812fc8  5,73 / 5,14 / 4,54
- *   constant #ad1f66  5,74 / 5,16 / 4,55
- *   comment  #525d6d  5,78 / 5,19 / 4,58
- *   variable #191713 15,49 /13,90 /12,28   (tinta primária — token mais frequente
- *                                           fica NEUTRO; código não é arco-íris)
- *   operator #544e45  7,12 / 6,39 / 5,64   (tinta secundária — pontuação densa
- *                                           colorida é ruído, não informação)
+ * well #ececf2 · linha atual #e0e0e8 · seleção #d9d9e3
+ * Matizes do Xcode, luminância resolvida para o L mais CLARO (mais vívido) de
+ * cada uma que ainda alcança o piso de texto sobre a SELEÇÃO.
  */
 export const CODE_LIGHT: CodePalette = {
   scheme: 'light',
@@ -263,79 +266,60 @@ export const CODE_LIGHT: CodePalette = {
     selection: SURFACE_LIGHT.level4,
     selectionInactive: SURFACE_LIGHT.level3,
     currentLine: SURFACE_LIGHT.level3,
-    cursor: '#af2a16',
+    cursor: '#005dbb',
     cursorAccent: SURFACE_LIGHT.level2,
     gutterBackground: SURFACE_LIGHT.level2,
-    gutterForeground: '#525d6d',
+    gutterForeground: '#54616d',
     gutterActiveForeground: INK_LIGHT.primary,
     gutterBorder: DIVIDER_LIGHT,
     border: DIVIDER_LIGHT,
   },
   syntax: {
-    comment: '#525d6d',
-    keyword: '#af2a16',
-    string: '#196941',
-    number: '#7f5305',
-    function: '#0b6484',
-    type: '#812fc8',
+    comment: '#54616d',
+    keyword: '#a4259c',
+    string: '#b9221e',
+    number: '#484add',
+    function: '#2f676e',
+    type: '#3a666c',
     variable: INK_LIGHT.primary,
     operator: INK_LIGHT.secondary,
-    constant: '#ad1f66',
+    constant: '#715d23',
   },
   state: {
-    success: '#196941',
-    error: '#af2a16',
-    warn: '#7f5305',
-    info: '#0b6484',
-    muted: '#525d6d',
+    success: '#1c6e31',
+    error: '#b8241c',
+    warn: '#885300',
+    info: '#006690',
+    muted: '#54616d',
   },
   ansi: {
     // escada de cinza INVERTIDA (polaridade positiva): forte → atenuado
     black: INK_LIGHT.primary,
-    brightBlack: '#46505d',
-    white: '#525d6d',
-    brightWhite: INK_LIGHT.secondary,
-    // cromáticas: normal = valor do estado/sintaxe; bright = mesma matiz a 7:1
-    // contra o well. Em polaridade positiva "brilhante" significa MAIS ESCURO
-    // (mais ênfase) — clarear a saída no papel a apagaria.
-    red: '#af2a16',
-    brightRed: '#962413',
-    green: '#196941',
-    brightGreen: '#155b38',
-    yellow: '#7f5305',
-    brightYellow: '#6e4705',
-    blue: '#2c57bc',
-    brightBlue: '#254a9f',
-    magenta: '#ad1f66',
-    brightMagenta: '#961a58',
-    cyan: '#0b6484',
-    brightCyan: '#095571',
+    brightBlack: '#323234',
+    white: '#464648',
+    brightWhite: '#5b5b5d',
+    // cromáticas: normal = valor do estado; bright = mesma matiz a 7:1 contra o
+    // well. Em polaridade positiva "brilhante" significa MAIS ESCURO (mais
+    // ênfase) — clarear a saída no papel a apagaria.
+    red: '#b8241c',
+    brightRed: '#981e17',
+    green: '#1c6e31',
+    brightGreen: '#145a25',
+    yellow: '#885300',
+    brightYellow: '#704400',
+    blue: '#2057ce',
+    brightBlue: '#1a47a9',
+    magenta: '#9411d7',
+    brightMagenta: '#7b0eb2',
+    cyan: '#006690',
+    brightCyan: '#005477',
   },
 } as const;
 
 /* ─── ESCURO ──────────────────────────────────────────────────────────────
- * well #272727 · linha atual #313131 · seleção #3b3b3b
- * (ONDA 11: a rampa escura virou cinza NEUTRO — R=G=B —, então estes três
- * níveis deixaram de ser azulados e os nove ratios abaixo foram REMEDIDOS
- * sobre eles. Dois deles não eram livres: o nível 2 é o well e a banda ANSI de
- * tests/codeTheme.test.ts só admite Y ∈ [0,019408;0,020820] — #272727 dá
- * 0,020289; o nível 4 é a seleção, com teto Y ≤ 0,045477 imposto por #23b2e7 a
- * 4,5:1 — #3b3b3b dá 0,043735.)
- * Mesma varredura na direção oposta (o L mais ESCURO que passa). Ratios:
- *   keyword  #f08a7a  6,13 / 5,34 / 4,60
- *   string   #2dbe75  6,21 / 5,41 / 4,66
- *   function #23b2e7  6,11 / 5,32 / 4,58
- *   number   #e4950c  6,12 / 5,33 / 4,59
- *   type     #c494ee  6,27 / 5,46 / 4,70
- *   constant #eb86b9  6,15 / 5,35 / 4,61
- *   comment  #9ca7b7  6,14 / 5,34 / 4,60
- *   variable #f0f0f0 13,11 /11,42 / 9,83
- *   operator #adadad  6,66 / 5,80 / 4,99
- * O vermelho escuro sai salmão (#f08a7a) e não vinho: vermelho tem coeficiente
- * de luminância baixo (0,2126), então alcançar 4,5:1 contra uma superfície
- * média-escura EXIGE clarear. Compare com o #ff5555 do Dracula, que dá só
- * 4,53:1 contra o próprio fundo (#282a36) — e 2,91:1 sobre a seleção dele
- * (#44475a), ou seja, ABAIXO do piso assim que o texto é selecionado.
+ * well #2c2c2e · linha atual #363638 · seleção #404042
+ * Mesmas matizes do Xcode, luminância resolvida na direção oposta: o L mais
+ * ESCURO de cada uma que ainda alcança o piso de texto sobre a SELEÇÃO.
  */
 export const CODE_DARK: CodePalette = {
   scheme: 'dark',
@@ -345,50 +329,50 @@ export const CODE_DARK: CodePalette = {
     selection: SURFACE_DARK.level4,
     selectionInactive: SURFACE_DARK.level3,
     currentLine: SURFACE_DARK.level3,
-    cursor: '#f08a7a',
+    cursor: '#61b0ff',
     cursorAccent: SURFACE_DARK.level2,
     gutterBackground: SURFACE_DARK.level2,
-    gutterForeground: '#9ca7b7',
+    gutterForeground: '#a1adb7',
     gutterActiveForeground: INK_DARK.primary,
     gutterBorder: DIVIDER_DARK,
     border: DIVIDER_DARK,
   },
   syntax: {
-    comment: '#9ca7b7',
-    keyword: '#f08a7a',
-    string: '#2dbe75',
-    number: '#e4950c',
-    function: '#23b2e7',
-    type: '#c494ee',
+    comment: '#a1adb7',
+    keyword: '#e58cdf',
+    string: '#f2908d',
+    number: '#a3a5ee',
+    function: '#6bb7c0',
+    type: '#7fb4ba',
     variable: INK_DARK.primary,
     operator: INK_DARK.secondary,
-    constant: '#eb86b9',
+    constant: '#c8a84b',
   },
   state: {
-    success: '#2dbe75',
-    error: '#f08a7a',
-    warn: '#e4950c',
-    info: '#23b2e7',
-    muted: '#9ca7b7',
+    success: '#32c457',
+    error: '#ff8982',
+    warn: '#f59500',
+    info: '#03b6ff',
+    muted: '#a1adb7',
   },
   ansi: {
-    // escada de cinza (polaridade negativa): atenuado → forte
-    black: '#9ca7b7',
-    brightBlack: '#a9b3c1',
-    white: INK_DARK.secondary,
-    brightWhite: INK_DARK.primary,
-    red: '#f08a7a',
-    brightRed: '#f39c8f',
-    green: '#2dbe75',
-    brightGreen: '#30cc7e',
-    yellow: '#e4950c',
-    brightYellow: '#f3a114',
-    blue: '#8ba6e4',
-    brightBlue: '#9cb3e8',
-    magenta: '#eb86b9',
-    brightMagenta: '#ee98c3',
-    cyan: '#23b2e7',
-    brightCyan: '#47bfeb',
+    // escada de cinza na polaridade negativa: atenuado → forte
+    black: '#acacae',
+    brightBlack: '#c0c0c2',
+    white: '#d7d7d9',
+    brightWhite: '#ececee',
+    red: '#ff8982',
+    brightRed: '#ff9f99',
+    green: '#32c457',
+    brightGreen: '#35d35c',
+    yellow: '#f59500',
+    brightYellow: '#ffa416',
+    blue: '#8cabed',
+    brightBlue: '#9eb8f0',
+    magenta: '#d491f6',
+    brightMagenta: '#dba3f8',
+    cyan: '#03b6ff',
+    brightCyan: '#36c5ff',
   },
 } as const;
 

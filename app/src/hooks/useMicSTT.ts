@@ -6,9 +6,14 @@
  * `api.stt.streamChunk` (Float32Array mono 16 kHz) → `api.stt.streamStop` para
  * o texto final; partias chegam por `api.stt.onStreamPartial`.
  *
- * NÃO está montado em nenhuma view — a UI MUI da onda 9/10 integra. Sem jsdom.
+ * Montado pela LessonView (botão de microfone do composer). Sem jsdom.
+ *
+ * ONDA-UX-I18N: as mensagens de erro eram HARDCODED em português (e uma delas
+ * ecoava a mensagem crua do browser, que pode sair em inglês) — vivem em
+ * `voice.*` nos dois locales.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getApi } from '../lib/apiBridge';
 import { downsampleTo16k } from '../shared/utils/audioResample.utils';
 
@@ -38,6 +43,11 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
   const [transcribing, setTranscribing] = useState(false);
   const [partial, setPartial] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const { t } = useTranslation();
+  // Interpolação tipada: o `t` do i18next v25 (`strictKeyChecks`) só aceita
+  // opções para chaves com `{{vars}}` sobrecarregadas de forma estranha — a
+  // casa usa este cast (`tI`) em ChallengeView/TrackChallengePanel.
+  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
 
   // Refs para o ciclo de vida dentro dos callbacks (não re-renderizar).
   const streamRef = useRef<MediaStream | null>(null);
@@ -56,7 +66,7 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
       lastPartialRef.current = ev.text;
     });
     const unsubErr = getApi().stt.onEngineStatus((ev) => {
-      if (ev.status === 'dead') setError('Engine de STT indisponível (crashes demais).');
+      if (ev.status === 'dead') setError(t('translation:voice.engineUnavailable'));
     });
     return () => {
       unsub();
@@ -130,7 +140,9 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
       setTranscribing(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Não foi possível iniciar a captura de voz: ${msg}`);
+      // A mensagem GENÉRICA é a nossa (i18n); a crua do browser entra só como
+      // detalhe — nunca como a única explicação.
+      setError(tI('translation:voice.captureFailed', { msg }));
       await teardown();
     }
   }, [passiveLocale, transcribing]);

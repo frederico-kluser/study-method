@@ -13,7 +13,7 @@
  *  - Select do provedor de feedback (`defaultModelProvider`) via
  *    `settings.get`/`settings.set` — MESMO comportamento do painel antigo.
  */
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -41,6 +41,12 @@ import { formatBytes, formatModelLabel, formatPercent, formatSpeedBps } from '..
 import { readCached, writeCached } from './panelCache';
 
 type DownloadTick = Pick<DownloadProgress, 'modelId' | 'percent' | 'speedBps' | 'done' | 'error'>;
+
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
+ */
+const TOUCH_TARGET_PX = 44;
 
 /** Campo do provedor de feedback (defaultModelProvider). */
 type FeedbackProvider = 'openrouter' | 'local';
@@ -84,6 +90,13 @@ function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
 
 export function LocalAiPanel(): ReactElement {
   const { t } = useTranslation();
+  // Interpolação ({{var}}): mesmo cast aprovado do ChallengeView (tI) — o `t`
+  // tipado (i18next v25 + strictKeyChecks) não expõe a assinatura
+  // (chave, options), e a base inteira interpola por este cast.
+  const tI = useMemo(
+    () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
+    [t],
+  );
   const [hardware, setHardware] = useState<HardwareInfo | null>(null);
   // SWR: nasce com a última lista conhecida — o IPC abaixo revalida em toda
   // montagem. O spinner só roda na 1ª abertura (sem cache); nas seguintes a
@@ -268,7 +281,17 @@ export function LocalAiPanel(): ReactElement {
             void handleFeedbackProviderChange(e.target.value as FeedbackProvider)
           }
           size="small"
-          sx={{ maxWidth: 320 }}
+          sx={{
+            maxWidth: 320,
+            // Piso de alvo de toque (TOUCH_TARGET_PX): o alvo REAL do Select é
+            // o `.MuiSelect-select` (o div role="combobox"), não a raiz — por
+            // isso o minHeight vai para ele, com o texto centrado na vertical.
+            '& .MuiSelect-select': {
+              minHeight: TOUCH_TARGET_PX,
+              display: 'flex',
+              alignItems: 'center',
+            },
+          }}
         >
           {/* 'openrouter' é o valor persistido em settings.defaultModelProvider. */}
           <MenuItem value="openrouter">{t('translation:localAi.feedbackProviderOpenrouter')}</MenuItem>
@@ -279,11 +302,13 @@ export function LocalAiPanel(): ReactElement {
       {/* Detect hardware */}
       <Stack spacing={1}>
         <Box>
+          {/* minHeight = piso de alvo de toque (TOUCH_TARGET_PX). */}
           <Button
             variant="outlined"
             disabled={detecting}
             onClick={() => void handleDetect()}
             startIcon={detecting ? <CircularProgress size={16} /> : undefined}
+            sx={{ minHeight: TOUCH_TARGET_PX }}
           >
             {detecting ? t('translation:localAi.detect') : t('translation:localAi.detect')}
           </Button>
@@ -339,7 +364,10 @@ export function LocalAiPanel(): ReactElement {
                       <LinearProgress
                         variant="determinate"
                         value={pct}
-                        aria-label={`download ${model.id}`}
+                        // O nome acessível era inglês hardcoded ("download
+                        // <id>") numa UI pt-BR — a chave `localAi.downloadAria`
+                        // já existe nos dois locales.
+                        aria-label={tI('translation:localAi.downloadAria', { id: model.id })}
                         aria-valuenow={pct}
                       />
                       <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
@@ -354,6 +382,9 @@ export function LocalAiPanel(): ReactElement {
                   ) : null}
 
                   <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                    {/* minHeight/width = piso de alvo de toque
+                        (TOUCH_TARGET_PX): botões small (~30px) e o IconButton
+                        small (30×30) ficam com a caixa no piso, ícone intacto. */}
                     {model.downloaded ? (
                       <>
                         <Button
@@ -361,6 +392,7 @@ export function LocalAiPanel(): ReactElement {
                           size="small"
                           disabled={busy[model.id] || inUse}
                           onClick={() => void handleSetActive(model.id)}
+                          sx={{ minHeight: TOUCH_TARGET_PX }}
                         >
                           {busy[model.id]
                             ? t('translation:common.loading')
@@ -374,6 +406,7 @@ export function LocalAiPanel(): ReactElement {
                           color="error"
                           disabled={busy[model.id]}
                           onClick={() => void handleDelete(model.id)}
+                          sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -384,6 +417,7 @@ export function LocalAiPanel(): ReactElement {
                         size="small"
                         disabled={isDownloading}
                         onClick={() => void handleDownload(model.id)}
+                        sx={{ minHeight: TOUCH_TARGET_PX }}
                       >
                         {isDownloading ? t('translation:localAi.downloading') : t('translation:localAi.download')}
                       </Button>

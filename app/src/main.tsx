@@ -19,7 +19,7 @@
  *     (e o nativeTheme do Electron, que espelha o SO no Chromium);
  *   - `modeStorageKey="theme-mode"` → a escolha manual persiste em
  *     `localStorage['theme-mode']` (o MUI lê no boot e grava no setMode;
- *     ver src/theme.ts e o ThemeToggleButton). Default = system (não-guardado).
+ *     ver src/theme.ts e o ThemeModeSelector). Default = system (não-guardado).
  *   - `colorSchemeSelector: 'class'` no tema habilita o toggle manual.
  *
  * PRIMEIRO PAINT SEM FLASH: com `cssVariables: true` + `modeStorageKey`, o MUI

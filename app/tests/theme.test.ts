@@ -490,12 +490,15 @@ function lStar(hex: string): number {
 }
 
 /**
- * Teto de desvio cromático. 4/255 é a folga do arredondamento de 8 bits, não
- * uma licença: a rampa escura desta onda é R = G = B exato nos cinco níveis.
- * A rampa ANTERIOR ficava entre 8 e 22 — dava o "quase-preto azulado" que o
- * dono fotografou.
+ * Teto de desvio cromático. O cinza de SISTEMA da Apple traz um sussurro de
+ * azul fixo: os systemGray publicados ficam entre 2 e 5 pontos de canal. Este
+ * teto é 5 justamente para cobrir o valor publicado sem abrir porta para o
+ * defeito que a regra existe para matar — a rampa de outrora, com o canal B de
+ * 8 a 22 pontos acima do R, que lia como "quase-preto azulado" na tela inteira.
+ * O que o teto impõe é: o que separa um nível do vizinho é LUMINÂNCIA, não
+ * matiz. Nenhum nível pode ganhar personalidade própria.
  */
-const NEUTRAL_SPREAD_MAX = 4;
+const NEUTRAL_SPREAD_MAX = 5;
 
 describe('ONDA 11 — o escuro é cinza NEUTRO, e os níveis se distinguem', () => {
   it('os cinco níveis da rampa escura são acromáticos (R = G = B)', () => {
@@ -553,12 +556,12 @@ describe('ONDA 11 — o escuro é cinza NEUTRO, e os níveis se distinguem', () 
   });
 
   it('o topo da rampa escura lê como CINZA MÉDIO, não como quase-preto', () => {
-    // É o cartão sobre o scrim da referência (~#3d3d3d). O piso de L* 20 é o
-    // que separa "cinza médio" de "quase-preto"; o teto de 27 é o que o editor
-    // impõe (a cor de código mais fraca, #23b2e7, precisa de 4,5:1 sobre a
-    // seleção, que é este mesmo nível).
+    // O piso de L* 20 é o que separa "cinza médio" de "quase-preto". O TETO não
+    // é gosto: o nível 4 é a SELEÇÃO do editor, e tests/codeTheme.test.ts exige
+    // que TODA cor de código alcance o piso cheio de texto sobre ela, nos dois
+    // esquemas. Este teto é o espelho daquela exigência, e não a substitui.
     const top = lStar(SURFACE_DARK.level4);
-    assert.ok(top >= 20 && top <= 27, `SURFACE_DARK.level4 tem L* = ${top.toFixed(2)}`);
+    assert.ok(top >= 20 && top <= 32, `SURFACE_DARK.level4 tem L* = ${top.toFixed(2)}`);
   });
 
   it('o divisor escuro NÃO é mais um nível da rampa disfarçado', () => {
@@ -574,25 +577,42 @@ describe('ONDA 11 — o escuro é cinza NEUTRO, e os níveis se distinguem', () 
     }
   });
 
-  it('o preenchimento vermelho grande do escuro foi SUAVIZADO, sem perder AA', () => {
-    // Pedido do dono: a barra de progresso vermelha do topo estava estridente.
-    // "Suave" aqui tem número: menos saturação que o valor da onda anterior
-    // (#e73f25, cujo desvio cromático era 194/255) e ainda assim carregando a
-    // tinta `onFill` acima do piso de 4,5:1.
-    const fill = ACCENT_DARK.action.fill;
-    assert.ok(
-      chromaSpread(fill) < 194,
-      `action.fill ${fill} tem desvio cromático ${chromaSpread(fill)} — ` +
-        'precisa ficar abaixo dos 194 do #e73f25 anterior',
+  it('o par de preenchimento de cada esquema carrega o RÓTULO com AA', () => {
+    // DECISÃO 1.2 do contrato. O claro é o registro da apple.com: cor de MARCA
+    // (um degrau mais escura que a cor de sistema do iOS) com rótulo BRANCO. O
+    // escuro é o registro que a Apple usa em preenchimento vivo: cor de SISTEMA
+    // saturada com rótulo quase-preto. São dois registros diferentes na
+    // aparência e o MESMO compromisso no número: o par alcança AA, e nenhuma
+    // das doze cores de preenchimento dispara o limiar de red flash.
+    assertContrast(
+      'light action.onFill sobre action.fill',
+      ACCENT_LIGHT.action.onFill,
+      ACCENT_LIGHT.action.fill,
+      CONTRAST_FLOOR.bodyAA,
     );
+    const fill = ACCENT_DARK.action.fill;
     assertContrast(
       'dark action.onFill sobre action.fill',
       ACCENT_DARK.action.onFill,
       fill,
       CONTRAST_FLOOR.bodyAA,
     );
-    // ...e continua longe do limiar de red flash do SC 2.3.1.
-    assert.ok(redFlashRatio(fill) < CELEBRATION.redFlashRatioThreshold);
+    // O preenchimento escuro é vivo de PROPÓSITO (é o que faz o modo escuro não
+    // virar cinza lavado), e por isso ele é mais CLARO que o de marca: o mesmo
+    // azul de sistema, um degrau acima em luminância, porque sobre o canvas
+    // escuro é o que dá o brilho. O claro é o registro da apple.com, mais
+    // profundo, porque é ele quem carrega o rótulo branco.
+    assert.ok(
+      lightnessOf(fill) > lightnessOf(ACCENT_LIGHT.action.fill),
+      `o preenchimento escuro (${fill}) tem que ser mais claro que o de marca ` +
+        `(${ACCENT_LIGHT.action.fill}) — os dois são o mesmo azul de família`,
+    );
+    for (const scheme of ['light', 'dark'] as const) {
+      const accents = scheme === 'light' ? ACCENT_LIGHT : ACCENT_DARK;
+      for (const family of ACCENT_FAMILIES) {
+        assert.ok(redFlashRatio(accents[family].fill) < CELEBRATION.redFlashRatioThreshold);
+      }
+    }
   });
 
   it('a tinta `onFill` do escuro é o próprio nível 0 da rampa', () => {
@@ -1061,7 +1081,9 @@ describe('theme "Cartucho" — variantes registradas como token de tema', () => 
     const style = styleOf(pop);
     assert.equal(style.backgroundColor, theme.vars.palette.primary.fill);
     assert.equal(style.color, theme.vars.palette.primary.onFill);
-    assert.equal(style.borderRadius, SHAPE.lg, 'raio generoso');
+    // REGRA DE FORMA da Apple: a AÇÃO é cápsula. Contêiner é arredondado,
+    // campo é `SHAPE.md`, e o que se clica para fazer algo acontecer é pílula.
+    assert.equal(style.borderRadius, SHAPE.pill, 'a ação primária é cápsula');
   });
 
   it('a variante `pop` responde ao :active com scale(0.97) em movimento SPATIAL', () => {
@@ -1473,40 +1495,41 @@ describe('ONDA 12 — toda razão escrita num comentário é RECALCULADA', () =>
     }
   });
 
-  it('as quatro afirmações que a revisão reprovou estão CORRIGIDAS, uma a uma', () => {
-    // O teste acima trava a classe; este documenta os quatro casos concretos,
-    // para que a próxima pessoa saiba o que estava escrito e o que é verdade.
+  it('os pares que já mentiram continuam escritos como afirmação, não como prosa', () => {
+    // O teste acima trava a CLASSE (todo número escrito é conferido). Este
+    // documenta os casos concretos que já saíram errados e exige que eles
+    // continuem VISÍVEIS como afirmação: um par que some do comentário some do
+    // escrutínio, e o defeito volta como opinião.
     const claims = contrastClaims();
-    const has = (a: string, b: string, value: number): boolean =>
-      claims.some((c) => c.a === a && c.b === b && Math.abs(c.claimed - value) < 1e-9);
-
-    // 1. o divisor claro: 1,89 anunciado, 1,36 medido.
-    assert.ok(
-      has('DIVIDER_LIGHT', 'SURFACE_LIGHT.level0', 1.36),
-      'o divisor claro precisa afirmar a razão MEDIDA contra o nível 0',
-    );
-    assert.ok(
-      Math.abs(contrastRatio(DIVIDER_LIGHT, SURFACE_LIGHT.level0) - 1.89) > 0.1,
-      'se o divisor claro passar a medir 1,89 de verdade, este teste virou obsoleto',
-    );
-    // 3. o anel de foco escuro: "3,35 e 3,03" anunciados, 3,51 e 3,13 medidos.
-    assert.ok(
-      has('NONTEXT_DARK.focus', 'SURFACE_DARK.level0', 3.51) &&
-        has('NONTEXT_DARK.focus', 'SURFACE_DARK.level1', 3.13),
-      'o anel de foco escuro precisa afirmar as razões MEDIDAS nos níveis 0 e 1',
-    );
-    // 2 e 4 são cobertos pelos testes de red flash e do `onFill` logo abaixo.
+    const mustBeClaimed: ReadonlyArray<[string, string, string]> = [
+      ['DIVIDER_LIGHT', 'SURFACE_LIGHT.level0', 'o divisor claro contra o fundo do app'],
+      ['NONTEXT_DARK.focus', 'SURFACE_DARK.level0', 'o anel de foco escuro contra o fundo'],
+      ['NONTEXT_DARK.focus', 'SURFACE_DARK.level1', 'o anel de foco escuro contra o cartão'],
+      ['INK_DARK.secondary', 'SURFACE_DARK.level4', 'a tinta secundária sobre o topo da rampa'],
+      ['INK_DARK.secondary', 'ACCENT_DARK.action.fill', 'a tinta secundária sobre o CTA escuro'],
+    ];
+    for (const [a, b, why] of mustBeClaimed) {
+      assert.ok(
+        claims.some((c) => c.a === a && c.b === b),
+        `${why} precisa estar escrito como afirmação [medido] — sem ela, o ` +
+          'par volta a ser um número que ninguém confere',
+      );
+    }
     const flashes = redFlashClaims();
-    assert.ok(
-      flashes.some((c) => c.color === 'ACCENT_LIGHT.action.fill'),
-      'o pior caso de red flash da base precisa estar escrito como afirmação',
-    );
+    for (const family of ACCENT_FAMILIES) {
+      assert.ok(
+        flashes.some((c) => c.color === `ACCENT_LIGHT.${family}.fill`),
+        `o red flash do preenchimento ${family} claro precisa estar escrito como afirmação`,
+      );
+    }
   });
 
-  it('o PIOR red flash da base é o que o comentário diz que é', () => {
-    // A frase antiga não era só um número errado: ela apontava a FAMÍLIA errada
-    // ("o pior é `error` claro"), e por isso ninguém foi olhar o `action`. O
-    // teto de 0,8 sozinho nunca teria pegado isso — passava com folga aparente.
+  it('o PIOR red flash da base está escrito como afirmação e tem folga real', () => {
+    // Já houve comentário que apontava a FAMÍLIA errada, e por isso ninguém foi
+    // olhar a família certa. O teto sozinho nunca pega isso — o caso passava
+    // com folga aparente. Então o pior caso não é apontado: é CALCULADO aqui, e
+    // a exigência é que ele esteja registrado como afirmação e com folga
+    // medível até o teto.
     const all: Array<[string, string]> = [];
     for (const [scheme, accents] of [
       ['light', ACCENT_LIGHT],
@@ -1518,12 +1541,17 @@ describe('ONDA 12 — toda razão escrita num comentário é RECALCULADA', () =>
       }
     }
     const worst = all.reduce((a, b) => (redFlashRatio(b[1]) > redFlashRatio(a[1]) ? b : a));
-    assert.equal(
-      worst[1],
-      ACCENT_LIGHT.action.fill,
-      `o pior red flash das doze cores de acento é ${worst[0]} (${worst[1]}, ` +
-        `${redFlashRatio(worst[1]).toFixed(3)}), e não a \`action\` clara — ` +
-        'o comentário de designTokens.ts afirma o contrário e precisa ser reescrito',
+    const worstToken = `ACCENT_${worst[0].split(' ')[0]!.toUpperCase()}.${worst[0].split(' ')[1]}`;
+    const worstClaim = redFlashClaims().find((c) => c.color === worstToken);
+    assert.ok(
+      worstClaim,
+      `o pior red flash da base é ${worst[0]} (${worst[1]}), e ele precisa estar ` +
+        'escrito como afirmação [medido] para o comentário não divergir da conta',
+    );
+    assert.ok(
+      CELEBRATION.redFlashRatioThreshold - redFlashRatio(worst[1]) >= 0.05,
+      `o pior caso (${worst[0]}) ficou com folga de ` +
+        `${(CELEBRATION.redFlashRatioThreshold - redFlashRatio(worst[1])).toFixed(3)} até o teto`,
     );
     for (const [label, hex] of all) {
       assert.ok(
@@ -1568,115 +1596,101 @@ function lightnessOf(hex: string): number {
   return (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
 }
 
-describe('ONDA 12 — o vermelho CLARO foi dessaturado, e só isso', () => {
-  // A queixa do dono é visual e específica: na tela CLARA o `action` aparecia em
-  // quatro elementos ao mesmo tempo (barra de progresso, "Responder", contorno
-  // do campo em foco, contorno do "Fontes") e lia como vermelho Nintendo puro
-  // sobre o creme. O remédio é o mesmo que a onda 11 aplicou no escuro. O que
-  // este bloco impede é o remédio virar OUTRA coisa: trocar de família, escurecer
-  // até compensar, ou perder AA no caminho.
-  const OLD_TEXT = '#cc3119';
-  const OLD_FILL = '#de351b';
-  const OLD_NONTEXT = '#ea6551';
+describe('design system Apple — cada família é UMA matiz, calibrada em dois L', () => {
+  // A identidade das seis famílias vem da MATIZ, e é ela que amarra o tema ao
+  // editor: tests/codeTheme.test.ts compara o cursor do editor com a família
+  // `action` por matiz. O que este bloque impede é a calibração de contraste
+  // virar troca de família — baixar o L para o rótulo branco passar é o
+  // movimento certo; girar a matiz no caminho é trocar de cor.
+  //
+  // A âncora de cada família é o preenchimento ESCURO, que é a cor de SISTEMA
+  // publicada pela Apple. Os onze outros valores (o texto e o par claro) têm
+  // que ficar na mesma matiz que ela.
 
-  it('a MATIZ da família não se mexeu (dessaturar não é trocar de família)', () => {
-    // A matiz é o que amarra `action` ao cursor do editor: tests/codeTheme.test.ts
-    // compara `CODE_LIGHT.chrome.cursor` com `ACCENT_LIGHT.action.text` com
-    // tolerância de 1°. Uma "suavização" que gira a matiz quebra aquele teste
-    // longe daqui, e o motivo fica ilegível.
-    for (const [label, before, after] of [
-      ['action.text', OLD_TEXT, ACCENT_LIGHT.action.text],
-      ['action.fill', OLD_FILL, ACCENT_LIGHT.action.fill],
-      ['nonText.action', OLD_NONTEXT, NONTEXT_LIGHT.action],
-    ] as const) {
-      const delta = Math.abs(hueOf(after) - hueOf(before));
+  /** Menor arco entre duas matizes, em graus (0..180). */
+  function hueDistance(a: number, b: number): number {
+    const d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  it('os dois papéis (texto e preenchimento) da MESMA família são a mesma matiz', () => {
+    for (const scheme of ['light', 'dark'] as const) {
+      const accents = scheme === 'light' ? ACCENT_LIGHT : ACCENT_DARK;
+      for (const family of ACCENT_FAMILIES) {
+        const delta = hueDistance(hueOf(accents[family].text), hueOf(accents[family].fill));
+        assert.ok(
+          delta <= 2,
+          `${scheme} ${family}: texto e preenchimento giraram ${delta.toFixed(2)}° ` +
+            'um contra o outro (teto 2°) — os dois são o mesmo acento em dois níveis',
+        );
+      }
+    }
+  });
+
+  it('os dois esquemas e os dois papéis ficam na matiz da cor de sistema', () => {
+    for (const family of ACCENT_FAMILIES) {
+      const anchor = hueOf(ACCENT_DARK[family].fill);
+      const values: ReadonlyArray<[string, string]> = [
+        ['light text', ACCENT_LIGHT[family].text],
+        ['light fill', ACCENT_LIGHT[family].fill],
+        ['dark text', ACCENT_DARK[family].text],
+      ];
+      for (const [label, hex] of values) {
+        const delta = hueDistance(hueOf(hex), anchor);
+        assert.ok(
+          delta <= 8,
+          `${family} ${label} (${hex}) girou ${delta.toFixed(2)}° em relação à cor ` +
+            `de sistema (${ACCENT_DARK[family].fill}) — calibrar não é trocar de família`,
+        );
+      }
+    }
+  });
+
+  it('o par claro é sempre mais PROFUNDO que o escuro (dois registros, uma família)', () => {
+    // DECISÃO 1.2 do contrato: o claro carrega rótulo branco e por isso desce
+    // em luminância; o escuro carrega tinta quase-preta e sobe. É o que faz o
+    // mesmo azul servir para os dois modos sem nenhum dos dois cair do piso.
+    for (const family of ACCENT_FAMILIES) {
       assert.ok(
-        delta <= 0.5,
-        `${label}: a matiz saiu de ${hueOf(before).toFixed(2)}° para ` +
-          `${hueOf(after).toFixed(2)}° (${delta.toFixed(2)}° de giro, teto 0,5°)`,
+        lightnessOf(ACCENT_LIGHT[family].fill) < lightnessOf(ACCENT_DARK[family].fill),
+        `${family}: o preenchimento claro (${ACCENT_LIGHT[family].fill}) tem que ser ` +
+          `mais profundo que o escuro (${ACCENT_DARK[family].fill})`,
       );
     }
   });
 
-  it('a SATURAÇÃO caiu um degrau de verdade — pelo menos 10 pontos percentuais', () => {
-    for (const [label, before, after] of [
-      ['action.text', OLD_TEXT, ACCENT_LIGHT.action.text],
-      ['action.fill', OLD_FILL, ACCENT_LIGHT.action.fill],
-      ['nonText.action', OLD_NONTEXT, NONTEXT_LIGHT.action],
-    ] as const) {
-      const drop = saturationOf(before) - saturationOf(after);
+  it('`action` e `error` continuam famílias DISTANTES (exclusão real)', () => {
+    // "Apagar" e "Testar resposta" nunca podem ser a mesma cor: este app exclui
+    // aula e desafio de verdade. A distância mínima entre as duas matizes é o
+    // que garante que a calibração de uma não encoste na outra.
+    for (const scheme of ['light', 'dark'] as const) {
+      const accents = scheme === 'light' ? ACCENT_LIGHT : ACCENT_DARK;
+      const delta = hueDistance(hueOf(accents.action.fill), hueOf(accents.error.fill));
       assert.ok(
-        drop >= 0.1,
-        `${label}: a saturação caiu só ${(drop * 100).toFixed(1)} pontos ` +
-          `(${(saturationOf(before) * 100).toFixed(1)}% → ${(saturationOf(after) * 100).toFixed(1)}%); ` +
-          'o pedido era um degrau, como o escuro levou na onda 11',
+        delta >= 30,
+        `${scheme}: action (${accents.action.fill}) e error (${accents.error.fill}) ` +
+          `ficaram a ${delta.toFixed(1)}° uma da outra (piso 30°)`,
       );
     }
   });
 
-  it('o vermelho claro é o MENOS saturado dos dois esquemas... ou empata', () => {
-    // O escuro já tinha sido suavizado; se o claro ficasse mais saturado que o
-    // escuro, a mesma família teria dois registros de temperatura no mesmo app.
-    assert.ok(
-      saturationOf(ACCENT_LIGHT.action.fill) <= saturationOf(ACCENT_DARK.action.fill) + 0.02,
-      `action.fill claro (${(saturationOf(ACCENT_LIGHT.action.fill) * 100).toFixed(1)}%) ` +
-        `ficou mais saturado que o escuro (${(saturationOf(ACCENT_DARK.action.fill) * 100).toFixed(1)}%)`,
-    );
-  });
-
-  it('o texto e o preenchimento GANHARAM contraste — o remédio não custou AA', () => {
-    // Baixar saturação mantendo o L do HSL faz a luminância de um vermelho CAIR
-    // (o canal R sai com peso 0,2126 e o G entra com peso 0,7152, mas entra
-    // menos do que o R sai). Por isso o "suave" aqui é ESTRITAMENTE melhor, e
-    // não um empate na casa decimal.
-    assert.ok(
-      contrastRatio(ACCENT_LIGHT.action.text, SURFACE_LIGHT.level2) >
-        contrastRatio(OLD_TEXT, SURFACE_LIGHT.level2),
-      'o novo action.text tem que medir MAIS que o antigo contra o nível 2',
-    );
-    assert.ok(
-      contrastRatio(ACCENT_LIGHT.action.onFill, ACCENT_LIGHT.action.fill) >
-        contrastRatio('#ffffff', OLD_FILL),
-      'o novo action.fill tem que carregar o branco com MAIS folga que o antigo',
-    );
-    // ...e os pisos continuam de pé (os testes gerais acima já medem os três
-    // níveis; aqui a asserção é local, para o defeito não voltar sozinho).
-    assertContrast(
-      'light action.text sobre o nível 2 (o mais exigente dos três)',
-      ACCENT_LIGHT.action.text,
-      SURFACE_LIGHT.level2,
-      CONTRAST_FLOOR.bodyAA,
-    );
-  });
-
-  it('a MARGEM de red flash cresceu (era o pior caso da base, com 0,065 de folga)', () => {
-    const before = redFlashRatio(OLD_FILL);
-    const after = redFlashRatio(ACCENT_LIGHT.action.fill);
-    assert.ok(after < before, `red flash não caiu: ${before.toFixed(3)} → ${after.toFixed(3)}`);
-    assert.ok(
-      CELEBRATION.redFlashRatioThreshold - after >= 0.1,
-      `a folga até o teto ficou em ${(CELEBRATION.redFlashRatioThreshold - after).toFixed(3)} — ` +
-        'o pior caso da base merece pelo menos um décimo de margem',
-    );
-  });
-
-  it('a camada não-texto do `action` claro continua alcançando 3:1 nos níveis 0 e 1', () => {
-    // Este é o valor que vive colado no piso: por isso ele desceu um degrau de L
-    // junto com a dessaturação, e por isso a asserção é local e explícita.
+  it('a camada não-texto do `action` alcança 3:1 nos níveis de leitura', () => {
+    // Este é o valor que vive colado no piso: borda de campo, ícone informativo
+    // e indicador de foco. A asserção é local e explícita para o defeito não
+    // voltar sozinho quando alguém mexer no azul.
     for (const index of READING_SURFACE_LEVELS) {
       const level = SURFACE_LEVELS[index] as SurfaceLevel;
-      assertContrast(
-        `light nonText.action sobre surface.${level}`,
-        NONTEXT_LIGHT.action,
-        SURFACE_LIGHT[level],
-        CONTRAST_FLOOR.nonText,
-      );
+      for (const scheme of ['light', 'dark'] as const) {
+        const tokens = scheme === 'light' ? NONTEXT_LIGHT : NONTEXT_DARK;
+        const surface = scheme === 'light' ? SURFACE_LIGHT : SURFACE_DARK;
+        assertContrast(
+          `${scheme} nonText.action sobre surface.${level}`,
+          tokens.action,
+          surface[level],
+          CONTRAST_FLOOR.nonText,
+        );
+      }
     }
-    assert.ok(
-      contrastRatio(NONTEXT_LIGHT.action, SURFACE_LIGHT.level0) >
-        contrastRatio(OLD_NONTEXT, SURFACE_LIGHT.level0),
-      'a borda dessaturada tem que ficar com MAIS folga sobre o nível 0 que a anterior',
-    );
   });
 });
 

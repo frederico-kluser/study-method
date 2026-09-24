@@ -45,10 +45,10 @@
  *     ou a cor dos <span> das rows NÃO pega isso — só medir o viewport pega.
  *
  * Modo stub determinístico (E2E_GATE='ready', janela oculta). A polaridade é
- * forçada pelo toggle da AppBar: o modo default é 'system' (nada em
- * `localStorage['theme-mode']`), e o primeiro clique cai SEMPRE em 'light' —
- * o mesmo ciclo que `e2e-theme.spec.ts` documenta. Nada aqui depende do tema do
- * SO da máquina que roda o teste.
+ * forçada pelo seletor de tema (segmentos `data-theme-mode` — a mesma alça
+ * estável de `e2e-theme.spec.ts`): o modo default é 'system' (nada em
+ * `localStorage['theme-mode']`) e o teste escolhe 'light' e 'dark'
+ * diretamente. Nada aqui depende do tema do SO da máquina que roda o teste.
  */
 import { test, expect, type ElectronApplication, type Page, type Locator } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
@@ -164,14 +164,19 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
     page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }),
   ).toBeVisible();
 
-  const toggle = page.getByRole('button', { name: 'Tema:' });
+  const lightSegment = page.locator(
+    '[data-onboarding-target="theme-toggle"] [data-theme-mode="light"]',
+  );
+  const darkSegment = page.locator(
+    '[data-onboarding-target="theme-toggle"] [data-theme-mode="dark"]',
+  );
   const html = page.locator('html');
   const editor = page.locator('.cm-editor').first();
 
   // ── Polaridade CLARA, sem depender do tema do SO ────────────────────────
-  // Default = 'system' (nada salvo) → o primeiro clique cai em 'light'.
-  await expect(toggle).toBeVisible();
-  await toggle.click();
+  // Default = 'system' (nada salvo) → escolhemos 'light' diretamente.
+  await expect(lightSegment).toBeVisible();
+  await lightSegment.click();
   await expect(html).toHaveClass(/light/);
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('light');
 
@@ -218,8 +223,8 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   // terminal viraram parte do legado; as cores/tipografia do editor — o
   // mesmo CodeMirrorField do fluxo antigo — continuam sendo aferidas aqui.) ─
 
-  // ── Toggle → ESCURO. Tudo tem que virar, inclusive o que já está na tela ─
-  await toggle.click();
+  // ── Segmento ESCURO. Tudo tem que virar, inclusive o que já está na tela ─
+  await darkSegment.click();
   await expect(html).toHaveClass(/dark/);
 
   await expect(editor).toHaveCSS('background-color', cssRgb(dark.chrome.surface));

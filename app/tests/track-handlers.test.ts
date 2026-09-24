@@ -1356,7 +1356,13 @@ describe('buildTrackHandlers — trilhas', () => {
     });
     assert.equal(result.ok, true);
     assert.equal(result.passed, true);
-    assert.equal(gravou, false, 'o desafio do módulo é autoral e não conclui aula');
+    assert.equal(
+      gravou,
+      false,
+      'o destrave AUTOMÁTICO não conclui aula por desafio de módulo — e a análise de ' +
+        'domínio (services/moduleMastery.ts) marca SÓ aula demonstrada; esta fixture, sem ' +
+        'introduces declarado, não demonstra nada (regra R4)',
+    );
   });
 
   it('target proficiency NÃO conclui aula no canal do destrave (quem destrava a trilha é o PROFICIENCY_SUBMIT)', async () => {

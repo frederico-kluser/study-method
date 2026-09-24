@@ -134,7 +134,15 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
   await page.getByRole('button', { name: 'Desafios' }).click();
   await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Começar' }).click();
+  // ONDA-UX (drift da spec com a feature "desafio-retomar"): com rascunho vivo
+  // a tentativa é RETOMADA (`setStarted(draft.started)` no TrackChallengePanel)
+  // e "Começar" não nasce — a retomada é coberta em detalhe pelo
+  // e2e-desafio-retomar.spec.ts. Em entrada limpa, o fluxo é o de sempre.
+  const comecarDeNovo = page.getByRole('button', { name: 'Começar' });
+  if ((await comecarDeNovo.count()) > 0) {
+    await comecarDeNovo.click();
+  }
+  await expect(page.locator('.cm-content').first()).toBeVisible();
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('export function dobroDoNumero(n) { return n * 2; }');

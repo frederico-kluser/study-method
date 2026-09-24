@@ -55,19 +55,20 @@ test('more-flows: idioma pt → en → pt reflete no Home e na aula; tema claro�
   await page.getByRole('tab', { name: 'Home' }).click();
   await expect(page.getByRole('heading', { name: 'Learn programming and math with AI-generated lessons' })).toBeVisible();
 
-  // Tema: ciclo light → dark → system (persistido no localStorage junto do idioma).
-  // Locator language-agnóstico (data-onboarding-target da AppBar) — o aria-label
-  // do botão muda com o idioma ("Tema"/"Theme").
+  // Tema: escolha direta light → dark → system (persistido no localStorage
+  // junto do idioma). Locator language-agnóstico (segmentos `data-theme-mode`
+  // do seletor no sidebar) — o aria-label muda com o idioma ("Claro"/"Light").
   const html = page.locator('html');
-  const toggle = page.locator('[data-onboarding-target="theme-toggle"] button').first();
-  await expect(toggle).toBeVisible();
-  await toggle.click(); // system → light
+  const segment = (mode: string): ReturnType<Page['locator']> =>
+    page.locator(`[data-onboarding-target="theme-toggle"] [data-theme-mode="${mode}"]`);
+  await expect(segment('light')).toBeVisible();
+  await segment('light').click();
   await expect(html).toHaveClass(/light/);
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('light');
-  await toggle.click(); // light → dark
+  await segment('dark').click();
   await expect(html).toHaveClass(/dark/);
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('dark');
-  await toggle.click(); // dark → system
+  await segment('system').click();
   await expect(html).toHaveClass(/light|dark/);
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('system');
 

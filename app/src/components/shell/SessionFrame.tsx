@@ -80,7 +80,7 @@ import { SHAPE } from '../../lib/designTokens';
 import { sessionPhaseLabelKey, useSessionState } from '../../lib/sessionState';
 import { SHELL_SIDEBAR_PANE_ID, SPLIT_MOTION } from '../../lib/splitRatio';
 import { effectsTransition } from '../../theme';
-import ThemeToggleButton from '../theme/ThemeToggleButton';
+import ThemeModeSelector from '../theme/ThemeModeSelector';
 import { SHELL_SIDEBAR_SLOT_ID } from './ShellSidebarSlot';
 import LanguageSwitcher from '../../i18n/LanguageSwitcher';
 
@@ -333,8 +333,14 @@ export default function SessionFrame({
           gap: theme.spacing(0.5),
         })}
       >
+        {/* ONDA-TEMA-SELETOR: o toggle que ciclava virou SELEÇÃO DIRETA — o
+            segmentado claro/sistema/escuro (ThemeModeSelector, variant
+            compact). PRESERVADO: o wrapper `display:contents` com o literal
+            `data-onboarding-target="theme-toggle"` (guardas de fonte em
+            shellSidebar/shellSplitUi/shellSidebarSlot — e o slot do e2e que
+            espera o alvo aqui). */}
         <Box data-onboarding-target="theme-toggle" component="span" sx={{ display: 'contents' }}>
-          <ThemeToggleButton />
+          <ThemeModeSelector variant="compact" />
         </Box>
         <Box
           data-onboarding-target="language-switcher"

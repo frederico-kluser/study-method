@@ -128,8 +128,26 @@ describe('guarda 1 — a FONTE de código do chat é a do projeto', () => {
       'o @fontsource-variable declara outra família — a pilha do contrato precisa acompanhar',
     );
     assert.ok(FONT_STACK.mono.includes("'JetBrains Mono Variable'"));
-    // E ela é o PRIMEIRO item: é o que decide qual arquivo o navegador usa.
-    assert.ok(FONT_STACK.mono.startsWith("'JetBrains Mono Variable'"));
+    // Ela é a PRIMEIRA família que este bundle resolve de verdade. À frente
+    // dela só podem estar nomes de SISTEMA — `'SF Mono'` (a fonte de código da
+    // Apple, que só existe na plataforma dela) e `ui-monospace`. Qualquer outra
+    // família empacotada na frente roubaria o carregamento dela.
+    const before = FONT_STACK.mono
+      .split(',')
+      .map((f) => f.trim().replace(/^['"]|['"]$/g, ''))
+      .slice(
+        0,
+        FONT_STACK.mono
+          .split(',')
+          .findIndex((f) => f.trim().replace(/^['"]|['"]$/g, '') === 'JetBrains Mono Variable'),
+      );
+    for (const family of before) {
+      assert.ok(
+        family === 'SF Mono' || family === 'ui-monospace',
+        `FONT_STACK.mono tem '${family}' antes da família empacotada: ` +
+          `"${FONT_STACK.mono}". Só nomes de SISTEMA podem vir antes dela.`,
+      );
+    }
   });
 
   it('nenhum arquivo de src/ escreve uma pilha mono LITERAL (só o contrato tem hex e famílias)', () => {
