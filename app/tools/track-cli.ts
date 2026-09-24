@@ -172,6 +172,37 @@ async function writeJson(file: string, data: unknown): Promise<void> {
   await fs.writeFile(file, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
+/**
+ * `loadTrack` de uma trilha pelo slug, com a AUSÊNCIA sinalizada ANTES da leitura.
+ *
+ * BUG D — causa: `loadTrack` lê `track.json` sem guarda nenhuma; slug
+ * inexistente estoura ENOENT cru que os `throw err` dos comandos deixavam cair
+ * no `main().catch` — o autor via stack trace (errno/code/syscall/path +
+ * "at async …") em vez do relatório de problema que conteúdo inválido já
+ * produz. O loader vive em outro módulo; aqui, na FRONTEIRA do CLI, a AUSÊNCIA
+ * vira `TrackLoadError` — o MESMO erro estruturado de conteúdo inválido — e cai
+ * no relatório limpo que os comandos já imprimem ("✗ trilha '<slug>' inválida
+ * (N problema(s)):" + issue por arquivo + dica acionável).
+ *
+ * Exit code: **1** = "não verificado/reprovado" — o padrão do
+ * `track:challenge:context` (cabeçalho: "o exit code espelha o veredito (0
+ * aprovado, 1 reprovado ou não verificado)"). NÃO é erro de USO (esse continua
+ * sendo 2 via `fail()`): o argv está certo; o conteúdo é que não existe.
+ */
+async function carregarTrilha(slug: string): Promise<LoadedTrack> {
+  const dir = trackDir(slug);
+  const trackPath = path.join(dir, TRACK_FILE);
+  if (!existsSync(trackPath)) {
+    throw new TrackLoadError(`trilha inválida em ${dir}`, [
+      {
+        file: trackPath,
+        message: `trilha '${slug}' não existe — confira o slug com: npm run track -- track:list (ou crie com track:new)`,
+      },
+    ]);
+  }
+  return loadTrack(dir);
+}
+
 // ─── scaffolds ───────────────────────────────────────────────────────────────
 
 async function cmdTrackNew(pos: string[], flags: Record<string, string>): Promise<void> {
@@ -476,7 +507,7 @@ async function cmdChallengeContext(pos: string[]): Promise<void> {
 
   let loaded: LoadedTrack;
   try {
-    loaded = await loadTrack(trackDir(track));
+    loaded = await carregarTrilha(track);
   } catch (err) {
     if (err instanceof TrackLoadError) {
       console.error(`✗ trilha '${track}' inválida (${err.issues.length} problema(s)):`);
@@ -593,11 +624,10 @@ async function provarDesafio(challenge: TrackChallengeSource): Promise<boolean> 
 async function cmdValidate(pos: string[]): Promise<void> {
   const [slug] = pos;
   if (!slug) fail('track:validate <slug>');
-  const dir = trackDir(slug);
   let reprovados = 0;
   let verificados = 0;
   try {
-    const track = await loadTrack(dir);
+    const track = await carregarTrilha(slug);
     const lessonCount = track.modules.reduce((n, m) => n + m.lessons.length, 0);
     const challengeCount = track.modules.reduce(
       (n, m) => n + m.lessons.reduce((c, l) => c + l.challenges.length, 0),
@@ -797,6 +827,11 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(`erro inesperado:`, err);
+  // ÚLTIMO RECURSO — bug D: o contrato do cabeçalho proíbe stack trace em
+  // QUALQUER erro não tratado ("mensagem LIMPA e acionável… NUNCA stack trace
+  // do main().catch"). O dump (errno/code/syscall/path + "at async …") era
+  // exatamente o sintoma do bug; aqui sobra a mensagem limpa e exit 1.
+  const detail = err instanceof Error ? err.message : String(err);
+  console.error(`erro inesperado: ${detail}`);
   process.exit(1);
 });

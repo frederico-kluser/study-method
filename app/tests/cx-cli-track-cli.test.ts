@@ -555,6 +555,39 @@ describe('track CLI — track:validate (caracterização)', () => {
     }
   });
 
+  it('ramo de PROFICIÊNCIA do validate: provas de execução FALHAM, entram no placar e reprova a trilha (exit 1)', async () => {
+    // GAP DE COBERTURA: track-cli.ts:613-617 (provarDesafio da proficiência +
+    // linha "provas de execução: ok ✓/FALHOU ✗" + acréscimo ao placar) nunca
+    // rodava em teste. expectedTestCount DIVERGENTE do testsCode (1 teste no
+    // arquivo, 2 declarados) reprova a proficiência nas provas de execução.
+    // Premissas do cenário: o loader exige módulo+aula ("modules ausente/vazio",
+    // "lessons ausente/vazio") e concept snake_case de 2+ chars
+    // (trackTypes.ts:528 — `--concept x` literal reprova o loadTrack ANTES do
+    // ramo de proficiência e tornaria o gap inalcançável).
+    const slug = slugUnico('cx-valprof');
+    try {
+      await runTrack(['track:new', slug, '--title', 'T', '--description', 'D']);
+      await runTrack(['track:module:new', slug, 'm1', '--title', 'M', '--order', '1']);
+      await runTrack(['track:lesson:new', slug, 'm1', 'a1', '--title', 'A', '--summary', 'S']);
+      await runTrack(['track:proficiency:new', slug, '--title', 'P', '--concept', 'variaveis']);
+      const file = path.join(TRACKS_DIR, slug, 'proficiency.json');
+      const ch = await lerJson(file);
+      ch.expectedTestCount = 2;
+      await fs.writeFile(file, `${JSON.stringify(ch, null, 2)}\n`, 'utf8');
+      const r = await runTrack(['track:validate', slug], { timeoutMs: 120_000 });
+      assert.equal(r.code, 1, `stdout:\n${r.stdout}\n--- stderr:\n${r.stderr}`);
+      assert.ok(r.stdout.includes('  proficiência: P ✓'), r.stdout);
+      assert.ok(r.stdout.includes('    provas de execução: FALHOU ✗ (rode track:challenge:verify)'), r.stdout);
+      assert.ok(r.stdout.includes('  verificados: 0 · reprovados: 1'), r.stdout);
+      assert.ok(
+        r.stderr.includes(`✗ trilha '${slug}': 1 desafio(s) NÃO VERIFICADO(S) — a trilha não roda para o aluno.`),
+        r.stderr.slice(0, 300),
+      );
+    } finally {
+      await limparTrilha(slug);
+    }
+  });
+
   it('trilha com schema quebrado: exit 1 com a lista de problemas (fail-closed)', async () => {
     const slug = slugUnico('cx-valbad');
     try {
@@ -573,24 +606,33 @@ describe('track CLI — track:validate (caracterização)', () => {
     }
   });
 
-  it('slug inexistente: exit 1 (o loader estoura ENOENT e o main() captura)', async () => {
+  it('slug inexistente: exit 1 com o relatório ESTRUTURADO (problema por arquivo + dica acionável), sem dump', async () => {
+    // REALINHADO (bug D): este caso pinava o COMPORTAMENTO BUGADO — exit 1 +
+    // "erro inesperado:" do main().catch com o dump ENOENT (errno/code/syscall/
+    // path + stack). Com a correção, o slug inexistente sai como erro
+    // estruturado no formato do TrackLoadError; o exit 1 continua.
     const r = await runTrack(['track:validate', 'trilha-que-nao-existe-xyz']);
     assert.equal(r.code, 1);
-    assert.ok(r.stderr.includes('erro inesperado:'), r.stderr.slice(0, 300));
+    assert.ok(
+      r.stderr.includes(`✗ trilha 'trilha-que-nao-existe-xyz' inválida (1 problema(s)):`),
+      r.stderr.slice(0, 300),
+    );
+    assert.ok(r.stderr.includes('track.json:'), 'a issue nomeia o arquivo do problema');
+    assert.ok(r.stderr.includes('confira o slug com: npm run track -- track:list'), 'mensagem acionável');
+    assert.ok(!r.stderr.includes('erro inesperado'), r.stderr.slice(0, 300));
+    assert.ok(!r.stderr.includes('errno'), 'dump de errno é stack trace disfarçado');
+    assert.ok(!r.stderr.includes('syscall'), 'dump de syscall é stack trace disfarçado');
+    assert.ok(!r.stderr.includes('at async'), 'não pode vazar stack trace');
   });
 
-  it.skip(
-    'BUG: track:validate com slug inexistente despeja stack trace em vez de erro estruturado acionável — app/tools/track-cli.ts:799',
-    { skip: 'BUG: track:validate inexistente vaza stack trace (main().catch) em vez de erro limpo — app/tools/track-cli.ts:799' },
-    async () => {
-      // COMPORTAMENTO CORRETO segundo o padrão do próprio CLI (o mesmo que
-      // track:challenge:context já faz): mensagem limpa, acionável, exit 1.
-      const r = await runTrack(['track:validate', 'trilha-que-nao-existe-xyz']);
-      assert.equal(r.code, 1);
-      assert.ok(r.stderr.includes(`✗ trilha 'trilha-que-nao-existe-xyz' inválida`), r.stderr.slice(0, 300));
-      assert.ok(!r.stderr.includes('at async'), 'não pode vazar stack trace');
-    },
-  );
+  it('BUG D: track:validate com slug inexistente vira erro ESTRUTURADO acionável (exit 1) — nunca stack trace do main().catch', async () => {
+    // COMPORTAMENTO CORRETO segundo o padrão do próprio CLI (o mesmo que
+    // track:challenge:context já faz): mensagem limpa, acionável, exit 1.
+    const r = await runTrack(['track:validate', 'trilha-que-nao-existe-xyz']);
+    assert.equal(r.code, 1);
+    assert.ok(r.stderr.includes(`✗ trilha 'trilha-que-nao-existe-xyz' inválida`), r.stderr.slice(0, 300));
+    assert.ok(!r.stderr.includes('at async'), 'não pode vazar stack trace');
+  });
 });
 
 // ─── track:list ──────────────────────────────────────────────────────────────
