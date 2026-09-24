@@ -9,8 +9,20 @@
  * que editor (CodeMirror) e terminal (xterm) consomem — mais as utilidades
  * ANSI (`hexToRgb`/`truecolorForeground`) e a introspecção
  * (`codeColorEntries`/`animatableCodeColors`). tests/codeTheme.test.ts mede
- * contraste/red-flash; ESTE arquivo fixa MAPEAMENTOS e FORMATOS, para que a
- * refatoração não troque a interface de passagem sem que a suíte reprove.
+ * contraste/red-flash; ESTE arquivo fixa MAPEAMENTOS, VALORES e FORMATOS,
+ * para que a refatoração não troque a interface de passagem nem um hex sem
+ * que a suíte reprove.
+ *
+ * ─── O PINS SÃO LITERAIS (GOLDEN MASTER), E ISSO É O PONTO ────────────────
+ * NENHUM valor esperado deste arquivo é lido de `src/`: cada hex aparece
+ * escrito à mão, nos blocos `CLARA_ESPERADA`/`ESCURA_ESPERADA` e nos
+ * mapeamentos chrome→xterm/codemirror campo a campo. A versão anterior
+ * esperava `CODE_LIGHT.syntax.comment` de volta do próprio `CODE_LIGHT` — era
+ * auto-referente: trocar `string: '#196941'` por qualquer hex em
+ * src/lib/codeTheme.ts mantinha tudo verde, porque o "esperado" mudava junto.
+ * Com o pin literal, a MESMA troca reprova (é a prova de mutação do handoff).
+ *
+ * Escopo: `src/lib/codeTheme.ts` APENAS (confetti/editorTabs ficam de fora).
  *
  * Reprodução: `cd app && npm test -- tests/cx-views-code-theme.test.ts`
  */
@@ -55,6 +67,160 @@ const ANSI_ESPERADOS = [
 const NOMES_TERMINAL_ESPERADOS = ['default', 'green', 'red', 'yellow', 'accent', 'muted', 'cyan'];
 
 /* ══════════════════════════════════════════════════════════════════════════
+ * 0. O GOLDEN MASTER — todos os pares campo→hex das DUAS polaridades,
+ *    ESCRITOS À MÃO. Nenhum destes valores vem de src/.
+ *
+ *    As derivadas de designTokens.ts aparecem aqui RESOLVIDAS (é o valor que
+ *    chega à tela que importa): SURFACE_LIGHT.level2 = '#f3eee5',
+ *    level3 = '#e9e2d6', level4 = '#ddd5c6', INK_LIGHT.primary = '#191713',
+ *    INK_LIGHT.secondary = '#544e45', DIVIDER_LIGHT = '#ddd5c6'; e no escuro
+ *    SURFACE_DARK.level2 = '#272727', level3 = '#313131', level4 = '#3b3b3b',
+ *    INK_DARK.primary = '#f0f0f0', INK_DARK.secondary = '#adadad',
+ *    DIVIDER_DARK = '#4d4d4d'.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/** Pilha monoespaçada literal — a que editor e terminal precisam compartilhar. */
+const MONO_ESPERADA =
+  "'JetBrains Mono Variable', 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace";
+
+const CLARA_ESPERADA = {
+  chrome: {
+    surface: '#f3eee5',
+    ink: '#191713',
+    selection: '#ddd5c6',
+    selectionInactive: '#e9e2d6',
+    currentLine: '#e9e2d6',
+    cursor: '#af2a16',
+    cursorAccent: '#f3eee5',
+    gutterBackground: '#f3eee5',
+    gutterForeground: '#525d6d',
+    gutterActiveForeground: '#191713',
+    gutterBorder: '#ddd5c6',
+    border: '#ddd5c6',
+  },
+  syntax: {
+    comment: '#525d6d',
+    keyword: '#af2a16',
+    string: '#196941',
+    number: '#7f5305',
+    function: '#0b6484',
+    type: '#812fc8',
+    variable: '#191713',
+    operator: '#544e45',
+    constant: '#ad1f66',
+  },
+  state: {
+    success: '#196941',
+    error: '#af2a16',
+    warn: '#7f5305',
+    info: '#0b6484',
+    muted: '#525d6d',
+  },
+  ansi: {
+    black: '#191713',
+    brightBlack: '#46505d',
+    white: '#525d6d',
+    brightWhite: '#544e45',
+    red: '#af2a16',
+    brightRed: '#962413',
+    green: '#196941',
+    brightGreen: '#155b38',
+    yellow: '#7f5305',
+    brightYellow: '#6e4705',
+    blue: '#2c57bc',
+    brightBlue: '#254a9f',
+    magenta: '#ad1f66',
+    brightMagenta: '#961a58',
+    cyan: '#0b6484',
+    brightCyan: '#095571',
+  },
+} as const;
+
+const ESCURA_ESPERADA = {
+  chrome: {
+    surface: '#272727',
+    ink: '#f0f0f0',
+    selection: '#3b3b3b',
+    selectionInactive: '#313131',
+    currentLine: '#313131',
+    cursor: '#f08a7a',
+    cursorAccent: '#272727',
+    gutterBackground: '#272727',
+    gutterForeground: '#9ca7b7',
+    gutterActiveForeground: '#f0f0f0',
+    gutterBorder: '#4d4d4d',
+    border: '#4d4d4d',
+  },
+  syntax: {
+    comment: '#9ca7b7',
+    keyword: '#f08a7a',
+    string: '#2dbe75',
+    number: '#e4950c',
+    function: '#23b2e7',
+    type: '#c494ee',
+    variable: '#f0f0f0',
+    operator: '#adadad',
+    constant: '#eb86b9',
+  },
+  state: {
+    success: '#2dbe75',
+    error: '#f08a7a',
+    warn: '#e4950c',
+    info: '#23b2e7',
+    muted: '#9ca7b7',
+  },
+  ansi: {
+    black: '#9ca7b7',
+    brightBlack: '#a9b3c1',
+    white: '#adadad',
+    brightWhite: '#f0f0f0',
+    red: '#f08a7a',
+    brightRed: '#f39c8f',
+    green: '#2dbe75',
+    brightGreen: '#30cc7e',
+    yellow: '#e4950c',
+    brightYellow: '#f3a114',
+    blue: '#8ba6e4',
+    brightBlue: '#9cb3e8',
+    magenta: '#eb86b9',
+    brightMagenta: '#ee98c3',
+    cyan: '#23b2e7',
+    brightCyan: '#47bfeb',
+  },
+} as const;
+
+describe('GOLDEN MASTER — as duas paletas campo a campo, hex por hex (literais)', () => {
+  it('CODE_LIGHT é EXATAMENTE os 42 pares esperados (chrome 12 · syntax 9 · state 5 · ansi 16)', () => {
+    assert.equal(CODE_LIGHT.scheme, 'light');
+    assert.deepEqual({ ...CODE_LIGHT.chrome }, CLARA_ESPERADA.chrome, 'chrome claro');
+    assert.deepEqual({ ...CODE_LIGHT.syntax }, CLARA_ESPERADA.syntax, 'syntax claro');
+    assert.deepEqual({ ...CODE_LIGHT.state }, CLARA_ESPERADA.state, 'state claro');
+    assert.deepEqual({ ...CODE_LIGHT.ansi }, CLARA_ESPERADA.ansi, 'ansi claro');
+  });
+
+  it('CODE_DARK é EXATAMENTE os 42 pares esperados (chrome 12 · syntax 9 · state 5 · ansi 16)', () => {
+    assert.equal(CODE_DARK.scheme, 'dark');
+    assert.deepEqual({ ...CODE_DARK.chrome }, ESCURA_ESPERADA.chrome, 'chrome escuro');
+    assert.deepEqual({ ...CODE_DARK.syntax }, ESCURA_ESPERADA.syntax, 'syntax escuro');
+    assert.deepEqual({ ...CODE_DARK.state }, ESCURA_ESPERADA.state, 'state escuro');
+    assert.deepEqual({ ...CODE_DARK.ansi }, ESCURA_ESPERADA.ansi, 'ansi escuro');
+  });
+
+  it('nenhum hex do golden master se repete entre as polaridades no mesmo campo', () => {
+    for (const papel of SYNTAX_ESPERADOS) {
+      const l = CLARA_ESPERADA.syntax[papel as keyof typeof CLARA_ESPERADA.syntax];
+      const d = ESCURA_ESPERADA.syntax[papel as keyof typeof ESCURA_ESPERADA.syntax];
+      assert.notEqual(l, d, `syntax.${papel} igual nas duas polaridades`);
+    }
+    for (const papel of STATE_ESPERADOS) {
+      const l = CLARA_ESPERADA.state[papel as keyof typeof CLARA_ESPERADA.state];
+      const d = ESCURA_ESPERADA.state[papel as keyof typeof ESCURA_ESPERADA.state];
+      assert.notEqual(l, d, `state.${papel} igual nas duas polaridades`);
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
  * 1. VOLUMETRIA — as tabelas têm EXATAMENTE os papéis do contrato
  * ══════════════════════════════════════════════════════════════════════════ */
 
@@ -74,21 +240,104 @@ describe('as listas de papéis (a fonte da completude)', () => {
     }
   });
 
-  it('codeColorEntries acha TUDO: syntax(9) + state(5) + ansi(16) + 3 de chrome = 33 pares', () => {
-    const entradas = codeColorEntries(CODE_LIGHT);
-    assert.equal(entradas.length, 9 + 5 + 16 + 3);
-    assert.deepEqual(entradas[0], ['syntax.comment', CODE_LIGHT.syntax.comment]);
-    assert.deepEqual(entradas[entradas.length - 1], [
-      'chrome.gutterActiveForeground',
-      CODE_LIGHT.chrome.gutterActiveForeground,
-    ]);
+  it('codeColorEntries acha TUDO: syntax(9) + state(5) + ansi(16) + 3 de chrome = 33 pares LITERAIS', () => {
+    const esperadoClaro: readonly (readonly [string, string])[] = [
+      ['syntax.comment', '#525d6d'],
+      ['syntax.keyword', '#af2a16'],
+      ['syntax.string', '#196941'],
+      ['syntax.number', '#7f5305'],
+      ['syntax.function', '#0b6484'],
+      ['syntax.type', '#812fc8'],
+      ['syntax.variable', '#191713'],
+      ['syntax.operator', '#544e45'],
+      ['syntax.constant', '#ad1f66'],
+      ['state.success', '#196941'],
+      ['state.error', '#af2a16'],
+      ['state.warn', '#7f5305'],
+      ['state.info', '#0b6484'],
+      ['state.muted', '#525d6d'],
+      ['ansi.black', '#191713'],
+      ['ansi.red', '#af2a16'],
+      ['ansi.green', '#196941'],
+      ['ansi.yellow', '#7f5305'],
+      ['ansi.blue', '#2c57bc'],
+      ['ansi.magenta', '#ad1f66'],
+      ['ansi.cyan', '#0b6484'],
+      ['ansi.white', '#525d6d'],
+      ['ansi.brightBlack', '#46505d'],
+      ['ansi.brightRed', '#962413'],
+      ['ansi.brightGreen', '#155b38'],
+      ['ansi.brightYellow', '#6e4705'],
+      ['ansi.brightBlue', '#254a9f'],
+      ['ansi.brightMagenta', '#961a58'],
+      ['ansi.brightCyan', '#095571'],
+      ['ansi.brightWhite', '#544e45'],
+      ['chrome.cursor', '#af2a16'],
+      ['chrome.gutterForeground', '#525d6d'],
+      ['chrome.gutterActiveForeground', '#191713'],
+    ];
+    const esperadoEscuro: readonly (readonly [string, string])[] = [
+      ['syntax.comment', '#9ca7b7'],
+      ['syntax.keyword', '#f08a7a'],
+      ['syntax.string', '#2dbe75'],
+      ['syntax.number', '#e4950c'],
+      ['syntax.function', '#23b2e7'],
+      ['syntax.type', '#c494ee'],
+      ['syntax.variable', '#f0f0f0'],
+      ['syntax.operator', '#adadad'],
+      ['syntax.constant', '#eb86b9'],
+      ['state.success', '#2dbe75'],
+      ['state.error', '#f08a7a'],
+      ['state.warn', '#e4950c'],
+      ['state.info', '#23b2e7'],
+      ['state.muted', '#9ca7b7'],
+      ['ansi.black', '#9ca7b7'],
+      ['ansi.red', '#f08a7a'],
+      ['ansi.green', '#2dbe75'],
+      ['ansi.yellow', '#e4950c'],
+      ['ansi.blue', '#8ba6e4'],
+      ['ansi.magenta', '#eb86b9'],
+      ['ansi.cyan', '#23b2e7'],
+      ['ansi.white', '#adadad'],
+      ['ansi.brightBlack', '#a9b3c1'],
+      ['ansi.brightRed', '#f39c8f'],
+      ['ansi.brightGreen', '#30cc7e'],
+      ['ansi.brightYellow', '#f3a114'],
+      ['ansi.brightBlue', '#9cb3e8'],
+      ['ansi.brightMagenta', '#ee98c3'],
+      ['ansi.brightCyan', '#47bfeb'],
+      ['ansi.brightWhite', '#f0f0f0'],
+      ['chrome.cursor', '#f08a7a'],
+      ['chrome.gutterForeground', '#9ca7b7'],
+      ['chrome.gutterActiveForeground', '#f0f0f0'],
+    ];
+    assert.deepEqual([...codeColorEntries(CODE_LIGHT)], [...esperadoClaro]);
+    assert.deepEqual([...codeColorEntries(CODE_DARK)], [...esperadoEscuro]);
   });
 
-  it('animatableCodeColors lista os 7 nomes animáveis, na ordem do contrato', () => {
+  it('animatableCodeColors lista os 7 nomes animáveis, com os hex LITERAIS, na ordem do contrato', () => {
     assert.deepEqual(
       animatableCodeColors(CODE_DARK).map(([rotulo]) => rotulo),
       ['state.error', 'state.success', 'state.warn', 'state.info', 'chrome.cursor', 'ansi.red', 'ansi.brightRed'],
     );
+    assert.deepEqual([...animatableCodeColors(CODE_LIGHT)], [
+      ['state.error', '#af2a16'],
+      ['state.success', '#196941'],
+      ['state.warn', '#7f5305'],
+      ['state.info', '#0b6484'],
+      ['chrome.cursor', '#af2a16'],
+      ['ansi.red', '#af2a16'],
+      ['ansi.brightRed', '#962413'],
+    ]);
+    assert.deepEqual([...animatableCodeColors(CODE_DARK)], [
+      ['state.error', '#f08a7a'],
+      ['state.success', '#2dbe75'],
+      ['state.warn', '#e4950c'],
+      ['state.info', '#23b2e7'],
+      ['chrome.cursor', '#f08a7a'],
+      ['ansi.red', '#f08a7a'],
+      ['ansi.brightRed', '#f39c8f'],
+    ]);
     for (const [rotulo, hex] of animatableCodeColors(CODE_LIGHT)) {
       assert.match(hex, /^#[0-9a-f]{6}$/i, `animável ${rotulo}`);
     }
@@ -127,30 +376,31 @@ describe('codeTypography — UMA tipografia para editor E terminal', () => {
   });
 
   it('a pilha é a MESMA de FONT_STACK.mono (só a variável empacotada resolve de verdade)', () => {
-    assert.equal(codeTypography().fontFamily, FONT_STACK.mono);
+    assert.equal(codeTypography().fontFamily, MONO_ESPERADA, 'a pilha literal do golden master');
+    assert.equal(codeTypography().fontFamily, FONT_STACK.mono, 'o contrato: MESMA de FONT_STACK.mono');
     assert.equal(codeTypography(), CODE_TYPOGRAPHY, 'o accessor devolve a constante única (sem polaridade)');
   });
 });
 
 describe('terminalColors — os nomes semânticos do writeLine', () => {
-  it('os sete nomes mapeiam para os papéis certos em cada esquema', () => {
+  it('os sete nomes mapeiam para os hex LITERAIS certos em cada esquema', () => {
     assert.deepEqual({ ...TERMINAL_CODE_COLORS_LIGHT }, {
-      default: CODE_LIGHT.chrome.ink,
-      green: CODE_LIGHT.state.success,
-      red: CODE_LIGHT.state.error,
-      yellow: CODE_LIGHT.state.warn,
-      accent: CODE_LIGHT.syntax.type,
-      muted: CODE_LIGHT.state.muted,
-      cyan: CODE_LIGHT.state.info,
+      default: '#191713',
+      green: '#196941',
+      red: '#af2a16',
+      yellow: '#7f5305',
+      accent: '#812fc8',
+      muted: '#525d6d',
+      cyan: '#0b6484',
     });
     assert.deepEqual({ ...TERMINAL_CODE_COLORS_DARK }, {
-      default: CODE_DARK.chrome.ink,
-      green: CODE_DARK.state.success,
-      red: CODE_DARK.state.error,
-      yellow: CODE_DARK.state.warn,
-      accent: CODE_DARK.syntax.type,
-      muted: CODE_DARK.state.muted,
-      cyan: CODE_DARK.state.info,
+      default: '#f0f0f0',
+      green: '#2dbe75',
+      red: '#f08a7a',
+      yellow: '#e4950c',
+      accent: '#c494ee',
+      muted: '#9ca7b7',
+      cyan: '#23b2e7',
     });
   });
 
@@ -162,23 +412,58 @@ describe('terminalColors — os nomes semânticos do writeLine', () => {
 });
 
 describe('xtermTheme — o tema que vai em new Terminal({ theme })', () => {
-  it('o chrome é mapeado campo a campo (well, tinta, cursor, seleções)', () => {
-    const esperadoDe = (p: typeof CODE_LIGHT): Record<string, string> => ({
-      background: p.chrome.surface,
-      foreground: p.chrome.ink,
-      cursor: p.chrome.cursor,
-      cursorAccent: p.chrome.cursorAccent,
-      selectionBackground: p.chrome.selection,
-      selectionInactiveBackground: p.chrome.selectionInactive,
+  it('o tema CLARO sai campo a campo, com hex LITERAIS (chrome 6 + tabela ANSI 16)', () => {
+    assert.deepEqual({ ...xtermTheme('light') }, {
+      background: '#f3eee5',
+      foreground: '#191713',
+      cursor: '#af2a16',
+      cursorAccent: '#f3eee5',
+      selectionBackground: '#ddd5c6',
+      selectionInactiveBackground: '#e9e2d6',
+      black: '#191713',
+      red: '#af2a16',
+      green: '#196941',
+      yellow: '#7f5305',
+      blue: '#2c57bc',
+      magenta: '#ad1f66',
+      cyan: '#0b6484',
+      white: '#525d6d',
+      brightBlack: '#46505d',
+      brightRed: '#962413',
+      brightGreen: '#155b38',
+      brightYellow: '#6e4705',
+      brightBlue: '#254a9f',
+      brightMagenta: '#961a58',
+      brightCyan: '#095571',
+      brightWhite: '#544e45',
     });
-    for (const p of [CODE_LIGHT, CODE_DARK]) {
-      const t = xtermTheme(p.scheme);
-      assert.deepEqual(
-        Object.fromEntries(Object.keys(esperadoDe(p)).map((k) => [k, (t as unknown as Record<string, string>)[k]])),
-        esperadoDe(p),
-        `chrome do esquema ${p.scheme}`,
-      );
-    }
+  });
+
+  it('o tema ESCURO sai campo a campo, com hex LITERAIS (chrome 6 + tabela ANSI 16)', () => {
+    assert.deepEqual({ ...xtermTheme('dark') }, {
+      background: '#272727',
+      foreground: '#f0f0f0',
+      cursor: '#f08a7a',
+      cursorAccent: '#272727',
+      selectionBackground: '#3b3b3b',
+      selectionInactiveBackground: '#313131',
+      black: '#9ca7b7',
+      red: '#f08a7a',
+      green: '#2dbe75',
+      yellow: '#e4950c',
+      blue: '#8ba6e4',
+      magenta: '#eb86b9',
+      cyan: '#23b2e7',
+      white: '#adadad',
+      brightBlack: '#a9b3c1',
+      brightRed: '#f39c8f',
+      brightGreen: '#30cc7e',
+      brightYellow: '#f3a114',
+      brightBlue: '#9cb3e8',
+      brightMagenta: '#ee98c3',
+      brightCyan: '#47bfeb',
+      brightWhite: '#f0f0f0',
+    });
   });
 
   it('a tabela ANSI vai junto, com as 16 chaves — e SEM selectionForeground', () => {
@@ -195,28 +480,63 @@ describe('xtermTheme — o tema que vai em new Terminal({ theme })', () => {
 });
 
 describe('codeMirrorSettings / codeMirrorSyntax — o contrato do editor', () => {
-  it('os 12 campos de settings saem do chrome + tipografia compartilhada', () => {
-    const s = codeMirrorSettings('dark');
-    assert.deepEqual({ ...s }, {
-      background: CODE_DARK.chrome.surface,
-      foreground: CODE_DARK.chrome.ink,
-      caret: CODE_DARK.chrome.cursor,
-      selection: CODE_DARK.chrome.selection,
-      selectionMatch: CODE_DARK.chrome.selectionInactive,
-      lineHighlight: CODE_DARK.chrome.currentLine,
-      gutterBackground: CODE_DARK.chrome.gutterBackground,
-      gutterForeground: CODE_DARK.chrome.gutterForeground,
-      gutterActiveForeground: CODE_DARK.chrome.gutterActiveForeground,
-      gutterBorder: CODE_DARK.chrome.gutterBorder,
-      fontFamily: CODE_TYPOGRAPHY.fontFamily,
-      fontSize: CODE_TYPOGRAPHY.fontSize,
+  it('os 12 campos de settings CLAROS saem campo a campo, com hex LITERAIS', () => {
+    assert.deepEqual({ ...codeMirrorSettings('light') }, {
+      background: '#f3eee5',
+      foreground: '#191713',
+      caret: '#af2a16',
+      selection: '#ddd5c6',
+      selectionMatch: '#e9e2d6',
+      lineHighlight: '#e9e2d6',
+      gutterBackground: '#f3eee5',
+      gutterForeground: '#525d6d',
+      gutterActiveForeground: '#191713',
+      gutterBorder: '#ddd5c6',
+      fontFamily: MONO_ESPERADA,
+      fontSize: '15px',
     });
-    assert.equal(codeMirrorSettings('light').background, CODE_LIGHT.chrome.surface);
   });
 
-  it('o mapa de sintaxe é a própria fatia `syntax` da paleta (papel → hex)', () => {
-    assert.deepEqual({ ...codeMirrorSyntax('dark') }, { ...CODE_DARK.syntax });
-    assert.deepEqual({ ...codeMirrorSyntax('light') }, { ...CODE_LIGHT.syntax });
+  it('os 12 campos de settings ESCUROS saem campo a campo, com hex LITERAIS', () => {
+    assert.deepEqual({ ...codeMirrorSettings('dark') }, {
+      background: '#272727',
+      foreground: '#f0f0f0',
+      caret: '#f08a7a',
+      selection: '#3b3b3b',
+      selectionMatch: '#313131',
+      lineHighlight: '#313131',
+      gutterBackground: '#272727',
+      gutterForeground: '#9ca7b7',
+      gutterActiveForeground: '#f0f0f0',
+      gutterBorder: '#4d4d4d',
+      fontFamily: MONO_ESPERADA,
+      fontSize: '15px',
+    });
+  });
+
+  it('o mapa de sintaxe (papel → hex) é fixado nos NOVE literais de cada esquema', () => {
+    assert.deepEqual({ ...codeMirrorSyntax('light') }, {
+      comment: '#525d6d',
+      keyword: '#af2a16',
+      string: '#196941',
+      number: '#7f5305',
+      function: '#0b6484',
+      type: '#812fc8',
+      variable: '#191713',
+      operator: '#544e45',
+      constant: '#ad1f66',
+    });
+    assert.deepEqual({ ...codeMirrorSyntax('dark') }, {
+      comment: '#9ca7b7',
+      keyword: '#f08a7a',
+      string: '#2dbe75',
+      number: '#e4950c',
+      function: '#23b2e7',
+      type: '#c494ee',
+      variable: '#f0f0f0',
+      operator: '#adadad',
+      constant: '#eb86b9',
+    });
   });
 });
 

@@ -11,7 +11,7 @@
  * trocar a implementação e mantiver as saídas, estes testes continuam verdes;
  * se mudar UMA saída observável, eles reprovam.
  *
- * Cobertura (13 blocos): estado inicial e chat · streaming (typewriter) ·
+ * Cobertura (11 blocos): estado inicial e chat · streaming (typewriter) ·
  * bolhas iMessage (hora/dia/tps) · gates de conclusão · relatório e bolha de
  * erro do desafio · seed/retry do erro · ciclo de maestria do quiz (submit →
  * explicação → remediação → reabertura) · invariante anti-vazamento das
@@ -268,7 +268,13 @@ describe('applyTutorReply — o kind da resposta e a memória do chat', () => {
     const comQuiz = submitQuizAnswer(base, 'k', 0, 0);
     const s = applyTutorReply({ ...comQuiz, challengeError: errorReport() }, reply({ message: 'ok' }));
     assert.deepEqual(s.challengeError, errorReport());
-    assert.equal(s.quizBySection, comQuiz.quizBySection, 'o mapa de quiz sobrevive aos turnos');
+    // POR VALOR, e não por referência: o contrato é o CONTEÚDO do mapa de quiz
+    // sobreviver ao turno. `return draft` e `return { ...draft }` são o mesmo
+    // comportamento, e uma asserção de MESMA REFERÊNCIA reprovaria a segunda —
+    // identidade sem contrato documentado quebra refatoração legítima. (Onde a
+    // identidade É contrato — os NO-OP por referência deste módulo, que seguram
+    // o re-render do useReducer — ela continua exigida nos testes vizinhos.)
+    assert.deepEqual(s.quizBySection, comQuiz.quizBySection, 'o mapa de quiz sobrevive aos turnos (conteúdo idêntico)');
   });
 });
 

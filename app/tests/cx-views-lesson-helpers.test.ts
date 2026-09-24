@@ -323,11 +323,17 @@ describe('shouldMarkAbandon — só marca abandono se NENHUM terminal saiu', () 
 describe('normalizeDraftForResume — veredito terminal salvo NÃO vira beco sem saída', () => {
   const LIMITE = 210_000; // timeLimitForDifficultyMs(2) — o relógio do desafio de módulo
 
-  it("'passed' e o rascunho em curso passam INTACTOS (mesma referência)", () => {
+  it("'passed' e o rascunho em curso passam INTACTOS — por VALOR, campo a campo", () => {
     const aprovado = rascunho({ concluded: 'passed', elapsedMs: LIMITE });
-    assert.equal(PANEL.normalizeDraftForResume(aprovado, LIMITE), aprovado);
+    // POR VALOR, e não por referência: o contrato é "passa INTACTO — nada é
+    // normalizado". `return draft` e `return { ...draft }` são o MESMO
+    // comportamento; exigir a identidade reprovaria a segunda refatoração sem
+    // que nenhum comportamento tivesse mudado. Onde a identidade É contrato
+    // (os NO-OP por referência do trackLessonState e do dockReducer), ela
+    // continua exigida nos testes daquelas funções.
+    assert.deepEqual(PANEL.normalizeDraftForResume(aprovado, LIMITE), aprovado);
     const emCurso = rascunho();
-    assert.equal(PANEL.normalizeDraftForResume(emCurso, LIMITE), emCurso);
+    assert.deepEqual(PANEL.normalizeDraftForResume(emCurso, LIMITE), emCurso);
   });
 
   it("'failed' RETOMA: código, saída do erro e relógio preservados — só o concluded zera", () => {

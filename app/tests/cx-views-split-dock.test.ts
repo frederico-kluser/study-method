@@ -702,8 +702,15 @@ describe('persistência do dock — tolerante a lixo, campo a campo', () => {
     };
     assert.deepEqual({ ...toDockPersistedState(vivo) }, { activeTab: 'tests', collapsed: true, heightPx: 334 });
 
-    assert.equal(createDockState(), INITIAL_DOCK_STATE);
-    assert.equal(createDockState(null), INITIAL_DOCK_STATE);
+    // POR VALOR, e não por referência: sem storage persistido o estado nasce
+    // IGUAL ao inicial — `return INITIAL_DOCK_STATE` e
+    // `return { ...INITIAL_DOCK_STATE }` são o mesmo comportamento, e exigir a
+    // identidade reprovaria a segunda sem mudar nada observável. A identidade
+    // SÓ é contrato no NO-OP do `dockReducer` ("Devolve o MESMO objeto quando a
+    // ação não muda nada", dockState.ts — o useReducer não força re-render):
+    // nas asserções de lá, ela continua exigida.
+    assert.deepEqual(createDockState(), INITIAL_DOCK_STATE);
+    assert.deepEqual(createDockState(null), INITIAL_DOCK_STATE);
     const hidratado = createDockState({ activeTab: 'feedback', collapsed: true, heightPx: 500 });
     assert.equal(hidratado.activeTab, 'feedback');
     assert.equal(hidratado.collapsed, true);
