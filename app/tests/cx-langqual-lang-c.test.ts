@@ -188,7 +188,8 @@ describe('c — (2) detect() e a degradação honesta', () => {
     assert.equal(d.ok, true);
     assert.equal(d.degradacao, null);
     assert.equal(d.binary, 'sh', 'o spawn do runner executa sh run.sh');
-    assert.equal(typeof d.version, 'object', 'version é string|null');
+    // mudança intencional B1 — versaoDoTexto agora parseia banners gcc; versão deixa de ser null
+    assert.match(d.version ?? '', /^\d+\.\d+/);
   });
 
   it('o memo de detect é reconstrutível (reset ⇒ mesmo valor)', () => {
