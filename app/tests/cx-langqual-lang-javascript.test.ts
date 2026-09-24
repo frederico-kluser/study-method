@@ -80,6 +80,7 @@ describe('js — (0) identidade e constantes do contrato', () => {
     assert.ok(JS_SAFE_FILE_PATH_RE.test('solution.mjs'));
     assert.ok(JS_SAFE_FILE_PATH_RE.test('pasta/arquivo.mjs'));
     assert.ok(!JS_SAFE_FILE_PATH_RE.test('../fuga.mjs'));
+    assert.ok(!JS_SAFE_FILE_PATH_RE.test('/etc/x.mjs'), 'escape por caminho absoluto é proibido');
     assert.ok(!JS_SAFE_FILE_PATH_RE.test('arquivo.js'), 'travado em .mjs por decisão');
     assert.ok(!JS_SAFE_FILE_PATH_RE.test('a b.mjs'));
   });

@@ -482,6 +482,7 @@ describe('python — (7) layout e caminho seguro de arquivo', () => {
     assert.ok(PY_SAFE_FILE_PATH_RE.test('tests/test_solucao.py'));
     assert.ok(!PY_SAFE_FILE_PATH_RE.test('../fuga.py'));
     assert.ok(!PY_SAFE_FILE_PATH_RE.test('a/../b.py'));
+    assert.ok(!PY_SAFE_FILE_PATH_RE.test('/etc/x.py'), 'escape por caminho absoluto é proibido');
     assert.ok(!PY_SAFE_FILE_PATH_RE.test('arquivo.txt'));
     assert.ok(!PY_SAFE_FILE_PATH_RE.test('a b.py'));
   });

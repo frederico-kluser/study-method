@@ -721,15 +721,16 @@ export function pyLayout(challenge: ChallengeLayoutInput): ChallengeLayout {
 // ---------------------------------------------------------------------------
 
 /**
- * Caminho SEGURO de arquivo de desafio Python: letras/dígitos/`_`/`-`/`/`,
- * terminando em `.py`. Proíbe `..`, ponto no meio e qualquer escape do
- * diretório de execução — a mesma forma do `JS_SAFE_FILE_PATH_RE`, com a
- * extensão trocada (§6 obs. 1: "`SAFE_FILE_PATH_RE` está travado em `.mjs`").
+ * Caminho SEGURO de arquivo de desafio Python: segmentos NÃO-VAZIOS de
+ * letras/dígitos/`_`/`-` separados por `/` único, terminando em `.py`.
+ * Proíbe caminho ABSOLUTO (barra inicial), segmento vazio (`//`), `..`, ponto
+ * no meio e qualquer escape do diretório de execução — a mesma forma do
+ * `JS_SAFE_FILE_PATH_RE`, com a extensão trocada (§6 obs. 1: "`SAFE_FILE_PATH_RE` está travado em `.mjs`").
  *
  * SEM a flag `g`: `RegExp` com `g` guarda `lastIndex` entre chamadas e daria
  * falso-negativo alternado em `.test()`.
  */
-export const PY_SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.py$/;
+export const PY_SAFE_FILE_PATH_RE = /^([a-zA-Z0-9_\-]+\/)*[a-zA-Z0-9_\-]+\.py$/;
 
 // ---------------------------------------------------------------------------
 // (9) testCommand

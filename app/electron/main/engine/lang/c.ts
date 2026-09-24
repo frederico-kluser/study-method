@@ -1290,18 +1290,19 @@ export function cLayout(challenge: ChallengeLayoutInput): ChallengeLayout {
 // ---------------------------------------------------------------------------
 
 /**
- * Caminho SEGURO de arquivo de desafio C: letras/dígitos/_/-//, terminando
- * em `.c` OU `.h` — um desafio multi-arquivo de C é fonte + header (a árvore
- * medida em `languages.md` §3.2: "C/C++: stub.c · stub.h · tests/test_stub.c
- * — header ou protótipo!"). Proíbe `..`, ponto no meio e qualquer escape do
- * diretório de execução. Os arquivos GERADOS (`tests/sm_*.c`, `run.sh`) não
- * passam por aqui: o regex valida os paths que vêm DO DESAFIO, não os do
- * harness.
+ * Caminho SEGURO de arquivo de desafio C: segmentos NÃO-VAZIOS de
+ * letras/dígitos/_/- separados por `/` único, terminando em `.c` OU `.h` — um
+ * desafio multi-arquivo de C é fonte + header (a árvore medida em
+ * `languages.md` §3.2: "C/C++: stub.c · stub.h · tests/test_stub.c — header
+ * ou protótipo!"). Proíbe caminho ABSOLUTO (barra inicial), segmento vazio
+ * (`//`), `..`, ponto no meio e qualquer escape do diretório de execução.
+ * Os arquivos GERADOS (`tests/sm_*.c`, `run.sh`) não passam por aqui: o regex
+ * valida os paths que vêm DO DESAFIO, não os do harness.
  *
  * SEM a flag `g`: `RegExp` com `g` guarda `lastIndex` entre chamadas e daria
  * falso-negativo alternado em `.test()`.
  */
-export const C_SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.(c|h)$/;
+export const C_SAFE_FILE_PATH_RE = /^([a-zA-Z0-9_\-]+\/)*[a-zA-Z0-9_\-]+\.(c|h)$/;
 
 // ---------------------------------------------------------------------------
 // (9) testCommand

@@ -89,6 +89,8 @@ describe('ts — (0) identidade e constantes do contrato', () => {
     assert.ok(TS_SAFE_FILE_PATH_RE.test('solution.ts'));
     assert.ok(TS_SAFE_FILE_PATH_RE.test('pasta/arquivo.ts'));
     assert.ok(!TS_SAFE_FILE_PATH_RE.test('../fuga.ts'));
+    assert.ok(!TS_SAFE_FILE_PATH_RE.test('/etc/x.ts'), 'escape por caminho absoluto é proibido');
+    assert.ok(!TS_SAFE_FILE_PATH_RE.test('/x.ts'), 'a forma curta do absoluto também é escape');
     assert.ok(!TS_SAFE_FILE_PATH_RE.test('arquivo.mjs'));
     assert.ok(!TS_SAFE_FILE_PATH_RE.test('a b.ts'));
   });
@@ -280,12 +282,62 @@ describe('ts — (4) resolveScopes: formas de tipo DECLARAM nome', () => {
     assert.deepEqual([...sc.globals], ['Partial']);
   });
 
-  it.skip('BUG: nome de MEMBRO de enum (enum Cor { Vermelho }) cai em free, mas é declaração, não referência — app/electron/main/engine/lang/typescript.ts:504 (tsResolveScopes não cobre EnumMember)', () => {
+  it('nome de MEMBRO de enum (enum Cor { Vermelho }) é declaração, não referência — não cai em free (tsResolveScopes cobre EnumMember)', () => {
     const fonte = 'enum Cor { Vermelho }\n';
     const r = tsParse(fonte);
     assert.ok(r.ok);
     const sc = tsResolveScopes(r as ParseOk);
     assert.ok(!sc.free.has('Vermelho'), 'nome de EnumMember é declaração — não deveria ser free');
+    assert.ok(sc.declared.has('Vermelho'), 'EnumMember DECLARA nome (TS_FORMAS_DECLARANTES cobre o membro)');
+    // a metade gêmea: no adaptador JS, EnumMember.name é posição de
+    // DECLARAÇÃO em ehReferenciaDeValor — nunca referência de valor
+    const base = javascriptAdapter.resolveScopes(r as ParseOk);
+    assert.ok(!base.free.has('Vermelho'), 'ehReferenciaDeValor cobre EnumMember (javascript.ts)');
+  });
+
+  it('REGRESSÃO do bug I: inicializador de enum continua REFERÊNCIA — enum E { A = FOO } mantém FOO em free nas DUAS metades', () => {
+    const fonte = 'enum E { A = FOO }\n';
+    const r = tsParse(fonte);
+    assert.ok(r.ok);
+    const sc = tsResolveScopes(r as ParseOk);
+    assert.ok(sc.free.has('FOO'), 'FOO é referência livre no inicializador — não pode virar declaração');
+    assert.ok(sc.declared.has('A'), 'o MEMBRO A continua declaração');
+    assert.ok(!sc.free.has('A'), 'e não é livre');
+    // e a metade gêmea: ehReferenciaDeValor exclui só o nome do membro — o
+    // inicializador (parent.name !== node) segue referência de valor
+    const base = javascriptAdapter.resolveScopes(r as ParseOk);
+    assert.ok(base.free.has('FOO'), 'ehReferenciaDeValor segue vendo FOO como referência de valor');
+    assert.ok(!base.free.has('A'), 'EnumMember.name continua posição de declaração');
+  });
+
+  it('REGRESSÃO do bug I (nome NÃO-Identifier): enum E { \'x\' = FOO } — FOO é livre nas DUAS metades, inicializador nunca declara', () => {
+    const fonte = "enum E { 'x' = FOO }\n";
+    const r = tsParse(fonte);
+    assert.ok(r.ok);
+    const sc = tsResolveScopes(r as ParseOk);
+    assert.ok(sc.free.has('FOO'), 'FOO é referência livre no inicializador');
+    assert.ok(!sc.declared.has('FOO'), 'nome string literal não declara — o inicializador NUNCA é declaração');
+    const base = javascriptAdapter.resolveScopes(r as ParseOk);
+    assert.ok(base.free.has('FOO'), 'metade JS: FOO segue referência de valor');
+  });
+
+  it('REGRESSÃO do bug I (nome COMPUTADO): enum E { [K] = FOO } — K e FOO livres nas DUAS metades', () => {
+    const fonte = 'enum E { [K] = FOO }\n';
+    const r = tsParse(fonte);
+    assert.ok(r.ok, 'PARSEIE TUDO — TS1164 é semântico, o parse aceita nome computado');
+    const sc = tsResolveScopes(r as ParseOk);
+    for (const nome of ['K', 'FOO']) {
+      assert.ok(sc.free.has(nome), `${nome} é referência livre — nome computado/inicializador não declaram`);
+      assert.ok(!sc.declared.has(nome), `${nome} não pode entrar em declared`);
+    }
+    const base = javascriptAdapter.resolveScopes(r as ParseOk);
+    for (const nome of ['K', 'FOO']) {
+      assert.ok(base.free.has(nome), `metade JS: ${nome} segue referência de valor`);
+    }
+    // diferença TS-vs-JS MEDIDA e registrada: o nome do ENUM (E) é filtrado
+    // pelo TS (EnumDeclaration é forma declarante) e continua livre no JS
+    assert.ok(!sc.free.has('E'), 'TS: E declarado por EnumDeclaration');
+    assert.ok(base.free.has('E'), 'JS não conhece EnumDeclaration — E segue livre (limite documentado)');
   });
 });
 

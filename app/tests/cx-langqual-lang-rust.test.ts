@@ -27,6 +27,9 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import {
   rsExtractorPath,
@@ -197,10 +200,42 @@ describe('rust — (2) detect() e a degradação honesta', () => {
     }
   });
 
-  it.skip('BUG conhecido — fix em paralelo (onda1-fix-baseline): rsDetect().binary aponta para path do RUSTUP ("/.rustup/…") em vez do cargo REAL da toolchain (rust.ts:283 — resolverToolchainReal devolve o path errado)', () => {
+  it('rsDetect().binary é o cargo REAL da toolchain (`<sysroot>/bin/cargo`) — proxy do rustup se prova pela EXECUÇÃO, nunca por trecho de caminho', { skip: TEM_RS ? false : 'sem cargo' }, () => {
     const d = rsDetect();
-    if (!d.ok) return;
-    assert.ok(!d.binary.includes('/.rustup/'), `binário não deveria ser proxy: ${d.binary}`);
+    assert.equal(d.ok, true);
+    // CONTRATO (comportamento CORRETO, não bug): o cargo REAL da toolchain
+    // mora em `<sysroot>/bin/cargo`, e numa instalação rustup o sysroot É
+    // `~/.rustup/toolchains/…` (docs/16-engine-de-trilha.md:445,
+    // research/06-toolchains.md:606; `resolverToolchainReal` em rust.ts) —
+    // o `/.rustup/` no caminho é a PROVA de que é o real: o PROXY do rustup é
+    // que vive em `~/.cargo/bin/`. A prova é por EXECUÇÃO (moldada em
+    // tests/engineLangRust.test.ts): com RUSTUP_HOME/CARGO_HOME apontando
+    // para diretórios VAZIOS, o proxy morre ("rustup could not choose a
+    // version of cargo to run") e o real responde "cargo X.Y".
+    const rustupVazio = fs.mkdtempSync(path.join('/tmp', 'do-fixhi-rs-rustup-'));
+    const cargoVazio = fs.mkdtempSync(path.join('/tmp', 'do-fixhi-rs-cargo-'));
+    try {
+      const r = spawnSync(d.binary, ['--version'], {
+        encoding: 'utf8',
+        timeout: 10_000,
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          RUSTUP_HOME: rustupVazio,
+          CARGO_HOME: cargoVazio,
+        },
+      });
+      assert.equal(r.error, undefined, `binário não executa: ${d.binary} — ${r.error?.message ?? ''}`);
+      assert.equal(
+        r.status,
+        0,
+        `binário é o PROXY do rustup (não roda sem toolchain configurada): ${d.binary} — ${r.stderr ?? ''}`,
+      );
+      assert.match(`${r.stdout}`.trim(), /^cargo \d+\.\d+/, 'o cargo REAL responde a --version com a sua versão');
+    } finally {
+      fs.rmSync(rustupVazio, { recursive: true, force: true });
+      fs.rmSync(cargoVazio, { recursive: true, force: true });
+    }
   });
 });
 
@@ -528,6 +563,7 @@ describe('rust — (7) layout e caminho seguro de arquivo', () => {
     assert.ok(RS_SAFE_FILE_PATH_RE.test('a-b_c.rs'));
     assert.ok(!RS_SAFE_FILE_PATH_RE.test('../fuga.rs'));
     assert.ok(!RS_SAFE_FILE_PATH_RE.test('a/../b.rs'));
+    assert.ok(!RS_SAFE_FILE_PATH_RE.test('/etc/x.rs'), 'escape por caminho absoluto é proibido');
     assert.ok(!RS_SAFE_FILE_PATH_RE.test('arquivo.txt'));
     assert.ok(!RS_SAFE_FILE_PATH_RE.test('a b.rs'));
   });

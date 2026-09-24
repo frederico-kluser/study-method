@@ -124,9 +124,11 @@ function ts(): TypeScriptModule {
 // ---------------------------------------------------------------------------
 
 /**
- * Regex de caminho seguro de arquivo de desafio multi-arquivo: só
- * letras/dígitos/_/-//, termina em `.mjs`. Proíbe `..`, pontos no meio e
- * qualquer outra coisa que escape do diretório de execução.
+ * Regex de caminho seguro de arquivo de desafio multi-arquivo: segmentos
+ * NÃO-VAZIOS de letras/dígitos/_/- separados por `/` único, terminando em
+ * `.mjs`. Proíbe caminho ABSOLUTO (barra inicial), segmento vazio (`//`),
+ * `..`, pontos no meio e qualquer outra coisa que escape do diretório de
+ * execução.
  *
  * FONTE DA VERDADE a partir da onda 5 — ver `content/trackTypes.ts:67`
  * (`SAFE_FILE_PATH_RE`, que a partir desta onda já REEXPORTA este valor).
@@ -137,7 +139,7 @@ function ts(): TypeScriptModule {
  * mesmo objeto compartilhado por quatro arquivos daria falso-negativo
  * alternado em `.test()`.
  */
-export const JS_SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.mjs$/;
+export const JS_SAFE_FILE_PATH_RE = /^([a-zA-Z0-9_\-]+\/)*[a-zA-Z0-9_\-]+\.mjs$/;
 
 // ---------------------------------------------------------------------------
 // (9) testCommand
@@ -778,6 +780,9 @@ export function jsResolveScopes(parsed: ParseOk): ScopeResolution {
     if (T.isFunctionDeclaration(parent) && parent.name === node) return false;
     if (T.isClassDeclaration(parent) && parent.name === node) return false;
     if (T.isMethodDeclaration(parent) && parent.name === node) return false;
+    // membro de enum é posição de DECLARAÇÃO (enum Cor { Vermelho } DECLARA
+    // Vermelho) — sem esta linha o nome do membro vira nome livre FANTASMA.
+    if (T.isEnumMember(parent) && parent.name === node) return false;
     if (T.isLabeledStatement(parent) && parent.label === node) return false;
     return true;
   };

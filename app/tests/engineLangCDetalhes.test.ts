@@ -326,12 +326,19 @@ describe('c — layout multi-arquivo e filePathPattern (bordas)', () => {
     ]) {
       assert.equal(c.filePathPattern.test(recusaDe), false, `deveria recusar ${recusaDe}`);
     }
-    // PREMISSA (convenção herdada, não bug): a barra inicial é aceita — o
-    // regex do JavaScript é idêntico (`JS_SAFE_FILE_PATH_RE`,
-    // lang/javascript.ts:140) e o `path.join(dir, arquivo.path)` do
-    // `prepareIsolatedDir` (exec/harness.ts) resolve `/absoluto.c` para
-    // DENTRO do diretório de execução, então não há escape real.
-    assert.equal(c.filePathPattern.test('/absoluto.c'), true);
+    // BUG H (corrigido — mudança INTENCIONAL): a barra inicial passou a ser
+    // RECUSADA. A antiga "PREMISSA (convenção herdada, não bug)" estava
+    // errada — era o PRÓPRIO bug H. O contrato (docstring do
+    // C_SAFE_FILE_PATH_RE em lang/c.ts, exec/harness.ts:98) exige recusar
+    // qualquer escape do diretório de execução, e os gates de SUBMIT
+    // (track-handlers.ts:693, challengeExec.ts:339) validam paths VINDOS DO
+    // ALUNO com este regex: `path.join` absorver a barra em
+    // `prepareIsolatedDir` protege UMA escrita, não o contrato inteiro.
+    // Caminho absoluto é escape LEXICAL do diretório de execução.
+    assert.equal(c.filePathPattern.test('/absoluto.c'), false);
+    // e os casos válidos continuam aceitos: arquivo.ext e subdir/arquivo.ext
+    assert.equal(c.filePathPattern.test('solucao.c'), true);
+    assert.equal(c.filePathPattern.test('lib/util.h'), true);
   });
 });
 

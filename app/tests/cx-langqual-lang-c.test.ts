@@ -217,7 +217,7 @@ describe('c — (2) detect() e a degradação honesta', () => {
     }
   });
 
-  it.skip('BUG conhecido — fix em paralelo (onda1-fix-baseline): cDetect().version vem VAZIO com toolchain presente (c.ts:211 — versaoDoTexto não casa a saída "cc (GCC) …")', () => {
+  it('com toolchain presente: cDetect().version parseia o banner do compilador — versaoDoTexto casa "cc (GCC) …" (B1 corrigido)', () => {
     const d = cDetect();
     if (!d.ok) return;
     assert.match(d.version ?? '', /^\d+\.\d+/);
@@ -522,7 +522,7 @@ describe('c — (7) layout e caminho seguro de arquivo', () => {
     assert.ok(!C_SAFE_FILE_PATH_RE.test('x.c '), 'sem flag g — e sem espaço final');
   });
 
-  it.skip('BUG: C_SAFE_FILE_PATH_RE ACEITA caminho absoluto ("/etc/x.c") apesar do contrato de "qualquer escape do diretório de execução" — app/electron/main/engine/lang/c.ts:1292', () => {
+  it('C_SAFE_FILE_PATH_RE recusa caminho ABSOLUTO ("/etc/x.c") — escape do diretório de execução é proibido pelo contrato', () => {
     assert.ok(!C_SAFE_FILE_PATH_RE.test('/etc/x.c'), 'escape por caminho absoluto deveria ser proibido');
   });
 });

@@ -766,14 +766,15 @@ export function rsLayout(challenge: ChallengeLayoutInput): ChallengeLayout {
 // ---------------------------------------------------------------------------
 
 /**
- * Caminho SEGURO de arquivo de desafio Rust: letras/dígitos/`_`/`-`/`/`,
- * terminando em `.rs`. Proíbe `..`, ponto no meio e qualquer escape do
- * diretório de execução — a mesma forma do `JS_SAFE_FILE_PATH_RE`, com a
- * extensão trocada (§6 obs. 1).
+ * Caminho SEGURO de arquivo de desafio Rust: segmentos NÃO-VAZIOS de
+ * letras/dígitos/`_`/`-` separados por `/` único, terminando em `.rs`.
+ * Proíbe caminho ABSOLUTO (barra inicial), segmento vazio (`//`), `..`, ponto
+ * no meio e qualquer escape do diretório de execução — a mesma forma do
+ * `JS_SAFE_FILE_PATH_RE`, com a extensão trocada (§6 obs. 1).
  *
  * SEM a flag `g`: `RegExp` com `g` guarda `lastIndex` entre chamadas.
  */
-export const RS_SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.rs$/;
+export const RS_SAFE_FILE_PATH_RE = /^([a-zA-Z0-9_\-]+\/)*[a-zA-Z0-9_\-]+\.rs$/;
 
 // ---------------------------------------------------------------------------
 // (9) testCommand

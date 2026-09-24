@@ -151,16 +151,17 @@ export const TS_DEFAULT_RUNTIME = 'nodejs';
 // ---------------------------------------------------------------------------
 
 /**
- * Regex de caminho seguro: mesma gramática do JavaScript (só
- * letras/dígitos/`_`/`-`/`/`, proibindo `..` e ponto no meio), terminando em
- * `.ts`. §6 obs. 1: "`SAFE_FILE_PATH_RE` está travado em `.mjs`" — é
- * exatamente esta linha que destrava.
+ * Regex de caminho seguro: mesma gramática do JavaScript (segmentos
+ * NÃO-VAZIOS de letras/dígitos/`_`/`-` separados por `/` único, proibindo
+ * caminho ABSOLUTO (barra inicial), segmento vazio (`//`), `..` e ponto no
+ * meio), terminando em `.ts`. §6 obs. 1: "`SAFE_FILE_PATH_RE` está travado em
+ * `.mjs`" — é exatamente esta linha que destrava.
  *
  * SEM a flag `g`, pelo mesmo motivo do JavaScript: um `RegExp` com `g`
  * compartilhado guarda `lastIndex` entre chamadas e daria falso-negativo
  * alternado em `.test()`.
  */
-export const TS_SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.ts$/;
+export const TS_SAFE_FILE_PATH_RE = /^([a-zA-Z0-9_\-]+\/)*[a-zA-Z0-9_\-]+\.ts$/;
 
 /** O manifesto obrigatório do runtime. */
 export const TS_MANIFEST_PATH = 'package.json';
@@ -461,11 +462,18 @@ export function tsBuiltins(): ReadonlySet<string> {
  * `type Pessoa = …; function f(p: Pessoa)` deixaria `Pessoa` em `free` — um
  * nome livre FANTASMA, que é exatamente o defeito que o §7 proíbe ao dizer
  * "nunca promover uma linguagem a Tier A sem resolução de escopo".
+ *
+ * `EnumMember` fecha o defeito GÊMEO do `Cor`: o NOME do membro
+ * (`enum Cor { Vermelho }`) é declaração — sem cobri-lo, `Vermelho` caía em
+ * `free` como nome livre FANTASMA, candidato a global. A outra metade do fix
+ * está em `ehReferenciaDeValor` (`javascript.ts`), que trata `EnumMember.name`
+ * como posição de declaração e não de valor.
  */
 const TS_FORMAS_DECLARANTES: ReadonlySet<string> = new Set([
   'InterfaceDeclaration',
   'TypeAliasDeclaration',
   'EnumDeclaration',
+  'EnumMember',
   'ModuleDeclaration',
   'TypeParameter',
 ]);
@@ -475,8 +483,21 @@ const TS_FORMAS_DECLARANTES: ReadonlySet<string> = new Set([
  * (`forEachChild` visita os modificadores antes do nome, então
  * `export interface I` tem `ExportKeyword` como primeiro filho — daí procurar
  * pelo tipo, e não pegar `children[0]`.)
+ *
+ * `EnumMember` tem regra PRÓPRIA: só a POSIÇÃO DE NOME declara, e só quando o
+ * nome é `Identifier` (`forEachChild` visita `name` antes do `initializer`,
+ * logo o nome é `children[0]`). Nome string literal (`enum E { 'x' = FOO }`)
+ * e nome computado (`enum E { [K] = FOO }`) não declaram identificador nenhum
+ * — e o INICIALIZADOR é SEMPRE referência, nunca declaração: sem esta regra o
+ * primeiro `Identifier` filho era o inicializador e ele sumia de `free`,
+ * engolindo uma referência livre genuína. É a MESMA regra de
+ * `ehReferenciaDeValor` (`javascript.ts`): declaração ⇔ `parent.name === node`.
  */
 function nomeDeclarado(node: LangNode): string | null {
+  if (node.type === 'EnumMember') {
+    const nome = node.children[0];
+    return nome !== undefined && nome.type === 'Identifier' ? (nome.attributes.name ?? nome.text) : null;
+  }
   for (const filho of node.children) {
     if (filho.type === 'Identifier') return filho.attributes.name ?? filho.text;
   }
