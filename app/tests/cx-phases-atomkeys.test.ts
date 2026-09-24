@@ -138,28 +138,66 @@ describe('atomKeys — harnessReceptiveSeed e structuralAlwaysAllowed', () => {
     assert.deepEqual([...harnessReceptiveSeed('javascript')], [...HARNESS_RECEPTIVE_SEED]);
   });
 
-  it('typescript = semente JS MAIS as chaves de tipo; python/c/rust têm lista PRÓPRIA', () => {
+  it('typescript = semente JS MAIS as chaves de tipo; python/c/rust têm lista PRÓPRIA e DISTINTA entre si (python ≠ c ≠ rust ≠ js)', () => {
     const ts = harnessReceptiveSeed('typescript');
     assert.ok(ts.length > HARNESS_RECEPTIVE_SEED.length, 'TS = JS + chaves de tipo');
     for (const chave of HARNESS_RECEPTIVE_SEED) {
       assert.ok(ts.includes(chave), `TS herda ${chave} da semente JS`);
     }
-    for (const linguagem of ['python', 'c', 'rust'] as LanguageId[]) {
-      const seed = harnessReceptiveSeed(linguagem);
+    const sementes: Array<[LanguageId, readonly string[]]> = [
+      ['javascript', HARNESS_RECEPTIVE_SEED],
+      ['python', harnessReceptiveSeed('python')],
+      ['c', harnessReceptiveSeed('c')],
+      ['rust', harnessReceptiveSeed('rust')],
+    ];
+    for (const [linguagem, seed] of sementes) {
       assert.ok(seed.length > 0, `${linguagem} tem semente própria`);
       for (const chave of seed) assert.equal(isAtomKey(chave), true, `${linguagem}: ${chave}`);
     }
-    assert.notDeepEqual([...harnessReceptiveSeed('python')], [...HARNESS_RECEPTIVE_SEED], 'semear Python com o harness do Node é o que o gate não pode fazer');
+    // DISTINTAS ENTRE SI, par a par (não só vs JS): copiar a semente de uma
+    // linguagem para outra semeia o aluno com o harness errado. A comparação é
+    // sobre a lista ORDENADA — mesma lista em ordem diferente NÃO passa por
+    // distinta (a asserção é mais forte que o notDeepEqual sem sort).
+    for (let i = 0; i < sementes.length; i++) {
+      for (let j = i + 1; j < sementes.length; j++) {
+        const [la, sa] = sementes[i];
+        const [lb, sb] = sementes[j];
+        assert.notDeepEqual(
+          [...sa].sort(),
+          [...sb].sort(),
+          `semente ${la} ≠ semente ${lb} (semeiar uma linguagem com a tabela de outra é o que o gate não pode fazer)`,
+        );
+      }
+    }
+    assert.notDeepEqual([...harnessReceptiveSeed('python')].sort(), [...HARNESS_RECEPTIVE_SEED].sort(), 'semear Python com o harness do Node é o que o gate não pode fazer');
   });
 
-  it('estruturais: js e ts COMPARTILHAM a lista; python/c/rust têm a própria', () => {
+  it('estruturais: js e ts COMPARTILHAM a lista; python/c/rust têm a própria e DISTINTA entre si (python ≠ c ≠ rust ≠ js)', () => {
     const js = structuralAlwaysAllowed();
     assert.ok(js.length > 0);
     assert.deepEqual([...structuralAlwaysAllowed('typescript')], [...js], 'mesmo ts.SyntaxKind nos dois dialetos');
-    for (const linguagem of ['python', 'c', 'rust'] as LanguageId[]) {
-      const lista = structuralAlwaysAllowed(linguagem);
-      assert.ok(lista.length > 0);
-      assert.notDeepEqual([...lista], [...js], `${linguagem} não herda os nomes de nó do ts.SyntaxKind`);
+    const estruturais: Array<[LanguageId, readonly string[]]> = [
+      ['javascript', js],
+      ['python', structuralAlwaysAllowed('python')],
+      ['c', structuralAlwaysAllowed('c')],
+      ['rust', structuralAlwaysAllowed('rust')],
+    ];
+    for (const [linguagem, lista] of estruturais) {
+      assert.ok(lista.length > 0, `${linguagem} tem estruturais próprias`);
+    }
+    // DISTINTAS ENTRE SI, par a par (não só vs js): cada gramática tem os SEUS
+    // nomes de nó AST — copiar a lista de uma linguagem para outra não passa.
+    // Comparação sobre lista ORDENADA: mesma lista em ordem diferente reprova.
+    for (let i = 0; i < estruturais.length; i++) {
+      for (let j = i + 1; j < estruturais.length; j++) {
+        const [la, sa] = estruturais[i];
+        const [lb, sb] = estruturais[j];
+        assert.notDeepEqual(
+          [...sa].sort(),
+          [...sb].sort(),
+          `estruturais ${la} ≠ ${lb} (nomes de nó AST da PRÓPRIA gramática)`,
+        );
+      }
     }
   });
 

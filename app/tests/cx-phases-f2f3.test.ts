@@ -339,7 +339,7 @@ describe('F3-grafo — distância curta, poda por fecho e voto', () => {
     assert.equal(decidirVoto(['nao-sei', 'sim', 'sim']), 'sim');
   });
 
-  it('validarGrafoSemVisao ENTREGA violações (não lança): ciclo é violação; DAG não é', () => {
+  it('validarGrafoSemVisao ENTREGA violações (não lança): ciclo é violação COM CONTEÚDO (código I1 + refs do ciclo); DAG não é', () => {
     const semCiclo = montarGrafoDeNos([no({ chave_conceito: 'a' }), no({ chave_conceito: 'b' })]);
     assert.deepEqual(validarGrafoSemVisao(semCiclo.grafo), []);
 
@@ -347,7 +347,27 @@ describe('F3-grafo — distância curta, poda por fecho e voto', () => {
     comCiclo.grafo.conceitos[0].desbloqueadoPor.push('b' as ConceptId);
     comCiclo.grafo.conceitos[1].desbloqueadoPor.push('a' as ConceptId);
     const violacoes = validarGrafoSemVisao(comCiclo.grafo);
-    assert.ok(violacoes.length > 0, 'o ciclo é reportado como violação estrutural');
+    // CONTEÚDO da violação (não só "tem alguma"): o CÓDIGO da invariante (I1),
+    // os CAMPOS (refs = o caminho fechado do ciclo) e a mensagem que o nomeia.
+    // Um relato genérico/vazio não satisfaz mais este pin.
+    assert.deepEqual(violacoes, [
+      {
+        invariante: 'I1',
+        mensagem: 'o grafo não é um DAG: ciclo a → b → a (2 arestas fechando o ciclo)',
+        refs: ['a', 'b', 'a'],
+      },
+    ]);
+
+    // auto-dependência (a→a): a convenção do caminho fechado também é pinada.
+    const auto = montarGrafoDeNos([no({ chave_conceito: 'a' })]);
+    auto.grafo.conceitos[0].desbloqueadoPor.push('a' as ConceptId);
+    assert.deepEqual(validarGrafoSemVisao(auto.grafo), [
+      {
+        invariante: 'I1',
+        mensagem: 'o grafo não é um DAG: ciclo a → a (1 arestas fechando o ciclo)',
+        refs: ['a', 'a'],
+      },
+    ]);
   });
 
   it('fixa a identidade da chamada de julgamento (cache/timeout)', () => {

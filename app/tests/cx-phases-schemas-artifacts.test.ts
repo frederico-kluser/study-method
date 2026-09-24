@@ -7,8 +7,19 @@
  * documento prevê), enums FECHADOS (faixas, eixos, categorias, severidade,
  * catálogo de ações, provas do report), limites numéricos (answerIndex 0..3,
  * ≤3 assertions, ≤2 produtivas, apontamentos ≤12, confiança 0..1), a ORDEM
- * justificativa→decisão (INV-04, A-P04-2 — o lint varre esta ordem real) e o
- * SCHEMA_REGISTRY com seus 14 nomes + schemas lazy resolvíveis.
+ * justificativa→decisão (INV-04, A-P04-2 — o lint varre esta ordem real, e o
+ * pin aqui é por POSIÇÃO EXATA: campo ausente FALHA, índice −1 nunca passa) e
+ * o SCHEMA_REGISTRY com seus 14 nomes + schemas lazy resolvíveis.
+ *
+ * INV-05 é pinado com a REGRA do lint REAL (`encontrarCamposOpcionais`,
+ * schemas/fieldOrder.ts) — negar ZodOptional, ZodDefault e união-com-undefined
+ * em todo nó — e com COBERTURA SUPERSET: a varredura recursiva desce a árvore
+ * zod INTEIRA de TODO o SCHEMA_REGISTRY (topo, aninhados, arrays, tuplas INCLUINDO
+ * `rest`, records (chave E valor), uniões, catchall, effects, lazy) e ainda o
+ * que o lint atual NÃO desce (blind spots listados em
+ * `cx-phases-gap-lint-real.test.ts` — bug R, fix na Onda 3). INV-04 é pinado
+ * por POSIÇÃO EXATA em TODOS os pares decisão×justificativa reais do registro.
+ * Provas de mutação por fixture; produção intocada.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,6 +52,10 @@ import {
   SpanSchema,
   type SchemaRegistrado,
 } from '../electron/main/engine/schemas/artifacts';
+import {
+  DECISION_FIELD_NAMES,
+  JUSTIFICATION_FIELD_NAMES,
+} from '../electron/main/engine/schemas/fieldOrder';
 
 // ---------------------------------------------------------------------------
 // Builders — drafts VÁLIDOS; `over` corrige um campo por teste.
@@ -161,6 +176,21 @@ function report(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
+/**
+ * Posição EXATA de um campo na ordem de declaração do shape (INV-04) — e o
+ * campo AUSENTE FALHA: `indexOf` solto devolvia −1 e o "−1 < x" passava o
+ * campo ausente como ordenado. Aqui, ausente reprova nomeando o campo.
+ */
+function posicao(chaves: readonly string[], campo: string, contexto: string): number {
+  const indice = chaves.indexOf(campo);
+  assert.notEqual(
+    indice,
+    -1,
+    `${contexto}: campo obrigatório "${campo}" sumiu do shape — o par justificativa→decisão só é ordenável com os DOIS presentes`,
+  );
+  return indice;
+}
+
 // ---------------------------------------------------------------------------
 // 1. Compartilhados e ordem de campos (INV-04)
 // ---------------------------------------------------------------------------
@@ -177,22 +207,34 @@ describe('artifacts — compartilhados e INV-04 (justificativa ANTES da decisão
     assert.equal(SpanSchema.safeParse([10, 5]).success, true, 'o schema NÃO valida inversão (quem valida é o filtro R1)');
   });
 
-  it('a ORDEM real dos campos tem justificativa/motivo ANTES de aprovado/ação (o lint varre esta ordem)', () => {
+  it('a ORDEM real dos campos é PINADA por POSIÇÃO EXATA: justificativa/motivo antes de aprovado/ação, e campo AUSENTE falha', () => {
+    // INV-04 (A-P04-2): o lint `lintOrdemCampos` (schemas/fieldOrder.ts) varre
+    // ESTA ordem. A régua é a POSIÇÃO EXATA (helper `posicao`, acima — campo
+    // ausente FALHA, índice −1 nunca passa). Os índices exatos do par
+    // justificativa→decisão já implicam a ordem: 7 < 8 etc. Estes são os 5
+    // pares do DOCUMENTO (o de apontamento não está nas tabelas do lint); a
+    // seção 7 pinna TODOS os pares das tabelas do lint, em todo o registro.
+
     const chavesBrief = Object.keys(BriefSchema.shape);
-    assert.ok(chavesBrief.indexOf('justificativa') < chavesBrief.indexOf('aprovado'), 'brief: justificativa < aprovado');
+    assert.equal(posicao(chavesBrief, 'justificativa', 'brief'), 7, 'brief: justificativa na posição exata 7');
+    assert.equal(posicao(chavesBrief, 'aprovado', 'brief'), 8, 'brief: aprovado na posição exata 8');
 
     const chavesAula = Object.keys(LessonDraftSchema.shape);
-    assert.ok(chavesAula.indexOf('justificativa') < chavesAula.indexOf('role'), 'lesson: justificativa < role');
-    assert.ok(chavesAula.indexOf('justificativa') < chavesAula.indexOf('status'));
+    assert.equal(posicao(chavesAula, 'justificativa', 'lesson-draft'), 14, 'lesson: justificativa na posição exata 14');
+    assert.equal(posicao(chavesAula, 'role', 'lesson-draft'), 15, 'lesson: role na posição exata 15');
+    assert.equal(posicao(chavesAula, 'status', 'lesson-draft'), 16, 'lesson: status na posição exata 16');
 
     const chavesAcao = Object.keys(ActionsSchema.shape.acoes.element.shape);
-    assert.ok(chavesAcao.indexOf('motivo') < chavesAcao.indexOf('acao'), 'ações: motivo < acao');
+    assert.equal(posicao(chavesAcao, 'motivo', 'actions.acoes[]'), 3, 'ações: motivo na posição exata 3');
+    assert.equal(posicao(chavesAcao, 'acao', 'actions.acoes[]'), 4, 'ações: acao na posição exata 4');
 
     const chavesReport = Object.keys(ReportSchema.shape);
-    assert.ok(chavesReport.indexOf('justificativa') < chavesReport.indexOf('veredito'), 'report: justificativa < veredito');
+    assert.equal(posicao(chavesReport, 'justificativa', 'report'), 12, 'report: justificativa na posição exata 12');
+    assert.equal(posicao(chavesReport, 'veredito', 'report'), 13, 'report: veredito na posição exata 13');
 
     const chavesApontamento = Object.keys(ApontamentoSchema.shape);
-    assert.ok(chavesApontamento.indexOf('evidencia') < chavesApontamento.indexOf('defeito'), 'apontamento: evidência antes do julgamento');
+    assert.equal(posicao(chavesApontamento, 'evidencia', 'apontamento'), 4, 'apontamento: evidencia na posição exata 4');
+    assert.equal(posicao(chavesApontamento, 'defeito', 'apontamento'), 5, 'apontamento: defeito na posição exata 5');
   });
 });
 
@@ -522,8 +564,230 @@ describe('artifacts — Apontamento/Findings/Actions/Report', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. O registro (A-P04-2)
+// 7. O registro (A-P04-2) — INV-05 pela régua do lint REAL (árvore inteira)
 // ---------------------------------------------------------------------------
+
+/** Um nó opcional encontrado pela varredura recursiva (a regra do lint real). */
+type ProblemaOpcionalDeTeste = {
+  caminho: string;
+  tipo: 'ZodOptional' | 'ZodDefault' | 'uniao-com-undefined';
+};
+
+interface VarreduraZodDeTeste {
+  /** caminho de TODO nó visitado — prova de que a varredura ENTROU na árvore. */
+  visitados: string[];
+  opcionais: ProblemaOpcionalDeTeste[];
+}
+
+/** Um shape de objeto visitado na árvore (topo ou aninhado) e a ordem das chaves. */
+interface ShapeColetado {
+  registro: string;
+  caminho: string;
+  chaves: string[];
+}
+
+/** Um par real decisão×justificativa (tabelas do lint) com as posições EXATAS. */
+interface ParInv04Pinado {
+  registro: string;
+  caminho: string;
+  campo_decisao: string;
+  indice_decisao: number;
+  campo_justificativa: string;
+  indice_justificativa: number;
+}
+
+/**
+ * Teto fail-closed da varredura: árvore finita mas gigante estoura FALHANDO.
+ * Lazy DEGENERADO (getter que fabrica um schema novo a cada chamada) morre
+ * antes disso com RangeError de stack — também FALHA, nunca passa em silêncio;
+ * o teto existe para a falha sair nomeada quando a árvore for apenas vasta.
+ */
+const TETO_DE_NOS_DA_VARREDURA = 10_000;
+
+/**
+ * Nó zod SEM depender da identidade da classe: `instanceof z.ZodType` é FALSO
+ * quando o zod é carregado duas vezes (ESM×CJS — medido: `node -e` carrega
+ * cópia diferente do tsx e o instanceof nega tudo), o que faria a varredura
+ * pular a árvore inteira. O contrato real é `_def` + `safeParse`.
+ */
+function ehNoZod(valor: unknown): valor is z.ZodTypeAny {
+  return (
+    typeof valor === 'object' &&
+    valor !== null &&
+    typeof (valor as { safeParse?: unknown }).safeParse === 'function' &&
+    typeof (valor as { _def?: unknown })._def === 'object'
+  );
+}
+
+/**
+ * CAMINHADA RECURSIVA da árvore zod INTEIRA — SUPERSET da régua do lint real
+ * (`caminhar`/`encontrarCamposOpcionais`, schemas/fieldOrder.ts). Desce objeto
+ * (shape + catchall), array, tupla (`items` E `rest` — o repro do revisor),
+ * record (chave E valor), lazy (getter resolvido) e, pelo fallback genérico
+ * que roda SEMPRE no fim, TODO filho zod guardado em `_def`: `options` de
+ * união (array e `optionsMap` de discriminated), `innerType`, `type`, `schema`,
+ * `left`/`right`, `in`/`out`… O que um caso explícito esquecer não escapa —
+ * exatamente o que já escapou do lint (ver blind spots documentados em
+ * `cx-phases-gap-lint-real.test.ts` — bug R).
+ */
+function caminharZod(
+  raiz: unknown,
+  visitarNo: (schema: z.ZodTypeAny, caminho: string, tipo: string) => void,
+): void {
+  const vistos = new Set<z.ZodTypeAny>();
+  let nos = 0;
+
+  const descer = (no: unknown, caminho: string): void => {
+    if (!ehNoZod(no) || vistos.has(no)) return;
+    vistos.add(no);
+    nos += 1;
+    if (nos > TETO_DE_NOS_DA_VARREDURA) {
+      throw new Error(`varredura zod estourou o teto de ${TETO_DE_NOS_DA_VARREDURA} nós — árvore degenerada?`);
+    }
+
+    const def = (no._def ?? {}) as Record<string, unknown> & { typeName?: string };
+    const tipo = def.typeName ?? 'desconhecido';
+    visitarNo(no, caminho, tipo);
+
+    switch (tipo) {
+      case 'ZodObject':
+        for (const [chave, filho] of Object.entries((no as z.ZodObject<z.ZodRawShape>).shape)) {
+          descer(filho, caminho === '' ? chave : `${caminho}.${chave}`);
+        }
+        break;
+      case 'ZodLazy':
+        descer((def as { getter: () => unknown }).getter(), caminho);
+        break;
+      case 'ZodArray':
+        descer(def.type, `${caminho}[]`);
+        break;
+      case 'ZodTuple':
+        for (const item of ((def.items as unknown[] | undefined) ?? [])) descer(item, `${caminho}[]`);
+        descer(def.rest, `${caminho}[]`);
+        break;
+      case 'ZodRecord':
+        descer(def.keyType, `${caminho}{}`);
+        descer(def.valueType, `${caminho}[]`);
+        break;
+      default:
+        break;
+    }
+
+    // Fallback genérico SEMPRE (idempotente — `vistos` impede duplicata): todo
+    // filho zod guardado em `_def` (arrays, Maps de `optionsMap`, `innerType`,
+    // `catchall`, `left`/`right`, `in`/`out`…) também desce. Os casos
+    // explícitos acima só acertam o FORMATO do caminho; nada fica de fora.
+    for (const valor of Object.values(def)) {
+      if (Array.isArray(valor)) {
+        for (const item of valor) descer(item, caminho);
+      } else if (valor instanceof Map) {
+        for (const item of valor.values()) descer(item, caminho);
+      } else {
+        descer(valor, caminho);
+      }
+    }
+  };
+
+  descer(raiz, '');
+}
+
+/**
+ * INV-05 — varredura dos OPCIONAIS pela mesma regra do lint real (cobertura
+ * superset): ZodOptional, ZodDefault e união-com-undefined em QUALQUER nó.
+ * `z.null()` em união NÃO é opcional (é vazio EXPLÍCITO).
+ */
+function varrerOpcionais(raiz: z.ZodTypeAny): VarreduraZodDeTeste {
+  const visitados: string[] = [];
+  const opcionais: ProblemaOpcionalDeTeste[] = [];
+  caminharZod(raiz, (no, caminho, tipo) => {
+    const exibido = caminho === '' ? '(raiz)' : caminho;
+    visitados.push(exibido);
+    const def = no._def as Record<string, unknown>;
+    if (tipo === 'ZodOptional') {
+      opcionais.push({ caminho: exibido, tipo: 'ZodOptional' });
+    } else if (tipo === 'ZodDefault') {
+      opcionais.push({ caminho: exibido, tipo: 'ZodDefault' });
+    } else if (tipo === 'ZodUnion' || tipo === 'ZodDiscriminatedUnion') {
+      const opcoes: unknown[] = Array.isArray(def.options)
+        ? def.options
+        : def.options instanceof Map
+          ? [...def.options.values()]
+          : [];
+      const aceitaUndefined = opcoes.some(
+        (opcao) => ehNoZod(opcao) && (opcao._def as { typeName?: string }).typeName === 'ZodUndefined',
+      );
+      if (aceitaUndefined) opcionais.push({ caminho: exibido, tipo: 'uniao-com-undefined' });
+    }
+  });
+  return { visitados, opcionais };
+}
+
+/** Todos os shapes de objeto do registro — topo e aninhados, lazy inclusos. */
+function coletarShapesDoRegistro(): ShapeColetado[] {
+  const shapes: ShapeColetado[] = [];
+  for (const { nome, schema } of SCHEMA_REGISTRY) {
+    caminharZod(schema, (no, caminho, tipo) => {
+      if (tipo === 'ZodObject') {
+        shapes.push({
+          registro: nome,
+          caminho: caminho === '' ? '(raiz)' : caminho,
+          chaves: Object.keys((no as z.ZodObject<z.ZodRawShape>).shape),
+        });
+      }
+    });
+  }
+  return shapes;
+}
+
+/**
+ * INV-04 — todos os pares reais decisão×justificativa das TABELAS DO LINT
+ * (`DECISION_FIELD_NAMES` × `JUSTIFICATION_FIELD_NAMES`, fieldOrder.ts), na
+ * ordem de varredura do lint (justificativa por fora, decisão por dentro).
+ */
+function derivarParesInv04(): ParInv04Pinado[] {
+  const pares: ParInv04Pinado[] = [];
+  for (const { registro, caminho, chaves } of coletarShapesDoRegistro()) {
+    for (const campo_justificativa of JUSTIFICATION_FIELD_NAMES) {
+      const indice_justificativa = chaves.indexOf(campo_justificativa);
+      if (indice_justificativa === -1) continue;
+      for (const campo_decisao of DECISION_FIELD_NAMES) {
+        const indice_decisao = chaves.indexOf(campo_decisao);
+        if (indice_decisao === -1) continue;
+        pares.push({ registro, caminho, campo_decisao, indice_decisao, campo_justificativa, indice_justificativa });
+      }
+    }
+  }
+  return pares;
+}
+
+/**
+ * GOLDEN MASTER dos 21 pares decisão×justificativa reais do SCHEMA_REGISTRY
+ * (derivados pela função acima; ordem = ordem de varredura do lint). Mudança
+ * de posição, campo SUMIDO ou par novo reprova o teste da seção 7.
+ */
+const PARES_INV04: readonly ParInv04Pinado[] = [
+  { registro: 'brief', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 8, campo_justificativa: 'justificativa', indice_justificativa: 7 },
+  { registro: 'concepts', caminho: 'conceitos[]', campo_decisao: 'atomico', indice_decisao: 11, campo_justificativa: 'raciocinio_de_projeto', indice_justificativa: 10 },
+  { registro: 'graph', caminho: 'arestas_duras[]', campo_decisao: 'aprovado', indice_decisao: 3, campo_justificativa: 'justificativa', indice_justificativa: 2 },
+  { registro: 'graph', caminho: 'arestas_de_uso[]', campo_decisao: 'aprovado', indice_decisao: 3, campo_justificativa: 'evidencia', indice_justificativa: 2 },
+  { registro: 'graph', caminho: 'aulas[]', campo_decisao: 'aprovado', indice_decisao: 4, campo_justificativa: 'justificativa', indice_justificativa: 2 },
+  { registro: 'graph', caminho: 'aulas[]', campo_decisao: 'role', indice_decisao: 3, campo_justificativa: 'justificativa', indice_justificativa: 2 },
+  { registro: 'order', caminho: 'modulos[]', campo_decisao: 'aprovado', indice_decisao: 3, campo_justificativa: 'justificativa', indice_justificativa: 2 },
+  { registro: 'lesson-draft', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 17, campo_justificativa: 'justificativa', indice_justificativa: 14 },
+  { registro: 'lesson-draft', caminho: '(raiz)', campo_decisao: 'role', indice_decisao: 15, campo_justificativa: 'justificativa', indice_justificativa: 14 },
+  { registro: 'lesson-draft', caminho: '(raiz)', campo_decisao: 'status', indice_decisao: 16, campo_justificativa: 'justificativa', indice_justificativa: 14 },
+  { registro: 'challenge-draft', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 20, campo_justificativa: 'justificativa', indice_justificativa: 19 },
+  { registro: 'actions', caminho: 'acoes[]', campo_decisao: 'acao', indice_decisao: 4, campo_justificativa: 'motivo', indice_justificativa: 3 },
+  { registro: 'report', caminho: '(raiz)', campo_decisao: 'veredito', indice_decisao: 13, campo_justificativa: 'justificativa', indice_justificativa: 12 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 18, campo_justificativa: 'justificativa', indice_justificativa: 15 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'role', indice_decisao: 16, campo_justificativa: 'justificativa', indice_justificativa: 15 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'status', indice_decisao: 17, campo_justificativa: 'justificativa', indice_justificativa: 15 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 18, campo_justificativa: 'raciocinio_de_projeto', indice_justificativa: 0 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'role', indice_decisao: 16, campo_justificativa: 'raciocinio_de_projeto', indice_justificativa: 0 },
+  { registro: 'author-output', caminho: '(raiz)', campo_decisao: 'status', indice_decisao: 17, campo_justificativa: 'raciocinio_de_projeto', indice_justificativa: 0 },
+  { registro: 'desafio-author-output', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 21, campo_justificativa: 'justificativa', indice_justificativa: 20 },
+  { registro: 'desafio-author-output', caminho: '(raiz)', campo_decisao: 'aprovado', indice_decisao: 21, campo_justificativa: 'raciocinio_de_projeto', indice_justificativa: 0 },
+];
 
 describe('artifacts — SCHEMA_REGISTRY', () => {
   it('fixa os 14 nomes de artefato na ordem do registro', () => {
@@ -554,18 +818,132 @@ describe('artifacts — SCHEMA_REGISTRY', () => {
     }
   });
 
-  it('INV-05: nenhum campo de nenhum schema do registro é `.optional()`', () => {
+  it('INV-05: varredura RECURSIVA da árvore zod de TODO o SCHEMA_REGISTRY — nada é ZodDefault, ZodOptional nem união-com-undefined', () => {
+    // REGRA DO LINT REAL (`encontrarCamposOpcionais`, schemas/fieldOrder.ts):
+    // negar ZodOptional, ZodDefault e união-com-undefined em todo nó. A
+    // COBERTURA aqui é SUPERSET do lint (a varredura desce também tuple-rest,
+    // record-key, catchall, readonly/interseção/pipeline/discriminatedUnion —
+    // os blind spots que o lint atual NÃO desce, listados em
+    // `cx-phases-gap-lint-real.test.ts`, bug R). A árvore é INTEIRA: os 14
+    // registros, lazy resolvidos (author-output e desafio-author-output) e
+    // nós de EFEITO (`z.preprocess`), que o pin antigo pulava por não ter
+    // `shape`. Ausência semanticamente válida é valor vazio EXPLÍCITO
+    // materializado por `z.preprocess` (ex.: assertions → [], sectionId → "")
+    // ou `z.null()` em união — nunca `.optional()`, `.default()` ou
+    // `undefined` em união.
+    //
+    // PROVA DE MUTAÇÃO (sem tocar produção): adicionar `z.string().default('')`
+    // — ou `.optional()`, ou `z.union([z.string(), z.undefined()])`, ou
+    // `.rest(...optional)` em tupla — em QUALQUER nó de QUALQUER schema do
+    // registro reprova ESTE teste, como provam as fixtures dos testes seguintes.
     for (const { nome, schema } of SCHEMA_REGISTRY) {
-      const shape = (schema as unknown as { shape?: Record<string, unknown> }).shape;
-      if (shape === undefined) continue; // schemas lazy/efeito — varridos pelo lint de campo
-      for (const [campo, def] of Object.entries(shape)) {
-        // A INVARIANTE é "nada é ZodOptional": ausência semanticamente válida
-        // usa z.preprocess → valor vazio explícito (ex.: assertions → []).
-        assert.ok(
-          !(def instanceof z.ZodOptional),
-          `${nome}.${campo} não pode ser .optional() (INV-05)`,
-        );
-      }
+      const { visitados, opcionais } = varrerOpcionais(schema);
+      assert.deepEqual(opcionais, [], `${nome}: nenhum nó da árvore zod pode ser opcional (INV-05)`);
+      assert.ok(
+        visitados.length >= 5,
+        `${nome}: a varredura precisa ENTRAR na árvore inteira (lazy/efeito inclusos) — visitou só ${visitados.length} nó(s)`,
+      );
     }
+  });
+
+  it('INV-05 (prova de mutação): a varredura reprova `.default()`, `.optional()` aninhado, união-com-undefined e o mesmo sob array/tupla/record/lazy/efeito', () => {
+    // Se alguém adicionar `z.string().default('')` num schema real, o pin acima
+    // reprova EXATAMENTE como este fixture reprova aqui.
+    const casos: Array<[string, z.ZodTypeAny, ProblemaOpcionalDeTeste[]]> = [
+      [
+        'a mutação `z.string().default(\'\')` num campo de objeto reprova',
+        z.object({ campo: z.string().default('') }),
+        [{ caminho: 'campo', tipo: 'ZodDefault' }],
+      ],
+      [
+        'a MESMA mutação num schema REAL derivado do registro (BriefSchema.extend) reprova',
+        BriefSchema.extend({ apelido: z.string().default('') }),
+        [{ caminho: 'apelido', tipo: 'ZodDefault' }],
+      ],
+      [
+        '.optional() ANINHADO (objeto.dentro.array[]) reprova',
+        z.object({ aninhado: z.object({ dentro: z.array(z.string().optional()) }) }),
+        [{ caminho: 'aninhado.dentro[]', tipo: 'ZodOptional' }],
+      ],
+      [
+        'união-com-undefined sob LAZY reprova (o getter resolve e a árvore entra)',
+        z.lazy(() => z.object({ escondido: z.union([z.string(), z.undefined()]) })),
+        [{ caminho: 'escondido', tipo: 'uniao-com-undefined' }],
+      ],
+      [
+        '`.default()` sob EFEITO (z.preprocess) reprova (efeito não esconde)',
+        z.preprocess((v: unknown) => v, z.object({ d: z.string().default('x') })),
+        [{ caminho: 'd', tipo: 'ZodDefault' }],
+      ],
+      [
+        'opcional em elemento de TUPLA reprova',
+        z.object({ t: z.tuple([z.string(), z.number().optional()]) }),
+        [{ caminho: 't[]', tipo: 'ZodOptional' }],
+      ],
+      [
+        'opcional no REST de tupla reprova (repro do revisor: z.tuple([...]).rest(z.string().optional()))',
+        z.object({ t: z.tuple([z.string()]).rest(z.string().optional()) }),
+        [{ caminho: 't[]', tipo: 'ZodOptional' }],
+      ],
+      [
+        'opcional sob INTERSEÇÃO reprova (o lint atual NÃO pega — superset)',
+        z.intersection(z.object({ a: z.string() }), z.object({ b: z.string().optional() })),
+        [{ caminho: 'b', tipo: 'ZodOptional' }],
+      ],
+      [
+        'default em valor de RECORD reprova',
+        z.object({ r: z.record(z.string().default('')) }),
+        [{ caminho: 'r[]', tipo: 'ZodDefault' }],
+      ],
+      [
+        'optional na RAIZ reprova',
+        z.object({ x: z.string() }).optional(),
+        [{ caminho: '(raiz)', tipo: 'ZodOptional' }],
+      ],
+    ];
+    for (const [rotulo, schema, esperado] of casos) {
+      assert.deepEqual(varrerOpcionais(schema).opcionais, esperado, rotulo);
+    }
+  });
+
+  it('INV-05 (controle negativo): `z.null()` em união e o `z.preprocess` de vazio explícito NÃO são opcionais', () => {
+    assert.deepEqual(varrerOpcionais(z.object({ e: z.union([z.string(), z.null()]) })).opcionais, [], 'null explícito é permitido');
+    assert.deepEqual(
+      varrerOpcionais(z.object({ a: z.preprocess((v: unknown) => (v === undefined ? [] : v), z.array(z.string())) })).opcionais,
+      [],
+      'o idioma do projeto (ausência → vazio explícito) não é opcionalidade',
+    );
+    assert.deepEqual(varrerOpcionais(z.object({ a: z.string() })).opcionais, []);
+  });
+
+  it('INV-04: TODOS os pares decisão×justificativa do registro (tabelas do lint) têm posição EXATA e campo ausente reprova', () => {
+    // O pin clássico da seção 1 cobre os 5 pares do DOCUMENTO; ESTE cobre TODOS
+    // os pares reais das tabelas do lint (`DECISION_FIELD_NAMES` ×
+    // `JUSTIFICATION_FIELD_NAMES`) em TODOS os shapes — topo e aninhados — dos
+    // 14 registros, lazy inclusos. Bug R (registrado; fix na Onda 3): o lint
+    // real `continue`s no `indexOf === -1` (fieldOrder.ts:177-180) — campo
+    // AUSENTO de um par não pinado some do relato em silêncio (ex.: remover
+    // `raciocinio_de_projeto` de ConceitoAtomicoSchema ou `justificativa` de
+    // OrderSchema.modulos). Este pin fecha o furo no lado do teste: para cada
+    // par ESPERADO, os DOIS campos precisam EXISTIR (helper `posicao` falha
+    // nomeando o ausente) e ocupar a posição EXATA; e o conjunto derivado
+    // precisa bater INTEIRO — par sumido, par novo ou posição mudada reprova.
+    const shapes = coletarShapesDoRegistro();
+    for (const par of PARES_INV04) {
+      const contexto = `${par.registro}@${par.caminho}`;
+      const shape = shapes.find((s) => s.registro === par.registro && s.caminho === par.caminho);
+      assert.ok(shape !== undefined, `${contexto}: shape do par sumiu da árvore do registro`);
+      assert.equal(
+        posicao(shape.chaves, par.campo_justificativa, contexto),
+        par.indice_justificativa,
+        `${contexto}: posição exata da justificativa "${par.campo_justificativa}"`,
+      );
+      assert.equal(
+        posicao(shape.chaves, par.campo_decisao, contexto),
+        par.indice_decisao,
+        `${contexto}: posição exata da decisão "${par.campo_decisao}"`,
+      );
+    }
+    assert.deepEqual(derivarParesInv04(), PARES_INV04, 'o conjunto INTEIRO de pares decisão×justificativa do registro é o golden master');
   });
 });
