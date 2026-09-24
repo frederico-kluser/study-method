@@ -247,7 +247,9 @@ describe('memory-compact.sh — gatilho, resumo e protocolo REQUEST/APPLY (§6)'
     await fsp.writeFile(path.join(sb.setup, 'memory', '0001.json'), SESSAO_BRUTA, 'utf8');
     await fsp.writeFile(path.join(sb.setup, 'memory', 'INDEX.json'), INDEX_COM_SESSAO, 'utf8');
 
-    const antes = await listarArquivos(sb.setup);
+    // RA-1 cobre os DOIS universos: a árvore do setup e o STUDY_METHOD_HOME
+    // (escrita em registry/lock do home também seria rastro da fase de PEDIDO).
+    const antes = { setup: await listarArquivos(sb.setup), home: await listarArquivos(sb.home) };
     const r = sb.script('memory-compact.sh', [sb.setup, '--force']);
     assert.equal(r.status, 10, 'needs_model_input é o único caminho do pedido');
     const envelope = JSON.parse(r.stdout) as Record<string, unknown>;
@@ -274,7 +276,11 @@ describe('memory-compact.sh — gatilho, resumo e protocolo REQUEST/APPLY (§6)'
     assert.equal(payload.request_kind, 'memory_compact');
 
     // RA-1: a fase de PEDIDO não escreve nada — nem lock, nem tmp, nem log
-    assert.deepEqual(await listarArquivos(sb.setup), antes, 'RA-1: nada escrito na fase de PEDIDO');
+    assert.deepEqual(
+      { setup: await listarArquivos(sb.setup), home: await listarArquivos(sb.home) },
+      antes,
+      'RA-1: nada escrito na fase de PEDIDO em NENHUM dos dois universos (árvore do setup e STUDY_METHOD_HOME)',
+    );
     await sb.rm();
   });
 
@@ -291,7 +297,7 @@ describe('memory-compact.sh — gatilho, resumo e protocolo REQUEST/APPLY (§6)'
     await sb.rm();
   });
 
-  it('RA-2/RESP-4: --apply com request_id divergente ou kind divergente → exit 5, nada aplicado', async () => {
+  it('RA-2/RESP-4 só no kind compact_facts (memory-compact.sh): --apply com request_id divergente ou kind divergente → exit 5, nada aplicado', async () => {
     const sb = await makeSandbox(true);
     await fsp.mkdir(path.join(sb.setup, 'memory'), { recursive: true });
     await fsp.writeFile(path.join(sb.setup, 'memory', '0001.json'), SESSAO_BRUTA, 'utf8');
@@ -332,13 +338,18 @@ describe('memory-compact.sh — gatilho, resumo e protocolo REQUEST/APPLY (§6)'
   });
 });
 
+/**
+ * Snapshot de caminhos (recursivo) para asserção de NÃO-CRIAÇÃO antes/depois.
+ * Inclui ARQUIVOS **e DIRETÓRIOS** — inclusive os vazios (classe do artefato
+ * `emulador-ambiente.XXXXXX` que `mktemp -d` deixa em TMPDIR).
+ */
 async function listarArquivos(raiz: string): Promise<string[]> {
   const achados: string[] = [];
   async function walk(dir: string): Promise<void> {
     for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
+      achados.push(path.relative(raiz, p));
       if (e.isDirectory()) await walk(p);
-      else achados.push(path.relative(raiz, p));
     }
   }
   await walk(raiz);

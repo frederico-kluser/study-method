@@ -29,6 +29,24 @@ const GATES = [
   'gate-bash32.sh',
 ];
 
+/**
+ * Snapshot de caminhos (recursivo) para asserção de NÃO-CRIAÇÃO antes/depois.
+ * Inclui ARQUIVOS **e DIRETÓRIOS** — inclusive os vazios, que é exatamente o
+ * artefato que `mktemp -d` (tools/emulador-ambiente.sh:658) deixa em TMPDIR.
+ */
+async function listarArquivos(raiz: string): Promise<string[]> {
+  const achados: string[] = [];
+  async function walk(dir: string): Promise<void> {
+    for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      achados.push(path.relative(raiz, p));
+      if (e.isDirectory()) await walk(p);
+    }
+  }
+  await walk(raiz);
+  return achados.sort();
+}
+
 describe('tests/gate-*.sh e tests/validate.sh — contrato de CLI dos gates', () => {
   it('--help sai 0 em todos os gates; argumento desconhecido sai 2 (exceto gate-bash32, cujos args são alvos)', async () => {
     const sb = await makeSandbox(false);
@@ -135,21 +153,45 @@ describe('tools/emulador-ambiente.sh — precheck do emulador Docker (rede fora 
 
   it('precheck: docker ausente → exit 1 com remédio, ANTES de criar qualquer coisa', async () => {
     const sb = await makeSandbox(false);
-    // PATH mínimo sem docker: o precheck reprova o ambiente e nada é criado
-    const r = sb.sh(`
-      set -e
-      PATH_MIN="${sb.dir}/bin-min"
-      mkdir -p "$PATH_MIN"
-      for c in bash sh sed grep awk ls cat mkdir rm cp mv touch stat date env python3 timeout sort head tail tr cut wc dirname basename uname id find xargs mktemp chmod cmp diff; do
-        p="$(command -v "$c" 2>/dev/null)" && ln -sfn "$p" "$PATH_MIN/$c"
-      done
-      export PATH="$PATH_MIN"
-      bash "${TOOLS_DIR}/emulador-ambiente.sh" && exit 99 || rc=$?
-      echo "rc=$rc"
-    `);
-    assert.match(r.stdout, /rc=1/, `saida: ${r.stdout} ${r.stderr}`);
-    assert.match(r.stderr, /docker não está no PATH/);
-    await sb.rm();
+    try {
+      // PATH mínimo sem docker: o precheck reprova o ambiente e nada é criado
+      const preparo = sb.sh(`
+        set -e
+        PATH_MIN="${sb.dir}/bin-min"
+        mkdir -p "$PATH_MIN"
+        for c in bash sh sed grep awk ls cat mkdir rm cp mv touch stat date env python3 timeout sort head tail tr cut wc dirname basename uname id find xargs mktemp chmod cmp diff; do
+          p="$(command -v "$c" 2>/dev/null)" && ln -sfn "$p" "$PATH_MIN/$c"
+        done
+      `);
+      assert.equal(preparo.status, 0, `saida: ${preparo.stdout} ${preparo.stderr}`);
+      await fsp.mkdir(path.join(sb.dir, 'tmp-emul'), { recursive: true });
+
+      // NÃO-CRIAÇÃO (o título promete "ANTES de criar qualquer coisa"): os DOIS
+      // universos — a árvore de tmp e a de $STUDY_METHOD_HOME — têm de sair
+      // IDÊNTICOS, inclusive quanto a DIRETÓRIOS vazios: o `mktemp -d` dos artefatos
+      // (`emulador-ambiente.XXXXXX`, tools/emulador-ambiente.sh:658) nasce VAZIO em
+      // TMPDIR e era justamente o artefato que escapava do snapshot de só-arquivos.
+      // Sem artefato, sem relatório, sem registry, sem .registry.lock.
+      const antes = {
+        dir: await listarArquivos(sb.dir),
+        home: await listarArquivos(sb.home),
+      };
+      const r = sb.sh(`
+        export PATH="${sb.dir}/bin-min"
+        export TMPDIR="${sb.dir}/tmp-emul"
+        bash "${TOOLS_DIR}/emulador-ambiente.sh" && exit 99 || rc=$?
+        echo "rc=$rc"
+      `);
+      assert.match(r.stdout, /rc=1/, `saida: ${r.stdout} ${r.stderr}`);
+      assert.match(r.stderr, /docker não está no PATH/);
+      assert.deepEqual(
+        { dir: await listarArquivos(sb.dir), home: await listarArquivos(sb.home) },
+        antes,
+        'nada foi criado: o precheck reprova ANTES do mktemp dos artefatos (inclusive dir vazio), do relatório e de qualquer escrita',
+      );
+    } finally {
+      await sb.rm();
+    }
   });
 });
 
