@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-leitor-do-diario",
+  "title": "O leitor do diário",
+  "concept": "ler_do_arquivo",
+  "difficulty": 4,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O leitor do diário\n\nEscreva a função `oLeitorDoDiario` — ela não recebe nada e devolve um `int`.\n\nO que ela faz:\n\n1. abre o `diario.txt` no modo `\"r\"`; se o `fopen` devolveu `NULL`, devolve `0`;\n2. abre o `numerado.txt` no modo `\"w\"`;\n3. lê o diário **linha por linha** com `fgets` até não haver mais linha;\n4. grava cada linha no `numerado.txt` com o número dela na frente;\n5. fecha os dois cadernos e devolve **quantas linhas leu**.\n\nSe o `diario.txt` for este:\n\n```text\nacordei\nestudei C\ndormi\n```\n\no `numerado.txt` tem de ficar assim, e a função devolve `3`:\n\n```text\n1: acordei\n2: estudei C\n3: dormi\n```\n\nAtenção ao formato: é o número, dois-pontos, um espaço e a linha lida. Como o `fgets` já trouxe o fim de linha junto, o seu `fprintf` **não** precisa acrescentar outro.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao oLeitorDoDiario inteira:\n\n       int oLeitorDoDiario(void)\n\n   abre diario.txt em \"r\" e numerado.txt em \"w\", le o diario linha por\n   linha com fgets ate vir NULL, grava cada linha numerada com fprintf\n   (\"%d: %s\" — o fgets ja trouxe o fim de linha), fecha os dois cadernos\n   e devolve quantas linhas leu. Devolva 0 se o diario nao abrir. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-leitor-do-diario — counter_protocol (03-tdd 3.9.3).\n   Canal retorno: nenhuma captura de stdout. O teste MONTA o diario.txt que\n   o aluno vai ler e deixa o numerado.txt vazio antes de chamar — assim os\n   dois fopen de leitura nunca devolvem NULL, e quem nao grava nada reprova\n   pelo sentinel, sem derrubar o teste. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oLeitorDoDiario(void);\n\nSM_TEST(tres_linhas_numeradas) {\n    FILE *entrada = fopen(\"diario.txt\", \"w\");\n    fprintf(entrada, \"acordei\\nestudei C\\ndormi\\n\");\n    fclose(entrada);\n    FILE *semente = fopen(\"numerado.txt\", \"w\");\n    fclose(semente);\n\n    checa_int(\"o leitor devolve 3\", oLeitorDoDiario(), 3,\n              \"o diario tem tres linhas: o fgets le uma por vez ate acabar\");\n\n    FILE *f = fopen(\"numerado.txt\", \"r\");\n    char linha[200] = \"(nada numerado)\";\n    fgets(linha, 200, f);\n    checa_str(\"a linha 1 numerada\", linha, \"1: acordei\\n\",\n              \"a primeira linha lida sai com o numero 1 na frente\");\n    fgets(linha, 200, f);\n    checa_str(\"a linha 2 numerada\", linha, \"2: estudei C\\n\",\n              \"o numero acompanha a ordem em que as linhas foram lidas\");\n    fgets(linha, 200, f);\n    checa_str(\"a linha 3 numerada\", linha, \"3: dormi\\n\",\n              \"o texto de cada linha sai igual ao do diario, sem perder nada\");\n    char fim[200] = \"(nada numerado)\";\n    fgets(fim, 200, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada numerado)\",\n              \"o laco para no NULL do fgets: nenhuma linha extra e gravada\");\n    fclose(f);\n}\n\nSM_TEST(um_diario_de_uma_linha_so) {\n    FILE *entrada = fopen(\"diario.txt\", \"w\");\n    fprintf(entrada, \"so um registro\\n\");\n    fclose(entrada);\n    FILE *semente = fopen(\"numerado.txt\", \"w\");\n    fclose(semente);\n\n    checa_int(\"o leitor devolve 1\", oLeitorDoDiario(), 1,\n              \"o que volta e a contagem do que foi lido, nao um numero fixo\");\n\n    FILE *f = fopen(\"numerado.txt\", \"r\");\n    char linha[200] = \"(nada numerado)\";\n    fgets(linha, 200, f);\n    checa_str(\"a unica linha numerada\", linha, \"1: so um registro\\n\",\n              \"com uma linha so, a numeracao comeca e termina no 1\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint oLeitorDoDiario(void) {\n    FILE *entrada = fopen(\"diario.txt\", \"r\");\n    if (entrada == NULL) {\n        return 0;\n    }\n    FILE *saida = fopen(\"numerado.txt\", \"w\");\n    if (saida == NULL) {\n        fclose(entrada);\n        return 0;\n    }\n    char linha[200] = \"\";\n    int n = 0;\n    while (1) {\n        if (fgets(linha, 200, entrada) == NULL) {\n            break;\n        }\n        n = n + 1;\n        fprintf(saida, \"%d: %s\", n, linha);\n    }\n    fclose(saida);\n    fclose(entrada);\n    return n;\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "tres_linhas_numeradas",
+      "teste": "tres_linhas_numeradas",
+      "descricao": "com um diario de tres linhas, oLeitorDoDiario devolve 3 e grava no numerado.txt as tres linhas com o numero na frente, sem linha extra"
+    },
+    {
+      "id": "um_diario_de_uma_linha_so",
+      "teste": "um_diario_de_uma_linha_so",
+      "descricao": "com um diario de uma linha so, oLeitorDoDiario devolve 1 e numera essa unica linha — a contagem vem do que foi lido, nao de um numero fixo"
+    }
+  ]
+}

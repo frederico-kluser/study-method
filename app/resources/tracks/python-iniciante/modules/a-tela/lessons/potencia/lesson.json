@@ -66,6 +66,11 @@
       "title": "Expressões — as contas da linguagem",
       "url": "https://docs.python.org/3/reference/expressions.html",
       "description": "A referência oficial dos operadores de conta do Python."
+    },
+    {
+      "title": "Numeric Types — int, float, complex (Built-in Types)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex",
+      "description": "A tabela oficial das operações numéricas tem a linha `x ** y` (x elevado a y), separada da linha `x * y` do produto."
     }
   ],
   "challenges": [

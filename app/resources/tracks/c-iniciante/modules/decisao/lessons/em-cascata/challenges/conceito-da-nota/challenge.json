@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "conceito-da-nota",
+  "title": "O conceito da nota",
+  "concept": "a_cascata_de_faixas",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O conceito da nota\n\nA função `conceitoDaNota` lê a nota digitada pela pessoa e imprime o conceito dela, numa linha só:\n\n| nota | conceito |\n|---|---|\n| 9 ou 10 | `A` |\n| 7 ou 8 | `B` |\n| 5 ou 6 | `C` |\n| abaixo de 5 | `D` |\n\nCom a nota `7` a saída é exatamente:\n\n```text\nB\n```\n\nA leitura com `scanf` e a **primeira faixa** já estão escritas. Continue a cascata: um `else if` para o `B`, outro para o `C` e o `else` final para o `D`.\n\nEscreva as faixas da mais exigente para a menos exigente — na cascata, roda só a primeira que casa.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* conceitoDaNota le a nota digitada e imprime o conceito:\n   9 ou 10 -> A · 7 ou 8 -> B · 5 ou 6 -> C · abaixo de 5 -> D\n   A primeira faixa ja esta escrita — continue a cascata. */\nvoid conceitoDaNota(void) {\n    int nota = 0;\n    scanf(\"%d\", &nota);\n\n    if (nota >= 9) {\n        printf(\"A\\n\");\n    }\n    /* continue daqui: else if para o B, else if para o C\n       e o else final para o D */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio conceito-da-nota — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo a nota que a pessoa \"digitaria\", aponta\n   o stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os arquivos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid conceitoDaNota(void);\n\nSM_TEST(a_nota_9_e_conceito_A) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"9\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    conceitoDaNota();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 9 e conceito A\", linha, \"A\\n\",\n              \"9 casa com a primeira faixa da cascata\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a cascata roda UM bloco so: um conceito, uma linha\");\n    fclose(f);\n}\n\nSM_TEST(a_nota_7_e_conceito_B) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"7\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    conceitoDaNota();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 7 e conceito B\", linha, \"B\\n\",\n              \"7 falha na primeira faixa e casa na segunda\");\n    fclose(f);\n}\n\nSM_TEST(a_nota_5_e_conceito_C) {\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"5\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    conceitoDaNota();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 5 e conceito C\", linha, \"C\\n\",\n              \"5 so casa na terceira faixa: as duas de cima falharam\");\n    fclose(f);\n}\n\nSM_TEST(a_nota_3_e_conceito_D) {\n    FILE *e = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(e, \"3\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_4.tmp\", \"w\", stdout);\n    conceitoDaNota();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_4.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 3 e conceito D\", linha, \"D\\n\",\n              \"3 nao casa com faixa nenhuma: quem responde e o else final\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid conceitoDaNota(void) {\n    int nota = 0;\n    scanf(\"%d\", &nota);\n\n    if (nota >= 9) {\n        printf(\"A\\n\");\n    } else if (nota >= 7) {\n        printf(\"B\\n\");\n    } else if (nota >= 5) {\n        printf(\"C\\n\");\n    } else {\n        printf(\"D\\n\");\n    }\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_nota_9_e_conceito_A",
+      "teste": "a_nota_9_e_conceito_A",
+      "descricao": "com 9 digitado no stdin, a funcao conceitoDaNota imprime A numa linha so e mais nenhuma linha — a cascata roda um bloco unico"
+    },
+    {
+      "id": "a_nota_7_e_conceito_B",
+      "teste": "a_nota_7_e_conceito_B",
+      "descricao": "com 7 digitado no stdin, a funcao imprime B: a primeira faixa falha e a segunda casa"
+    },
+    {
+      "id": "a_nota_5_e_conceito_C",
+      "teste": "a_nota_5_e_conceito_C",
+      "descricao": "com 5 digitado no stdin, a funcao imprime C: as duas faixas de cima falham antes da terceira casar"
+    },
+    {
+      "id": "a_nota_3_e_conceito_D",
+      "teste": "a_nota_3_e_conceito_D",
+      "descricao": "com 3 digitado no stdin, a funcao imprime D — o else final pega a nota que nao casou com nenhuma faixa"
+    }
+  ]
+}

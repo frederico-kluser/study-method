@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "cartao-de-ponto",
+  "title": "O cartão de ponto",
+  "concept": "a_ficha",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O cartão de ponto\n\nO relógio de ponto registra a hora de **entrada** e a hora de **saída** — dois números que andam juntos, então eles moram numa ficha só.\n\nEscreva a função `cartaoDePonto`, que recebe as duas horas:\n\n```text\nvoid cartaoDePonto(int entrada, int saida)\n```\n\nDentro dela: declare o molde da ficha com dois campos `int`, crie a ficha, guarde as duas horas nos campos e imprima três linhas — a última é a conta `saida - entrada`, feita com os campos da ficha:\n\n```text\nentrada 8\nsaida 17\nhoras 9\n```\n\nAs horas do exemplo são 8 e 17; o teste chama a sua função com outro par também, então os números impressos têm de vir do que entrou, nunca de texto fixo. A saída acaba na terceira linha.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* 1. declare AQUI o molde da ficha: struct Cartao, com os campos\n      int entrada e int saida (cada campo na sua linha, e o ; no fim).\n   2. no corpo da funcao: crie a ficha, guarde as duas horas nos\n      campos e imprima as tres linhas com printf. */\nvoid cartaoDePonto(int entrada, int saida) {\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio cartao-de-ponto — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: o teste chama a funcao do aluno e captura o stdout DENTRO do\n   cenario (freopen -> chamada -> fflush -> fopen de leitura -> fgets).\n   Dois pares de horas: nenhum texto fixo passa nos dois cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid cartaoDePonto(int entrada, int saida);\n\nSM_TEST(o_cartao_das_8_as_17) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    cartaoDePonto(8, 17);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da entrada\", linha, \"entrada 8\\n\",\n              \"a primeira linha mostra a hora guardada no campo entrada\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha da saida\", linha, \"saida 17\\n\",\n              \"a segunda linha mostra a hora guardada no campo saida\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha das horas\", linha, \"horas 9\\n\",\n              \"a terceira linha e a conta saida - entrada feita com os campos\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_cartao_das_13_as_19) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    cartaoDePonto(13, 19);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a entrada das 13\", linha, \"entrada 13\\n\",\n              \"as horas impressas vem do que entrou, nunca de texto fixo\");\n    fgets(linha, 80, f);\n    checa_str(\"a saida das 19\", linha, \"saida 19\\n\",\n              \"a segunda linha acompanha o segundo par de horas\");\n    fgets(linha, 80, f);\n    checa_str(\"as seis horas trabalhadas\", linha, \"horas 6\\n\",\n              \"19 - 13 da 6: a conta sai dos campos da ficha\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nstruct Cartao {\n    int entrada;\n    int saida;\n};\n\nvoid cartaoDePonto(int entrada, int saida) {\n    struct Cartao c;\n    c.entrada = entrada;\n    c.saida = saida;\n    printf(\"entrada %d\\n\", c.entrada);\n    printf(\"saida %d\\n\", c.saida);\n    printf(\"horas %d\\n\", c.saida - c.entrada);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_cartao_das_8_as_17",
+      "teste": "o_cartao_das_8_as_17",
+      "descricao": "com as horas 8 e 17, a funcao imprime as tres linhas na ordem (entrada 8, saida 17, horas 9) e a saida acaba na terceira linha"
+    },
+    {
+      "id": "o_cartao_das_13_as_19",
+      "teste": "o_cartao_das_13_as_19",
+      "descricao": "com as horas 13 e 19, as linhas acompanham o par que entrou (entrada 13, saida 19, horas 6) — texto fixo nao passa nos dois cenarios"
+    }
+  ]
+}

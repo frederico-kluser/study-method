@@ -26,12 +26,12 @@
     {
       "id": "o-get-devolve-a-caixa",
       "title": "O get devolve a caixa",
-      "markdown": "Consultar o mapa com o `.get` — ele devolve a caixa `Option`: `Some` do valor quando a chave está, `None` quando não está:\n\n```rust\nlet idade = idades.get(\"ana\");\n```\n\n`idade` não é o número: é a CAIXA que pode trazer o valor — a mesma caixa do `.pop`."
+      "markdown": "Consultar o mapa é o `.get` — ele devolve a caixa `Option`: `Some` do valor quando a chave está, `None` quando não está:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut idades = HashMap::new();\nidades.insert(String::from(\"ana\"), 30);\nlet idade = idades.get(\"ana\");\n```\n\n`idade` não é o número: é a CAIXA que pode trazer o valor — a mesma caixa do `.pop`."
     },
     {
       "id": "o-colchete-panica-o-get-responde",
       "title": "O colchete panica, o get responde",
-      "markdown": "As duas formas respondem pela chave — e diferem no que fazem quando a chave falta:\n\n```rust\nlet idade = idades.get(\"ana\");\n```\n\nO colchete devolve o valor DIRETO e panica fora; o `.get` devolve a caixa e deixa o programa decidir. Para chave que pode faltar, o get é a pergunta segura."
+      "markdown": "O colchete que abriu a lista pela POSIÇÃO abre o mapa pela CHAVE — `notas[\"bia\"]`. As duas formas respondem pela chave e diferem no que fazem quando ela falta:\n\n```rust\nuse std::collections::HashMap;\n\nlet mut notas = HashMap::new();\nnotas.insert(String::from(\"ana\"), 10);\nlet achado = notas.get(\"bia\");\n```\n\nO colchete devolve o valor DIRETO e panica fora; o `.get` devolve a caixa: `achado` vem `None` e o programa segue. Para chave que pode faltar, o get é a pergunta segura."
     },
     {
       "id": "abrir-a-caixa-com-o-match",

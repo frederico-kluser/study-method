@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-diario-crescente",
+  "title": "O diário que cresce",
+  "concept": "acrescentar_no_arquivo",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O diário que cresce\n\nEste é o `oDiario` da aula passada com **uma letra diferente**.\n\nEscreva a função `oDiarioCrescente` — ela recebe um `int dia` e devolve um `int`.\n\nO que ela faz:\n\n1. abre o `diario.txt` no modo que **acrescenta** em vez de apagar;\n2. se o `fopen` devolveu `NULL`, devolve `0`;\n3. grava as três linhas do dia recebido, com `fprintf`;\n4. fecha o caderno e devolve `1`.\n\nA diferença aparece quando ela roda mais de uma vez. Depois de `oDiarioCrescente(1)` e `oDiarioCrescente(2)`, o `diario.txt` tem de ficar com as **seis** linhas:\n\n```text\ndia 1: acordei\ndia 1: estudei C\ndia 1: dormi\ndia 2: acordei\ndia 2: estudei C\ndia 2: dormi\n```\n\nCom o modo errado, a segunda rodada apagaria a primeira e sobrariam três.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao oDiarioCrescente inteira:\n\n       int oDiarioCrescente(int dia)\n\n   e o oDiario da aula passada com o modo do fopen trocado: em vez de\n   zerar o caderno, a escrita tem de ir para o FIM do que ja esta la.\n   Grave as tres linhas do dia com fprintf, feche com fclose e devolva 1\n   (ou 0 quando o fopen devolver NULL). */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-diario-crescente — counter_protocol (03-tdd 3.9.3).\n   Canal retorno: nenhuma captura de stdout. Cada cenario prepara o caderno\n   ANTES da chamada (remove + fopen \"w\"), para que o fopen de leitura nunca\n   devolva NULL. O cenario 1 prova a ACUMULACAO (duas rodadas, seis linhas)\n   e o cenario 2 prova que a rodada nao apaga o que ja estava no caderno —\n   as duas coisas reprovam o modo \"w\". */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oDiarioCrescente(int dia);\n\nSM_TEST(duas_rodadas_seis_linhas) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fclose(semente);\n\n    checa_int(\"a rodada do dia 1 devolve 1\", oDiarioCrescente(1), 1,\n              \"com o caderno aberto, gravar as tres linhas da certo\");\n    checa_int(\"a rodada do dia 2 devolve 1\", oDiarioCrescente(2), 1,\n              \"a segunda rodada abre o mesmo caderno e grava de novo\");\n\n    FILE *f = fopen(\"diario.txt\", \"r\");\n    char linha[80] = \"(nada gravado)\";\n    fgets(linha, 80, f);\n    checa_str(\"linha 1\", linha, \"dia 1: acordei\\n\",\n              \"as linhas do dia 1 continuam no caderno depois da segunda rodada\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 2\", linha, \"dia 1: estudei C\\n\",\n              \"a ordem das linhas e a ordem em que foram gravadas\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 3\", linha, \"dia 1: dormi\\n\",\n              \"o dia 1 fecha na terceira linha\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 4\", linha, \"dia 2: acordei\\n\",\n              \"a segunda rodada comeca onde a primeira parou: no fim do caderno\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 5\", linha, \"dia 2: estudei C\\n\",\n              \"o dia 2 traz as mesmas tres linhas, com o numero do parametro\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 6\", linha, \"dia 2: dormi\\n\",\n              \"o caderno acumulado tem seis linhas, tres de cada rodada\");\n    char fim[80] = \"(nada gravado)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada gravado)\",\n              \"duas rodadas de tres linhas dao seis: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_rodada_nao_apaga_o_que_ja_havia) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fprintf(semente, \"anotacao antiga\\n\");\n    fclose(semente);\n\n    oDiarioCrescente(5);\n\n    FILE *f = fopen(\"diario.txt\", \"r\");\n    char linha[80] = \"(nada gravado)\";\n    fgets(linha, 80, f);\n    checa_str(\"a anotacao antiga continua no lugar\", linha, \"anotacao antiga\\n\",\n              \"o modo que acrescenta nao zera o caderno ao abrir\");\n    fgets(linha, 80, f);\n    checa_str(\"o registro novo vem depois dela\", linha, \"dia 5: acordei\\n\",\n              \"a escrita vai para o fim: o que ja estava la fica na frente\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint oDiarioCrescente(int dia) {\n    FILE *f = fopen(\"diario.txt\", \"a\");\n    if (f == NULL) {\n        return 0;\n    }\n    fprintf(f, \"dia %d: acordei\\n\", dia);\n    fprintf(f, \"dia %d: estudei C\\n\", dia);\n    fprintf(f, \"dia %d: dormi\\n\", dia);\n    fclose(f);\n    return 1;\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "duas_rodadas_seis_linhas",
+      "teste": "duas_rodadas_seis_linhas",
+      "descricao": "duas chamadas de oDiarioCrescente (dias 1 e 2) deixam as seis linhas acumuladas no diario.txt, na ordem em que foram gravadas e sem linha extra"
+    },
+    {
+      "id": "a_rodada_nao_apaga_o_que_ja_havia",
+      "teste": "a_rodada_nao_apaga_o_que_ja_havia",
+      "descricao": "com uma anotacao ja gravada no caderno, oDiarioCrescente nao a apaga: o registro novo entra depois dela — a prova do modo que acrescenta"
+    }
+  ]
+}

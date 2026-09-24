@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-movedor",
+  "title": "O movedor",
+  "concept": "a_ficha_na_caixa",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O movedor\n\nAgora a ficha atravessa a caixa: entra por uma janela e volta pelo retorno.\n\nO tipo `Ponto` já vem pronto no seu arquivo (é o `typedef` da aula passada). Escreva a caixa `oMovedor`:\n\n```text\nPonto oMovedor(Ponto p, int dx, int dy)\n```\n\nEla soma `dx` no campo `x`, soma `dy` no campo `y` e **devolve** a ficha com os dois campos já andados. Não imprime nada: quem chama decide o que fazer com a ficha devolvida — e neste desafio o teste confere os **campos devolvidos**.\n\nCom a ficha `(3, 4)` e os deslocamentos `1` e `2`, a ficha devolvida tem `x` igual a 4 e `y` igual a 6.\n\nCuidado com a tentação de mexer na ficha de fora: a que chegou na janela é uma cópia, e o teste confere que a ficha de quem chamou continua intacta.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* o tipo da ficha, ja pronto (o typedef da aula passada) */\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* escreva AQUI a caixa oMovedor: ela recebe uma ficha Ponto e dois\n   deslocamentos (dx, dy), soma cada deslocamento no seu campo e\n   DEVOLVE a ficha andada. Nenhum printf: esta caixa entrega a ficha. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-movedor — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o molde da\n   ficha (o mesmo typedef do arquivo do aluno) e o prototipo da caixa, chama\n   a caixa e confere os CAMPOS DEVOLVIDOS com checa_int. */\n\n/* o tipo da ficha que a caixa do aluno recebe e devolve */\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nPonto oMovedor(Ponto p, int dx, int dy);\n\nSM_TEST(andar_1_e_2) {\n    Ponto p;\n    p.x = 3;\n    p.y = 4;\n    Ponto novo = oMovedor(p, 1, 2);\n    checa_int(\"o x andou 1\", novo.x, 4, \"o x devolvido e o x da ficha mais dx\");\n    checa_int(\"o y andou 2\", novo.y, 6, \"o y devolvido e o y da ficha mais dy\");\n}\n\nSM_TEST(a_ficha_de_fora_nao_muda) {\n    Ponto p;\n    p.x = 10;\n    p.y = 20;\n    oMovedor(p, 5, 7);\n    checa_int(\"o x de fora ficou 10\", p.x, 10, \"a ficha entra como copia: o original nao anda\");\n    checa_int(\"o y de fora ficou 20\", p.y, 20, \"mexer no parametro nao mexe na ficha de quem chamou\");\n}\n\nSM_TEST(andar_zero) {\n    Ponto p;\n    p.x = 7;\n    p.y = 8;\n    Ponto novo = oMovedor(p, 0, 0);\n    checa_int(\"o x nao andou\", novo.x, 7, \"somar 0 devolve o mesmo x\");\n    checa_int(\"o y nao andou\", novo.y, 8, \"somar 0 devolve o mesmo y\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nPonto oMovedor(Ponto p, int dx, int dy) {\n    p.x = p.x + dx;\n    p.y = p.y + dy;\n    return p;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "andar_1_e_2",
+      "teste": "andar_1_e_2",
+      "descricao": "com a ficha (3, 4) e os deslocamentos 1 e 2, a caixa devolve a ficha com x igual a 4 e y igual a 6 — cada campo andou o seu deslocamento"
+    },
+    {
+      "id": "a_ficha_de_fora_nao_muda",
+      "teste": "a_ficha_de_fora_nao_muda",
+      "descricao": "depois de chamar a caixa com a ficha (10, 20), os campos da ficha de quem chamou continuam 10 e 20: o que entrou pela janela foi uma copia"
+    },
+    {
+      "id": "andar_zero",
+      "teste": "andar_zero",
+      "descricao": "com os deslocamentos 0 e 0, a ficha devolvida tem os mesmos campos da que entrou (7 e 8) — o caso de borda em que nada anda"
+    }
+  ]
+}

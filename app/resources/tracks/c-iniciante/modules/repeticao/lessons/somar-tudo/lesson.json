@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "somar-tudo",
   "title": "Somar tudo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O acumulador: um nome que nasce em 0 FORA do laço e cresce com += a cada volta, até guardar a soma de todos os números que passaram.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:assign:+=",
+  "concepts": [
+    "o_acumulador"
+  ],
   "prerequisites": [
     "enquanto",
     "somar-no-lugar"
   ],
+  "introduces": {
+    "productive": [
+      "op:assign:+="
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o laço deixa de só imprimir: um nome declarado antes dele SOBREVIVE às voltas e vai acumulando o que cada volta produziu, então o resultado do laço passa a ser um valor guardado, não só texto na tela",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-balde-que-enche",
+      "title": "O balde que enche a cada volta",
+      "markdown": "Somar 1 + 2 + 3 + 4 sem escrever a conta inteira pede um balde: um nome que guarda o total parcial e cresce a cada volta.\n\n```c\nint soma = 0;\nint i = 1;\nwhile (i <= 4) {\n    soma += i;\n    i++;\n}\nprintf(\"%d\\n\", soma);\n```\n\n```text\n10\n```\n\nSão dois nomes com papéis diferentes: `i` é o **contador** (anda, e a condição o vigia); `soma` é o **acumulador** (junta, e ninguém o vigia). O `soma += i;` lê o total de agora, acrescenta o `i` da volta e guarda de volta no mesmo nome."
+    },
+    {
+      "id": "o-zero-nasce-fora",
+      "title": "O balde nasce fora do laço",
+      "markdown": "O acumulador nasce vazio ANTES do laço, e nasce uma vez só:\n\n```c\nint total = 0;\nint i = 1;\nwhile (i <= 3) {\n    total += 10;\n    i++;\n}\nprintf(\"%d\\n\", total);\n```\n\n```text\n30\n```\n\nSe a linha `int total = 0;` estivesse DENTRO das chaves, o balde voltaria a 0 no começo de cada volta: cada volta esqueceria a anterior e o fim seria 10, não 30.\n\nFora do laço o balde nasce uma vez. Dentro, ele renasce sempre — e um balde que renasce não acumula nada."
+    },
+    {
+      "id": "o-total-sai-no-fim",
+      "title": "O total sai no fim, e a faixa pode variar",
+      "markdown": "O `printf` do total também fica FORA das chaves: dentro, ele mostraria o parcial de cada volta em vez do resultado.\n\n```c\nint soma = 0;\nint n = 5;\nint i = 1;\nwhile (i <= n) {\n    soma += i;\n    i++;\n}\nprintf(\"%d\\n\", soma);\n```\n\n```text\n15\n```\n\nRepare na condição: o fim da contagem não é um número escrito, é `n`. Troque o 5 por 100 e o MESMO laço soma 1 até 100. É isso que faz um laço de quatro linhas valer para qualquer faixa."
+    },
+    {
+      "id": "dentro-das-chaves-sai-o-parcial",
+      "title": "Dentro das chaves sai o parcial",
+      "markdown": "E se o `printf` entrar nas chaves? Ele passa a ser repetido junto com o corpo, e mostra o balde no estado de cada volta:\n\n```c\nint soma = 0;\nint i = 1;\nwhile (i <= 4) {\n    soma += i;\n    i++;\n    printf(\"%d\\n\", soma);\n}\n```\n\n```text\n1\n3\n6\n10\n```\n\nSão quatro linhas: 1, depois 1+2, depois 1+2+3, depois 1+2+3+4. O total só está pronto na última — e é por isso que ele sai FORA do laço."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-acumulador-nasce-fora",
+      "statement": "A soma precisa começar em 0 FORA do laço — se começar dentro, cada volta esquece a anterior.",
+      "question": "Por que a linha `int soma = 0;` fica antes do `while`, e não dentro das chaves?",
+      "options": [
+        "Porque em C nenhuma declaração pode ficar dentro de um laço.",
+        "Porque o `while` só aceita nomes declarados antes dele na condição.",
+        "Porque uma soma feita fora do laço fica mais rápida de calcular.",
+        "Porque dentro das chaves ela rodaria a cada volta, zerando o total."
+      ],
+      "answerIndex": 3,
+      "feedback": "Acumular é somar sobre o que já havia. O nascimento é um gesto de UMA vez; se ele entra no corpo, o laço reinicia o balde a cada volta e no fim sobra só a última parcela.",
+      "sectionId": "o-zero-nasce-fora",
+      "optionRationales": [
+        "Declarar dentro do corpo é permitido em C; o problema aqui é pedagógico e de resultado, não de sintaxe.",
+        "A condição pode usar nomes declarados em vários lugares; a regra que importa é sobre quando o nascimento roda.",
+        "Velocidade não tem nada a ver: o que muda é o RESULTADO, que fica errado.",
+        "Cada volta rodaria de novo o nascimento, devolvendo o balde a 0 — no fim sobraria só a última parcela."
+      ]
+    },
+    {
+      "id": "contador-e-acumulador-sao-dois",
+      "statement": "O contador e o acumulador são dois nomes com papéis diferentes.",
+      "question": "No laço que soma 1 até 4, qual é o papel de cada nome?",
+      "options": [
+        "`i` junta os valores das voltas; `soma` conta quantas voltas houve.",
+        "`i` anda e a condição o vigia; `soma` junta e não aparece nela.",
+        "Os dois fazem a mesma coisa: dois nomes para o mesmo total.",
+        "`soma` é vigiada pela condição; `i` só serve para imprimir."
+      ],
+      "answerIndex": 1,
+      "feedback": "Quem decide o fim do laço é o contador, na condição. O acumulador é carga: ele só recebe. Confundir os dois é o erro clássico — a condição passa a vigiar o total e o laço para na hora errada.",
+      "sectionId": "o-balde-que-enche",
+      "optionRationales": [
+        "É a troca dos papéis: `i` é quem anda de um em um, e `soma` é quem recebe as parcelas.",
+        "A condição vigia o contador para saber quando parar; o acumulador só recebe o que cada volta traz.",
+        "Os valores são diferentes desde a segunda volta: com `i` em 2, `soma` já vale 3.",
+        "Se a condição vigiasse o total, o laço pararia quando a SOMA passasse do limite, não quando a contagem acabasse."
+      ]
+    },
+    {
+      "id": "o-total-depois-do-laco",
+      "statement": "O `printf` do total vem depois do laço, não dentro dele.",
+      "question": "O que aparece na tela se o `printf(\"%d\\n\", soma);` do laço que soma 1 até 4 estiver DENTRO das chaves?",
+      "options": [
+        "Uma linha com 10, igual a antes: o lugar do `printf` não muda nada.",
+        "Quatro linhas com 10, porque `soma` já vale 10 desde o começo.",
+        "Quatro linhas: 1, 3, 6 e 10 — um parcial por volta.",
+        "Nada, porque `soma` só existe depois do laço."
+      ],
+      "answerIndex": 2,
+      "feedback": "Dentro das chaves o `printf` é repetido junto com o corpo, e mostra o balde no estado daquela volta: 1, depois 3, depois 6, depois 10. O resultado só está pronto quando o laço acaba.",
+      "sectionId": "dentro-das-chaves-sai-o-parcial",
+      "optionRationales": [
+        "O lugar muda tudo: dentro das chaves a ordem é repetida junto com o resto do corpo.",
+        "O balde começa em 0 e cresce aos poucos — ele só chega a 10 na última volta.",
+        "Cada volta imprimiria o balde no estado daquela volta: 1, 1+2, 1+2+3 e 1+2+3+4.",
+        "`soma` é declarada antes do laço, então existe dentro e fora dele."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Assignment operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "A página oficial do `+=`: a atribuição composta lê o valor atual, aplica a operação e guarda o resultado no mesmo lugar."
+    },
+    {
+      "title": "while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/while",
+      "description": "A página oficial do `while`, onde o corpo entre chaves é a ordem repetida — e só ela."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.2.4 explica o tempo de vida de uma variável declarada dentro de um bloco — ela nasce a cada entrada no bloco."
+    }
+  ],
+  "challenges": [
+    "soma-ate-n"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

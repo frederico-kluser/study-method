@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "a-string-e-o-zero",
   "title": "O texto que acaba em zero",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um texto em C é uma caixa de gavetas de letras com uma gaveta a mais no fim: o terminador \\0, a placa que diz ao %s onde parar.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "a_string"
+  ],
   "prerequisites": [
     "a-caixa-com-gavetas",
     "uma-letra-e-um-numero"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var",
+      "node:DeclStmt"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:DeclStmt",
+        "de": "decl:var"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa de gavetas deixa de guardar só números: cada gaveta passa a guardar uma letra, e o texto ganha uma gaveta invisível no fim (o \\0) que marca onde ele acaba",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-de-letras",
+      "title": "Uma caixa só de letras",
+      "markdown": "Você já guardou cinco notas numa caixa de gavetas. Um texto é a mesma caixa — só que cada gaveta guarda **uma letra**:\n\n```c\nchar nome[] = \"Ana\";\n```\n\nTrês letras, três gavetas: `A`, `n`, `a`. Os colchetes vazios não são esquecimento: eles mandam o compilador **contar** as letras do texto e abrir a caixa do tamanho certo.\n\nVocê também pode escolher o tamanho na mão, e sobrar espaço:\n\n```c\nchar cidade[20] = \"Recife\";\n```\n\nSeis gavetas ocupadas, o resto da caixa esperando."
+    },
+    {
+      "id": "a-gaveta-invisivel",
+      "title": "A gaveta invisível do fim",
+      "markdown": "Quantas gavetas `\"abc\"` ocupa? **Quatro** — e a quarta é a que você não digitou:\n\n```c\nchar palavra[] = \"abc\";\nprintf(\"%d\\n\", palavra[3]);\n```\n\n```text\n0\n```\n\nNa gaveta 3 mora o **terminador**: o número zero, que em C se escreve `\\0`. Ele não é o algarismo `0` (esse é o número 48) — é o zero puro, e serve de placa dizendo \"o texto acaba aqui\".\n\nPor isso `char cidade[20]` guarda no máximo 19 letras: a última gaveta é da placa."
+    },
+    {
+      "id": "o-buraco-de-texto",
+      "title": "O buraco que recebe um texto",
+      "markdown": "O `%d` abre um buraco para um número. Para um texto, o buraco é `%s`:\n\n```c\nchar nome[] = \"Ana\";\nprintf(\"oi, %s!\\n\", nome);\n```\n\n```text\noi, Ana!\n```\n\nO `printf` começa na gaveta 0 e vai jogando letra por letra na tela — até topar no `\\0`. É a placa do fim que o faz parar.\n\nNo `%s` você entrega o **nome da caixa**, sem colchetes e sem número: `nome`, nunca `nome[0]`."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-terminador-ocupa-gaveta",
+      "statement": "`\"abc\"` são 4 gavetas: `a`, `b`, `c` e o terminador `\\0` que marca o fim.",
+      "question": "Depois de `char palavra[] = \"abc\";`, quantas gavetas a caixa `palavra` tem?",
+      "options": [
+        "Quatro: as três letras mais a placa do fim.",
+        "Três: uma gaveta para cada letra.",
+        "Cinco: as letras, a placa e um espaço a mais.",
+        "Uma: o texto todo cabe numa gaveta."
+      ],
+      "answerIndex": 0,
+      "feedback": "Toda caixa de texto reserva uma gaveta a mais: a do `\\0`. São 3 letras mais 1 placa de fim, ou seja 4 gavetas.",
+      "sectionId": "a-gaveta-invisivel",
+      "optionRationales": [
+        "As três letras ocupam as gavetas 0, 1 e 2; a gaveta 3 é do terminador `\\0`.",
+        "Três seriam só as letras — mas então nada marcaria o fim do texto.",
+        "Nenhum espaço é guardado: o compilador reserva as letras e uma gaveta para o `\\0`.",
+        "Cada gaveta guarda UMA letra: um texto de três letras nunca cabe numa gaveta."
+      ]
+    },
+    {
+      "id": "o-zero-nao-e-o-algarismo",
+      "statement": "O terminador `\\0` é o número zero, não o algarismo `0`.",
+      "question": "Com `palavra` valendo `\"abc\"`, o que `printf(\"%d\\n\", palavra[3]);` mostra?",
+      "options": [
+        "0, porque a gaveta do fim guarda o número zero.",
+        "48, que é o número do algarismo `0` na tabela de letras.",
+        "3, que é a quantidade de letras do texto.",
+        "Nada: a gaveta 3 não existe nessa caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "A placa do fim é o zero puro. O algarismo `0` que se digita é outro número (48) — por isso o `%d` da gaveta 3 mostra 0.",
+      "sectionId": "a-gaveta-invisivel",
+      "optionRationales": [
+        "A gaveta 3 guarda o terminador, e o terminador é o número zero.",
+        "48 é o número do CARACTERE `0`; o terminador não é esse caractere.",
+        "Quantas letras o texto tem é outra conta — a gaveta 3 guarda a placa, não o total.",
+        "A gaveta 3 existe justamente porque o compilador reservou espaço para a placa."
+      ]
+    },
+    {
+      "id": "o-s-recebe-o-nome-da-caixa",
+      "statement": "O `%s` imprime letra por letra até topar no `\\0`.",
+      "question": "Em `printf(\"oi, %s!\\n\", nome);`, o que você entrega no lugar do `%s`?",
+      "options": [
+        "O nome da caixa, `nome`, sem colchetes.",
+        "A primeira gaveta, `nome[0]`.",
+        "O tamanho da caixa entre colchetes.",
+        "Cada letra da caixa, uma chamada por vez."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `%s` recebe a caixa pelo nome e caminha por ela até o `\\0`. `nome[0]` é uma letra só — e letra tem o buraco `%c`.",
+      "sectionId": "o-buraco-de-texto",
+      "optionRationales": [
+        "O `%s` quer a caixa inteira, e a caixa se entrega pelo nome, sem colchetes.",
+        "`nome[0]` é UMA letra; para uma letra o buraco certo é o `%c`.",
+        "Tamanho é número, não texto: o `%s` não recebe tamanho nenhum.",
+        "Uma chamada por letra funcionaria com `%c`, mas não é o que o `%s` faz."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A página oficial das strings de C: o array de char terminado pelo caractere nulo."
+    },
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A regra oficial do array: o tamanho entre colchetes e o caso em que o compilador conta por você."
+    },
+    {
+      "title": "String literals — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/string_literal",
+      "description": "A página oficial do literal entre aspas: por que ele traz um caractere nulo a mais no fim."
+    }
+  ],
+  "challenges": [
+    "saudacao-nome"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

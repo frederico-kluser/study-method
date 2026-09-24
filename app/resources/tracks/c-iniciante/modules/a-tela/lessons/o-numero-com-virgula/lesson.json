@@ -2,23 +2,116 @@
   "schemaVersion": 1,
   "slug": "o-numero-com-virgula",
   "title": "O número com vírgula",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A mesma declaração de sempre com um tipo novo: o double guarda número real (com ponto, não vírgula) e o %f o imprime com seis casas.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "o_numero_real"
+  ],
   "prerequisites": [
     "um-nome-para-um-valor",
     "buraco-na-frase"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var",
+      "node:FloatingLiteral",
+      "node:DeclStmt"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:FloatingLiteral",
+        "de": "decl:var"
+      },
+      {
+        "chave": "node:DeclStmt",
+        "de": "decl:var"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa com nome deixa de ser só de inteiro: existe um tipo para número real (double, com ponto decimal) e um buraco próprio para mostrá-lo (%f, com seis casas por padrão)",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-tipo-double",
+      "title": "A caixa que aceita casa decimal",
+      "markdown": "Um `int` só guarda número inteiro: 3, 20, 215. Preço, altura e nota quase nunca são inteiros — e é para eles que existe outro tipo de caixa, o `double`:\n\n```c\ndouble preco = 3.5;\n```\n\nMesma forma de sempre (tipo, nome, `=`, valor), tipo novo. `double` quer dizer *precisão dupla*: é o tipo de número real padrão do C.\n\nRepare no `3.5`: em C a casa decimal se separa com **ponto**, nunca com vírgula. `3,5` não é um número para o compilador — são duas coisas."
+    },
+    {
+      "id": "o-buraco-do-real",
+      "title": "O buraco do real é o %f",
+      "markdown": "O `%d` é o buraco do inteiro; ele não serve para um `double`. O buraco do número real é o `%f`:\n\n```c\ndouble preco = 3.5;\nprintf(\"preco: %f\\n\", preco);\n```\n\n```text\npreco: 3.500000\n```\n\nOlhe a saída: você escreveu `3.5` e apareceu `3.500000`. O `%f` mostra **seis casas decimais por padrão** — completa com zeros o que você não escreveu. O valor não mudou; mudou o jeito de mostrá-lo."
+    },
+    {
+      "id": "onde-o-double-mora",
+      "title": "Onde o double mora (e onde ele falha)",
+      "markdown": "A declaração do `double` mora dentro da função, como toda declaração — e cada nome guarda o seu valor:\n\n```c\ndouble altura = 1.75;\ndouble peso = 80.5;\nprintf(\"%f m e %f kg\\n\", altura, peso);\n```\n\n```text\n1.750000 m e 80.500000 kg\n```\n\nOnde o `double` quebra: ele é aproximado. Valores simples no papel (0.1, por exemplo) não cabem exatos em binário, e somar muitos deles acumula um errinho. Para dinheiro de verdade, programa sério guarda centavos em inteiro."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-f-imprime-seis-casas",
+      "statement": "O `%f` imprime seis casas por padrão: 3.5 sai como `3.500000`.",
+      "question": "Com `double preco = 3.5;`, o que `printf(\"preco: %f\\n\", preco);` mostra?",
+      "options": [
+        "preco: 3.5",
+        "preco: 3.500000",
+        "preco: 3",
+        "preco: 3,500000"
+      ],
+      "answerIndex": 1,
+      "feedback": "O `%f` completa com zeros até a sexta casa: `3.500000`. O valor guardado continua sendo 3.5 — o `%f` só decide como ele aparece.",
+      "sectionId": "o-buraco-do-real",
+      "optionRationales": [
+        "O `%f` não mostra o número como você o escreveu: ele tem um padrão de seis casas.",
+        "Seis casas por padrão, completadas com zeros — o valor é o mesmo 3.5.",
+        "Cortar a parte decimal é o que o `int` faria; o `double` guarda a casa e o `%f` a mostra.",
+        "A vírgula não aparece: em C o separador decimal é o ponto, na escrita e na saída."
+      ]
+    },
+    {
+      "id": "o-ponto-e-nao-a-virgula",
+      "statement": "Em C a casa decimal se escreve com ponto, nunca com vírgula.",
+      "question": "Qual declaração guarda o número três e meio em C?",
+      "options": [
+        "`double preco = 3,5;`",
+        "`double preco = 3 e meio;`",
+        "`double preco = 3.5;`",
+        "`int preco = 3.5;`"
+      ],
+      "answerIndex": 2,
+      "feedback": "O separador decimal do C é o ponto. Com vírgula o compilador vê duas coisas onde deveria haver um número; e um `int` não tem onde guardar a metade.",
+      "sectionId": "o-tipo-double",
+      "optionRationales": [
+        "A vírgula não separa casa decimal em C: ela separa coisas numa lista.",
+        "O valor é escrito em número, não em palavras.",
+        "Tipo `double`, nome, `=` e o valor com ponto: é a forma da declaração com um tipo novo.",
+        "`int` guarda só inteiro — a metade seria perdida."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arithmetic types — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/arithmetic_types",
+      "description": "A página oficial dos tipos numéricos de C: onde o double é definido como o tipo de ponto flutuante padrão."
+    },
+    {
+      "title": "printf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fprintf",
+      "description": "A tabela dos especificadores de formato: o %f imprime um double com seis casas decimais por padrão."
+    },
+    {
+      "title": "Floating constants — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/floating_constant",
+      "description": "Como se escreve um número real no código: a casa decimal separada por ponto."
+    }
+  ],
+  "challenges": [
+    "preco-com-decimais"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

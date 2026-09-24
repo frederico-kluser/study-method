@@ -501,6 +501,17 @@ Especificação formal, H13/AVISO13/S13 e mensagens pt-BR em
 `app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — o placar da trilha de
 então era 717 violações / 112 desafios / 249 lacunas / 92 avisos, modo inferred).
 
+⚑ **A13–A16 NÃO RODA em nenhuma das três trilhas do produto, e o substituto é o §5.6.** A bateria é
+javascript-only (`H13`/`AX` são tabelas de `ts.SyntaxKind`, os spans S13 saem de
+`ts.createSourceFile`): `auditTrack` a PULA e declara a limitação `A13-A16-NAO-RODOU` em toda trilha
+`python`/`rust`/`c`. Quem mede o TAMANHO DO PASSO e a EXISTÊNCIA DA DEMONSTRAÇÃO nessas trilhas é a
+**barra pedagógica A17–A24** do §5.6 — agnóstica de linguagem, mesclada no `auditTrack` e contada no
+placar deste mesmo gate. O que continua **sem medida** está nomeado na própria limitação: A14b (no
+máximo 1 construção nova por LINHA da solução), A15a/A15b (progressividade intra e inter-aula), A16b
+(primeira atividade resolvível com a PRIMEIRA seção — a barra CONTA seções, não mede a seção 1) e os
+spans mecânicos S13 com as tabelas H13/AX. `metrics[].novosVerdadeiros` continua AUSENTE nessas
+trilhas.
+
 **O pin do placar (rodada 12) — e por que ele não existe mais.** O pin mecânico viveu em
 `app/tests/engineAuditPlacar.test.ts` até 2026-09-02. Com a bateria A13–A16 ativa no audit, ele
 passou de **841 violações / 112 desafios / 249 lacunas / 96 avisos** para
@@ -628,6 +639,48 @@ código; crase inline é prosa**; bloco com tag `js` que não parseia é erro de
 extrator envenena o próprio orçamento — hoje 26% dos blocos cercados não têm tag de linguagem, e
 spans de crase como `total: 3` ou `arquivo:linha:coluna` parseiam como `LabeledStatement`.
 
+**O ENVELOPE DE FRAGMENTO — a segunda tentativa de parse da TEORIA (2026-09-22).** A teoria de C e de
+Rust demonstra em **fragmento**, não em programa: `printf("oi\n");` solto, `dobro(-3)` solto. Fora de
+um corpo de função esses trechos **não são fonte válido** nessas duas linguagens, o parser os
+reprovava, e a consequência era exata e silenciosa: a engine via **ZERO demonstração** justamente nos
+blocos que demonstram — e o A19 (declarar não é demonstrar) reprovaria a aula correta, ou o placar
+mediria o vazio. Trinta e um blocos da teoria do `rust-iniciante` caíam nisso.
+
+A regra, em `app/electron/main/engine/extract.ts`:
+
+1. **o parse VERBATIM vem primeiro** — sempre, em todas as linguagens. Nenhum fonte que já parseia
+   muda de resultado;
+2. só quando o verbatim **falha** e a superfície é `theory`, o fragmento é embrulhado num **TU
+   sintético** pela tabela `ENVELOPE_DE_FRAGMENTO`, que tem hoje duas linhas: `c` (prefixo
+   `#include <stdio.h>`, `<stdlib.h>`, `<string.h>` + `void sm_fragmento_de_teoria(void) {`) e `rust`
+   (prefixo `fn sm_fragmento_de_teoria() {`), ambas com sufixo `}`. Os includes existem para que a
+   chamada de biblioteca padrão RESOLVA (`api:printf` sai da declaração; sem `<stdio.h>` seria
+   declaração implícita);
+3. **as ocorrências do envelope são descartadas por OFFSET nas duas pontas** — `start` antes do fim
+   do prefixo é prefixo, `start` a partir de `prefixo + |fragmento|` é sufixo — e as posições
+   sobreviventes são **rebasadas** (linha e offset) para as do fragmento do autor. Sem o descarte, o
+   `node:IncludeDirective` e o `node:FunctionItem` do envelope seriam atribuídos ao autor, o que
+   recriaria em outro figurino a violação enganosa que esta onda conserta.
+
+Isto é **irmão** da ante-sala do `testsCode` de C (o preâmbulo `SM_COUNT_PREABULO`, importado de
+`lang/c.ts` e nunca copiado), e difere dela em dois pontos deliberados: a ante-sala entra **sempre**
+para a superfície dela, o envelope só na **segunda** tentativa; e o envelope tem **sufixo**, porque o
+que falta a um corpo de função é o `}` do fim. Consequência para quem autora em C: o fragmento tem de
+ser válido como **corpo de função** — trecho com nome não declarado não parseia. Medido em 2026-09-22:
+
+```bash
+cd app && npx tsx -e 'import {extractAtoms} from "./electron/main/engine/extract";
+const r = extractAtoms(`printf("oi\\n");`, {language:"c", surface:"theory"});
+console.log(r.ok ? r.keys.join(" ") : "ERRO: " + r.error.message)'
+# com surface theory -> api:printf node:CallExpr node:DeclRefExpr node:StringLiteral
+# sem surface theory -> ERRO: clang reprovou o fonte (1:8): expected parameter declarator
+#
+# rust, `dobro(-3)`:
+# com surface theory -> node:Arguments node:CallExpression node:Identifier node:IntegerLiteral
+#                       node:UnaryExpression op:unary:-
+# sem surface theory -> ERRO: erro de sintaxe (<trecho.rs>): falta ;
+```
+
 **Proibições globais em qualquer nível** (sem elas nenhuma promessa estática se sustenta): `eval`,
 `new Function`, `with`, `arguments`, `WithStatement`, `DebuggerStatement`, `SequenceExpression`,
 `LabeledStatement`, alias de função (`const f = console.log`) e
@@ -705,6 +758,141 @@ do registro de adaptadores e nenhum adaptador pode declará-la `false`.
 Sem essa separação o laço reescreve desafios eternamente para caber num currículo furado e **nunca
 termina**.
 
+### 5.6 A barra pedagógica A17–A24 — a bateria que roda em TODA linguagem
+
+`app/electron/main/engine/quality/barra.ts`, comando `npm run engine -- barra <slug>
+[--aula MOD/AULA]`, mesclada no `auditTrack` (`violacaoDaBarra`) e lida de fonte ÚNICA pelo laço de
+convergência do §6.8.
+
+**O furo que ela fecha, medido em 2026-09-22.** A bateria A13–A16 do §5.1 é **javascript-only**: o
+`auditTrack` a PULA em trilha de outra linguagem e declara `A13-A16-NAO-RODOU` no placar (§9.2). Os
+três cursos publicados são Python, C e Rust — logo **nenhum gate pedagógico jamais rodou sobre
+conteúdo publicado**. E o orçamento não cobre o furo por construção: `budget.ts:281` define
+`saida = entrada ∪ introduces`, então **declarar uma chave a legaliza na própria aula em que ela
+estreia**. A primeira aula do `rust-iniciante` declarava **11 chaves produtivas novas em 1 seção**
+com critério de entrada "zero absoluto" e passava com **0 violações**. Não era trilha boa: era gate
+ausente.
+
+| # | Verificação | Severidade | Ação do catálogo |
+|---|---|---|---|
+| A17 | **teto do passo** — `\|produtivas novas colapsadas\| ≤ 2` (`TETO_PRODUTIVAS_NOVAS`) | erro | `SPLIT_LESSON` |
+| A18 | **primeira aula** — `≤ 1` produtiva nova, e toda chave declarada demonstrada NESTA aula | erro | `SPLIT_LESSON` |
+| A19 | **declarar não é demonstrar** — toda chave nova aparece em bloco cercado com a tag da linguagem da trilha, nesta aula (bloco que não parseia cai aqui) | erro | `REWRITE_IN_BUDGET` |
+| A20 | **aula sem prova** — aula de qualquer papel sem desafio; `role: regular` sem chave nova nenhuma | erro | `ADD_TEST` / `DECLARE_INTEGRATIVE` |
+| A21 | **carga** — `\|novas colapsadas\| ≤ 4` e `secoes ≥ max(2, ceil(novas/2))` | erro | `SPLIT_LESSON` |
+| A22 | **duas formas** — cada chave produtiva em ≥2 ocorrências sintaticamente distintas | aviso | `REWRITE_IN_BUDGET` |
+| A23 | **derivada mal declarada** — `introduces.derived = [{chave, de}]` exige o pai declarado **e** co-ocorrência na MESMA LINHA de um bloco de teoria | erro | `REWRITE_IN_BUDGET` |
+| A24 | **vazamento do quiz pelo comprimento** — a opção correta ser a mais longa, sozinha, por mais de `FOLGA_DE_COMPRIMENTO_DO_QUIZ` = 8 chars, em TODAS as afirmações de uma aula com ≥2 | erro (por afirmação: aviso) | `REWRITE_IN_BUDGET` |
+
+**A regra do par, que era só prosa, virou aritmética.** `agruparPorLinha()` é um union-find sobre
+"co-ocorre na mesma linha de um bloco de teoria": chaves que só aparecem juntas contam como **UM**
+item nos tetos de A17/A21, e o grupo é publicado em `metricas[].grupos`. É a entrada do planejador
+de quebra do §6.8 — que **nunca parte um grupo**, porque não existe aula que ensine `decl:func` e
+não ensine o `node:Call` que a chama.
+
+**A24 é a terceira porta da mesma sala.** O produto já de-vazava a POSIÇÃO
+(`app/src/lib/quizOptionOrder.ts` permuta a ordem de exibição — é por isso que `answerIndex: 0` no
+corpus não é defeito) e o CONTEÚDO (`quizOptionLeak`). Ninguém de-vazava o COMPRIMENTO: "clique na
+maior" acertava o quiz inteiro. Medido antes: **rust 173/235 = 73%** de afirmações em que a correta
+é a mais longa, contra um acaso de 25%. Depois da correção de conteúdo: **93/236 = 39%**, nenhuma
+aula vazando em TODAS as suas afirmações (o pin de produção está em
+`app/tests/engineBarraQuiz.test.ts`).
+
+**Pura e offline:** zero LLM, zero rede. A19/A22/A23 chamam o extrator do §5.3 — logo exigem a
+toolchain da linguagem; A17/A18/A20/A21/A24 são aritmética sobre o `lesson.json` e rodam sem
+toolchain nenhuma (é por isso que os pins de A24 moram em arquivo separado).
+
+**Limitação declarada:** A22 compara `formaNormalizada(snippet)` — espaços colapsados e
+identificadores substituídos por `ID` —, e o `snippet` do extrator é o **sufixo da linha**. Duas
+ocorrências que só diferem por quebra de linha contam como a mesma forma; duas que diferem por nome
+de variável, também. É deliberado (senão `a + b` e `x + y` seriam "duas formas") e é o motivo de
+A22 ser **aviso**.
+
+
+**A faixa é o catálogo, não o título.** A lista é `REGRAS_DA_BARRA` e ela **cresce**: A17–A23
+nasceram juntas em 2026-09-22 e a A24 entrou horas depois, no mesmo dia. Todo texto que cita a faixa
+(o placar, a limitação declarada, a justificativa do relatório, a tabela de ramos do §6.8) a **deriva
+do catálogo** — título cravado em "A17–A23" passa a mentir no dia seguinte, e foi exatamente esse o
+defeito que o §6.8 registra. Medido:
+
+```bash
+cd app && grep -n "REGRAS_DA_BARRA = " electron/main/engine/quality/barra.ts
+# 147:export const REGRAS_DA_BARRA = ['A17', 'A18', 'A19', 'A20', 'A21', 'A22', 'A23', 'A24'] as const;
+```
+
+**A fiação no `audit`, campo por campo (2026-09-22).** `auditTrack` chama
+`auditarBarra(track, { modo: budget.source })` e **mescla** os achados em `violations` com a mesma
+disciplina da A13–A16: erro conta em `totals.violacoes` **e** em `metrics[].violacoes`; aviso
+(A22/A24) **não** reprova; e nenhum achado da barra entra em `desafiosComViolacao`, porque a barra
+mede a **AULA** e aquela razão mede **DESAFIO** (A20 é justamente o caso sem desafio). A ação
+prescrita do catálogo fechado não tem campo em `Violation` e por isso viaja no fim da mensagem
+(`— acao prescrita: SPLIT_LESSON`). Os campos novos são **todos aditivos** (§10), e **ausente
+significa NÃO MEDIDO, nunca zero**:
+
+| Campo novo do `AuditReport` | O que é |
+|---|---|
+| `totals.errosDaBarra` · `totals.avisosDaBarra` | o recorte da barra dentro do placar do audit |
+| `AuditReport.barra` | `porRegra` com TODA regra do catálogo (inclusive as de zero) mais `erros`, `avisos`, `aulasComErro` e `blocosQueNaoParseiam` |
+| `metrics[].barra` | as 8 colunas por aula: `produtivasNovas`, `produtivasColapsadas`, `novasTotais`, `secoesDeTeoria`, `blocosDeCodigo`, `chavesSemDemonstracao`, `chavesComUmaFormaSo`, `gruposDaRegraDoPar` |
+
+O formatador `linhasDoPlacarDaBarra(report)` devolve as linhas prontas do placar — e `[]` quando a
+barra não rodou. `app/electron/main/engine/report/report.ts` ganhou a seção que explica por que
+"112 passou · 0 falhou" pode conviver com "reprovado": o placar conta DESAFIO, o achado da barra é da
+AULA.
+
+**O escopo da barra é o modo `declared`, e fora dele a limitação é DECLARADA.** `barraValePara`
+(`app/electron/main/engine/audit.ts`) só a liga em orçamento `declared`, com o argumento medido: em
+`inferred` (a) A19 é **vazia por construção**, porque as chaves novas SAEM dos blocos de teoria; (b)
+A23 é **indeclarável**, porque declarar `introduces.derived` muda o modo para `declared`; e (c) sem o
+colapso da regra do par, uma única linha (`const tipo = typeof 10;`) introduz 4 construções fora do
+axioma estrutural e **nenhuma** aula 1 passaria no teto de 1 do A18 — nem a perfeita. Gate que
+fabrica violação é pior que gate que declara o que não mediu (§9.3), então a entrada
+`A17-A23-NAO-RODOU-EM-INFERRED` entra em `limitacoes[]` (§9.2) e nomeia o comando que faz medir
+(`--modo declared`). As três trilhas do produto são `declared`, medido.
+
+**A limitação `A13-A16-NAO-RODOU` mudou de TEXTO em 2026-09-22, e o id ficou.** Ela continua
+declarando a bateria javascript-only e passou a dizer (i) que a barra cobre, nesta trilha, teto do
+passo, primeira aula, demonstração, prova, carga, duas formas e regra do par, e (ii) que a **prova
+por mutação que ela citava JÁ NÃO VALE** no modo `declared`. No modo `inferred` o mesmo texto
+condicional diz que ela **continua valendo**.
+
+**A prova por mutação: a antiga (registro histórico) e a que vale hoje.** Até **2026-09-22** o
+relatório do audit trazia, como prova da limitação: *"apagar TODOS os blocos de código da teoria da
+aula 1 desta trilha não muda o placar — 0 violações · 0 avisos · exit 0"*. Ela era verdadeira, e era
+o defeito. Com a barra mesclada no audit a mutação **muda** o placar, e a prova passou a correr ao
+contrário. Medido em 2026-09-22 sobre uma **CÓPIA** da trilha (nunca sobre `app/resources/tracks`) da
+qual foram apagados os 3 blocos cercados de código da teoria da aula 1 (`a-tela/a-primeira-linha` do
+`python-iniciante`):
+
+```bash
+cd app && npm run engine -- audit python-iniciante --limite 0
+# intacta:  112 aulas · violacoes 0 · errosDaBarra 0 · avisos 102 · exit 0
+cd app && npm run engine -- audit python-iniciante --dir /tmp/mutada --limite 0 --json > /tmp/m.json
+# mutada:   violacoes 7 · errosDaBarra 7 · exit 1 · erros por regra: A17 1 · A18 2 · A19 2 · A23 2
+```
+
+As 7 violações são **todas** da barra (`violacoes == errosDaBarra`): antes da mescla a mesma mutação
+saía `0 violações · exit 0`, que é exatamente o que a limitação citava.
+
+⚑ **Ler `--json` por pipe TRUNCA — e toda automação que feche o laço do §6.8 lê `--json`.** Medido em
+2026-09-22 com `audit python-iniciante --limite 0 --json`, que sai **0**: redirecionado a arquivo saem
+**131638 bytes**; canalizado para outro processo saem **65536 bytes** — JSON cortado no meio de uma
+string, e `json.load` falha com `Unterminated string`. A receita é redirecionar para arquivo e ler o
+arquivo. (O §9.2 já avisa da outra metade: `npm run` põe linhas de banner no stdout e `jq` recusa o
+fluxo por causa delas; `npx tsx tools/track-engine/cli.ts` não põe.)
+
+```bash
+cd app && npx tsx tools/track-engine/cli.ts audit python-iniciante --limite 0 --json > /tmp/a.json
+cd app && npx tsx tools/track-engine/cli.ts audit python-iniciante --limite 0 --json | wc -c   # 65536
+```
+
+**Onde a barra é ensinada, além daqui.** A página escrita para quem autora é
+`app/content-src/BARRA-DE-AUTORIA.md`; a suíte é `app/tests/engineBarra.test.ts` (28 pins: uma
+fixture por regra, a fiação inteira, o escopo `declared` × `inferred` e a mutação), mais
+`app/tests/engineBarraQuiz.test.ts` para a A24. As skills de autoria cobram as mesmas regras pelos
+mesmos ids — `skills/aula-author/references/quebra-da-aula.md`,
+`skills/aula-author/references/receita-da-aula.md` e
+`skills/trilha-author/references/validacao.md`.
 ---
 
 ## 6. O laço de revisão
@@ -839,7 +1027,27 @@ modelo reportar menos, literalmente. Ele reporta tudo; a triagem é etapa separa
 Também **não se pede nota de 1 a 5**: avaliadores LLM de material didático agrupam tudo entre 2,9 e
 3,1. Checklist binário sobe a concordância em 0,45.
 
-### 6.6 Cascata de parada, na ordem em que dispara
+### 6.6 Cascata de parada — as DUAS espécies de laço
+
+**Há DUAS espécies de laço neste contrato, e elas param por motivos diferentes.** Confundi-las é o
+defeito que esta seção passou a evitar explicitamente em **2026-09-22**, por decisão do dono do
+produto (*"quero recursão sem fim na validação ao entregar o curso até ele estar ideal"*):
+
+| | **ESPÉCIE A — laço de REFINO** | **ESPÉCIE B — laço de ENTREGA** |
+|---|---|---|
+| Quem fecha a volta | **opinião de modelo** (revisor LLM aponta, autor reescreve) | **medição determinística** (os dois gates, zero LLM) |
+| Onde vive | `revise`, `repair`, a F10 do `generate` — `review/loop.ts` | `convergir` — `app/electron/main/engine/modes/convergencia.ts` |
+| Teto de rodadas | **DURO: 3** (e default 1 por artefato) | **NÃO EXISTE** por default; `--max-iteracoes N` é opcional, para script |
+| Por que esse teto | auto-correção sem sinal externo degrada (P5), e consultar o juiz caro toda rodada custou **+129% de tokens sem ganho medido** (§6.1) | o sinal não degrada: cada volta é uma diferença de conjuntos sobre AST, e o mesmo estado dá o mesmo veredito |
+| O que substitui o teto | nada — o teto **É** o mecanismo | a **PROVA DE TERMINAÇÃO** (abaixo): μ inteiro ≥ 0 e ação idempotente |
+
+A justificativa da espécie A continua inteira e continua valendo — ela é sobre **modelo**, não sobre
+medição. O que mudou é que ela deixou de ser a única: `while (revisor.temApontamento())` continua
+**anti-padrão proibido** (P5), e `while (gate.temAchado())` com medida decrescente e prova de
+terminação é **o laço da entrega**. O `convergir` **nunca** chama LLM (nem com `--aplicar`), e por
+isso o argumento de custo/degradação da espécie A não se aplica a ele.
+
+**ESPÉCIE A — a cascata do laço de REFINO** (o texto abaixo é sobre essa espécie, e só sobre ela):
 
 ```
 0. PARE("mecanico")   0 violações de orçamento ∧ node:test verde ∧ todos os pins verdes
@@ -879,6 +1087,153 @@ rodadas não salvam, mais amostras não salvam, e a nota agregada não denuncia.
 laço é a **taxa de falso-passe medida contra mutantes injetados**. Se ela cruzar o limiar, **pare o
 laço e conserte o juiz**.
 
+#### ESPÉCIE B — o laço de ENTREGA: `convergir`, sem teto de rodadas (2026-09-22)
+
+**A decisão do dono, com data.** Em 2026-09-22 o dono pediu, textualmente, *"recursão sem fim na
+validação ao entregar o curso até ele estar ideal e ter nele tudo que o aluno precisa para aprender,
+mas no caso de nem nele e nem nos cursos conectados a ele antes dele ter o conteúdo, tem que quebrar o
+conteúdo da aula problemática em mais conteúdos"*. O `PARE("failsafe") rodada 3` acima **deixou de
+valer para esse laço** — e só para ele. O comando é `convergir` (§8) e o módulo é
+`app/electron/main/engine/modes/convergencia.ts`.
+
+**Uma iteração.** `MEDIR → CLASSIFICAR → PLANEJAR → (APLICAR) → MEDIR DE NOVO`, com os dois gates
+rodando **em memória** (o `audit` A1–A6/DEC/I12–I17 e a barra A17–A24 do §5.1), zero LLM, zero rede,
+zero chave de API. Depois de aplicar, a trilha é **recarregada do disco**: o gate nunca julga estado
+que não está no disco.
+
+**O VETOR DE ESTADO — 7 componentes inteiras e ≥ 0, nesta ordem (a ordem é CONTRATO do hash):**
+`violacoesDeOrcamento` · `lacunasDeCurriculo` · `errosDaBarra` · `excessoDePasso` ·
+`chavesSemDemonstracao` · `aulasSemDesafio` · `secoesInsuficientes`. O hash é o sha256 dos 7 pares
+(16 hex) e é o que detecta CICLO. `excessoDePasso` é a soma, por aula, de
+`max(0, produtivasColapsadas − 2) + max(0, novasTotais − 4)` — a distância até o teto, não um
+booleano.
+
+**OS SEIS RAMOS, e o ramo decide a ação do catálogo FECHADO (§6.7).** A classificação é função pura
+do achado; não há leitura de texto:
+
+| Ramo | Quando | Ação |
+|---|---|---|
+| **ORDEM** | `primeiraAulaQueEnsina != null` — alguma aula DESTA trilha ensina, mas depois | `REWRITE_IN_BUDGET` ou o movimento que o `reorder` prova |
+| **CADEIA** | a chave não é ensinada nesta trilha **mas é** ensinada num curso ANTERIOR da cadeia | `MOVE_CONCEPT_TO_ENTRY_BUDGET` (aula própria no módulo porta-de-entrada) |
+| **LACUNA** | não é ensinada em lugar nenhum da cadeia | `INSERT_INTERMEDIATE` |
+| **QUEBRA** | A17 · A18 · A21 — o passo é grande demais | `SPLIT_LESSON` |
+| **DEMONSTRACAO** | A19 · A22 · A23 — declarar não é demonstrar | `REWRITE_IN_BUDGET` |
+| **PROVA** | A20 — aula sem desafio ou sem produtiva nova | `ADD_TEST` · `DECLARE_INTEGRATIVE` |
+
+A polaridade ORDEM × (CADEIA | LACUNA) é a do §5.5 e sai do campo `primeiraAulaQueEnsina` da
+violação. A terceira resposta — quebrar a aula — é o ramo QUEBRA, e é o ramo que o pedido do dono
+nomeia. Achado que **não cai em nenhum dos seis** (I12/I14–I17 sem chave de átomo, DEC) vai para
+`foraDosRamos` com o motivo **declarado** e **impede o PONTO-FIXO**, em vez de ganhar uma ação
+improvisada (§7.3) ou de ser ignorado em silêncio.
+
+**A CASCATA DE PARADA, na ordem em que dispara — e nenhuma delas é cansaço:**
+
+```
+1. PONTO-FIXO     achados == ∅  ∧  a iteração não aplicou mudança      → exit 0
+2. CICLO          hash(vetor) repete um hash já visto                  → PARA e ESCALA (exit 1)
+3. SEM-PROGRESSO  nenhuma componente desceu ∧ nada foi aplicado        → PARA e ESCALA (exit 1)
+4. TETO           só quando --max-iteracoes N foi passado              → exit 1
+   DRY-RUN        o default: UMA iteração, e sai declarando o que sobrou (exit 1)
+```
+
+`--max-iteracoes 0` é **uso incorreto** (exit 2), com a mensagem que diz que sem a flag não há teto.
+O dry-run roda **uma** iteração de propósito: sem aplicar nada o vetor não muda **por construção**, e
+chamar a segunda volta de CICLO seria reportar defeito onde há só o modo.
+
+**A PROVA DE TERMINAÇÃO — sem ela, "sem fim" seria promessa, e este documento não promete.** A medida
+é
+
+```
+μ = excessoDePasso + chavesSemDemonstracao + aulasSemDesafio + violacoesDeOrcamento + lacunasDeCurriculo
+```
+
+um **inteiro não-negativo** (cada componente é uma contagem). O laço sempre termina, por duas razões
+independentes e ambas verificáveis no código:
+
+1. **todo movimento de ORDEM aplicado reduz `violacoesDeOrcamento` em ≥ 1 e não aumenta componente
+   nenhuma** — porque só é gravado depois de `verificarReordenacao`
+   (`app/electron/main/engine/modes/reorder.ts`) provar, sobre a trilha re-derivada em memória, que a
+   violação alvo sumiu **e** que nenhuma violação nova apareceu (verificação DIFERENCIAL). Logo μ
+   desce ao menos 1 por movimento;
+2. **toda QUEBRA é IDEMPOTENTE**: o slug da aula nova é derivado (`passo-<construção>-<sha256 do
+   grupo, 8 hex>`) e o planejador marca `jaExiste` quando o slug já está no `module.json`. Uma aula
+   nova é criada no máximo uma vez, e o número de quebras possíveis é finito (≤ aulas × grupos).
+
+Quando nada mais é aplicável, ou o laço para em **PONTO-FIXO** (exit 0) ou **ESCALA** por
+CICLO/SEM-PROGRESSO (exit 1). Nunca por rodada 3.
+
+⚑ **O LIMITE HONESTO, e ele é normativo: a descida completa até PONTO-FIXO exige a etapa de AUTORIA.**
+A formulação otimista — "`SPLIT_LESSON` reduz **estritamente** `excessoDePasso`" — só vale se alguém
+MOVER as chaves do `introduces` da aula original para a aula nova. O `--aplicar` deste laço **não faz
+isso**, e a razão é a mesma que o proíbe de escrever prosa: mover a declaração sem mover a
+DEMONSTRAÇÃO cria, no mesmo movimento, N violações A19 e 1 A20 — μ **subiria**, e o gate passaria a
+mentir sobre uma aula que não ensina nada. Então a aula nova nasce **esqueleto** (sem `introduces`,
+com a ficha `autoria` dizendo o que precisa ser escrito), a iteração seguinte a reprova por A20, e o
+laço para em SEM-PROGRESSO com exit 1. **Isso é o desfecho CORRETO**: o trabalho que falta fica
+visível no gate, com aula, chave e ação prescrita, em vez de um verde por cansaço. Medido pelo autor
+do módulo (o número e o comando estão no cabeçalho de
+`app/electron/main/engine/modes/convergencia.ts`, sobre uma CÓPIA da fixture, nunca sobre a fixture do
+repositório): μ **12 → 13** entre a iteração 1 e a 2 do `--aplicar`, `aulasSemDesafio` 0 → 1, parada
+em SEM-PROGRESSO, exit 1.
+
+**O PLANEJADOR DA QUEBRA — as quatro regras, na ordem de força.** O insumo é o campo `grupos` que a
+barra publica (componentes conexas de "ocorre na MESMA LINHA") mais as chaves novas:
+
+1. **um grupo NUNCA se parte** — três chaves da mesma linha são UMA construção para o aluno;
+2. no máximo **2 grupos produtivos** por aula, e **1** na aula 1 da trilha (A18);
+3. no máximo **4 chaves novas** por aula (A21);
+4. a ordem é a de **dependência pela primeira ocorrência na teoria** — grupo que aparece antes vem
+   antes. O agrupamento **nunca** é recalculado aqui; só a POSIÇÃO é lida.
+
+A regra 1 é mais forte que a regra 3: grupo que **sozinho** estoura o teto de 4 chaves vai para uma
+aula só dele e o plano prescreve o array literal de `introduces.derived` a declarar (A23 colapsa o
+grupo em 1 item, porque as chaves co-ocorrem na mesma linha). O último pacote **fica** na aula
+original e os anteriores viram aulas novas imediatamente antes dela; pacote final sem grupo produtivo
+é fundido no anterior, porque aula sem produtiva nova é A20 por construção. Cada aula nova sai com
+slug, título pt-BR, posição no `module.json`, `prerequisites` e a **ficha de autoria** (módulo, aula,
+ensina, presume, quiz, desafio), no mesmo formato do campo `autoria` das aulas-esqueleto.
+
+**O LEDGER — iteração sem linha no ledger não aconteceu.** Append-only, uma linha JSON por iteração,
+**nos dois modos** (o dry-run também escreve: é a única escrita dele, e é de REGISTRO, não de
+conteúdo — declarada no `--help`), em `app/content-src/python-iniciante/convergencia/ledger.jsonl` e
+equivalentes por trilha. **14 campos, nesta ordem** — e o veredito é o ÚLTIMO, porque §6.3 manda
+evidência antes de veredito:
+
+```
+iteracao · commit · ambiente · medicoes[] · limitacoesDeclaradas[] · vetor(7) · mu
+· achadosPorRamo · achadosForaDosRamos · acoesPlanejadas[] · acoesAplicadas[] · planosDeQuebra[]
+· hashDoVetor · veredito
+```
+
+`ambiente` traz só o que existe na máquina (`node`, `python3`, `clang`, `cargo`): binário ausente
+**falta do mapa**, nunca aparece como string vazia — a ausência é informação. `medicoes[]` traz, para
+cada gate, o comando literal, o exit e o placar.
+
+⚑ **DUAS COISAS QUE O `PONTO-FIXO` DESTE COMANDO NÃO CONFERE**, medidas em `convergencia.ts`
+(`const semAchado`): (i) achado de severidade **aviso** que tem ramo não bloqueia — A22 é aviso, logo
+"aviso com contagem" é dever do autor e não gate; (ii) `totals.checagensNaoExecutadas` **não entra na
+cascata** — uma trilha pode alcançar PONTO-FIXO com a bateria A13–A16 declarada como não executada.
+As duas estão declaradas aqui em vez de prometidas como gate.
+
+⚑ **CONTRADIÇÃO VIVA, medida em 2026-09-22 às 03:41 (a registrar, não a esconder).** A regra **A24**
+entrou no catálogo da barra (`REGRAS_DA_BARRA`) **depois** de a tabela `RAMO_DA_BARRA` deste módulo
+ser escrita, e regra da barra sem linha nessa tabela cai em `foraDosRamos` — que **impede** o
+PONTO-FIXO mesmo sendo aviso. Consequência medida: as duas trilhas entregues têm **vetor todo zero e
+μ 0**, os seis ramos em 0, e ainda assim **saem 1**:
+
+```bash
+cd app && npm run engine -- convergir python-iniciante
+# ITERACAO 1 · hash a7fb646333747a53 · mu 0 · VETOR todo zero · RAMOS todos 0
+# fora-dos-ramos 58 (todos A24, com o motivo declarado) · VEREDITO DRY-RUN · exit 1
+cd app && npm run engine -- convergir rust-iniciante
+# ITERACAO 1 · hash a7fb646333747a53 · mu 0 · fora-dos-ramos 93 (todos A24) · exit 1
+```
+
+O `foraDosRamos` está fazendo exatamente o que foi desenhado para fazer — **declarar** em vez de
+improvisar ação (§7.3) — e o defeito é do **catálogo**: falta a linha `A24 → DEMONSTRACAO` em
+`RAMO_DA_BARRA`. Enquanto ela faltar, o exit 0 do `convergir` é inalcançável para trilha que tenha
+qualquer aviso A24, e **nenhum documento deve afirmar PONTO-FIXO nessas trilhas**.
+
 ### 6.7 Anti-oscilação e memória
 
 - **Version buffer** — toda versão de cada artefato é guardada; rollback e ping-pong escolhem dali.
@@ -902,6 +1257,94 @@ laço e conserte o juiz**.
   é resolvível por `return` constante · C7 a teoria ensina tudo o que o desafio cobra · C8 nenhum
   conceito órfão. Sem o eixo construtivo o laço produz aulas triviais — é o mesmo efeito medido em
   Constitutional AI, onde a inocuidade sobe monotonicamente enquanto a utilidade cai.
+
+---
+
+### 6.8 O laço de convergência na ENTREGA — recursão sem fim, terminação provada
+
+`app/electron/main/engine/modes/convergencia.ts`, comando
+`npm run engine -- convergir <slug> [--aplicar] [--max-iteracoes N]`. É o laço **da entrega**, e não
+é o §6.1–§6.7: aquele é de REVISÃO, tem LLM, revisor e orçamento de 1 rodada. Este é
+**determinístico, zero-LLM, zero-rede, sem teto de rodadas**, e mede com os gates do §5.
+
+**O pedido que o originou**, na íntegra: *"quero recursão sem fim na validação ao entregar o curso
+até ele estar ideal e ter nele tudo que o aluno precisa para aprender, mas no caso de nem nele e nem
+nos cursos conectados a ele antes dele, ter o conteúdo, tem que quebrar o conteúdo da aula
+problemática em mais conteúdos"*. As três cláusulas são três peças distintas: o laço (aqui), a
+**cadeia** (`app/electron/main/engine/graph/cadeia.ts` — os cursos conectados antes) e a **quebra**
+(o planejador, abaixo).
+
+**Os seis ramos.** Todo achado dos dois gates cai em EXATAMENTE UM, e o ramo — não a opinião de
+ninguém — escolhe a ação no catálogo FECHADO do §6.7:
+
+| Ramo | Condição | Ação |
+|---|---|---|
+| ORDEM | violação com `primeiraAulaQueEnsina !== null` | `REWRITE_IN_BUDGET` ou o movimento que o `reorder.ts` PROVA |
+| CADEIA | a chave não é ensinada nesta trilha, mas é num curso ANTERIOR da cadeia | `MOVE_CONCEPT_TO_ENTRY_BUDGET` |
+| LACUNA | a chave não é ensinada em lugar nenhum da cadeia | `INSERT_INTERMEDIATE` |
+| QUEBRA | A17/A18/A21 — o passo é grande demais | `SPLIT_LESSON` |
+| DEMONSTRACAO | A19/A22/A23 — declarar não é demonstrar | `REWRITE_IN_BUDGET` |
+| PROVA | A20/A24 — a aula não PROVA o que diz que ensina | `ADD_TEST` / `DECLARE_INTEGRATIVE` / `REWRITE_IN_BUDGET` |
+
+A tabela `RAMO_DA_BARRA` é **fechada**: regra da barra sem linha nela é **defeito do catálogo**, não
+achado a improvisar, e cai em `foraDosRamos`, que **bloqueia o ponto fixo**. Isso não é teoria: a
+A24 entrou na barra depois da tabela e por um turno inteiro travou o `rust-iniciante` em
+"DRY-RUN · 93 pendente" — 93 **avisos** que a cascata já ignorava. O sintoma lia-se como "o curso
+não converge"; a causa era uma linha de tabela. O trilho que impede o retorno é
+`app/tests/engineConvergencia.test.ts` C8: `REGRAS_DA_BARRA ⊆ RAMO_DA_BARRA` e o inverso.
+
+**A medida de terminação.**
+
+```
+μ(t) = excessoDePasso + chavesSemDemonstracao + aulasSemDesafio
+       + violacoesDeOrcamento + lacunasDeCurriculo
+```
+
+inteiro não-negativo. O vetor de estado tem sete componentes (as cinco de μ mais `errosDaBarra` e
+`secoesInsuficientes`) e é hasheado por iteração. A cascata, na ordem em que dispara:
+
+```
+1. PONTO-FIXO     achados == ∅  ∧  a iteração não aplicou mudança      → exit 0
+2. CICLO          hash(vetor) repete um hash já visto                  → PARA e ESCALA (exit 1)
+3. SEM-PROGRESSO  nenhuma componente diminuiu ∧ nada foi aplicado      → PARA e ESCALA (exit 1)
+4. TETO           só quando `--max-iteracoes` foi passado              → exit 1
+```
+
+**Aviso não abre rodada.** `semAchado` é `achados.every(a => a.severidade === 'aviso') &&
+foraDosRamos.length === 0`: A22 e as afirmações isoladas de A24 são reportadas e **não** impedem o
+ponto fixo. O que impede é erro, ou achado sem ramo.
+
+**A QUEBRA, que é a terceira cláusula do pedido.** O planejador parte a aula problemática em N aulas
+usando os **grupos de co-ocorrência** do §5.6 — e um grupo **nunca** é partido, porque não existe
+aula que ensine duas chaves de uma mesma linha e não ensine a terceira. Com `--aplicar`, a aula nova
+nasce **esqueleto**, com uma ficha `autoria` dizendo o que precisa ser escrito, e o slug é derivado
+da construção-alvo + sha256 do grupo — logo a aplicação é **idempotente**: a mesma aula não é criada
+duas vezes.
+
+**⚑ ONDE A PROMESSA OTIMISTA NÃO SE SUSTENTA — declarado, não escondido.** "SPLIT_LESSON reduz
+estritamente `excessoDePasso`" só valeria se alguém MOVESSE as chaves do `introduces` da aula
+original para a nova. Este laço **não faz isso**, pela mesma razão que o proíbe de escrever prosa:
+mover a declaração sem mover a DEMONSTRAÇÃO cria, no mesmo movimento, N violações A19 e 1 A20 —
+**μ subiria** e o gate passaria a mentir sobre uma aula que não ensina nada. Então μ tem duas
+metades:
+
+- **μ_mecânico** (movimentos de ordem provados pelo `reorder.ts`, quebras idempotentes) **desce
+  sozinho** — cada movimento só é gravado depois da verificação DIFERENCIAL provar que a violação
+  alvo sumiu e que nenhuma nova apareceu;
+- **μ_autoral** (prosa, exemplo, quiz, desafio) **não desce sem LLM**. O laço PARA em
+  SEM-PROGRESSO, sai 1 e **ESCALA**, deixando aula, chave e ação prescrita visíveis no gate.
+
+E isso foi **medido, não argumentado**: sobre uma CÓPIA de fixture com um precipício fabricado,
+μ=6 → `SPLIT_LESSON` aplicado → μ=7 → **SEM-PROGRESSO**. Esse é o desfecho CORRETO — o §6.6 vale
+aqui na letra: *"Nunca aceitar por cansaço"*. "Recursão sem fim" é **sem teto de rodadas**, nunca
+laço infinito e nunca aprovação por esgotamento.
+
+**A única escrita do dry-run é o ledger** (um por trilha, p.ex.
+`app/content-src/rust-iniciante/convergencia/ledger.jsonl`, append-only, uma linha JSON por iteração, com os comandos que reproduzem cada medição e as
+limitações declaradas). Escrita não declarada é defeito; esta está declarada no `--help`.
+
+**Medido em 2026-09-22:** `convergir rust-iniciante` → PONTO-FIXO, μ 0, exit 0 (103 aulas, 0
+violações, 0 erros de barra, 145 avisos); `convergir python-iniciante` → PONTO-FIXO, μ 0, exit 0.
 
 ---
 

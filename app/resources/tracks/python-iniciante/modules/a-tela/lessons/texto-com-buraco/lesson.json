@@ -73,6 +73,11 @@
       "title": "Textos com buraco (f-strings)",
       "url": "https://docs.python.org/3/reference/lexical_analysis.html#f-strings",
       "description": "A referência oficial do texto que tem um valor encaixado dentro."
+    },
+    {
+      "title": "Formatted String Literals — a seção do tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/inputoutput.html#formatted-string-literals",
+      "description": "O tutorial mostra o mesmo f antes das aspas, com mais de um buraco na mesma frase e o valor encaixado dentro das chaves."
     }
   ],
   "challenges": [

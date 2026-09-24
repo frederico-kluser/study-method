@@ -18,7 +18,13 @@
       "op:range:..",
       "node:RangeExpression"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:RangeExpression",
+        "de": "op:range:.."
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [
@@ -30,7 +36,7 @@
     {
       "id": "o-intervalo-para-antes-do-fim",
       "title": "O intervalo para antes do fim",
-      "markdown": "O intervalo `0..limite` vai de `0` até o limite SEM incluir o limite:\n\n```rust\npub fn quatro_primeiros() -> i32 {\n    let mut soma = 0;\n    for n in 0..4 {\n        soma += n * n;\n    }\n    soma\n}\n```\n\nOs números da vez são `0`, `1`, `2` e `3` — o `4` NÃO entra. Por isso `quatro_primeiros()` também devolve `14`, com quatro voltas e não cinco: o `..` corta ANTES do fim."
+      "markdown": "Os dois pontos são o que MONTA o intervalo: `começo..fim`. E o intervalo `0..limite` vai de `0` até o limite SEM incluir o limite:\n\n```rust\npub fn quatro_primeiros() -> i32 {\n    let mut soma = 0;\n    for n in 0..4 {\n        soma += n * n;\n    }\n    soma\n}\n```\n\nOs números da vez são `0`, `1`, `2` e `3` — o `4` NÃO entra. Por isso `quatro_primeiros()` também devolve `14`, com quatro voltas e não cinco: o `..` corta ANTES do fim."
     },
     {
       "id": "o-que-o-for-cuida-por-voce",

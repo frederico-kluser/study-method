@@ -61,17 +61,17 @@
       "question": "Depois de `let saudacao = nome + \"!\";`, o que acontece ao usar `nome`?",
       "options": [
         "E0382: a caixa esquerda foi movida",
-        "Funciona normalmente",
-        "Devolve Ana!",
-        "Reinicia a caixa"
+        "Compila: o + só copia a esquerda",
+        "Devolve Ana!, a soma já pronta",
+        "A caixa esquerda volta vazia e usável"
       ],
       "answerIndex": 0,
       "feedback": "O + consumiu a caixa da esquerda — o E0382 cobra a conta.",
       "optionRationales": [
         "A soma moveu nome: o nome antigo não aponta para nada.",
-        "Depois do movimento o nome morreu — não funciona.",
-        "O valor está em saudacao; nome não responde mais.",
-        "Nada reinicia: o movimento é definitivo."
+        "O + não copia a esquerda: ele consome a caixa dela.",
+        "A soma pronta está em saudacao; nome não responde mais.",
+        "Vazia ainda daria para usar; movida não existe mais para o nome."
       ]
     }
   ],

@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "pular-uma-volta",
   "title": "Pular uma volta",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O continue abandona o resto da volta e manda o laço direto para o próximo passo — diferente do break, que sai do laço de vez.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:ContinueStmt",
+  "concepts": [
+    "pular_uma_volta"
+  ],
   "prerequisites": [
     "parar-no-meio"
   ],
+  "introduces": {
+    "productive": [
+      "node:ContinueStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o laço ganha um segundo atalho: além da porta de saída (break), existe um desvio que abandona só o resto da volta atual e devolve o controle ao passo do laço",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-continue-pula-o-resto",
+      "title": "Pular o resto da volta",
+      "markdown": "Às vezes uma volta do laço não interessa. O `continue` abandona o resto do corpo e manda o laço direto para o próximo passo:\n\n```c\nfor (int i = 1; i <= 6; i++) {\n    if (i % 3 == 0) {\n        continue;\n    }\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n1\n2\n4\n5\n```\n\nQuando `i` vale 3 ou 6, o `continue` roda e o `printf` daquela volta não acontece. O laço não para: ele vai para o `i++` do cabeçalho e tenta a volta seguinte."
+    },
+    {
+      "id": "pular-nao-e-sair",
+      "title": "Pular não é sair",
+      "markdown": "Troque uma palavra e o laço muda de destino. O `break` SAI do laço; o `continue` fica dentro dele:\n\n```c\nfor (int i = 1; i <= 6; i++) {\n    if (i % 3 == 0) {\n        break;\n    }\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n1\n2\n```\n\nCom `break`, o 3 encerra tudo e o 4, o 5 e o 6 nem chegam a ser testados. Com `continue`, os números depois do 3 continuam saindo. Mesma condição, duas portas: a de saída e o atalho para a próxima volta."
+    },
+    {
+      "id": "o-passo-antes-do-atalho",
+      "title": "No while, o passo vem antes",
+      "markdown": "No `for`, o passo (`i++`) mora no cabeçalho e roda mesmo quando o `continue` corta a volta. No `while`, o passo é uma linha do corpo — e o `continue` pula tudo o que vem depois dele:\n\n```c\nint i = 0;\nwhile (i <= 5) {\n    i++;\n    if (i % 3 == 0) {\n        continue;\n    }\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n1\n2\n4\n5\n```\n\nAqui o `i++` está ANTES do `continue`, então o contador sempre anda. Se estivesse depois, a volta pulada não somaria 1 e o laço rodaria para sempre."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "continue-pula-break-sai",
+      "statement": "O `continue` pula para o PRÓXIMO passo — diferente do `break`, que sai.",
+      "question": "O laço `for (int i = 1; i <= 6; i++)` tem `if (i % 3 == 0) { continue; }` antes do `printf`. O que aparece na tela?",
+      "options": [
+        "1, 2, 4 e 5 — nas voltas de 3 e de 6 o `printf` não roda.",
+        "1 e 2 — o laço acaba assim que `i` chega a 3 pela primeira vez.",
+        "1, 2, 3, 4, 5 e 6 — o `continue` não muda a saída do laço.",
+        "3 e 6 — o `continue` imprime só as voltas que ele pulou."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `continue` abandona só o resto DAQUELA volta: o laço segue no passo seguinte. Quem encerra o laço é o `break`.",
+      "sectionId": "pular-nao-e-sair",
+      "optionRationales": [
+        "O `continue` corta as voltas de 3 e de 6 antes do `printf`; as outras quatro imprimem normalmente.",
+        "Parar em 3 é o que o `break` faria — o `continue` não encerra laço nenhum.",
+        "Se o `continue` não mudasse nada ele não existiria: as voltas em que ele roda perdem o `printf`.",
+        "O `continue` não imprime nada: ele apenas abandona o resto da volta."
+      ]
+    },
+    {
+      "id": "o-passo-tem-de-andar",
+      "statement": "No `while`, o passo precisa andar ANTES do `continue` — senão a volta pulada não avança o contador.",
+      "question": "Num `while`, o `i++` está escrito DEPOIS do `if (...) { continue; }`. O que acontece nas voltas em que a condição do `if` é verdadeira?",
+      "options": [
+        "O `i` não anda naquela volta e o laço repete para sempre.",
+        "O `i` anda assim mesmo, porque o passo do `while` é automático.",
+        "O laço encerra na hora, como se fosse um `break`.",
+        "O compilador recusa o programa antes mesmo de rodar."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `continue` pula TODAS as linhas que vêm depois dele no corpo — inclusive o `i++`. Sem o passo, a condição nunca muda e o laço trava.",
+      "sectionId": "o-passo-antes-do-atalho",
+      "optionRationales": [
+        "O `continue` salta o resto do corpo; se o passo está nesse resto, o contador fica parado e a condição nunca vira falsa.",
+        "O `while` não tem passo automático: quem anda com o contador é uma linha do corpo, escrita por você.",
+        "Encerrar o laço é trabalho do `break`; o `continue` mantém o laço vivo.",
+        "O programa compila sem erro: laço infinito é comportamento em tempo de execução, não erro de compilação."
+      ]
+    },
+    {
+      "id": "continue-dentro-do-for",
+      "statement": "No `for`, o passo do cabeçalho roda mesmo quando o `continue` corta a volta.",
+      "question": "Em `for (int i = 1; i <= 6; i++)`, o `continue` roda quando `i` vale 3. Qual é o próximo valor de `i`?",
+      "options": [
+        "4 — o `continue` vai direto para o `i++` do cabeçalho.",
+        "3 de novo — o `continue` repete a mesma volta com o mesmo `i`.",
+        "1 — o `continue` reinicia o laço desde o começo.",
+        "7 — o `continue` pula direto para o fim do laço."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `continue` salta para o fim do corpo, e então o `for` executa o passo do cabeçalho: `i` vira 4 e a condição é testada de novo.",
+      "sectionId": "o-continue-pula-o-resto",
+      "optionRationales": [
+        "Pular o resto do corpo leva ao passo do cabeçalho: o `i++` roda e `i` passa a valer 4.",
+        "Repetir a mesma volta com o mesmo valor seria laço infinito — o passo do `for` sempre roda.",
+        "Nenhum comando de C reinicia o contador: o `int i = 1` do cabeçalho roda uma vez só.",
+        "Ir para o fim do laço é o que o `break` faz; o `continue` só abandona a volta atual."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "continue statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/continue",
+      "description": "A página oficial do continue em C: ele abandona o resto do corpo e passa ao próximo ciclo do laço mais interno."
+    },
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do for: a ordem em que início, condição, corpo e passo são executados — e onde o continue cai."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.6.2 define o continue como um salto para o fim do corpo do laço mais interno."
+    }
+  ],
+  "challenges": [
+    "impares-fora"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "uma-letra-e-um-numero",
   "title": "A letra que é um número",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A casa char guarda uma letra escrita entre aspas simples — e essa letra é um número: 'A' é 65, e somar 1 anda um passo na fileira do alfabeto.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:CharacterLiteral",
+  "concepts": [
+    "a_letra_e_numero"
+  ],
   "prerequisites": [
     "um-nome-para-um-valor",
-    "buraco-na-frase"
+    "buraco-na-frase",
+    "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "node:CharacterLiteral"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a letra entra na maquina como numero: uma casa char guarda um caractere escrito entre aspas simples, o mesmo valor sai como letra pelo %c ou como numero pelo %d, e somar 1 anda um passo dentro da fileira",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-casa-de-uma-letra",
+      "title": "Uma casa do tamanho de uma letra",
+      "markdown": "Até agora as suas casas guardavam números inteiros. Existe uma casa feita para guardar **uma letra**: o tipo `char`.\n\n```c\nchar inicial = 'A';\nprintf(\"%c\\n\", inicial);\n```\n\n```text\nA\n```\n\nDuas novidades aí. As **aspas simples** marcam UMA letra (`'A'`); as aspas duplas marcam um texto (`\"A\"` é uma frase que por acaso tem uma letra só). E o `%c` é o buraco de uma letra, como o `%d` é o buraco de um número inteiro."
+    },
+    {
+      "id": "a-letra-e-um-numero",
+      "title": "A letra é um número",
+      "markdown": "Por dentro o computador só guarda números — e a letra é um deles. Para ver o número, basta pedir a mesma letra pelo buraco de número:\n\n```c\nprintf(\"%d\\n\", 'A');\n```\n\n```text\n65\n```\n\n`'A'` **é** 65. E, se é número, dá para somar: `'A' + 1` é 66, que pelo buraco de letra sai como `B` (medido nesta máquina):\n\n```c\nprintf(\"%c\\n\", 'A' + 1);\n```\n\n```text\nB\n```\n\nQuem decide se você vê o número ou a letra é o buraco, não o valor."
+    },
+    {
+      "id": "somar-na-letra-guardada",
+      "title": "Andar no alfabeto",
+      "markdown": "O mesmo vale para a letra que está numa casa: somar 1 anda um passo no alfabeto.\n\n```c\nchar letra = 'm';\nprintf(\"%c\\n\", letra + 1);\n```\n\n```text\nn\n```\n\nOnde a comparação com o alfabeto quebra: o passo só vale DENTRO de cada fileira. As minúsculas começam em `'a'`, que é 97; as maiúsculas em `'A'`, que é 65. `'Z'` é 90, então `'Z' + 1` é 91 — não é `'a'`, é um caractere qualquer. Ande dentro da mesma fileira."
+    },
+    {
+      "id": "quantos-passos-voce-quiser",
+      "title": "Quantos passos você quiser",
+      "markdown": "O tanto de passos não precisa estar escrito na conta: ele pode vir de outra casa.\n\n```c\nchar letra = 'a';\nint passos = 3;\nprintf(\"%c\\n\", letra + passos);\n```\n\n```text\nd\n```\n\nÉ a conta da seção anterior com `passos` no lugar do `1`: `letra` vale 97, mais 3 dá 100, e o `%c` mostra 100 como `d`. Trocando o valor de `passos` você anda quanto quiser — com `0` não sai do lugar, e a fileira das minúsculas aguenta 25 passos a partir do `a`."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-e-65-e-mais-um-e-b",
+      "statement": "`'A'` é o número 65: `printf(\"%c\", 'A' + 1)` imprime `B`.",
+      "question": "O que `printf(\"%c\\n\", 'A' + 1);` mostra na tela?",
+      "options": [
+        "A letra `B`: `'A'` é 65, a soma dá 66, e o `%c` mostra 66 como letra.",
+        "O número `66`: a soma virou número e a letra se perdeu no caminho.",
+        "O texto `A1`: o `%c` mostra a letra e o `+ 1` cola o 1 depois dela.",
+        "A letra `A`: somar 1 numa letra não muda nada, porque letra não é conta."
+      ],
+      "answerIndex": 0,
+      "feedback": "`'A'` é 65; `'A' + 1` é 66; e o buraco `%c` mostra 66 como letra — a letra de código 66 é `B`. No mesmo valor, o `%d` mostraria 66.",
+      "sectionId": "a-letra-e-um-numero",
+      "optionRationales": [
+        "O valor da conta é 66 e o `%c` o mostra como letra: sai `B`.",
+        "Mostrar 66 é o que o `%d` faria; o buraco escolhido aqui é o `%c`.",
+        "O `+ 1` é uma conta, não uma colagem de texto: o 1 não aparece na tela.",
+        "Somar 1 muda o número da letra, e um número diferente é outra letra."
+      ]
+    },
+    {
+      "id": "aspas-simples-para-uma-letra",
+      "statement": "Aspas simples marcam uma letra; aspas duplas marcam um texto.",
+      "question": "Qual linha guarda a letra `k` numa casa `char`?",
+      "options": [
+        "`char c = 'k';`",
+        "`char c = \"k\";`",
+        "`char c = k;`",
+        "`char c = %c;`"
+      ],
+      "answerIndex": 0,
+      "feedback": "A casa `char` guarda UMA letra, e uma letra se escreve entre aspas simples. Com aspas duplas você escreveu um texto; sem aspas, `k` seria o nome de outra casa; e `%c` só existe dentro do formato do `printf`.",
+      "sectionId": "a-casa-de-uma-letra",
+      "optionRationales": [
+        "Aspas simples, uma letra: é exatamente o que a casa `char` guarda.",
+        "`\"k\"` é texto entre aspas duplas — não é uma letra, e não cabe numa casa `char`.",
+        "Sem aspas, `k` é nome de variável: o compilador iria procurar uma casa chamada `k`.",
+        "`%c` é buraco de formato do `printf`; fora das aspas do formato ele não quer dizer nada."
+      ]
+    },
+    {
+      "id": "o-passo-acaba-na-fileira",
+      "statement": "Somar 1 anda um passo dentro da fileira — e `'Z' + 1` não é `'a'`.",
+      "question": "Com `char letra = 'z';`, o que `printf(\"%c\\n\", letra + 1);` mostra?",
+      "options": [
+        "Um caractere qualquer depois do `z`: a fileira das minúsculas acabou ali.",
+        "A letra `a`, porque depois do `z` a fileira volta ao começo do alfabeto.",
+        "A letra `A`, porque as maiúsculas vêm logo depois das minúsculas.",
+        "Nada, porque somar numa letra que chega ao fim do alfabeto é erro de compilação."
+      ],
+      "answerIndex": 0,
+      "feedback": "`'z'` é 122, então a conta dá 123 — e 123 não é letra nenhuma, é o caractere desse código. O passo só é alfabeto dentro da fileira: de `'a'` a `'z'`, ou de `'A'` a `'Z'`.",
+      "sectionId": "somar-na-letra-guardada",
+      "optionRationales": [
+        "Passando de `'z'` você sai da fileira das letras e cai no caractere de código 123.",
+        "Nada volta ao começo: os números seguem em frente, um atrás do outro.",
+        "As maiúsculas vêm ANTES (`'A'` é 65, `'a'` é 97), e nem colam com o fim das minúsculas.",
+        "A conta é legítima e compila: o que muda é que o resultado deixou de ser letra."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Character constants — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/character_constant",
+      "description": "A página oficial da constante de caractere em C: as aspas simples, e o valor numérico que ela representa."
+    },
+    {
+      "title": "Arithmetic types — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/arithmetic_types",
+      "description": "A página oficial dos tipos numéricos, onde o char aparece como o menor tipo inteiro — é por isso que ele entra em contas."
+    },
+    {
+      "title": "ascii(7) — a tabela oficial de códigos do sistema",
+      "url": "https://man7.org/linux/man-pages/man7/ascii.7.html",
+      "description": "A tabela que o sistema publica: 65 para A, 97 para a, 48 para o algarismo 0 — os números que as letras são."
+    }
+  ],
+  "challenges": [
+    "proxima-letra"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

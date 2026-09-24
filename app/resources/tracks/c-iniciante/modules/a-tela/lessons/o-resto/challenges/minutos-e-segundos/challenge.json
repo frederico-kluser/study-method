@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "minutos-e-segundos",
+  "title": "Minutos e segundos",
+  "concept": "o_resto",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Minutos e segundos\n\nUm cronômetro só sabe contar segundos; quem lê prefere ouvir **minutos e segundos**.\n\nA função `minutosESegundos` já vem no arquivo, com o nome que o programa de fora chama. Complete o corpo dela para imprimir exatamente estas três linhas, nesta ordem:\n\n```text\n215 segundos sao 3 min e 35 s\n500 segundos sao 8 min e 20 s\n3725 segundos sao 62 min e 5 s\n```\n\nSão três `printf`, um por linha, e em cada um **os dois números saem de conta**: `/ 60` dá os minutos inteiros e `% 60` dá os segundos que sobraram.\n\nNão escreva os resultados à mão: deixe o C calcular cada número a partir do total.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* minutosESegundos decompoe tres totais de segundos em minutos e segundos.\n   Em cada linha os minutos vem de / 60 e os segundos de % 60. Deixe o C\n   calcular: nenhum resultado e escrito a mao.\n   O programa de fora chama minutosESegundos() pelo nome. */\nvoid minutosESegundos(void) {\n    /* 1) imprima \"215 segundos sao %d min e %d s\" com as duas contas de 215 */\n\n    /* 2) a mesma linha para 500 segundos */\n\n    /* 3) a mesma linha para 3725 segundos */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio minutos-e-segundos — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: a captura do stdout acontece DENTRO do teste (freopen manda o\n   stdout para um arquivo temporario proprio do cenario, o teste chama a\n   funcao do aluno, fflush descarrega e o arquivo e lido de volta). O main e\n   o relatorio sao do harness. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid minutosESegundos(void);\n\nSM_TEST(as_tres_decomposicoes) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    minutosESegundos();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"215 segundos\", linha, \"215 segundos sao 3 min e 35 s\\n\",\n              \"215 / 60 da 3 minutos e 215 % 60 deixa 35 segundos\");\n    fgets(linha, 80, f);\n    checa_str(\"500 segundos\", linha, \"500 segundos sao 8 min e 20 s\\n\",\n              \"500 / 60 da 8 minutos e 500 % 60 deixa 20 segundos\");\n    fgets(linha, 80, f);\n    checa_str(\"3725 segundos\", linha, \"3725 segundos sao 62 min e 5 s\\n\",\n              \"3725 / 60 da 62 minutos e 3725 % 60 deixa 5 segundos\");\n    fclose(f);\n}\n\nSM_TEST(a_saida_acaba_na_terceira_linha) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    minutosESegundos();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid minutosESegundos(void) {\n    printf(\"215 segundos sao %d min e %d s\\n\", 215 / 60, 215 % 60);\n    printf(\"500 segundos sao %d min e %d s\\n\", 500 / 60, 500 % 60);\n    printf(\"3725 segundos sao %d min e %d s\\n\", 3725 / 60, 3725 % 60);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_tres_decomposicoes",
+      "teste": "as_tres_decomposicoes",
+      "descricao": "a funcao minutosESegundos decompoe 215, 500 e 3725 segundos: em cada linha os minutos vem de / 60 e os segundos de % 60 (3 min e 35 s, 8 min e 20 s, 62 min e 5 s)"
+    },
+    {
+      "id": "a_saida_acaba_na_terceira_linha",
+      "teste": "a_saida_acaba_na_terceira_linha",
+      "descricao": "a saida termina na terceira linha: uma quarta linha impressa reprova o desafio (o cenario le uma linha a mais e a compara com o sentinel)"
+    }
+  ]
+}

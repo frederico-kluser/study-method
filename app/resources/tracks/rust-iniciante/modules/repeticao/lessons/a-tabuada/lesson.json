@@ -44,18 +44,18 @@
       "question": "O que cada volta do laço da tabuada acrescenta ao `texto`?",
       "options": [
         "uma linha nova, emendada com a quebra de linha na frente",
-        "um número a mais na soma",
-        "uma cópia do texto inteiro de novo",
-        "nada — o texto só é criado no fim"
+        "um número a mais na soma das linhas já calculadas",
+        "uma cópia do texto inteiro, repetida antes da linha nova",
+        "nada: o texto só é montado de uma vez depois do laço"
       ],
       "answerIndex": 0,
       "feedback": "Cada volta emenda `\\n` + a linha nova no texto de antes — o texto cresce uma linha por volta.",
       "sectionId": "o-texto-que-cresce-volta-a-volta",
       "optionRationales": [
         "O `format!(\"{texto}\\n…\")` emenda a linha nova com a quebra — o texto cresce por volta.",
-        "Somar números é a tabuada do acumulador — aqui o que cresce é o TEXTO.",
+        "Somar números é a aula do acumulador — aqui o que cresce é o TEXTO.",
         "Emendar não duplica: o texto de antes entra UMA vez, seguido da linha nova.",
-        "O texto nasce na primeira linha, fora do laço — as voltas só o acrescentam."
+        "O texto nasce na primeira linha, antes do laço — as voltas só o acrescentam."
       ]
     },
     {
@@ -63,18 +63,18 @@
       "statement": "A conta da linha (n * i) é feita antes, num nome próprio — e o resultado entra no format! pronto.",
       "question": "Por que a linha da tabuada calcula `n * i` num `let` antes do `format!`?",
       "options": [
-        "para o resultado ter nome próprio — e o texto receber o valor pronto",
-        "porque o format! não aceita multiplicação",
-        "porque o let mut precisa de um uso",
-        "para o compilador conferir a tabuada"
+        "para o resultado ter nome próprio e entrar no texto pronto",
+        "porque o format! não aceita conta nenhuma dentro das chaves",
+        "porque o let mut do texto obriga um let novo em cada volta",
+        "para o compilador conferir se a tabuada deu o valor certo"
       ],
       "answerIndex": 0,
       "feedback": "Calcular primeiro e emendar depois deixa cada parte no seu lugar: a conta no nome, o texto no `format!`.",
       "sectionId": "o-format-que-recebe-o-texto",
       "optionRationales": [
         "O nome próprio (`linha`) guarda o resultado — e o `{linha}` entra no texto pronto.",
-        "O `format!` aceita o que vier — a escolha é de CLAREZA, não de regra.",
-        "O `let mut` é do texto — o `let` da linha é um nome comum, de uma volta.",
+        "O `format!` aceita o que vier nas chaves — a escolha é de CLAREZA, não de regra.",
+        "O `let mut` é do texto; o `let` da linha é um nome comum, que vale uma volta só.",
         "Quem confere a tabuada é o teste — o `let` só organiza a conta."
       ]
     },
@@ -83,10 +83,10 @@
       "statement": "A função devolve o texto — e é o devolvido que o teste confere, byte a byte, não a tela.",
       "question": "O que o teste da tabuada confere?",
       "options": [
-        "o TEXTO devolvido pela função, igual byte a byte ao esperado",
-        "o que a função escreve na tela",
-        "a quantidade de linhas, só isso",
-        "a última linha da tabuada"
+        "o TEXTO devolvido pela função, igual byte a byte",
+        "o que a função escreve na tela com o println!",
+        "a quantidade de linhas do texto, e nada mais que isso",
+        "só a última linha da tabuada, que fecha o texto"
       ],
       "answerIndex": 0,
       "feedback": "O canal do desafio é VALOR: o `assert_eq!` confere o texto devolvido inteiro — quebras de linha incluídas.",

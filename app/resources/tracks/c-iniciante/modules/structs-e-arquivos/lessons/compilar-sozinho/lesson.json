@@ -2,22 +2,132 @@
   "schemaVersion": 1,
   "slug": "compilar-sozinho",
   "title": "Compilar com as próprias mãos",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Compilar é um comando de terminal — e com as flags -Wall e -Wextra o compilador acende os avisos que apontam o bug antes de qualquer teste.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:MemberExpr",
+  "concepts": [
+    "compilar_no_terminal"
+  ],
   "prerequisites": [
     "a-biblioteca-em-dois-arquivos"
   ],
+  "introduces": {
+    "productive": [
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "aviso",
+    "flag"
+  ],
+  "notionalMachineDelta": "o compilador deixa de ser uma caixa que aprova ou reprova: ele passa a ser um leitor que comenta o codigo, e os avisos viram a primeira pista do bug",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "erro-e-aviso",
+      "title": "Erro e aviso não são a mesma coisa",
+      "markdown": "Compilar é um comando de terminal: você entrega os arquivos `.c` e recebe um programa.\n\n```text\ncc -std=c11 -Wall -Wextra -o programa programa.c\n```\n\nO compilador responde em duas línguas. **Erro** é recusa: nada é gerado, e você conserta antes de rodar. **Aviso** é desconfiança: o programa É gerado, roda — e mesmo assim o compilador viu algo estranho. O erro para você; o aviso deixa passar, e é por isso que ele é o mais perigoso dos dois."
+    },
+    {
+      "id": "as-flags-que-acendem",
+      "title": "As flags que acendem os avisos",
+      "markdown": "As palavras com `-` na frente são as **flags**: elas mudam o que o comando faz. `-Wall` e `-Wextra` são as duas que ACENDEM os avisos — sem elas o compilador cala quase tudo.\n\n```text\nprograma.c:7:9: warning: unused variable 'sobra' [-Wunused-variable]\n```\n\nCada aviso vem inteiro: o arquivo, a linha, a coluna, a frase em inglês e, entre colchetes, o nome da flag que o acendeu. `unused variable 'sobra'` quer dizer \"você declarou `sobra` e nunca usou\"."
+    },
+    {
+      "id": "tres-avisos-um-buraco",
+      "title": "Três avisos, um buraco",
+      "markdown": "Três avisos, e todos apontam para o mesmo buraco:\n\n```c\ntypedef struct {\n    int largura;\n    int altura;\n} Retangulo;\n\nint zeroAvisos(int largura, int altura) {\n    int sobra = 0;\n    Retangulo r = {largura};\n    return r.largura * r.altura;\n}\n```\n\n`sobra` declarada e nunca usada; a ficha `r` inicializada pela metade (o `altura` ficou em 0); e o parâmetro `altura`, que ninguém usou. Os três dizem a mesma coisa: a altura nunca chegou na ficha."
+    },
+    {
+      "id": "zero-avisos-antes-de-seguir",
+      "title": "Zero avisos antes de seguir",
+      "markdown": "Fechar o buraco apaga os três de uma vez:\n\n```c\ntypedef struct {\n    int largura;\n    int altura;\n} Retangulo;\n\nint zeroAvisos(int largura, int altura) {\n    Retangulo r = {largura, altura};\n    return r.largura * r.altura;\n}\n```\n\nA disciplina do terminal é essa: compile com `-Wall -Wextra` e só siga quando a resposta for ZERO aviso. O teste automático não lê avisos — ele confere o resultado. Quem lê os avisos, e encontra o bug antes do teste, é você."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "wall-wextra-acendem-os-avisos",
+      "statement": "`-Wall -Wextra` acendem os avisos que viram aliados; a prática pede zero aviso antes de seguir.",
+      "question": "Para que servem as flags `-Wall` e `-Wextra` no comando de compilar?",
+      "options": [
+        "Para o compilador mostrar os avisos que ele calaria sozinho.",
+        "Para transformar todo aviso do compilador em erro de compilação.",
+        "Para o programa gerado ficar mais rápido quando for executado.",
+        "Para apagar os avisos e deixar a saída do terminal mais limpa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem elas o compilador cala quase tudo. Com elas o programa continua sendo gerado — o que muda é você ficar sabendo do que ele desconfiou.",
+      "sectionId": "as-flags-que-acendem",
+      "optionRationales": [
+        "As duas flags ligam famílias de aviso que ficam desligadas por padrão.",
+        "Quem faz aviso virar erro é outra flag (`-Werror`), não estas duas.",
+        "Velocidade do programa é assunto das flags de otimização, como `-O2`.",
+        "Elas fazem o contrário: acendem avisos, nunca escondem nenhum."
+      ]
+    },
+    {
+      "id": "aviso-nao-impede-o-programa",
+      "statement": "Erro impede o programa de nascer; aviso deixa o programa nascer mesmo assim.",
+      "question": "O compilador respondeu com um `warning` e nenhum `error`. O que aconteceu?",
+      "options": [
+        "O programa foi gerado, e há algo suspeito para você olhar.",
+        "O programa não foi gerado: o aviso interrompeu a compilação.",
+        "O programa foi gerado e o aviso já foi corrigido pelo compilador.",
+        "O programa foi gerado e o aviso vale só para a próxima compilação."
+      ],
+      "answerIndex": 0,
+      "feedback": "Aviso não interrompe nada: o executável sai. Ele é o compilador dizendo \"isto compila, mas provavelmente não é o que você quis\" — e quase sempre ele tem razão.",
+      "sectionId": "erro-e-aviso",
+      "optionRationales": [
+        "Aviso não interrompe a compilação: o executável sai do mesmo jeito.",
+        "Quem interrompe a compilação é o erro, não o aviso.",
+        "O compilador nunca conserta o seu código: ele avisa e segue.",
+        "O aviso fala do código que está ali agora, não de compilações futuras."
+      ]
+    },
+    {
+      "id": "o-aviso-aponta-o-bug",
+      "statement": "O aviso aponta para o bug antes do teste: ler a mensagem é o atalho.",
+      "question": "O compilador avisa `missing field initializer` na linha `Retangulo r = {largura};`. O que isso quer dizer?",
+      "options": [
+        "Que a ficha tem um campo que ficou sem valor escrito por você.",
+        "Que o tipo `Retangulo` não foi declarado antes desta linha do arquivo.",
+        "Que a variável `r` foi declarada e nunca usada no corpo da função.",
+        "Que `largura` deveria estar entre aspas para entrar na ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "A ficha tem dois campos e o inicializador só deu um. O que falta fica em 0 — e é justamente esse 0 que faz a conta sair errada depois.",
+      "sectionId": "tres-avisos-um-buraco",
+      "optionRationales": [
+        "O inicializador entre chaves deu valor a um campo só; o outro ficou em 0.",
+        "Tipo não declarado é ERRO de compilação, não aviso.",
+        "Variável declarada e não usada é outro aviso: o `unused variable`.",
+        "Aspas marcam texto; `largura` é um número inteiro comum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "gcc(1) — a man-page oficial do compilador",
+      "url": "https://man7.org/linux/man-pages/man1/gcc.1.html",
+      "description": "A man-page do comando de compilar: a seção de opções de aviso descreve -Wall, -Wextra e o que cada família acende."
+    },
+    {
+      "title": "Translation phases — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/translation_phases",
+      "description": "A página oficial das fases de tradução: o caminho que o seu .c percorre dentro do compilador até virar programa."
+    },
+    {
+      "title": "ISO/IEC 9899:201x — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.7.9 diz que o campo sem inicializador explícito é inicializado em zero."
+    }
+  ],
+  "challenges": [
+    "zero-avisos"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

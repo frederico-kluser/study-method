@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "saudacao-nome",
+  "title": "A saudação com nome",
+  "concept": "a_string",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A saudação com nome\n\nA função `saudacaoNome` guarda um nome numa **caixa de letras** e usa esse mesmo nome em duas linhas de saudação, sempre pelo buraco `%s`.\n\nO nome é `Ana`, e a saída tem de ser exatamente esta:\n\n```text\noi, Ana!\nseja bem-vinda, Ana!\n```\n\nPassos:\n\n1. declare a caixa de letras com o nome (`char nome[] = \"Ana\";` — os colchetes vazios deixam o compilador contar as letras);\n2. imprima a primeira linha com `%s`;\n3. imprima a segunda linha com o **mesmo** `nome` — a caixa continua guardando o texto depois de ser impressa.\n\nSem acento nas linhas impressas: o texto com acento fica no enunciado, nunca na saída.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* saudacaoNome imprime duas linhas de saudacao usando o MESMO nome,\n   guardado numa caixa de letras (um array de char). */\nvoid saudacaoNome(void) {\n    /* 1) declare a caixa de letras com o nome Ana */\n\n    /* 2) imprima \"oi, <nome>!\" com %s, e \\n no fim */\n\n    /* 3) imprima \"seja bem-vinda, <nome>!\" com %s, e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio saudacao-nome — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le o\n   arquivo de volta (fflush, nunca fclose no stdout). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid saudacaoNome(void);\n\nSM_TEST(as_duas_linhas_com_o_nome) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    saudacaoNome();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha da saudacao\", linha, \"oi, Ana!\\n\",\n              \"o %s troca o buraco pelas letras da caixa, ate o terminador\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha da saudacao\", linha, \"seja bem-vinda, Ana!\\n\",\n              \"a mesma caixa serve as duas linhas: o nome fica guardado nela\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid saudacaoNome(void) {\n    char nome[] = \"Ana\";\n    printf(\"oi, %s!\\n\", nome);\n    printf(\"seja bem-vinda, %s!\\n\", nome);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_duas_linhas_com_o_nome",
+      "teste": "as_duas_linhas_com_o_nome",
+      "descricao": "a funcao saudacaoNome guarda o nome Ana numa caixa de char e imprime duas linhas com %s — \"oi, Ana!\" e \"seja bem-vinda, Ana!\" — e nada depois delas"
+    }
+  ]
+}

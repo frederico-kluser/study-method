@@ -10,5 +10,12 @@
   "starterCode": "pessoas = 4\nconsumo = 187.4\n# 1. guarde em gorjeta os dez por cento do consumo\n# 2. guarde em total o consumo mais a gorjeta\n# 3. guarde em por_pessoa o total dividido pelo número de pessoas\nprint(\"RACHANDO A CONTA\")\n# 4. imprima  consumo: <consumo>\n# 5. imprima  gorjeta: <gorjeta com duas casas>\n# 6. imprima  total: <total com duas casas>\n# 7. imprima  <pessoas> pessoas pagam <valor com duas casas> cada\n# 8. imprima  em notas de 50: <quantas notas de 50 cobrem o total>\n",
   "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestRachandoAConta(unittest.TestCase):\n    def test_imprime_o_recibo_completo(self):\n        \"\"\"o programa imprime o recibo inteiro, com gorjeta, total, valor por pessoa e notas\"\"\"\n        self.assertEqual(rodar(), \"RACHANDO A CONTA\\nconsumo: 187.4\\ngorjeta: 18.74\\ntotal: 206.14\\n4 pessoas pagam 51.54 cada\\nem notas de 50: 5\\n\")\n",
   "solutionCode": "pessoas = 4\nconsumo = 187.4\ngorjeta = consumo * 10 / 100\ntotal = consumo + gorjeta\npor_pessoa = total / pessoas\nprint(\"RACHANDO A CONTA\")\nprint(f\"consumo: {consumo}\")\nprint(f\"gorjeta: {round(gorjeta, 2)}\")\nprint(f\"total: {round(total, 2)}\")\nprint(f\"{pessoas} pessoas pagam {round(por_pessoa, 2)} cada\")\nprint(f\"em notas de 50: {int(total) // 50 + 1}\")\n",
-  "expectedTestCount": 1
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_o_recibo_completo",
+      "descricao": "O programa deve imprimir exatamente \"RACHANDO A CONTA\\nconsumo: 187.4\\ngorjeta: 18.74\\ntotal: 206.14\\n4 pessoas pagam 51.54 cada\\nem notas de 50: 5\\n\"."
+    }
+  ]
 }

@@ -10,7 +10,7 @@
     "chamar_funcao"
   ],
   "prerequisites": [
-    "a-primeira-funcao"
+    "multiplicar"
   ],
   "introduces": {
     "productive": [
@@ -43,9 +43,9 @@
       "question": "O que `dobro(4)` faz, com o corpo `x * 2`?",
       "options": [
         "Executa a função com 4 e vira o valor 8.",
-        "Renomeia a função para 4.",
-        "Imprime 4 na tela.",
-        "Nada: falta a palavra chamar."
+        "Renomeia a função para o nome 4.",
+        "Mostra o número 4 na tela e para.",
+        "Nada: falta a palavra chamar antes do nome."
       ],
       "answerIndex": 0,
       "feedback": "Nome + parênteses = chamada. O Rust executa e põe o resultado no lugar.",
@@ -73,9 +73,9 @@
       "description": "O capítulo oficial das funções, com chamadas e valores de retorno."
     },
     {
-      "title": "Hello, World! — Rust by Example",
-      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
-      "description": "Os exemplos oficiais de primeira chamada em Rust."
+      "title": "Functions — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/fn.html",
+      "description": "Os exemplos oficiais de funções definidas e chamadas por nome."
     }
   ],
   "challenges": [

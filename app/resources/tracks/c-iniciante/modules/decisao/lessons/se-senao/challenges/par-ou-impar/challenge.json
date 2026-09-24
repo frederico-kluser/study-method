@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "par-ou-impar",
+  "title": "Par ou ímpar",
+  "concept": "o_outro_caminho",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Par ou ímpar\n\nA função `parOuImpar` lê **um número inteiro** digitado pela pessoa e imprime uma linha só: `par` ou `impar`.\n\nA leitura e o caminho do `par` já estão escritos. Falta o outro caminho: o `else` com o `printf` de `impar` dentro das chaves.\n\nCom `8` digitado, a saída é:\n\n```text\npar\n```\n\nCom `7`, a saída é:\n\n```text\nimpar\n```\n\nO número pode ser **negativo**, e aí vale a regra do resto em C: o resto herda o sinal do número de cima, então `-3 % 2` é `-1` (não é `1`). Como o seu teste é `n % 2 == 0`, o `else` cuida de `-3` sem você precisar pensar nisso — é a vantagem de o `else` ser \"todo o resto\".\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* parOuImpar le um inteiro digitado e imprime uma linha so: par ou impar.\n   A leitura e o caminho do par ja estao escritos.\n   Falta o outro caminho: o else que imprime impar. */\nvoid parOuImpar(void) {\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    if (n % 2 == 0) {\n        printf(\"par\\n\");\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio par-ou-impar — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid parOuImpar(void);\n\nSM_TEST(o_8_e_par) {\n    /* o que a pessoa digita: 8 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"8\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    parOuImpar();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 8 e par\", linha, \"par\\n\",\n              \"8 % 2 e 0: a condicao vale 1 e roda o bloco do if\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: par ou impar, nunca as duas\");\n    fclose(f);\n}\n\nSM_TEST(o_7_e_impar) {\n    /* o que a pessoa digita: 7 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"7\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    parOuImpar();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 7 e impar\", linha, \"impar\\n\",\n              \"7 % 2 e 1: a condicao vale 0 e roda o bloco do else\");\n    fclose(f);\n}\n\nSM_TEST(o_menos_3_e_impar) {\n    /* o que a pessoa digita: -3 */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"-3\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    parOuImpar();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o menos 3 e impar\", linha, \"impar\\n\",\n              \"-3 % 2 e -1 em C: nao e zero, entao o else cuida deste caso\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid parOuImpar(void) {\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    if (n % 2 == 0) {\n        printf(\"par\\n\");\n    } else {\n        printf(\"impar\\n\");\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_8_e_par",
+      "teste": "o_8_e_par",
+      "descricao": "com 8 digitado no stdin, a funcao parOuImpar imprime exatamente \"par\" e mais nenhuma linha — a condicao n % 2 == 0 vale 1 e roda o bloco do if"
+    },
+    {
+      "id": "o_7_e_impar",
+      "teste": "o_7_e_impar",
+      "descricao": "com 7 digitado no stdin, a funcao imprime \"impar\" — a condicao vale 0 e quem roda e o bloco do else"
+    },
+    {
+      "id": "o_menos_3_e_impar",
+      "teste": "o_menos_3_e_impar",
+      "descricao": "com -3 digitado no stdin, a funcao imprime \"impar\": em C o resto herda o sinal do dividendo (-3 % 2 e -1), e o else, sendo \"todo o resto\", cobre esse caso"
+    }
+  ]
+}

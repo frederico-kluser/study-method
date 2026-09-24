@@ -103,6 +103,11 @@
       "title": "sum() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#sum",
       "description": "A função que soma os itens de uma sequência."
+    },
+    {
+      "title": "Programação funcional — o guia oficial",
+      "url": "https://docs.python.org/3/howto/functional.html#the-functools-module",
+      "description": "O guia oficial explica por que o `sum` existe: somar item a item é tão comum que virou função embutida — e mostra `sum([1, 2, 3, 4])` dando `10` e `sum([])` dando `0`."
     }
   ],
   "challenges": [

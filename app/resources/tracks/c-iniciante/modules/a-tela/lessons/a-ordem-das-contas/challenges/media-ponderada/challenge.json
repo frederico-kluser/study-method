@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "media-ponderada",
+  "title": "Média ponderada",
+  "concept": "a_ordem_das_contas",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Média ponderada\n\nNa escola, a prova vale **3** e o trabalho vale **2**. Os pesos somam 5, e a média é a soma dos pontos dividida por esse 5.\n\nA função `mediaPonderada` já vem no arquivo, com o nome que o programa de fora chama. Complete o corpo dela para imprimir exatamente estas duas linhas:\n\n```text\nprova 10 e trabalho 5 dao media 8\nprova 9 e trabalho 4 dao media 7\n```\n\nEm cada linha: multiplique cada nota pelo seu peso, some os dois resultados e **só então** divida por 5. É aqui que os parênteses decidem — sem eles, a divisão alcança só o último pedaço da conta e sai 32.\n\nDeixe o C fazer as contas: os números 8 e 7 não são para escrever à mão.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* mediaPonderada imprime duas medias ponderadas: a prova pesa 3, o trabalho\n   pesa 2, e os pesos somam 5. A soma dos pontos vai entre parenteses: sem\n   eles a divisao alcanca so o ultimo pedaco da conta.\n   O programa de fora chama mediaPonderada() pelo nome. */\nvoid mediaPonderada(void) {\n    /* 1) imprima \"prova 10 e trabalho 5 dao media %d\": 10 vezes 3, mais\n          5 vezes 2, e o total dividido por 5 */\n\n    /* 2) imprima \"prova 9 e trabalho 4 dao media %d\", do mesmo jeito */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio media-ponderada — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: a captura acontece dentro do teste (freopen manda o stdout para\n   um arquivo temporario proprio do cenario, fflush descarrega e o arquivo e\n   lido de volta). O main e o relatorio sao do harness.\n   Os valores esperados so saem com a soma entre parenteses: sem eles a\n   primeira linha daria 32 e a segunda 28 — o cenario reprova. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid mediaPonderada(void);\n\nSM_TEST(as_duas_medias_ponderadas) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    mediaPonderada();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"prova 10 e trabalho 5\", linha, \"prova 10 e trabalho 5 dao media 8\\n\",\n              \"10 vezes 3 mais 5 vezes 2 da 40, e 40 dividido por 5 da 8\");\n    fgets(linha, 80, f);\n    checa_str(\"prova 9 e trabalho 4\", linha, \"prova 9 e trabalho 4 dao media 7\\n\",\n              \"9 vezes 3 mais 4 vezes 2 da 35, e 35 dividido por 5 da 7\");\n    fclose(f);\n}\n\nSM_TEST(a_saida_acaba_na_segunda_media) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    mediaPonderada();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda media: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid mediaPonderada(void) {\n    printf(\"prova 10 e trabalho 5 dao media %d\\n\", (10 * 3 + 5 * 2) / 5);\n    printf(\"prova 9 e trabalho 4 dao media %d\\n\", (9 * 3 + 4 * 2) / 5);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_duas_medias_ponderadas",
+      "teste": "as_duas_medias_ponderadas",
+      "descricao": "a funcao mediaPonderada imprime as duas medias com peso 3 na prova e 2 no trabalho (media 8 e media 7): cada valor exige a soma dos pontos entre parenteses antes da divisao por 5"
+    },
+    {
+      "id": "a_saida_acaba_na_segunda_media",
+      "teste": "a_saida_acaba_na_segunda_media",
+      "descricao": "a saida termina na segunda media: uma terceira linha impressa reprova o desafio (o cenario le uma linha a mais e a compara com o sentinel)"
+    }
+  ]
+}

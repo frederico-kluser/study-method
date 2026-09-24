@@ -2,22 +2,104 @@
   "schemaVersion": 1,
   "slug": "acrescentar-no-fim",
   "title": "Acrescentar no fim",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O mesmo fopen, com uma letra diferente: \"w\" zera o caderno ao abrir e \"a\" escreve no fim do que já estava lá.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:fopen",
+  "concepts": [
+    "acrescentar_no_arquivo"
+  ],
   "prerequisites": [
     "escrever-no-caderno"
   ],
+  "introduces": {
+    "productive": [
+      "api:fopen"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o modo do fopen deixa de ser detalhe copiado: o caderno passa a ter duas histórias possíveis — refeito a cada rodada (\"w\") ou crescendo a cada rodada (\"a\") —, e quem decide é uma letra",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-w-apaga-o-que-estava-la",
+      "title": "O \"w\" apaga o que estava lá",
+      "markdown": "Todo `fopen` em `\"w\"` começa o caderno **do zero**: se o arquivo já existia, o que estava escrito some no instante em que ele abre — antes mesmo do primeiro `fprintf`.\n\n```c\nFILE *f = fopen(\"diario.txt\", \"w\");\nfprintf(f, \"dia 1: acordei\\n\");\nfclose(f);\n```\n\nRode este trecho duas vezes: o caderno continua com UMA linha. A segunda rodada apagou a primeira antes de escrever."
+    },
+    {
+      "id": "o-a-escreve-no-fim",
+      "title": "O \"a\" escreve no fim",
+      "markdown": "Para acrescentar em vez de apagar existe o modo `\"a\"` — de *append*, acrescentar. Ele não zera nada, e a escrita vai sempre para o **fim** do que já está lá.\n\n```c\nFILE *f = fopen(\"diario.txt\", \"a\");\nfprintf(f, \"dia 2: acordei\\n\");\nfclose(f);\n```\n\nRodando depois do trecho anterior, o caderno fica com as duas linhas:\n\n```text\ndia 1: acordei\ndia 2: acordei\n```"
+    },
+    {
+      "id": "uma-letra-decide",
+      "title": "Uma letra decide",
+      "markdown": "Entre apagar tudo e acrescentar há uma letra dentro das aspas — nada mais muda: o mesmo `fopen`, o mesmo `fprintf`, o mesmo `fclose`.\n\nOs dois modos **criam** o arquivo quando ele ainda não existe; a diferença só aparece quando ele já existe:\n\n- `\"w\"` para refazer o caderno a cada rodada — um relatório, um resultado final;\n- `\"a\"` para um caderno que só cresce — um log, um diário.\n\nOnde a analogia quebra: no `\"a\"` você não escolhe a página. A escrita vai para o fim, sempre."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-w-zera-e-o-a-acrescenta",
+      "statement": "Abrir em `\"w\"` apaga o que estava no caderno; abrir em `\"a\"` escreve no fim.",
+      "question": "O `diario.txt` já tem três linhas. Você o abre em `\"w\"` e grava uma linha. Quantas ficam?",
+      "options": [
+        "Uma só: o `\"w\"` zerou o caderno ao abrir.",
+        "Quatro: a linha nova entrou no fim das três.",
+        "Três: o `\"w\"` recusa gravar por cima.",
+        "Quatro: a linha nova entrou na frente das três."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `\"w\"` zera no momento de ABRIR, antes de qualquer `fprintf` — por isso sobra só o que você gravou nesta rodada. Quem acrescenta às três é o `\"a\"`.",
+      "sectionId": "o-a-escreve-no-fim",
+      "optionRationales": [
+        "O modo `\"w\"` esvazia o arquivo ao abri-lo: o que sobra é só a linha desta rodada.",
+        "Acrescentar no fim é o que o modo `\"a\"` faz; o `\"w\"` faz o contrário.",
+        "O `\"w\"` não recusa nada: ele abre e apaga, sem avisar.",
+        "Nenhum dos modos escreve na frente do que já existe — não há esse modo em C."
+      ]
+    },
+    {
+      "id": "os-dois-modos-criam-o-arquivo",
+      "statement": "Os dois modos criam o arquivo quando ele ainda não existe: a diferença só aparece quando ele já existe.",
+      "question": "O `diario.txt` ainda não existe. O que faz `fopen(\"diario.txt\", \"a\")`?",
+      "options": [
+        "Cria o arquivo vazio e o abre para escrever no fim.",
+        "Devolve `NULL`: no modo `\"a\"` o arquivo já tem de existir.",
+        "Cria o arquivo, mas o abre para leitura em vez de escrita.",
+        "Abre e apaga o conteúdo, igual ao `\"w\"`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem exige o arquivo existente é o `\"r\"`. O `\"a\"` cria quando falta, e em caderno novo — vazio — escrever no fim é escrever na primeira linha.",
+      "sectionId": "uma-letra-decide",
+      "optionRationales": [
+        "Em caderno que não existe, o `\"a\"` cria e escreve do começo — que também é o fim de um arquivo vazio.",
+        "O modo que devolve `NULL` para arquivo inexistente é o `\"r\"`, não o `\"a\"`.",
+        "Os dois modos de escrita abrem para escrever; ler é o `\"r\"`.",
+        "Apagar o que havia é o `\"w\"` — é justamente a diferença entre os dois."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fopen — a referência oficial da biblioteca de C",
+      "url": "https://en.cppreference.com/w/c/io/fopen",
+      "description": "A tabela oficial dos modos: o que cada um faz quando o arquivo existe e quando não existe."
+    },
+    {
+      "title": "fopen(3) — a man-page do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fopen.3.html",
+      "description": "A man-page do sistema: o \"w\" trunca o arquivo para tamanho zero e o \"a\" posiciona a escrita no fim."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C: a seção 7.21.5.3 define modo a modo, inclusive que \"w\" e \"a\" criam o arquivo ausente."
+    }
+  ],
+  "challenges": [
+    "o-diario-crescente"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

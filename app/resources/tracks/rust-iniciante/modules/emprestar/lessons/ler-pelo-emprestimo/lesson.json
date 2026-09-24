@@ -40,18 +40,18 @@
       "statement": "Na chamada, &um empresta o um: a ajudante lê e o dono continua.",
       "question": "Em `tamanho(&um)`, o que o `&um` entrega?",
       "options": [
-        "O empréstimo do um — a ajudante lê, o dono fica",
-        "O um, mudando de dono",
-        "Uma cópia do um",
-        "O tamanho do um"
+        "O empréstimo do um: a ajudante lê, o dono fica",
+        "O um, mudando de dono: a ajudante passa a ser dona",
+        "Uma cópia do um, que a ajudante mede e descarta",
+        "O tamanho do um, que o & já contou na chamada"
       ],
       "answerIndex": 0,
       "feedback": "O & na chamada é o gesto de emprestar.",
       "optionRationales": [
         "O argumento &um é a ponta; o um segue com quem o trouxe.",
-        "Se mudasse de dono, a segunda chamada morreria — por isso o &.",
-        "Cópia não é o gesto: o & aponta para a caixa original.",
-        "O tamanho vem depois, do len lá dentro."
+        "Se mudasse de dono na primeira chamada, a segunda não teria o que medir — é por isso que existe o &.",
+        "O & não copia nada: a ponta aponta para a caixa original, e medir não a consome.",
+        "O & só empresta; quem conta é o len lá dentro da ajudante."
       ]
     },
     {
@@ -61,17 +61,17 @@
       "question": "Por que `tamanho(&um) + tamanho(&dois)` compila sem brigar com o compilador?",
       "options": [
         "Porque os dois empréstimos só leem: nada morre",
-        "Porque o + empresta os números",
-        "Porque dois textos nunca se movem",
-        "Porque a ajudante copia a frase"
+        "Porque o + empresta os números devolvidos",
+        "Porque um texto nunca se move quando é lido",
+        "Porque a ajudante copia a frase antes de contar"
       ],
       "answerIndex": 0,
       "feedback": "Leitura emprestada não gasta o dono: as duas chamadas coexistem.",
       "optionRationales": [
         "O & devolve a caixa no fim da chamada — a segunda encontra tudo no lugar.",
-        "O + soma os números devolvidos; ele não empresta nada.",
-        "Os textos não se movem POR CAUSA do & — não por serem textos.",
-        "A ajudante mede o que recebe; não copia nada."
+        "O + soma os números devolvidos; quem empresta é o & na chamada, antes da soma.",
+        "Texto se move, sim, quando passa sem &: aqui ele fica POR CAUSA do &.",
+        "A ajudante recebe &str e mede o que lhe emprestaram; cópia nenhuma acontece."
       ]
     }
   ],

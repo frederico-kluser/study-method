@@ -19,7 +19,13 @@
       "op:compare:<",
       "node:Compare"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:Compare",
+        "de": "op:compare:>"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [

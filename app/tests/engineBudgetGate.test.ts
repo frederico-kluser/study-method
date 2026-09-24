@@ -476,6 +476,19 @@ describe('audit — o gate', () => {
       report.violations.map((v) => `${v.regra} ${v.campo} ${v.construcao}`),
       [],
     );
+    // A BARRA A17–A23 (fiada no `auditTrack` em 2026-09-22) NÃO fala por esta
+    // fixture, e o relatório DIZ isso em vez de deixar o vazio acima parecer
+    // aprovação: as aulas daqui não declaram `introduces`, o orçamento sai
+    // `inferred` e a barra é declared-only (`audit.ts` → `barraValePara`; a
+    // razão medida está lá). Sem esta conferência, o `[]` de cima seria lido
+    // como "a trilha passa na barra também", que é o tipo de silêncio que a
+    // limitação declarada existe para fechar.
+    assert.equal(report.budgetSource, 'inferred');
+    assert.equal(report.barra, undefined, 'a barra NÃO rodou: ausente é não medido, nunca zero');
+    assert.ok(
+      report.limitacoes.some((l) => l.id === 'A17-A23-NAO-RODOU-EM-INFERRED'),
+      'e a checagem que não rodou está DECLARADA (docs/16 §9.2)',
+    );
   });
 
   it('A6 — reprova o desafio que não exercita NADA do que a aula ensinou', () => {

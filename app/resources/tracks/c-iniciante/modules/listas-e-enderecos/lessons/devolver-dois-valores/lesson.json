@@ -2,23 +2,115 @@
   "schemaVersion": 1,
   "slug": "devolver-dois-valores",
   "title": "Devolver dois valores",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Quando a resposta são dois valores, a função não devolve: ela recebe dois parâmetros-ponteiro de saída e escreve nos endereços que quem chamou entregou.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "o_parametro_de_saida"
+  ],
   "prerequisites": [
     "a-lista-como-parametro",
     "a-troca-que-funciona"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a função deixa de ter uma saída só: além do valor do `return`, ela passa a ter portas de saída abertas pelos endereços que recebeu — duas respostas por chamada",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-return-um-valor",
+      "title": "Um return entrega um valor só",
+      "markdown": "Uma caixa devolve UM valor. Mas a mesma lista tem duas respostas interessantes — a menor nota e a maior — e num `return` só cabe uma:\n\n```c\nint minimoDaLista(int v[], int n);\nint maximoDaLista(int v[], int n);\n```\n\nDuas funções resolvem, varrendo a mesma lista duas vezes. C tem a forma de resolver com uma varredura só — e ela usa o ponteiro: em vez de devolver, a função **escreve** nos endereços que quem chamou entregou."
+    },
+    {
+      "id": "o-parametro-de-saida",
+      "title": "O parâmetro de saída",
+      "markdown": "A assinatura tem quatro parâmetros, e eles têm dois papéis diferentes:\n\n```c\nvoid minimoEMaximo(int v[], int n, int *min, int *max);\n```\n\n`v` e `n` são a ENTRADA: a lista e o tamanho. `min` e `max` são a SAÍDA: cada um é um papel com o endereço de um `int` de quem chamou. O `void` da frente confirma que nada volta por `return` — as duas respostas chegam pela porta do endereço."
+    },
+    {
+      "id": "escrever-pelo-endereco",
+      "title": "Começar pelas duas pontas",
+      "markdown": "Dentro da função, `*min` é ir até a casa e escrever lá:\n\n```c\nvoid minimoEMaximo(int v[], int n, int *min, int *max) {\n    *min = v[0];\n    *max = v[0];\n}\n```\n\nAs duas respostas começam pela PRIMEIRA nota. Começar o mínimo em zero seria um palpite errado em qualquer lista de notas — nenhuma nota ficaria abaixo dele. A gaveta 0 é o único palpite sempre seguro."
+    },
+    {
+      "id": "a-varredura-que-atualiza-os-dois",
+      "title": "A varredura que atualiza os dois",
+      "markdown": "Da gaveta 1 em diante é a varredura de sempre, agora cuidando de dois endereços:\n\n```c\nvoid minimoEMaximo(int v[], int n, int *min, int *max) {\n    *min = v[0];\n    *max = v[0];\n    for (int i = 1; i < n; i++) {\n        if (v[i] < *min) {\n            *min = v[i];\n        }\n        if (*max < v[i]) {\n            *max = v[i];\n        }\n    }\n}\n```\n\nCada `if` compara a nota com o que já está guardado na casa e, quando acha melhor, escreve o novo valor lá."
+    },
+    {
+      "id": "quem-chama-entrega-os-enderecos",
+      "title": "Quem chama entrega os endereços",
+      "markdown": "Do lado de fora, quem quer as respostas cria as duas variáveis e entrega o endereço de cada uma:\n\n```c\nvoid minimoEMaximo(int v[], int n, int *min, int *max);\n\nint notas[3] = {7, 2, 9};\nint menor = 0;\nint maior = 0;\nminimoEMaximo(notas, 3, &menor, &maior);\nprintf(\"%d %d\\n\", menor, maior);\n```\n\n```text\n2 9\n```\n\nO `&` é o mesmo da `scanf`. Onde a analogia do papel quebra: `*min` e `menor` não são duas coisas parecidas — são a MESMA casa, com dois nomes."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "dois-valores-pedem-dois-ponteiros",
+      "statement": "Sem structs ainda, a forma de devolver DOIS valores em C é o par de ponteiros de saída.",
+      "question": "A função precisa entregar o menor E o maior da mesma lista, numa varredura só. Que forma C oferece aqui?",
+      "options": [
+        "Dois parâmetros-ponteiro de saída: a função escreve em `*min` e em `*max`.",
+        "Dois `return` seguidos, um para cada um dos dois valores.",
+        "Um `return` só, devolvendo os dois números juntos e separados por vírgula.",
+        "Um `printf` com os dois valores, e quem chamou lê da tela o que precisa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Um `return` entrega um valor só. Com `int *min` e `int *max` a função recebe DOIS endereços e escreve neles: as duas respostas chegam a quem chamou sem `return` nenhum.",
+      "sectionId": "o-parametro-de-saida",
+      "optionRationales": [
+        "Cada ponteiro de saída é o endereço de uma variável de quem chamou; escrever em `*min` e `*max` entrega as duas respostas.",
+        "O primeiro `return` já termina a função: o segundo nunca roda.",
+        "C não devolve dois números num `return`; vírgula dentro de `return` não empacota valores.",
+        "Imprimir mostra na tela, não entrega valor a quem chamou — é a tensão imprimir × devolver do módulo passado."
+      ]
+    },
+    {
+      "id": "escrever-em-min-muda-o-de-fora",
+      "statement": "`*min = v[0];` escreve na variável de quem chamou, porque o parâmetro guarda o endereço dela.",
+      "question": "Depois de `minimoEMaximo(notas, 3, &menor, &maior);`, por que o `menor` de quem chamou mudou?",
+      "options": [
+        "Porque `*min` escreve na casa cujo endereço foi entregue: a do `menor`.",
+        "Porque a função devolveu o valor e um `=` invisível o guardou no `menor`.",
+        "Porque `menor` e `notas` passam a dividir as mesmas gavetas na memória.",
+        "Porque em C todo parâmetro de função muda o original de quem chamou."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `&menor` entregou o ENDEREÇO do `menor`. O `*min` vai até esse endereço e escreve lá — por isso a mudança aparece fora da função. Sem o `*`, só o papel mudaria.",
+      "sectionId": "quem-chama-entrega-os-enderecos",
+      "optionRationales": [
+        "O `&menor` entregou o endereço, e `*min = …` escreve no que está nesse endereço: a variável de fora.",
+        "A função é `void`: nada volta por `return`, e não existe `=` invisível em C.",
+        "`notas` e `menor` são variáveis independentes; o que viajou foi o endereço do `menor`.",
+        "Parâmetro comum é CÓPIA — foi isso que a aula da troca que não trocava mostrou. Só o endereço muda o original."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Pointer declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/pointer",
+      "description": "A página oficial do ponteiro em C: o `*` na declaração, o endereço que ele guarda e o acesso ao valor apontado."
+    },
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial da declaração de função: os parâmetros, o tipo de retorno e o que `void` significa em cada posição."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.3.2 define o `&` e o `*`, e a 6.9.1 descreve a passagem de parâmetros por valor."
+    }
+  ],
+  "challenges": [
+    "minimo-e-maximo"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

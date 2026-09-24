@@ -18,14 +18,24 @@
       "node:Attribute",
       "node:AttributeItem"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:Attribute",
+        "de": "api:derive.Debug"
+      },
+      {
+        "chave": "node:AttributeItem",
+        "de": "api:derive.Debug"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [
     {
       "id": "o-atributo-acima-do-molde",
       "title": "O atributo acima do molde",
-      "markdown": "Uma linha ACIMA do molde pede ao compilador a estampa:\n\n```rust\n#[derive(Debug)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\n`#[derive(Debug)]` é um ATRIBUTO: o compilador gera o código de depuração da struct — sem você escrever linha nenhuma dele."
+      "markdown": "Uma linha ACIMA do molde pede ao compilador a estampa:\n\n```rust\n#[derive(Debug)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\n`#[derive(Debug)]` é um ATRIBUTO: um pedido ao compilador, escrito ACIMA do item. Depurar é caçar defeito olhando o valor de perto, e a ESTAMPA é o texto que mostra a peça inteira, campo por campo. Quem escreve esse texto é o compilador — você não escreve linha nenhuma dele."
     },
     {
       "id": "os-dois-pontos-de-interrogacao",

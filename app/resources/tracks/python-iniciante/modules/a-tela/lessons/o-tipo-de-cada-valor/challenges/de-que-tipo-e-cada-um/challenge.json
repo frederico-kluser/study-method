@@ -10,5 +10,12 @@
   "starterCode": "# primeira linha: imprima o tipo do número 7\n# segunda linha: imprima o tipo do texto \"7\"\n# terceira linha: imprima o tipo do None\n",
   "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOTipoDeCadaValor(unittest.TestCase):\n    def test_imprime_os_tres_tipos_na_ordem(self):\n        \"\"\"o programa imprime o tipo do numero, do texto e do None\"\"\"\n        self.assertEqual(rodar(), \"<class 'int'>\\n<class 'str'>\\n<class 'NoneType'>\\n\")\n",
   "solutionCode": "print(type(7))\nprint(type(\"7\"))\nprint(type(None))\n",
-  "expectedTestCount": 1
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_os_tres_tipos_na_ordem",
+      "descricao": "O programa deve imprimir exatamente \"<class 'int'>\\n<class 'str'>\\n<class 'NoneType'>\\n\"."
+    }
+  ]
 }

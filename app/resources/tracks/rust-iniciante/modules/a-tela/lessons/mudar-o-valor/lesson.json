@@ -44,9 +44,9 @@
       "question": "O que `let mut base = valor;` declara, além do valor?",
       "options": [
         "Que `base` PODE ter o valor mudado depois.",
-        "Que `base` é um texto.",
-        "Que `base` nunca mais aparece.",
-        "Que o valor de `base` dobra."
+        "Que `base` já mudou de valor nesta linha.",
+        "Que `base` só pode ser lido se tiver o `mut`.",
+        "Que `base` muda de valor sozinho a cada uso."
       ],
       "answerIndex": 0,
       "feedback": "O `mut` muda a PERMISSÃO do nome, não o valor dele hoje.",
@@ -58,9 +58,9 @@
       "question": "O que acontece ao tentar trocar o valor de um nome criado com `let` simples?",
       "options": [
         "O compilador recusa e mostra o erro.",
-        "O valor muda em silêncio.",
-        "O valor antigo é apagado.",
-        "Nada: é permitido."
+        "O valor muda em silêncio, sem nenhum aviso.",
+        "O `rustc` só avisa e compila.",
+        "Nada: trocar o valor é sempre permitido."
       ],
       "answerIndex": 0,
       "feedback": "Fixo é o padrão do Rust; a troca sem `mut` não compila.",

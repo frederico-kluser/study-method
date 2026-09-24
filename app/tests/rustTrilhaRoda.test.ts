@@ -55,11 +55,17 @@ import type { TrackChallengeSource } from '../electron/main/content/trackTypes';
 const APP_DIR = path.resolve(__dirname, '..');
 const TRACKS_DIR = path.join(APP_DIR, 'resources', 'tracks');
 
-/** A aula 1 da trilha real: `pub fn dobro(x: i32) -> i32 { x * 2 }`. */
+/**
+ * A aula 1 da trilha real: `pub fn dois() -> i32 { 2 }` — a função que devolve um
+ * número fixo. A quebra de 2026-09-22 (docs/20 §⚑) tirou o parâmetro e a
+ * multiplicação desta aula (elas viraram `o-valor-que-entra` e `multiplicar`) e
+ * o desafio dela passou a ser `devolva-dois`, cujo starter continua `todo!()` —
+ * que é o que os casos abaixo exigem: a solução PASSA, o starter FALHA.
+ */
 const TRILHA = 'rust-iniciante';
 const MODULO = 'a-tela';
 const AULA = 'a-primeira-funcao';
-const DESAFIO = 'dobre-o-numero';
+const DESAFIO = 'devolva-dois';
 
 const CAMINHO_DESAFIO = path.join(
   TRACKS_DIR,

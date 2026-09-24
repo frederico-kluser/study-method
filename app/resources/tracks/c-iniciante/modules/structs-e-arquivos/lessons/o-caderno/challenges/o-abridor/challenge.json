@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-abridor",
+  "title": "O abridor de caderno",
+  "concept": "o_caderno_do_disco",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O abridor de caderno\n\nEscreva a função `oAbridor` — ela não recebe nada e devolve um `int`.\n\nO que ela faz, na ordem:\n\n1. abre o arquivo `diario.txt` no modo `\"w\"`;\n2. se o `fopen` devolveu `NULL`, devolve `0` — não há caderno para fechar;\n3. se abriu, fecha o caderno com `fclose` e devolve `1`.\n\nO modo `\"w\"` **cria** o arquivo quando ele ainda não existe e **zera** o que havia nele. É isso que o teste confere: depois da sua função, o `diario.txt` está no disco e vazio.\n\nVocê não escreve `main` — o programa de fora chama a `oAbridor` pelo nome.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao oAbridor inteira:\n\n       int oAbridor(void)\n\n   abre diario.txt no modo \"w\", testa se o fopen devolveu NULL,\n   fecha o caderno com fclose e devolve 1 (ou 0 quando nao abriu). */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-abridor — counter_protocol (03-tdd 3.9.3).\n   Canal retorno: nenhuma captura de stdout. O que se confere e o valor\n   devolvido e o efeito no disco.\n   Cada cenario SEMEIA o caderno antes de chamar (um fopen \"w\" com uma\n   linha conhecida): assim o fopen de leitura nunca devolve NULL, e o\n   diretorio de execucao — que e o MESMO na prova da solucao e na prova do\n   starter — nasce em estado conhecido, sem herdar a rodada anterior.\n   Abrir em \"w\" ZERA o arquivo no instante em que abre: e por isso que a\n   linha semeada desaparecer e a prova de que o fopen do aluno rodou. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oAbridor(void);\n\nSM_TEST(o_abridor_devolve_um) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fprintf(semente, \"linha semeada pelo teste\\n\");\n    fclose(semente);\n\n    checa_int(\"o abridor devolve 1\", oAbridor(), 1,\n              \"abrir diario.txt em modo w da certo: o fopen nao devolve NULL\");\n}\n\nSM_TEST(o_caderno_foi_aberto_em_w) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fprintf(semente, \"linha semeada pelo teste\\n\");\n    fclose(semente);\n\n    oAbridor();\n\n    FILE *f = fopen(\"diario.txt\", \"r\");\n    char linha[80] = \"(caderno vazio)\";\n    fgets(linha, 80, f);\n    checa_str(\"o caderno ficou vazio no disco\", linha, \"(caderno vazio)\",\n              \"o modo w zera o caderno ao abrir: a linha semeada saiu, e o arquivo continua no disco\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint oAbridor(void) {\n    FILE *f = fopen(\"diario.txt\", \"w\");\n    if (f == NULL) {\n        return 0;\n    }\n    fclose(f);\n    return 1;\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_abridor_devolve_um",
+      "teste": "o_abridor_devolve_um",
+      "descricao": "a funcao oAbridor abre diario.txt no modo w, confere que o fopen nao devolveu NULL e devolve 1"
+    },
+    {
+      "id": "o_caderno_foi_aberto_em_w",
+      "teste": "o_caderno_foi_aberto_em_w",
+      "descricao": "depois de oAbridor rodar, o diario.txt esta no disco e VAZIO: o fopen em modo w zerou a linha que o teste havia semeado"
+    }
+  ]
+}

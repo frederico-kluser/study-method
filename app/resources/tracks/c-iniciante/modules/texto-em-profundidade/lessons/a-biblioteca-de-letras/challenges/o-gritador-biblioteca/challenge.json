@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-gritador-biblioteca",
+  "title": "O gritador da biblioteca",
+  "concept": "a_biblioteca_de_letras",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O gritador da biblioteca\n\nRefaça o gritador — mesma saída, outro caminho. A função `oGritadorBiblioteca` lê **uma palavra** digitada e imprime a mesma palavra em maiúsculas, usando o `toupper` no lugar da conta de menos 32.\n\nDesta vez a palavra pode ter **dígito**, e é aí que os dois caminhos deixam de ser iguais: o `toupper` devolve intacto o que não é letra.\n\nDigitando `ana`:\n\n```text\nANA\n```\n\nDigitando `bola7`:\n\n```text\nBOLA7\n```\n\nPassos:\n\n1. acrescente a linha `#include <ctype.h>` no topo do arquivo — é ela que apresenta o `toupper` ao compilador;\n2. percorra a palavra gaveta por gaveta até o `\\0` e guarde em cada gaveta o valor que `toupper` devolveu para ela;\n3. imprima a palavra inteira com `%s` e `\\n` no fim — só ela, mais nada.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* oGritadorBiblioteca le uma palavra digitada (letras minusculas e\n   digitos, sem acento) e imprime a mesma palavra em maiusculas, usando\n   o toupper da biblioteca de letras. */\nvoid oGritadorBiblioteca(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    /* 1) falta um #include no topo deste arquivo: o da caixa de\n          ferramentas onde o toupper mora */\n\n    /* 2) percorra a palavra ate o \\0 e guarde em cada gaveta\n          o valor que toupper devolveu para a letra dela */\n\n    /* 3) imprima a palavra inteira: um printf com %s e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-gritador-biblioteca — counter_protocol (03-tdd 3.9.3).\n   O primeiro cenario e o mesmo da aula anterior (ana -> ANA): a saida nao\n   muda, o caminho muda. O segundo cenario e o que SEPARA os dois caminhos:\n   bola7 tem um digito, e menos 32 estragaria o 7 enquanto o toupper o\n   devolve intacto. Quem DIGITA e o teste (fopen/fprintf + freopen do\n   stdin); a captura do stdout acontece dentro do proprio cenario\n   (freopen + fflush, sem fclose no stdout). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oGritadorBiblioteca(void);\n\nSM_TEST(a_palavra_ana_gritada) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"ana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oGritadorBiblioteca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"ana gritado\", linha, \"ANA\\n\",\n              \"a saida e a mesma da aula anterior: as tres letras em maiuscula\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e so a palavra gritada: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_digito_sai_intacto) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"bola7\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oGritadorBiblioteca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"bola7 gritado\", linha, \"BOLA7\\n\",\n              \"o toupper converte as quatro letras e devolve o 7 como ele era\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <ctype.h>\n\nvoid oGritadorBiblioteca(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    for (int i = 0; palavra[i] != '\\0'; i++) {\n        palavra[i] = toupper(palavra[i]);\n    }\n    printf(\"%s\\n\", palavra);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_palavra_ana_gritada",
+      "teste": "a_palavra_ana_gritada",
+      "descricao": "com ana digitado no stdin, a funcao oGritadorBiblioteca imprime ANA — a mesma saida da aula anterior, agora pelo toupper — e nada depois disso"
+    },
+    {
+      "id": "o_digito_sai_intacto",
+      "teste": "o_digito_sai_intacto",
+      "descricao": "com bola7 digitado no stdin a funcao imprime BOLA7: o toupper converte as letras e devolve o digito intacto, o que a subtracao de 32 nao faria"
+    }
+  ]
+}

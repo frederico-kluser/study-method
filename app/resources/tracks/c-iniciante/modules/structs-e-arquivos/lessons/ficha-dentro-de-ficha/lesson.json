@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "ficha-dentro-de-ficha",
   "title": "Ficha dentro de ficha",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O campo de uma ficha pode ser outra ficha: `pessoa.casa.x` alcança o campo de dentro com um ponto por nível.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:MemberExpr",
+  "concepts": [
+    "a_ficha_aninhada"
+  ],
   "prerequisites": [
     "o-apelido-do-molde"
   ],
+  "introduces": {
+    "productive": [
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ficha deixa de ser plana: um campo pode guardar outra ficha, e o caminho até um valor passa a ter níveis — um ponto para cada um",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-campo-pode-ser-uma-ficha",
+      "title": "Um campo pode ser uma ficha",
+      "markdown": "Um campo tem um tipo — e um molde que você declarou também é um tipo. Logo: o campo de uma ficha pode ser **outra ficha**.\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\ntypedef struct {\n    char nome[40];\n    Ponto casa;\n} Pessoa;\n```\n\nA `Pessoa` tem dois campos: `nome`, que é texto, e `casa`, que é uma ficha `Ponto` inteira — com o `x` e o `y` dela dentro.\n\nA ordem importa: o compilador lê de cima para baixo, e `Ponto` precisa existir antes de virar campo de `Pessoa`."
+    },
+    {
+      "id": "um-ponto-por-nivel",
+      "title": "Um ponto por nível",
+      "markdown": "Para chegar ao `x` da casa, são dois gestos: entrar na pessoa e, de lá, entrar na casa. **Um ponto por nível.**\n\n```c\ntypedef struct { int x; int y; } Ponto;\ntypedef struct { char nome[40]; Ponto casa; } Pessoa;\n\nPessoa a = {\"Ana\", {3, 4}};\nprintf(\"%s\\n\", a.nome);\nprintf(\"%d\\n\", a.casa.x);\n```\n\n```text\nAna\n3\n```\n\nO inicializador repete o desenho da ficha: `\"Ana\"` preenche o `nome`, e o `{3, 4}` de dentro preenche a ficha `casa`."
+    },
+    {
+      "id": "escrever-no-campo-de-dentro",
+      "title": "Escrever no campo de dentro",
+      "markdown": "O campo de dentro se comporta como qualquer nome: recebe valor com `=` e entra em conta.\n\n```c\ntypedef struct { int x; int y; } Ponto;\ntypedef struct { char nome[40]; Ponto casa; } Pessoa;\n\nPessoa a = {\"Ana\", {3, 4}};\na.casa.x = 10;\na.casa.y = a.casa.x + 5;\nprintf(\"%s mora em %d,%d\\n\", a.nome, a.casa.x, a.casa.y);\n```\n\n```text\nAna mora em 10,15\n```\n\nNada de novo no gesto — o que mudou foi o caminho até o campo. Onde o `x` estava solto, agora ele mora dois níveis para dentro."
+    },
+    {
+      "id": "a-ficha-de-dentro-inteira",
+      "title": "A ficha de dentro, inteira",
+      "markdown": "E `a.casa`, sem o `.x` no fim? É a ficha da casa INTEIRA — e ela copia como toda ficha copia:\n\n```c\ntypedef struct { int x; int y; } Ponto;\ntypedef struct { char nome[40]; Ponto casa; } Pessoa;\n\nPessoa a = {\"Ana\", {3, 4}};\nPonto c = a.casa;\nc.x = 99;\nprintf(\"%d %d\\n\", a.casa.x, c.x);\n```\n\n```text\n3 99\n```\n\n`c` saiu como foto da casa de Ana: mexer em `c` não mexe na ficha dela. A ficha de dentro é mesmo uma ficha — inclusive na hora de copiar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "um-ponto-por-nivel-de-ficha",
+      "statement": "O campo pode ser outro struct: um ponto por nível de ficha.",
+      "question": "Com `Pessoa a` e o campo `casa` sendo um `Ponto`, como se chega ao `x` da casa de `a`?",
+      "options": [
+        "`a.casa.x`: entra na pessoa e, de lá, entra na casa dela.",
+        "`a.x`: o campo de dentro sobe para o nome da ficha de fora.",
+        "`a.casa`: o `x` é o primeiro campo, e o C o escolhe sozinho.",
+        "`casa.x`: a ficha de fora não entra no caminho do campo."
+      ],
+      "answerIndex": 0,
+      "feedback": "São dois níveis, e por isso dois pontos: o primeiro escolhe o campo `casa` dentro de `a`; o segundo escolhe o campo `x` dentro daquela casa.",
+      "sectionId": "um-ponto-por-nivel",
+      "optionRationales": [
+        "Um ponto por nível: `a.casa` é a ficha da casa, e `.x` entra no campo dela.",
+        "Campo de dentro não sobe: `a` não tem campo `x`, tem `nome` e `casa`.",
+        "`a.casa` é a ficha inteira; sem o `.x` no fim não há campo escolhido.",
+        "`casa` sozinho não existe fora da ficha: ele é campo de `a`, não um nome solto."
+      ]
+    },
+    {
+      "id": "a-casa-sem-o-campo-e-ficha",
+      "statement": "`a.casa` sem o `.x` no fim é a ficha da casa inteira, não um número.",
+      "question": "O que `Ponto c = a.casa;` coloca em `c`?",
+      "options": [
+        "Uma cópia da ficha da casa, com os dois campos dela.",
+        "O valor do campo `x` da casa, que é o primeiro deles.",
+        "O endereço da casa de `a`, para mudar a ficha original.",
+        "Nada: uma ficha não pode nascer da outra numa linha só."
+      ],
+      "answerIndex": 0,
+      "feedback": "`a.casa` é um `Ponto` inteiro, e ficha copia campo a campo: `c` nasce com o mesmo `x` e o mesmo `y` — mas é outra ficha, e mexer nela não mexe na de `a`.",
+      "sectionId": "a-ficha-de-dentro-inteira",
+      "optionRationales": [
+        "O tipo do campo `casa` é `Ponto`, então o que sai dele é uma ficha, copiada campo a campo.",
+        "Para chegar ao `x` faltaria mais um nível: `a.casa.x`.",
+        "Endereço só viria com o `&` na frente; aqui o que viaja é uma cópia.",
+        "Nasce sim: uma ficha se inicializa com outra ficha do mesmo molde."
+      ]
+    },
+    {
+      "id": "o-molde-de-dentro-vem-antes",
+      "statement": "O molde de dentro precisa ser declarado antes do molde que o usa como campo.",
+      "question": "Por que o `typedef` de `Ponto` aparece ANTES do de `Pessoa`?",
+      "options": [
+        "Porque o compilador lê de cima para baixo e precisa do tipo pronto.",
+        "Porque a ficha menor sempre vem primeiro no arquivo, por regra.",
+        "Porque só o primeiro `typedef` do arquivo cria um tipo de verdade.",
+        "Porque trocar a ordem faria o `nome` deixar de ser o primeiro campo."
+      ],
+      "answerIndex": 0,
+      "feedback": "O mesmo fato de sempre: o compilador lê de cima para baixo. Na linha do campo `casa` o nome `Ponto` já precisa existir, senão ele não sabe quanto espaço reservar.",
+      "sectionId": "um-campo-pode-ser-uma-ficha",
+      "optionRationales": [
+        "Na linha do campo `Ponto casa;` o tipo já tem de estar declarado.",
+        "Tamanho não é o critério: o critério é o tipo estar declarado antes do uso.",
+        "Um arquivo pode ter quantos `typedef` quiser, e todos criam tipos.",
+        "A ordem dos campos é a que você escreve dentro das chaves, não a dos moldes."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct`: o tipo de um campo pode ser qualquer tipo completo já declarado, inclusive outro struct."
+    },
+    {
+      "title": "Member access operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `.`: o operador se aplica a uma expressão de tipo struct, e por isso encadeia nível a nível."
+    },
+    {
+      "title": "Initialization — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/initialization",
+      "description": "A página oficial do inicializador entre chaves, com as chaves aninhadas de um campo que é outra ficha."
+    }
+  ],
+  "challenges": [
+    "a-ficha-da-pessoa"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

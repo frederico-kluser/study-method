@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-em-funcao",
+  "title": "Soma em função",
+  "concept": "a_lista_como_parametro",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Soma em função\n\nEscreva a função `somaEmFuncao`, que soma uma lista inteira:\n\n```c\nint somaEmFuncao(int v[], int n)\n```\n\nEla recebe a caixa `v` e o tamanho `n`, e **devolve** a soma das `n` primeiras gavetas — não imprime nada.\n\nExemplo: com a caixa `{7, 8, 6, 9, 10}` e `n` igual a 5, a função devolve 40.\n\nDois cuidados que a aula explicou:\n\n- o laço vai de `0` até `n - 1`: a gaveta `n` não existe;\n- o `n` manda, não o tamanho real da caixa. Se quem chamou passar `n` igual a 2, some só as duas primeiras gavetas.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* somaEmFuncao devolve a soma das n primeiras gavetas da lista v.\n   O programa de fora (o harness) chama esta funcao — voce escreve o corpo.\n   Nada e impresso aqui: o resultado sai pelo return. */\nint somaEmFuncao(int v[], int n) {\n    /* escreva aqui: um acumulador, o laco de 0 ate n - 1 e o return */\n\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio soma-em-funcao — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A funcao do aluno devolve um valor: o teste monta a caixa, chama com o\n   tamanho e confere o retorno — sem captura de saida. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint somaEmFuncao(int v[], int n);\n\nSM_TEST(a_soma_de_cinco_notas) {\n    int notas[5] = {7, 8, 6, 9, 10};\n    checa_int(\"a soma das cinco notas\", somaEmFuncao(notas, 5), 40,\n              \"7 + 8 + 6 + 9 + 10 da 40: todas as gavetas entram na conta\");\n}\n\nSM_TEST(a_soma_de_uma_lista_menor) {\n    int valores[2] = {3, 4};\n    checa_int(\"a soma de uma lista de dois\", somaEmFuncao(valores, 2), 7,\n              \"a mesma funcao serve para qualquer tamanho: 3 + 4 da 7\");\n}\n\nSM_TEST(o_n_manda_no_laco) {\n    int valores[4] = {5, 5, 5, 5};\n    checa_int(\"o laco para no n, nao no fim da caixa\", somaEmFuncao(valores, 2), 10,\n              \"com n igual a 2 so as duas primeiras gavetas entram: 5 + 5 da 10\");\n}\n",
+  "solutionCode": "int somaEmFuncao(int v[], int n) {\n    int soma = 0;\n    for (int i = 0; i < n; i++) {\n        soma = soma + v[i];\n    }\n    return soma;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_soma_de_cinco_notas",
+      "teste": "a_soma_de_cinco_notas",
+      "descricao": "com a caixa {7, 8, 6, 9, 10} e n = 5 a funcao devolve 40: o laco percorre as cinco gavetas e soma o valor de cada uma"
+    },
+    {
+      "id": "a_soma_de_uma_lista_menor",
+      "teste": "a_soma_de_uma_lista_menor",
+      "descricao": "com a caixa {3, 4} e n = 2 a funcao devolve 7: a mesma funcao serve para listas de tamanhos diferentes"
+    },
+    {
+      "id": "o_n_manda_no_laco",
+      "teste": "o_n_manda_no_laco",
+      "descricao": "com a caixa {5, 5, 5, 5} e n = 2 a funcao devolve 10: quem manda no laco e o parametro n, nao o tamanho real da caixa"
+    }
+  ]
+}

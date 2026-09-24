@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "primeiro-divisor",
+  "title": "Primeiro divisor",
+  "concept": "sair_do_laco",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Primeiro divisor\n\nA função `primeiroDivisor` lê um número **N** digitado (sempre 2 ou mais) e imprime o **menor número, a partir de 2, que divide N sem deixar resto**.\n\nCom `15` digitado, a saída é exatamente:\n\n```text\n3\n```\n\nO 2 não divide 15 (`15 % 2` dá 1), o 3 divide (`15 % 3` dá 0) — e aí o trabalho acabou: não há motivo para testar 4, 5, 6... Com `13`, nenhum candidato serve até chegar ao próprio 13.\n\nEscreva o `for` que vai de 2 até `n` e, quando `n % d == 0`, sai do laço com `break`.\n\nO `int d` já está declarado **antes** do `for`, e é de propósito: é o valor que ele guarda na hora da saída que o `printf` do fim mostra. Por isso o cabeçalho do laço só atribui (`d = 2`), sem declarar de novo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* primeiroDivisor le N (sempre 2 ou mais) e imprime o MENOR numero, a partir\n   de 2, que divide N sem deixar resto.\n   O d nasce ANTES do for de proposito: depois do break, e ele que guarda a\n   resposta que o printf mostra.\n   A leitura e o printf ja estao escritos — falta o for com o break. */\nvoid primeiroDivisor(void) {\n    int n = 0;\n    int d = 2;\n\n    scanf(\"%d\", &n);\n\n    /* escreva aqui o for de d = 2 ate n que, quando n % d == 0, da break */\n\n    printf(\"%d\\n\", d);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio primeiro-divisor — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o N que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen), captura o stdout no proprio teste e le\n   a linha de volta. Os nomes dos arquivos temporarios sao POR CENARIO.\n   Nunca ha fclose de stdin/stdout — so fflush — para o proximo freopen\n   ficar legal (C11 7.21.4).\n   Os tres N tem respostas diferentes (3, 13 e 7) e nenhum deles responde 2:\n   um valor fixo no codigo reprova nos tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid primeiroDivisor(void);\n\nSM_TEST(o_primeiro_divisor_de_quinze) {\n    /* o 2 nao divide 15; o 3 divide, e o break sai com d valendo 3 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"15\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    primeiroDivisor();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o primeiro divisor de 15\", linha, \"3\\n\",\n              \"o menor numero a partir de 2 que divide 15 sem resto e 3\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (n = 15)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o divisor, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(um_numero_primo_divide_por_si) {\n    /* nenhum numero entre 2 e 12 divide 13: o laco so para no proprio 13 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"13\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_2.tmp */\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    primeiroDivisor();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o primeiro divisor de 13\", linha, \"13\\n\",\n              \"em um numero primo o primeiro divisor a partir de 2 e ele mesmo\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (n = 13)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o divisor, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_primeiro_divisor_de_quarenta_e_nove) {\n    /* 49 e impar e nao e primo: o laco recusa 2..6 e para no 7 */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"49\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_3.tmp */\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    primeiroDivisor();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o primeiro divisor de 49\", linha, \"7\\n\",\n              \"o menor numero a partir de 2 que divide 49 sem resto e 7\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (n = 49)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o divisor, e nada mais\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid primeiroDivisor(void) {\n    int n = 0;\n    int d = 2;\n\n    scanf(\"%d\", &n);\n\n    for (d = 2; d <= n; d++) {\n        if (n % d == 0) {\n            break;\n        }\n    }\n\n    printf(\"%d\\n\", d);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_primeiro_divisor_de_quinze",
+      "teste": "o_primeiro_divisor_de_quinze",
+      "descricao": "com 15 digitado no stdin a funcao percorre os candidatos a partir de 2, sai do laco com break no 3 (o primeiro que divide sem resto) e imprime 3 numa linha so"
+    },
+    {
+      "id": "um_numero_primo_divide_por_si",
+      "teste": "um_numero_primo_divide_por_si",
+      "descricao": "com 13 digitado no stdin nenhum candidato de 2 a 12 divide: o laco vai ate o proprio 13 e a funcao imprime 13 — o caso de borda em que o break so dispara na ultima volta"
+    },
+    {
+      "id": "o_primeiro_divisor_de_quarenta_e_nove",
+      "teste": "o_primeiro_divisor_de_quarenta_e_nove",
+      "descricao": "com 49 digitado no stdin a resposta e 7: o valor impresso acompanha o N lido, o que prova que ele vem do contador na hora do break e nao de um numero escrito no codigo"
+    }
+  ]
+}

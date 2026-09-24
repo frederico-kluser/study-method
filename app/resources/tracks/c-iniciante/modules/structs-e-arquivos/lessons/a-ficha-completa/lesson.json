@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-ficha-completa",
   "title": "A ficha completa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A ficha de cadastro junta texto, inteiro e número com vírgula — e na leitura o campo de texto entra sem `&`, porque o nome da caixa já é endereço.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:MemberExpr",
+  "concepts": [
+    "a_ficha_completa"
+  ],
   "prerequisites": [
     "o-apelido-do-molde",
     "ler-uma-palavra"
   ],
+  "introduces": {
+    "productive": [
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ficha passa a ser preenchida pelo teclado: cada campo entra na scanf com a forma do seu tipo, e a caixa de letras dentro da ficha dispensa o & que a casa única exige",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-ficha-de-cadastro",
+      "title": "A ficha de cadastro",
+      "markdown": "Uma ficha de cadastro junta o que o módulo inteiro trouxe: texto, número inteiro e número com vírgula, cada um no seu campo.\n\n```c\ntypedef struct {\n    char nome[40];\n    int idade;\n    double altura;\n} Pessoa;\n```\n\nO `nome` não é um valor só: é uma caixa de 40 gavetas de letras, do jeito que o módulo de texto ensinou. Os outros dois são uma casa cada.\n\nEssa diferença — caixa de gavetas × casa única — é a única coisa nova desta aula, e ela aparece na hora de LER."
+    },
+    {
+      "id": "o-campo-que-ja-e-endereco",
+      "title": "O campo que já é endereço",
+      "markdown": "Na `scanf`, a regra continua a mesma: `%d` pede o `&`, `%s` não pede. O campo não muda isso.\n\n```c\ntypedef struct { char nome[40]; int idade; double altura; } Pessoa;\n\nPessoa p;\nscanf(\"%39s\", p.nome);\nscanf(\"%d\", &p.idade);\n```\n\n`p.nome` é uma caixa de gavetas, e o nome de uma caixa **já é** o endereço da gaveta 0 — dar `&p.nome` seria o endereço do endereço. `p.idade` é um inteiro numa casa: sem o `&`, a `scanf` não saberia onde escrever.\n\nO freio de mão também fica: 39 é 40 menos um, a gaveta que sobra para o `\\0`."
+    },
+    {
+      "id": "ler-o-numero-com-virgula",
+      "title": "Ler o número com vírgula",
+      "markdown": "Falta a altura. Para IMPRIMIR um `double` o buraco é `%f`; para LER ele é `%lf` — o `l` avisa a `scanf` de que a casa é grande.\n\n```c\ntypedef struct { char nome[40]; int idade; double altura; } Pessoa;\n\nPessoa p;\nscanf(\"%39s\", p.nome);\nscanf(\"%d\", &p.idade);\nscanf(\"%lf\", &p.altura);\nprintf(\"%s tem %d anos e %.2f m\\n\", p.nome, p.idade, p.altura);\n```\n\n```text\nAna tem 17 anos e 1.62 m\n```\n\nA altura é um valor numa casa, como a idade: leva `&`. Três buracos, três campos, e a ficha sai preenchida."
+    },
+    {
+      "id": "a-mais-alta-das-duas",
+      "title": "A mais alta das duas",
+      "markdown": "Comparar duas pessoas é comparar UM campo delas — e quem vence traz a ficha inteira junto:\n\n```c\ntypedef struct { char nome[40]; int idade; double altura; } Pessoa;\n\nPessoa a = {\"Ana\", 17, 1.62};\nPessoa b = {\"Bruno\", 18, 1.75};\nif (a.altura <= b.altura) {\n    printf(\"%s tem %d anos e %.2f m\\n\", b.nome, b.idade, b.altura);\n}\n```\n\n```text\nBruno tem 18 anos e 1.75 m\n```\n\nO `if` olha só a altura; o nome e a idade vêm de graça, porque estavam na mesma ficha. É para isso que a ficha existe: os campos andam juntos."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-campo-de-texto-nao-leva-e-comercial",
+      "statement": "`scanf(\"%39s\", p.nome)`: o campo já é endereço — sem `&`.",
+      "question": "Por que `p.nome` entra na `scanf` sem o `&`, enquanto `p.idade` entra com ele?",
+      "options": [
+        "Porque `nome` é caixa de gavetas, e o nome dela já é endereço.",
+        "Porque o `%s` da `scanf` aceita as duas formas, com `&` e sem.",
+        "Porque o campo de texto é o primeiro campo declarado na ficha.",
+        "Porque só o campo lido em último lugar precisa de `&` na `scanf`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome de um array É o endereço da gaveta 0 — e é isso que o `%s` quer. Já `p.idade` é um inteiro numa casa: sem o `&`, a `scanf` receberia o valor, não o lugar onde escrever.",
+      "sectionId": "o-campo-que-ja-e-endereco",
+      "optionRationales": [
+        "O nome de um array já vale como endereço da primeira gaveta, dentro ou fora de uma ficha.",
+        "Com `&p.nome` o tipo muda (vira endereço do endereço) e a leitura sai errada.",
+        "A ordem dos campos não decide nada: o que decide é o campo ser caixa ou casa.",
+        "A ordem da leitura não muda a regra: o `&` depende do tipo do campo."
+      ]
+    },
+    {
+      "id": "o-freio-de-mao-no-campo",
+      "statement": "A largura do `%s` é o freio de mão: tamanho da caixa menos um.",
+      "question": "Com o campo declarado como `char nome[40]`, qual buraco a `scanf` deve levar?",
+      "options": [
+        "`%39s`, deixando a última gaveta livre para o `\\0` do fim.",
+        "`%40s`, porque a caixa do campo tem exatamente 40 gavetas.",
+        "`%s` puro, porque dentro de uma ficha a `scanf` sabe o tamanho.",
+        "`%41s`, para caber o texto digitado e mais o `\\0` no fim dele."
+      ],
+      "answerIndex": 0,
+      "feedback": "São 40 gavetas, e a `scanf` põe um `\\0` depois das letras. Sobrando uma gaveta para ele, cabem 39 letras — a conta é sempre tamanho menos um.",
+      "sectionId": "o-campo-que-ja-e-endereco",
+      "optionRationales": [
+        "39 letras mais o `\\0` preenchem as 40 gavetas sem passar do fim.",
+        "Com 40 letras o `\\0` cairia na gaveta 40, que não existe.",
+        "A `scanf` nunca sabe o tamanho da caixa — nem solta, nem dentro de uma ficha.",
+        "Pedir mais gavetas do que a caixa tem é justamente o que o freio evita."
+      ]
+    },
+    {
+      "id": "o-buraco-de-ler-o-double",
+      "statement": "O `double` se imprime com `%f` e se lê com `%lf`.",
+      "question": "Qual chamada preenche o campo `double altura` com o que foi digitado?",
+      "options": [
+        "`scanf(\"%lf\", &p.altura);`",
+        "`scanf(\"%f\", p.altura);`",
+        "`scanf(\"%d\", &p.altura);`",
+        "`printf(\"%.2f\", p.altura);`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Na leitura o buraco do `double` é `%lf`, e o `&` continua sendo necessário: a altura é um valor numa casa, como a idade.",
+      "sectionId": "ler-o-numero-com-virgula",
+      "optionRationales": [
+        "`%lf` diz à `scanf` que a casa é de `double`, e o `&` diz onde ela fica.",
+        "Faltam as duas coisas: o `l` do buraco e o `&` do endereço.",
+        "O `%d` escreveria um inteiro em cima de uma casa de `double`.",
+        "O `printf` mostra o que já está lá; ele não lê nada do teclado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da `scanf`: a largura máxima do `%s`, o `%lf` do `double` e o endereço que cada conversão exige."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da `scanf`: a mesma função que o seu programa chama, com o aviso sobre `%s` sem largura."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct`: um campo pode ser um array, e ele se comporta como array em toda expressão."
+    }
+  ],
+  "challenges": [
+    "o-cadastro"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

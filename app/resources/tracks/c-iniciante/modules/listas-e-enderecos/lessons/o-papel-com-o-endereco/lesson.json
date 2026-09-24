@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "o-papel-com-o-endereco",
   "title": "O papel com o endereço",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O endereço de uma variável cabe numa variável própria: o ponteiro `int *p = &x;` não guarda o número — guarda onde o número está.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "o_ponteiro"
+  ],
   "prerequisites": [
     "enderecos"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a memória ganha duas leituras: um nome pode guardar o VALOR de um número ou o ENDEREÇO de outro nome — e esse papel com o endereço é uma variável como as outras, com casa própria",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-casa-e-o-papel",
+      "title": "A casa e o papel",
+      "markdown": "Na aula passada o `&` mostrou o **endereço** de uma variável: o lugar onde o valor mora na memória.\n\n```c\nint x = 42;\nprintf(\"%d\\n\", x);\nprintf(\"%p\\n\", &x);\n```\n\n```text\n42\n0x16b7de11c\n```\n\nO `%d` mostra o VALOR; o `%p` mostra o ENDEREÇO (esse número muda a cada execução — não é para decorar).\n\nSe `x` é a casa onde o 42 mora, `&x` é o endereço dela escrito num papel. E um papel pode ser guardado."
+    },
+    {
+      "id": "a-variavel-que-guarda-endereco",
+      "title": "A variável que guarda endereço",
+      "markdown": "Guardar endereço pede uma variável de forma nova: o **ponteiro**. O `*` na declaração diz que ali dentro cabe endereço, não número.\n\n```c\nint x = 42;\nint *p = &x;\nprintf(\"%p\\n\", p);\nprintf(\"%p\\n\", &x);\n```\n\n```text\n0x16b7de11c\n0x16b7de11c\n```\n\nAs duas linhas saem iguais: `p` guarda o endereço de `x`. Leia `int *p` como \"papel que leva a um int\" — o `int` é o tipo da CASA, não o do papel."
+    },
+    {
+      "id": "cada-tipo-tem-o-seu-papel",
+      "title": "Cada tipo tem o seu papel",
+      "markdown": "O molde da casa entra na declaração do papel: endereço de `double` pede `double *`.\n\n```c\ndouble preco = 9.75;\ndouble *q = &preco;\nprintf(\"%p\\n\", q);\n```\n\nUm `int *` não guarda o endereço de um `double`, e o compilador reclama — é bom que reclame. Quem for até a casa precisa saber o que tem lá dentro: quantos bytes e em que formato."
+    },
+    {
+      "id": "o-papel-tambem-tem-endereco",
+      "title": "O papel também tem endereço",
+      "markdown": "Onde a analogia quebra: o papel é uma variável como as outras, e toda variável tem endereço. Então `&p` existe — e não é o endereço de `x`.\n\n```c\nint x = 42;\nint *p = &x;\nprintf(\"%p\\n\", p);\nprintf(\"%p\\n\", &p);\n```\n\n```text\n0x16b7de11c\n0x16b7de110\n```\n\nA primeira linha é a casa para onde o papel aponta; a segunda é onde o PAPEL mora. Ler o valor que está na casa é a próxima aula."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-ponteiro-guarda-o-endereco",
+      "statement": "`int *p = &x;` — o `p` não guarda número: guarda ONDE o número está.",
+      "question": "Depois de `int x = 42;` e `int *p = &x;`, o que está dentro de `p`?",
+      "options": [
+        "O endereço de `x`: onde o 42 está guardado.",
+        "Uma cópia do valor 42, igual à de `x`.",
+        "O valor 42 e o endereço de `x`, os dois juntos.",
+        "Nada ainda: falta pedir o valor com `scanf`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `*` da declaração diz que `p` é ponteiro, e `&x` põe nele o endereço de `x`. O 42 continua morando em `x` — o `p` só sabe onde ele está.",
+      "sectionId": "a-variavel-que-guarda-endereco",
+      "optionRationales": [
+        "`&x` é o endereço de `x`, e é ele que o ponteiro guarda.",
+        "Cópia do valor é o que uma variável `int` comum faria; o ponteiro guarda o lugar.",
+        "São duas coisas separadas: o valor mora em `x`, o endereço mora em `p`.",
+        "A `scanf` também precisa de um endereço; aqui o endereço já chegou por `&x`."
+      ]
+    },
+    {
+      "id": "o-tipo-e-o-da-casa",
+      "statement": "No `int *p`, o tipo escrito é o do valor que mora no endereço, não o do papel.",
+      "question": "Você tem `double preco = 9.75;`. Qual declaração guarda o endereço dele?",
+      "options": [
+        "`double *q = &preco;` — o papel é de `double`.",
+        "`int *q = &preco;` — endereço é sempre `int`.",
+        "`double q = &preco;` — o `*` não é necessário.",
+        "`double *q = preco;` — sem o `&`, é o valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "O tipo do ponteiro acompanha o tipo da casa: endereço de `double` cabe num `double *`. O `*` diz que é papel, e o `&` é quem produz o endereço.",
+      "sectionId": "cada-tipo-tem-o-seu-papel",
+      "optionRationales": [
+        "O `double` é o tipo da casa e o `*` diz que `q` guarda endereço dela.",
+        "Endereço não é `int`: cada ponteiro carrega o tipo do que está no destino.",
+        "Sem o `*`, `q` seria um número com vírgula — e ali chega um endereço.",
+        "Sem o `&`, o que chega é o valor 9.75, e ele não é um endereço."
+      ]
+    },
+    {
+      "id": "o-papel-tem-endereco-proprio",
+      "statement": "O ponteiro é uma variável, então ele também tem endereço próprio: `&p` não é `p`.",
+      "question": "Com `int x = 42;` e `int *p = &x;`, o que a linha `printf(\"%p\\n\", &p);` mostra?",
+      "options": [
+        "O endereço onde o papel `p` mora.",
+        "O mesmo endereço que `p` guarda: o de `x`.",
+        "O valor 42, que está guardado em `x`.",
+        "Um erro: ponteiro não tem endereço."
+      ],
+      "answerIndex": 0,
+      "feedback": "`p` é o endereço da casa; `&p` é o endereço do papel. São duas variáveis, e cada uma mora no seu lugar.",
+      "sectionId": "o-papel-tambem-tem-endereco",
+      "optionRationales": [
+        "`&` diante de qualquer variável dá o endereço dela — inclusive de um ponteiro.",
+        "Esse é o que `p` sozinho mostra; o `&` na frente muda a pergunta.",
+        "O valor 42 sai com `%d` a partir de `x`, não do endereço do papel.",
+        "Todo objeto do programa tem endereço, e o ponteiro é um objeto como os outros."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Pointer declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/pointer",
+      "description": "A página oficial do ponteiro em C: a forma `tipo *nome`, o que ele guarda e por que o tipo do destino faz parte da declaração."
+    },
+    {
+      "title": "Declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/declarations",
+      "description": "A regra oficial de como uma declaração se lê em C: o tipo, o nome e os símbolos que se colam a ele."
+    },
+    {
+      "title": "printf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/printf.3.html",
+      "description": "A man-page do printf, com a tabela dos formatos: é ela que define o `%p` como o formato de endereço."
+    }
+  ],
+  "challenges": [
+    "aponta-para-mim"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

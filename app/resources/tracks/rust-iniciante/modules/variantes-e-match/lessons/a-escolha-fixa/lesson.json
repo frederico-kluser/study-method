@@ -18,7 +18,13 @@
       "node:EnumVariantList",
       "node:EnumVariant"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:EnumVariantList",
+        "de": "node:EnumItem"
+      }
+    ]
   },
   "introducesTerms": [
     "term:enum",
@@ -28,12 +34,12 @@
     {
       "id": "o-conjunto-fixo",
       "title": "O conjunto fixo",
-      "markdown": "A struct descreve um valor que TEM campos. O `enum` descreve uma ESCOLHA: um conjunto fixo de possibilidades, uma por linha:\n\n```rust\npub enum Cor {\n    Vermelho,\n    Verde,\n    Amarelo,\n}\n```\n\n`Cor` não guarda valor nenhum — ela DECLARA que uma cor só pode ser uma destas três variantes. Uma variante é um valor inteiro, com nome próprio: não é um número, não é um texto — é `Vermelho`."
+      "markdown": "A struct descreve um valor que TEM campos. O `enum` descreve uma ESCOLHA: um conjunto fixo de possibilidades, uma por linha:\n\n```rust\npub enum Cor {\n    Vermelho,\n    Verde,\n    Amarelo,\n}\n```\n\n`Cor` não guarda valor nenhum — ela DECLARA que uma cor só pode ser uma destas três variantes.\n\nCom poucas variantes, o mesmo conjunto cabe numa linha:\n\n```rust\npub enum Turno { Dia, Noite }\n```\n\nAs chaves `{}` cercam o conjunto; cada nome dentro delas é uma variante — e variante não é número nem texto: é um valor com nome próprio."
     },
     {
       "id": "a-variante-e-um-valor",
       "title": "A variante é um valor",
-      "markdown": "Uma variante do conjunto é um valor de primeira classe: entra em variável, sai de função, chega de parâmetro:\n\n```rust\npub fn a_cor_do_dia(n: i32) -> Cor {\n    if n > 0 {\n        Cor::Verde\n    } else {\n        Cor::Vermelho\n    }\n}\n\npub fn a_cor_da_primavera() -> Cor {\n    let cor = Cor::Verde;\n    cor\n}\n```\n\nA função promete devolver UMA das variantes — e o compilador cobra a promessa: nenhuma das duas funções consegue devolver `5` ou `\"verde\"`."
+      "markdown": "Uma variante do conjunto é um valor de primeira classe: entra em variável, sai de função, chega de parâmetro:\n\n```rust\npub fn a_cor_do_dia(n: i32) -> Cor {\n    if n > 0 {\n        Cor::Verde\n    } else {\n        Cor::Vermelho\n    }\n}\n\npub fn a_cor_da_primavera() -> Cor {\n    let cor = Cor::Verde;\n    cor\n}\n```\n\nA função promete devolver UMA das variantes — e o compilador cobra a promessa: nenhuma das duas funções consegue devolver `5` ou `\"verde\"`. O `::` é o mesmo de `String::from`: o caminho até a variante — a próxima aula o desdobra."
     },
     {
       "id": "o-derive-que-deixa-comparar",
@@ -49,17 +55,17 @@
       "question": "O que `pub enum Cor { Vermelho, Verde, Amarelo }` declara?",
       "options": [
         "Um conjunto fixo: uma cor só pode ser Vermelho, Verde ou Amarelo",
-        "Uma struct com três campos",
-        "Três funções de mesmo nome",
-        "Um valor de cor pronto para usar"
+        "Uma struct com três campos chamados Vermelho, Verde e Amarelo",
+        "Três funções chamadas Vermelho, Verde e Amarelo",
+        "Uma variável chamada cor que já vale Vermelho, pronta para ser usada"
       ],
       "answerIndex": 0,
       "feedback": "O enum é o CONJUNTO: cada linha é uma variante, um valor possível — e nada fora dele.",
       "optionRationales": [
         "Isso: o enum declara TODAS as escolhas possíveis, uma por linha.",
-        "Struct é outro molde: ela tem CAMPOS; o enum tem VARIANTES.",
-        "Variante não é função: é valor — um por linha, sem parênteses.",
-        "O enum declara as possibilidades; um valor específico se escreve como `Cor::Vermelho`."
+        "Struct guarda os três CAMPOS ao mesmo tempo; o enum é UMA variante de cada vez.",
+        "Variante não é função: é valor com nome próprio — não se chama, nem leva parênteses.",
+        "O enum declara as possibilidades e não cria variável nenhuma; o valor se escreve `Cor::Vermelho`."
       ]
     },
     {
@@ -69,17 +75,17 @@
       "question": "Numa função que promete devolver `Cor`, o que `Cor::Verde` devolve?",
       "options": [
         "A variante Verde do conjunto Cor",
-        "O texto \"Cor::Verde\"",
-        "O número da posição da variante",
-        "Um erro de compilação"
+        "O texto \"Cor::Verde\", como uma string",
+        "A posição da variante no enum",
+        "Um erro de compilação por falta de valor"
       ],
       "answerIndex": 0,
       "feedback": "A variante é um valor comum: sai da função como um `i32` sai — o tipo é o conjunto.",
       "optionRationales": [
         "Isso: a variante é um valor do tipo Cor — exatamente o que a função promete.",
-        "É um VALOR de Cor, não um texto: o caminho é só a forma de o nomear.",
-        "Rust não numera variantes por baixo: elas não são inteiros disfarçados.",
-        "Cumpre a promessa: o tipo `Cor` aceita qualquer uma das variantes."
+        "É um VALOR de Cor, não uma string: o caminho é só a forma de o nomear no código.",
+        "Rust não numera variantes por baixo: a variante não é inteiro nem posição disfarçada.",
+        "Cumpre a promessa: `Cor::Verde` já É um valor, e o tipo aceita qualquer variante."
       ]
     }
   ],

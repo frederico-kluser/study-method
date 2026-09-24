@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "minimo-e-maximo",
+  "title": "O menor e o maior",
+  "concept": "o_parametro_de_saida",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O menor e o maior\n\nA função `minimoEMaximo` varre uma lista de notas e entrega DUAS respostas: a menor nota e a maior. Como um `return` entrega um valor só, as respostas saem pelos **ponteiros de saída**.\n\n```c\nvoid minimoEMaximo(int v[], int n, int *min, int *max)\n```\n\n- `v` e `n` são a entrada: a lista e quantas notas ela tem;\n- `min` e `max` são a saída: os endereços de duas variáveis de quem chamou.\n\nDentro da função, comece as duas respostas com `v[0]` e varra da gaveta 1 até a `n - 1`, escrevendo em `*min` e `*max` sempre que achar nota menor ou maior.\n\nCom a lista `{7, 2, 9, 4, 5}` e `n` valendo 5, quem chamou fica com `2` no `min` e `9` no `max`.\n\n**Não imprima nada:** quem confere lê as duas variáveis, não a tela.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* minimoEMaximo varre as n notas de v e escreve, pelos ponteiros de saida,\n   a menor nota em *min e a maior em *max.\n   Comece as duas com v[0] e varra de i = 1 ate n - 1.\n   Nao imprima nada: quem confere le *min e *max. */\nvoid minimoEMaximo(int v[], int n, int *min, int *max) {\n    /* escreva aqui: comece *min e *max com v[0] e varra a lista */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio minimo-e-maximo — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de tela. Cada cenario cria a lista, zera as\n   duas variaveis de resposta, entrega os ENDERECOS delas para a funcao do\n   aluno e confere o que ficou escrito em cada uma. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid minimoEMaximo(int v[], int n, int *min, int *max);\n\nSM_TEST(o_menor_e_o_maior_da_turma) {\n    int notas[5] = {7, 2, 9, 4, 5};\n    int min = 0;\n    int max = 0;\n    minimoEMaximo(notas, 5, &min, &max);\n    checa_int(\"o menor da turma\", min, 2,\n              \"o menor de 7 2 9 4 5 esta na gaveta 1 e vale 2\");\n    checa_int(\"o maior da turma\", max, 9,\n              \"o maior de 7 2 9 4 5 esta na gaveta 2 e vale 9\");\n}\n\nSM_TEST(os_extremos_nas_pontas) {\n    int notas[5] = {9, 8, 7, 6, 1};\n    int min = 0;\n    int max = 0;\n    minimoEMaximo(notas, 5, &min, &max);\n    checa_int(\"o menor quando ele e o ultimo\", min, 1,\n              \"a varredura precisa chegar na gaveta 4 para achar o 1\");\n    checa_int(\"o maior quando ele e o primeiro\", max, 9,\n              \"o maior ja esta na gaveta 0: nenhuma nota depois dele e maior\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid minimoEMaximo(int v[], int n, int *min, int *max) {\n    *min = v[0];\n    *max = v[0];\n    for (int i = 1; i < n; i++) {\n        if (v[i] < *min) {\n            *min = v[i];\n        }\n        if (*max < v[i]) {\n            *max = v[i];\n        }\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_menor_e_o_maior_da_turma",
+      "teste": "o_menor_e_o_maior_da_turma",
+      "descricao": "com a lista 7 2 9 4 5 e n = 5, a funcao escreve 2 no endereco de min e 9 no endereco de max — as duas respostas de uma varredura so"
+    },
+    {
+      "id": "os_extremos_nas_pontas",
+      "teste": "os_extremos_nas_pontas",
+      "descricao": "com a lista 9 8 7 6 1, o menor esta na ultima gaveta e o maior na primeira: min fica 1 e max fica 9, o que prova que a varredura visita a lista inteira"
+    }
+  ]
+}

@@ -32,6 +32,11 @@
       "id": "o-mut-quer-a-caixa-so-para-ele",
       "title": "O &mut quer a caixa só para ele",
       "markdown": "O `&mut` pede a caixa SÓ PARA ELE:\n\n```rust\nlet mut placar = 10;\nlet mutavel = &mut placar;\n```\n\nEnquanto `mutavel` vive, o compilador não deixa outro empréstimo começar — quem escreve não pode ser interrompido. Um que muda, ou muitos que leem: a regra do empréstimo por inteiro."
+    },
+    {
+      "id": "a-regra-escrita-no-tipo",
+      "title": "A regra escrita no tipo",
+      "markdown": "A assinatura já diz qual empréstimo a função pede — o `&mut` do TIPO pede o exclusivo:\n\n```rust\npub fn dobrar(n: &mut i32) {\n    *n = *n + *n;\n}\n\npub fn gritar(t: &mut String) {\n    t.push_str(\"!\");\n}\n```\n\n`&mut i32` e `&mut String` são o MESMO pedido em tipos diferentes. Nenhuma das duas tem `->`: sem ele a função não devolve valor — ela só MUDA o que emprestou. Enquanto `dobrar(&mut placar)` roda, ninguém mais lê o `placar`: a regra do empréstimo vale igual na assinatura — um que muda, ou muitos que leem."
     }
   ],
   "assertions": [
@@ -73,6 +78,26 @@
         "A leitura de graça vale só entre leitores &.",
         "Copiar não resolve: o conteúdo poderia mudar por baixo.",
         "Só enquanto ele vive — no fim, a caixa volta a emprestar."
+      ]
+    },
+    {
+      "id": "a-assinatura-pede-o-exclusivo",
+      "sectionId": "a-regra-escrita-no-tipo",
+      "statement": "Um parâmetro de tipo &mut pede o empréstimo exclusivo: enquanto a função o tem, ninguém mais lê a caixa.",
+      "question": "O que a assinatura `pub fn dobrar(n: &mut i32)` pede de quem chama?",
+      "options": [
+        "O empréstimo exclusivo do número: só ela mexe enquanto roda",
+        "Uma cópia do número, que ela muda à parte",
+        "Muitos empréstimos de leitura ao mesmo tempo",
+        "O dono do número, que se perde na chamada"
+      ],
+      "answerIndex": 0,
+      "feedback": "`&mut i32` é o pedido do exclusivo: um que muda, e mais ninguém enquanto ele vive.",
+      "optionRationales": [
+        "O `&mut` no tipo é a regra na assinatura: enquanto `dobrar` roda, a caixa é só dela.",
+        "Cópia seria `n: i32` — e aí a mudança não chegaria ao dono.",
+        "Leitura coletiva é o `&` sem mut; o `&mut` exclui os outros.",
+        "Empréstimo não toma o dono: a caixa continua do dono e volta inteira."
       ]
     }
   ],

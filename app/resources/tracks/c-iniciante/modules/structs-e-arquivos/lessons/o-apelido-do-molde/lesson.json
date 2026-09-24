@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "o-apelido-do-molde",
   "title": "O apelido do molde",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O `typedef` batiza o molde: depois dele `Ponto` é um tipo seu, e a ficha se declara com uma palavra só, sem repetir `struct`.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:TypedefDecl",
+  "concepts": [
+    "o_apelido_do_tipo"
+  ],
   "prerequisites": [
     "o-molde-e-o-dado"
   ],
+  "introduces": {
+    "productive": [
+      "node:TypedefDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o aluno passa a criar NOME DE TIPO: além de declarar fichas, ele batiza o molde e usa esse nome onde antes só cabiam os tipos que a linguagem já trazia",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-nome-comprido-do-molde",
+      "title": "Duas palavras para um tipo",
+      "markdown": "Repare no que você escreveu na aula passada: `struct Ponto p;` — DUAS palavras só para dizer o tipo. O `typedef` dá ao molde um nome próprio de tipo:\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n```\n\nLeia de fora para dentro: `typedef` anuncia **um apelido de tipo**; no meio vem o molde (aqui sem nome próprio, só `struct`); e o nome depois do `}` é o apelido que nasce — `Ponto`. O `;` do fim continua obrigatório.\n\nNada de novo foi criado: é o mesmo molde, com um nome mais curto."
+    },
+    {
+      "id": "o-apelido-em-uso",
+      "title": "O apelido em uso",
+      "markdown": "Com o apelido declarado, `Ponto` é um tipo seu — e se escreve como se escreve `int`:\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nPonto p;\np.x = 3;\np.y = 4;\nprintf(\"ponto %d %d\\n\", p.x, p.y);\n```\n\n```text\nponto 3 4\n```\n\n`Ponto p;` sem a palavra `struct`. A ficha é a mesma da aula passada, o ponto entra nos campos do mesmo jeito: só o jeito de dizer o tipo encurtou. Tipo com maiúscula é a convenção da trilha."
+    },
+    {
+      "id": "o-molde-pode-guardar-o-nome",
+      "title": "O molde pode guardar o seu nome",
+      "markdown": "O molde também pode ter nome próprio E apelido — os dois convivem:\n\n```c\ntypedef struct Retangulo {\n    int largura;\n    int altura;\n} Retangulo;\n\nRetangulo r;\nr.largura = 4;\nr.altura = 5;\nprintf(\"area %d\\n\", r.largura * r.altura);\n```\n\n```text\narea 20\n```\n\nAqui `struct Retangulo r;` e `Retangulo r;` declaram a MESMA coisa. O apelido é um nome a mais para o tipo, nunca um molde novo — e é por isso que ele não copia nem esconde campo nenhum."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-apelido-dispensa-a-palavra-struct",
+      "statement": "`typedef struct { ... } Ponto;` — `Ponto` passa a ser um tipo seu, sem a palavra `struct`.",
+      "question": "Depois desse `typedef`, como se declara uma ficha chamada `p`?",
+      "options": [
+        "`Ponto p;` — o apelido já é o tipo.",
+        "`typedef Ponto p;`, repetindo o typedef.",
+        "`struct p;`, porque o molde não tem nome.",
+        "`Ponto struct p;`, com as duas palavras juntas."
+      ],
+      "answerIndex": 0,
+      "feedback": "O apelido nasce como tipo: `Ponto p;` basta. O `typedef` se escreve uma vez, junto do molde — nunca em cada declaração.",
+      "sectionId": "o-apelido-em-uso",
+      "optionRationales": [
+        "O apelido é o tipo: uma palavra e o nome da ficha.",
+        "O `typedef` cria o apelido uma vez; declarar ficha não o repete.",
+        "`struct p;` não declara nada: falta dizer de qual molde.",
+        "As duas palavras juntas não formam tipo nenhum para o compilador."
+      ]
+    },
+    {
+      "id": "o-apelido-nao-cria-molde-novo",
+      "statement": "O apelido é outro nome para o MESMO molde: ele não cria um molde novo nem muda os campos.",
+      "question": "Com `typedef struct Retangulo { int largura; int altura; } Retangulo;`, quantos moldes existem?",
+      "options": [
+        "Um molde, com dois nomes para ele.",
+        "Dois moldes iguais, um por nome.",
+        "Um molde, e o apelido copia os campos.",
+        "Dois moldes: o do `struct` e o do `typedef`."
+      ],
+      "answerIndex": 0,
+      "feedback": "É um molde só. `struct Retangulo` e `Retangulo` são dois jeitos de nomear o mesmo tipo — nenhum campo é duplicado.",
+      "sectionId": "o-molde-pode-guardar-o-nome",
+      "optionRationales": [
+        "Um molde, dois nomes: é exatamente o que o `typedef` faz.",
+        "Nada é duplicado: o apelido aponta para o molde que já existe.",
+        "O apelido não copia campo: quem tem campos é a ficha declarada.",
+        "O `typedef` não declara molde: ele batiza o que está ali no meio."
+      ]
+    },
+    {
+      "id": "onde-mora-o-nome-do-apelido",
+      "statement": "No `typedef`, o nome que vem depois do `}` é o apelido do tipo.",
+      "question": "Em `typedef struct { int x; int y; } Ponto;`, o que é `Ponto`?",
+      "options": [
+        "O nome do tipo que o `typedef` acabou de criar.",
+        "O nome de uma ficha já criada e pronta para uso.",
+        "O nome do primeiro campo do molde.",
+        "O nome do arquivo em que o molde vive."
+      ],
+      "answerIndex": 0,
+      "feedback": "`Ponto` é o apelido do TIPO. Nenhuma ficha existe ainda: ela nasce em `Ponto p;`, que é a declaração seguinte.",
+      "sectionId": "o-nome-comprido-do-molde",
+      "optionRationales": [
+        "O nome depois do `}` é o tipo novo — o apelido do molde do meio.",
+        "Ficha nenhuma foi criada: o `typedef` só batiza o tipo.",
+        "Os campos são `x` e `y`, e moram entre as chaves.",
+        "Nome de arquivo não aparece em declaração nenhuma de C."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "typedef declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/typedef",
+      "description": "A página oficial do `typedef`: ele declara um nome novo para um tipo que já existe, nunca um tipo diferente."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct`, com a forma `typedef struct { ... } Nome;` e o molde sem nome próprio."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.7.8 define o `typedef` como sinônimo do tipo, e não como tipo novo."
+    }
+  ],
+  "challenges": [
+    "o-retangulo"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

@@ -2,23 +2,137 @@
   "schemaVersion": 1,
   "slug": "a-caixa-com-gavetas",
   "title": "A caixa com gavetas",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um nome só passa a guardar vários números do mesmo tipo: o array nasce com o tamanho entre colchetes e os valores entre chaves, e cada gaveta é lida pelo número dela, de 0 a 4.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:InitListExpr",
+  "concepts": [
+    "a_caixa_com_gavetas"
+  ],
   "prerequisites": [
     "mais-de-uma-janela",
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:InitListExpr",
+      "decl:var",
+      "node:ArraySubscriptExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "decl:var",
+        "de": "node:InitListExpr"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "um nome deixa de guardar UM valor: passa a guardar vários, em ordem, e o número entre colchetes escolhe qual deles a linha está usando",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "cinco-notas-cinco-nomes",
+      "title": "Cinco notas, cinco nomes?",
+      "markdown": "Cinco notas de uma prova, com o que você já sabe, pedem cinco nomes:\n\n```c\nint nota1 = 7;\nint nota2 = 8;\n```\n\nFunciona — e não cresce: cada nota nova pede um nome novo. C tem a forma própria para isso, uma **caixa com gavetas**: um nome só para vários valores do mesmo tipo.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\n```\n\nO `[5]` diz QUANTAS gavetas a caixa tem. As chaves `{ }` dizem o que entra em cada uma, na ordem em que os valores aparecem."
+    },
+    {
+      "id": "as-gavetas-comecam-no-zero",
+      "title": "As gavetas começam no zero",
+      "markdown": "Cada gaveta tem um número, e a contagem começa no **zero**: a primeira é `notas[0]`, a quinta é `notas[4]`.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nprintf(\"%d\\n\", notas[0]);\nprintf(\"%d\\n\", notas[4]);\n```\n\n```text\n7\n10\n```\n\nCinco gavetas, números de 0 a 4 — e é só isso: `notas[5]` **não existe**. O número entre colchetes não é a quantidade; é qual gaveta da caixa a linha está abrindo."
+    },
+    {
+      "id": "a-caixa-de-qualquer-tipo",
+      "title": "A caixa de qualquer tipo",
+      "markdown": "A caixa não é só de notas. O molde é o tipo, e ele se repete em todas as gavetas:\n\n```c\ndouble precos[3] = {1.5, 2.25, 0.75};\nint idades[2] = {30, 41};\nprintf(\"%f\\n\", precos[2]);\n```\n\n`precos` tem três gavetas de `double`; `idades`, duas de `int`. A forma é sempre a mesma: tipo, nome, `[quantas]`, `=` e os valores entre chaves, separados por vírgula."
+    },
+    {
+      "id": "a-gaveta-vale-como-valor",
+      "title": "A gaveta vale como qualquer valor",
+      "markdown": "Dentro do programa, `notas[1]` é um `int` como outro qualquer: entra em conta, em comparação, em `printf`.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint soma = notas[0] + notas[1];\nprintf(\"%d\\n\", soma);\nprintf(\"%d\\n\", notas[2] * 2);\n```\n\n```text\n15\n12\n```\n\nOnde a analogia da caixa quebra: a caixa **não sabe** quantas gavetas tem. Quem lembra do 5 é você, em cada linha que escreve."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-gaveta-cinco-nao-existe",
+      "statement": "`int notas[5]` cria 5 gavetas numeradas 0..4 — a gaveta 5 não existe.",
+      "question": "A caixa é `int notas[5] = {7, 8, 6, 9, 10};`. O que pega a ÚLTIMA nota?",
+      "options": [
+        "`notas[4]`, porque a contagem das gavetas começa no zero.",
+        "`notas[5]`, porque a caixa foi declarada com cinco gavetas.",
+        "`notas[10]`, porque a última nota vale 10.",
+        "`notas`, porque o nome sozinho já é a última gaveta."
+      ],
+      "answerIndex": 0,
+      "feedback": "São cinco gavetas numeradas de 0 a 4, e a última é `notas[4]`. O `[5]` da declaração diz QUANTAS gavetas existem, nunca o número da última.",
+      "sectionId": "as-gavetas-comecam-no-zero",
+      "optionRationales": [
+        "A primeira gaveta é a 0, então a quinta e última é a 4.",
+        "O 5 da declaração é a quantidade de gavetas; o número da última é 4.",
+        "O 10 é o VALOR guardado na última gaveta, não o número dela.",
+        "O nome sozinho é a caixa inteira: sem colchetes, nenhuma gaveta foi escolhida."
+      ]
+    },
+    {
+      "id": "as-chaves-enchem-na-ordem",
+      "statement": "O inicializador entre chaves enche as gavetas na ordem em que os valores aparecem.",
+      "question": "Depois de `int idades[2] = {30, 41};`, quanto vale `idades[1]`?",
+      "options": [
+        "41, o segundo valor entre as chaves.",
+        "30, porque é o primeiro valor da lista.",
+        "1, porque esse é o número da gaveta.",
+        "2, porque a caixa tem duas gavetas."
+      ],
+      "answerIndex": 0,
+      "feedback": "As chaves enchem as gavetas em ordem: `idades[0]` recebe 30 e `idades[1]` recebe 41. O número entre colchetes escolhe a gaveta; o valor de dentro é o que veio da lista.",
+      "sectionId": "a-caixa-de-qualquer-tipo",
+      "optionRationales": [
+        "A ordem é a da lista: o primeiro valor vai para a gaveta 0, o segundo para a 1.",
+        "30 foi para a gaveta 0, que é a primeira da caixa.",
+        "O número da gaveta fica entre colchetes; o valor guardado é outro.",
+        "O tamanho da caixa não é o valor de nenhuma gaveta."
+      ]
+    },
+    {
+      "id": "o-valor-da-gaveta-entra-na-conta",
+      "statement": "O valor de uma gaveta entra em conta como qualquer outro valor.",
+      "question": "Com `int notas[5] = {7, 8, 6, 9, 10};`, quanto vale `notas[0] + notas[1]`?",
+      "options": [
+        "15, a soma dos valores das duas gavetas.",
+        "1, a soma dos números das duas gavetas.",
+        "78, os dois valores colados um no outro.",
+        "7, porque só a primeira gaveta entra na conta."
+      ],
+      "answerIndex": 0,
+      "feedback": "`notas[0]` vale 7 e `notas[1]` vale 8: a soma é 15. O que entra na conta é o valor de dentro da gaveta, não o número dela.",
+      "sectionId": "a-gaveta-vale-como-valor",
+      "optionRationales": [
+        "Os valores são 7 e 8, e o `+` soma os dois: 15.",
+        "Os números das gavetas (0 e 1) escolhem as gavetas; eles não entram na conta.",
+        "O `+` de dois `int` soma; colar texto é outra coisa, e não é isto.",
+        "As duas gavetas citadas entram na conta, uma de cada lado do `+`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arrays — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C: o tamanho entre colchetes, o tipo dos elementos e o índice que começa em zero."
+    },
+    {
+      "title": "Array initialization — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/array_initialization",
+      "description": "A regra oficial do inicializador entre chaves: a ordem dos valores e o que acontece com as gavetas que ficam de fora."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.2.1 define o operador de índice, e a 6.7.9 define a inicialização entre chaves."
+    }
+  ],
+  "challenges": [
+    "notas-na-tela"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

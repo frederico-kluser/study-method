@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ordenador",
+  "title": "O ordenador",
+  "concept": "a_ordenacao",
+  "difficulty": 4,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O ordenador\n\nEscreva a função `oOrdenador`, que põe a lista em **ordem crescente no próprio lugar** — a lista muda, e nada é devolvido:\n\n```c\nvoid oOrdenador(int v[], int n)\n```\n\nUse o que a aula mostrou:\n\n- um `for` de passadas por fora (`n - 1` delas);\n- um `for` de pares por dentro;\n- a troca com a variável extra quando `v[j + 1]` for menor que `v[j]`.\n\nO teste confere as gavetas **depois** da chamada, em três listas diferentes: uma fora de ordem, uma já ordenada e uma ao contrário.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a funcao oOrdenador inteira, com esta assinatura:\n\n       void oOrdenador(int v[], int n)\n\n   Dentro dela: um for de passadas (n - 1 delas), um for de pares por\n   dentro, e a troca com a variavel extra quando v[j + 1] for menor\n   que v[j]. A lista muda no proprio lugar — nada e devolvido. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-ordenador — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nada de captura de stdout. A funcao do aluno ordena a\n   lista NO PROPRIO LUGAR, e cada cenario confere as gavetas depois da\n   chamada. As tres listas sao diferentes: nenhuma sequencia fixa de\n   valores passa nas tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oOrdenador(int v[], int n);\n\nSM_TEST(cinco_notas_fora_de_ordem) {\n    int v[5] = {7, 3, 9, 1, 5};\n    oOrdenador(v, 5);\n    checa_int(\"a menor nota na gaveta 0\", v[0], 1,\n              \"ordem crescente comeca pela menor nota da lista\");\n    checa_int(\"a segunda menor na gaveta 1\", v[1], 3,\n              \"depois da menor vem a segunda menor\");\n    checa_int(\"a do meio na gaveta 2\", v[2], 5,\n              \"o 5 fica no meio da lista ordenada\");\n    checa_int(\"a quarta na gaveta 3\", v[3], 7,\n              \"o 7 e a segunda maior nota\");\n    checa_int(\"a maior nota na gaveta 4\", v[4], 9,\n              \"a maior nota termina na ultima gaveta\");\n}\n\nSM_TEST(a_lista_ja_ordenada_nao_desarruma) {\n    int v[4] = {2, 4, 6, 8};\n    oOrdenador(v, 4);\n    checa_int(\"a gaveta 0 continua 2\", v[0], 2,\n              \"lista ja em ordem sai da ordenacao igual\");\n    checa_int(\"a gaveta 1 continua 4\", v[1], 4,\n              \"nenhuma troca acontece quando o vizinho da direita e maior\");\n    checa_int(\"a gaveta 2 continua 6\", v[2], 6,\n              \"nenhuma troca acontece quando o vizinho da direita e maior\");\n    checa_int(\"a gaveta 3 continua 8\", v[3], 8,\n              \"a maior nota ja estava no fim\");\n}\n\nSM_TEST(a_lista_ao_contrario) {\n    int v[4] = {9, 7, 5, 3};\n    oOrdenador(v, 4);\n    checa_int(\"a menor nota chegou a gaveta 0\", v[0], 3,\n              \"a lista ao contrario e o pior caso: toda passada troca\");\n    checa_int(\"o 5 na gaveta 1\", v[1], 5,\n              \"cada passada empurra um valor para o lugar dele\");\n    checa_int(\"o 7 na gaveta 2\", v[2], 7,\n              \"cada passada empurra um valor para o lugar dele\");\n    checa_int(\"a maior nota chegou a gaveta 3\", v[3], 9,\n              \"a primeira passada leva o 9 para o fim\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid oOrdenador(int v[], int n) {\n    for (int passada = 0; passada < n - 1; passada++) {\n        for (int j = 0; j < n - 1 - passada; j++) {\n            if (v[j + 1] < v[j]) {\n                int guardado = v[j];\n                v[j] = v[j + 1];\n                v[j + 1] = guardado;\n            }\n        }\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "cinco_notas_fora_de_ordem",
+      "teste": "cinco_notas_fora_de_ordem",
+      "descricao": "com a lista {7, 3, 9, 1, 5}, oOrdenador deixa as cinco gavetas em ordem crescente (1, 3, 5, 7, 9) — cada checa_int confere uma gaveta depois da chamada"
+    },
+    {
+      "id": "a_lista_ja_ordenada_nao_desarruma",
+      "teste": "a_lista_ja_ordenada_nao_desarruma",
+      "descricao": "com a lista {2, 4, 6, 8}, ja em ordem, as quatro gavetas saem iguais: nenhuma troca acontece quando o vizinho da direita e maior"
+    },
+    {
+      "id": "a_lista_ao_contrario",
+      "teste": "a_lista_ao_contrario",
+      "descricao": "com a lista {9, 7, 5, 3}, o pior caso, as quatro gavetas terminam em 3, 5, 7, 9 — a prova de que as n-1 passadas bastam"
+    }
+  ]
+}

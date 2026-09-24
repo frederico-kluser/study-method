@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "media-de-dois",
+  "title": "Média de dois",
+  "concept": "a_divisao_real",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Média de dois\n\nA média de 7 e 8 é 7.5 — e é justamente essa metade que a divisão inteira joga fora.\n\nA função `mediaDeDois` já vem no arquivo, com o nome que o programa de fora chama. Complete o corpo dela para imprimir exatamente estas duas linhas:\n\n```text\na media de 7 e 8 e 7.500000\na media de 10 e 3 e 6.500000\n```\n\nEm cada linha, some os dois números e divida por 2, **com a conta em real**: um cast de `double` antes da barra. Sem ele a divisão corta e sai `7.000000`.\n\nO cast pode abraçar a soma inteira — somar não perde nada; dividir é que perde.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* mediaDeDois imprime a media de 7 e 8 e a media de 10 e 3, com casas\n   decimais. Sem o cast a divisao corta e sai 7.000000: a conta tem de ser\n   real, com um cast de double antes da barra.\n   O programa de fora chama mediaDeDois() pelo nome. */\nvoid mediaDeDois(void) {\n    /* 1) imprima \"a media de 7 e 8 e %f\": some 7 e 8 e divida por 2,\n          com a conta em real */\n\n    /* 2) imprima \"a media de 10 e 3 e %f\", do mesmo jeito */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio media-de-dois — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: a comparacao e por TEXTO (o %f do aluno, seis casas), nunca por\n   igualdade de double. A captura acontece dentro do teste: freopen manda o\n   stdout para um arquivo temporario proprio do cenario, fflush descarrega e o\n   arquivo e lido de volta. O main e o relatorio sao do harness.\n   As duas medias caem em .5 de proposito: sem o cast a divisao corta e as\n   duas linhas saem erradas — o cenario nao passa com a conta inteira. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid mediaDeDois(void);\n\nSM_TEST(as_duas_medias_com_a_metade) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    mediaDeDois();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a media de 7 e 8\", linha, \"a media de 7 e 8 e 7.500000\\n\",\n              \"com a conta em real, 15 dividido por 2 da 7.5 — sem o cast sairia 7.000000\");\n    fgets(linha, 80, f);\n    checa_str(\"a media de 10 e 3\", linha, \"a media de 10 e 3 e 6.500000\\n\",\n              \"com a conta em real, 13 dividido por 2 da 6.5 — sem o cast sairia 6.000000\");\n    fclose(f);\n}\n\nSM_TEST(a_saida_acaba_na_segunda_media) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    mediaDeDois();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda media: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid mediaDeDois(void) {\n    printf(\"a media de 7 e 8 e %f\\n\", (double)(7 + 8) / 2);\n    printf(\"a media de 10 e 3 e %f\\n\", (double)(10 + 3) / 2);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_duas_medias_com_a_metade",
+      "teste": "as_duas_medias_com_a_metade",
+      "descricao": "a funcao mediaDeDois imprime a media de 7 e 8 (7.500000) e a media de 10 e 3 (6.500000) com %f: as duas so batem se a divisao for feita em real, com cast de double antes da barra"
+    },
+    {
+      "id": "a_saida_acaba_na_segunda_media",
+      "teste": "a_saida_acaba_na_segunda_media",
+      "descricao": "a saida termina na segunda media: uma terceira linha impressa reprova o desafio (o cenario le uma linha a mais e a compara com o sentinel)"
+    }
+  ]
+}

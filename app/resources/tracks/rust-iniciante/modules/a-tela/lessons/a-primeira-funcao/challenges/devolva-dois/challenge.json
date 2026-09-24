@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolva-dois",
+  "title": "Devolva dois",
+  "concept": "funcao",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# Devolva dois\n\nEscreva a função `dois`: ela não recebe nada e entrega o número `2`.\n\nA assinatura já está pronta. Apague o `todo!()` e escreva no lugar dele o valor que a função deve entregar — sem ponto e vírgula no fim, porque a última expressão do corpo é o que volta.",
+  "starterCode": "pub fn dois() -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn dois() -> i32 {\n    2\n}\n",
+  "testsCode": "use desafio::dois;\n\n#[test]\nfn testa_dois_devolve_dois() {\n    assert_eq!(dois(), 2);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função dois deve devolver 2.",
+      "teste": "testa_dois_devolve_dois"
+    }
+  ],
+  "expectedTestCount": 1
+}

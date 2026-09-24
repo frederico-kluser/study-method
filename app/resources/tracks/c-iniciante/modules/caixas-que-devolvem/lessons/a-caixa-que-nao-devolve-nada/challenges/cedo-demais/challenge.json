@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "cedo-demais",
+  "title": "Cedo demais",
+  "concept": "a_caixa_sem_valor",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Cedo demais\n\nEscreva a caixa `void cedoDemais(int saldo)`. O nome é o recado: ela pode encerrar **cedo demais** para imprimir.\n\nSe o saldo for **zero ou negativo**, ela sai na hora com um `return;` sozinho e não imprime nada.\n\nSe o saldo for **positivo**, ela imprime duas linhas — para `saldo = 5`, exatamente estas:\n\n```text\nsaldo: 5\ncompra liberada\n```\n\nA primeira linha carrega o número recebido (um `%d`); a segunda é sempre igual. Cada `printf` termina com `\\n`, e não há linha nenhuma depois da segunda.\n\nEscreva a **guarda** no alto da caixa: o `if` do caso ruim com `return;` dentro, e o resto do trabalho embaixo, sem `else`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a caixa:\n\n   void cedoDemais(int saldo)\n\n   - saldo zero ou negativo -> sai na hora com `return;` e nao imprime nada\n   - saldo positivo         -> imprime \"saldo: N\" e depois \"compra liberada\"\n\n   o teste chama a caixa pelo nome: o nome e o contrato. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio cedo-demais — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A caixa do aluno e `void`: nao ha valor a conferir, so a SAIDA. A captura\n   acontece DENTRO do teste (freopen + fflush, nunca fclose(stdout): cada\n   cenario abre a sua propria captura e o stdout precisa ficar aberto). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid cedoDemais(int saldo);\n\n/* cenario 1 — saldo positivo: as duas linhas, e a prova do FIM da saida */\nSM_TEST(saldo_positivo_imprime_as_duas_linhas) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    cedoDemais(5);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do saldo\", linha, \"saldo: 5\\n\",\n              \"a primeira linha traz o saldo recebido\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha da liberacao\", linha, \"compra liberada\\n\",\n              \"a segunda linha e sempre a mesma\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\n/* cenario 2 — outro saldo positivo: a primeira linha acompanha o valor */\nSM_TEST(outro_saldo_muda_a_primeira_linha) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    cedoDemais(12);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do saldo 12\", linha, \"saldo: 12\\n\",\n              \"o numero da linha vem do parametro, nao e um texto fixo\");\n    fgets(linha, 80, f);\n    checa_str(\"a liberacao de novo\", linha, \"compra liberada\\n\",\n              \"a segunda linha nao depende do saldo\");\n    fclose(f);\n}\n\n/* cenario 3 — saldo negativo: a guarda sai antes e nada e impresso */\nSM_TEST(saldo_negativo_nao_imprime_nada) {\n    int negativo = 0 - 5;   /* um saldo negativo: cinco abaixo de zero */\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    cedoDemais(negativo);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"saldo negativo nao imprime\", linha, \"(nada impresso)\",\n              \"a guarda encerra a caixa antes dos printf\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid cedoDemais(int saldo) {\n    if (saldo <= 0) {\n        return;\n    }\n    printf(\"saldo: %d\\n\", saldo);\n    printf(\"compra liberada\\n\");\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "saldo_positivo_imprime_as_duas_linhas",
+      "teste": "saldo_positivo_imprime_as_duas_linhas",
+      "descricao": "com saldo 5 a caixa imprime \"saldo: 5\" e \"compra liberada\", nesta ordem, e a saida termina ali (um fgets a mais tem de cair no sentinel)"
+    },
+    {
+      "id": "outro_saldo_muda_a_primeira_linha",
+      "teste": "outro_saldo_muda_a_primeira_linha",
+      "descricao": "com saldo 12 a primeira linha vira \"saldo: 12\" — o numero sai do parametro e nao de um texto fixo — e a segunda linha continua \"compra liberada\""
+    },
+    {
+      "id": "saldo_negativo_nao_imprime_nada",
+      "teste": "saldo_negativo_nao_imprime_nada",
+      "descricao": "com saldo -5 a guarda encerra a caixa com return; antes dos printf: a captura fica vazia e o buffer continua com o sentinel"
+    }
+  ]
+}

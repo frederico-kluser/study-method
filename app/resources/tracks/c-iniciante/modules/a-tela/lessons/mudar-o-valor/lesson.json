@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "mudar-o-valor",
   "title": "Mudar o valor",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Depois da declaração, nome = valor; troca o que está guardado — e o valor antigo é perdido nesse instante.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:assign:=",
+  "concepts": [
+    "mudar_o_valor"
+  ],
   "prerequisites": [
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "op:assign:=",
+      "node:BinaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:assign:="
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a casa com nome deixa de ser fixa: o valor guardado pode ser trocado durante o programa, e o que estava lá antes deixa de existir",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-mesmo-nome-outro-valor",
+      "title": "O mesmo nome, outro valor",
+      "markdown": "O `int` da declaração aparece UMA vez: ele cria o nome. Depois disso, para trocar o valor você escreve só o nome, o `=` e o valor novo:\n\n```c\nint idade = 20;\nprintf(\"agora: %d\\n\", idade);\nidade = 31;\nprintf(\"depois: %d\\n\", idade);\n```\n\n```text\nagora: 20\ndepois: 31\n```\n\nA terceira linha não cria nome novo: ela manda a variável que já existe passar a guardar 31. Esse gesto de pôr um valor dentro de um nome que já existe chama-se **atribuição**. Repetir o `int` seria criar `idade` outra vez, e o compilador reclama."
+    },
+    {
+      "id": "o-antigo-se-perde",
+      "title": "O valor antigo se perde",
+      "markdown": "A caixa tem lugar para **um** valor. Quando o valor novo entra, o antigo é perdido ali mesmo — não existe fila, não existe histórico:\n\n```c\nint senha = 1234;\nsenha = 9999;\nprintf(\"senha: %d\\n\", senha);\n```\n\n```text\nsenha: 9999\n```\n\nO 1234 existiu entre a primeira e a segunda linha, e a atribuição o apagou. Se o programa ainda precisar do valor antigo depois da troca, ele tem de estar guardado em OUTRA variável antes — é o truque do desafio desta aula."
+    },
+    {
+      "id": "o-igual-tem-direcao",
+      "title": "O igual tem direção",
+      "markdown": "O `=` do C não é o igual da matemática: ele tem direção. Ele lê o valor da **direita** e o guarda no nome da **esquerda**:\n\n```c\nint copia = 5;\nint original = 8;\ncopia = original;\nint reserva = original;\nprintf(\"copia: %d reserva: %d\\n\", copia, reserva);\n```\n\n```text\ncopia: 8 reserva: 8\n```\n\nA terceira linha copia o valor de `original` para uma variável que já existia. A quarta mostra a outra forma: uma variável pode NASCER com o valor de outra — à direita do `=` cabe um nome, não só um número. `original` continua 8 nas duas."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-valor-antigo-e-perdido",
+      "statement": "O valor antigo é perdido no momento da atribuição.",
+      "question": "Depois de `int senha = 1234;` e `senha = 9999;`, o que `senha` guarda?",
+      "options": [
+        "1234: o primeiro valor é o que fica valendo.",
+        "9999: o 1234 foi perdido no momento da atribuição.",
+        "Os dois, 1234 e 9999, na ordem em que entraram.",
+        "Nada: duas ordens sobre o mesmo nome cancelam o valor."
+      ],
+      "answerIndex": 1,
+      "feedback": "O nome guarda um valor só. O 9999 entrou no lugar do 1234, e o 1234 deixou de existir — para não perdê-lo, ele teria de estar em outro nome antes.",
+      "sectionId": "o-antigo-se-perde",
+      "optionRationales": [
+        "O primeiro valor vale só até a próxima atribuição; depois dela, não.",
+        "A atribuição substitui: entra o 9999 e o 1234 se perde ali mesmo.",
+        "Não existe fila nem histórico dentro do nome: cabe um valor por vez.",
+        "As ordens não se cancelam: elas acontecem em sequência, e a última é a que fica."
+      ]
+    },
+    {
+      "id": "o-igual-copia-da-direita",
+      "statement": "A atribuição lê o valor da direita e o guarda no nome da esquerda.",
+      "question": "Com `copia` valendo 5 e `original` valendo 8, o que `copia = original;` deixa nos dois nomes?",
+      "options": [
+        "`copia` passa a 8 e `original` continua 8.",
+        "`copia` continua 5 e `original` passa a 5.",
+        "Os dois passam a valer 5.",
+        "Os dois trocam: `copia` fica 8 e `original` fica 5."
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor viaja da direita para a esquerda, e só o nome da esquerda muda. Trocar dois valores de lugar exige um terceiro nome — é o desafio desta aula.",
+      "sectionId": "o-igual-tem-direcao",
+      "optionRationales": [
+        "O valor de `original` é copiado para `copia`; quem está à direita não muda.",
+        "Quem muda é sempre o nome da esquerda: `copia`.",
+        "O 5 era o valor antigo de `copia` e foi perdido na atribuição.",
+        "Uma atribuição não troca dois valores: ela copia um sentido só, direita para esquerda."
+      ]
+    },
+    {
+      "id": "o-int-so-na-declaracao",
+      "statement": "O `int` aparece só na declaração; para mudar o valor basta `nome = valor;`.",
+      "question": "Você já escreveu `int idade = 20;`. Qual linha muda a idade para 31?",
+      "options": [
+        "`int idade = 31;`",
+        "`idade == 31;`",
+        "`idade = 31;`",
+        "`31 = idade;`"
+      ],
+      "answerIndex": 2,
+      "feedback": "O nome já existe: basta `idade = 31;`. Repetir o `int` tenta criar o nome outra vez, e o `==` pergunta se dois valores são iguais (aula mais à frente), não guarda nada.",
+      "sectionId": "o-mesmo-nome-outro-valor",
+      "optionRationales": [
+        "Isso tenta declarar `idade` de novo no mesmo lugar, e o compilador acusa a repetição.",
+        "O `==` compara dois valores; ele não guarda nada em nome nenhum.",
+        "O nome já existe, então a ordem é só nome, `=` e o valor novo.",
+        "À esquerda do `=` vai o nome que recebe; um número não pode receber valor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Assignment operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "A página oficial do = de C: o valor da direita é guardado no nome da esquerda."
+    },
+    {
+      "title": "Declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/declarations",
+      "description": "A página oficial da declaração: por que o tipo aparece uma vez só, quando o nome nasce."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.16 define a atribuição simples e o valor que ela guarda."
+    }
+  ],
+  "challenges": [
+    "trocar-os-valores"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

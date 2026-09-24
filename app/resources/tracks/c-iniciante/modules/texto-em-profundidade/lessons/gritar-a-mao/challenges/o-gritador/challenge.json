@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-gritador",
+  "title": "O gritador",
+  "concept": "gritar_a_mao",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O gritador\n\nA função `oGritador` lê **uma palavra** digitada e imprime a mesma palavra em maiúsculas — sem criar nenhuma caixa nova: a troca acontece dentro da própria caixa que guardou a palavra.\n\nA palavra tem só letras minúsculas de `a` a `z`, sem acento (acento em C é assunto de outro curso).\n\nDigitando `ana`:\n\n```text\nANA\n```\n\nDigitando `bola`:\n\n```text\nBOLA\n```\n\nPassos:\n\n1. percorra a palavra gaveta por gaveta com um `for`, até a gaveta guardar o `\\0`;\n2. a cada volta, troque a letra da gaveta pela maiúscula dela — a maiúscula é a minúscula **menos 32**;\n3. depois do laço, imprima a palavra inteira com `%s` e `\\n` no fim — só ela, mais nada.\n\nA caixa e a leitura da palavra já vêm prontas no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* oGritador le uma palavra digitada (letras de a a z, minusculas, sem\n   acento) e imprime a mesma palavra em maiusculas, trocando as letras\n   dentro da propria caixa. */\nvoid oGritador(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    /* 1) percorra a palavra gaveta por gaveta com um for,\n          ate a gaveta guardar o \\0 */\n\n    /* 2) troque a letra da gaveta pela maiuscula dela:\n          a maiuscula e a minuscula menos 32 */\n\n    /* 3) imprima a palavra inteira: um printf com %s e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-gritador — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria e o freopen troca o stdin por esse arquivo; a captura do\n   stdout acontece dentro do proprio cenario (freopen + fflush, sem\n   fclose no stdout). Duas palavras de letras diferentes: a saida tem de\n   vir da troca gaveta por gaveta, nunca de um literal fixo no codigo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oGritador(void);\n\nSM_TEST(a_palavra_ana_gritada) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"ana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oGritador();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"ana gritado\", linha, \"ANA\\n\",\n              \"cada uma das tres letras perdeu 32 e virou maiuscula\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e so a palavra gritada: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_palavra_bola_gritada) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"bola\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oGritador();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"bola gritado\", linha, \"BOLA\\n\",\n              \"outra palavra, outro tamanho: o laco percorre as quatro gavetas\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid oGritador(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    for (int i = 0; palavra[i] != '\\0'; i++) {\n        palavra[i] = palavra[i] - 32;\n    }\n    printf(\"%s\\n\", palavra);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_palavra_ana_gritada",
+      "teste": "a_palavra_ana_gritada",
+      "descricao": "com ana digitado no stdin, a funcao oGritador troca cada letra pela maiuscula dela dentro da propria caixa e imprime ANA — e nada depois disso"
+    },
+    {
+      "id": "a_palavra_bola_gritada",
+      "teste": "a_palavra_bola_gritada",
+      "descricao": "com bola digitado no stdin, a mesma funcao imprime BOLA: a prova de que a saida vem do percurso gaveta por gaveta e nao de um texto fixo no codigo"
+    }
+  ]
+}

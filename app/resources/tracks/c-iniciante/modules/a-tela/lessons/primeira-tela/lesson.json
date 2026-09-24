@@ -18,6 +18,16 @@
     ],
     "receptive": [
       "node:IncludeDirective"
+    ],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:printf"
+      },
+      {
+        "chave": "node:StringLiteral",
+        "de": "api:printf"
+      }
     ]
   },
   "introducesTerms": [],

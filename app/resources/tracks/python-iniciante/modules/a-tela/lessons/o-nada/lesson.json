@@ -71,6 +71,11 @@
       "title": "None — a constante do nada",
       "url": "https://docs.python.org/3/library/constants.html#None",
       "description": "A página oficial do valor que representa a ausência de valor."
+    },
+    {
+      "title": "The Null Object — o None nos tipos embutidos",
+      "url": "https://docs.python.org/3/library/stdtypes.html#the-null-object",
+      "description": "A entrada do tipo do None: existe exatamente um valor desses, e é ele que aparece quando não há valor nenhum."
     }
   ],
   "challenges": [

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-copiador",
+  "title": "O copiador",
+  "concept": "copiar_a_mao",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O copiador\n\nA função `oCopiador` lê **uma palavra** (letras sem acento, até 49) e faz a cópia dela à mão, gaveta por gaveta.\n\nDuas coisas do enunciado são de propósito: a caixa `copia` chega **suja**, cheia de `?`, como qualquer caixa da vida real; e, no fim, a primeira gaveta da palavra original vira `-`, para provar que a cópia virou um texto **independente**.\n\nDigitando `banana`:\n\n```text\n-anana\nbanana\n```\n\nDigitando `computador`:\n\n```text\n-omputador\ncomputador\n```\n\nPassos:\n\n1. copie `palavra` para `copia`, gaveta por gaveta, **inclusive a placa `\\0`** — sem ela a sobra de `?` aparece na tela;\n2. troque a primeira gaveta de `palavra` por `-`;\n3. imprima a palavra trocada e, na linha seguinte, a cópia.\n\nA leitura da palavra e as duas caixas já vêm prontas no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* oCopiador le uma palavra digitada e copia essa palavra, gaveta por gaveta,\n   para a caixa copia — que chega SUJA de proposito, cheia de ?. Depois troca\n   a primeira gaveta da palavra original por '-' e imprime as duas linhas. */\nvoid oCopiador(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char copia[50] = \"?????????????????????\";\n    /* 1) copie palavra para copia, gaveta por gaveta, INCLUSIVE a placa \\0 */\n\n    /* 2) troque a primeira gaveta de palavra por '-' */\n\n    /* 3) imprima a palavra trocada e, na linha de baixo, a copia */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-copiador — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do stdout\n   acontece dentro do proprio cenario (freopen + fflush, sem fclose no stdout).\n   A segunda linha de cada cenario e a copia INTACTA depois de a primeira\n   gaveta do original virar '-': imprimir a palavra lida duas vezes reprova,\n   e copia sem a placa deixa a sobra de ? aparecer. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oCopiador(void);\n\nSM_TEST(a_copia_de_banana) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"banana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oCopiador();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o original com a gaveta trocada\", linha, \"-anana\\n\",\n              \"a primeira gaveta da palavra lida virou um traco\");\n    fgets(linha, 80, f);\n    checa_str(\"a copia de banana\", linha, \"banana\\n\",\n              \"a copia guardou a palavra inteira e a placa fechou o texto: nenhuma sobra de ? aparece\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_copia_de_computador) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"computador\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oCopiador();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o original de dez letras trocado\", linha, \"-omputador\\n\",\n              \"a troca mexe so na gaveta 0: as outras nove letras seguem iguais\");\n    fgets(linha, 80, f);\n    checa_str(\"a copia de computador\", linha, \"computador\\n\",\n              \"a copia de dez letras prova que o laco vai ate a placa, qualquer que seja o tamanho\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid oCopiador(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char copia[50] = \"?????????????????????\";\n    int i = 0;\n    for (i = 0; palavra[i] != '\\0'; i++) {\n        copia[i] = palavra[i];\n    }\n    copia[i] = '\\0';\n    palavra[0] = '-';\n    printf(\"%s\\n\", palavra);\n    printf(\"%s\\n\", copia);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_copia_de_banana",
+      "teste": "a_copia_de_banana",
+      "descricao": "com banana digitado no stdin, a funcao oCopiador copia a palavra gaveta por gaveta para a caixa suja, escreve a placa \\0 no fim, troca a gaveta 0 do original por '-' e imprime -anana e banana, sem linha extra"
+    },
+    {
+      "id": "a_copia_de_computador",
+      "teste": "a_copia_de_computador",
+      "descricao": "com computador digitado no stdin, a mesma funcao imprime -omputador e computador — a prova de que o laco copia qualquer tamanho e de que a copia sobrevive a mudanca no original"
+    }
+  ]
+}

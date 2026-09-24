@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "triangulo-de-hashtags",
+  "title": "Triângulo de hashtags",
+  "concept": "o_triangulo",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Triângulo de hashtags\n\nA função `trianguloDeHashtags` lê um número inteiro `N` digitado pela pessoa e desenha um triângulo de `N` linhas: a linha 1 tem **uma** marca `#`, a linha 2 tem **duas**, e assim até a linha `N`.\n\nO laço de fora já está no arquivo: ele conta as linhas e imprime a quebra de cada uma. Falta o laço DE DENTRO — e a condição dele tem de olhar para o contador do laço de fora.\n\nCom `N` igual a 4, a saída é exatamente:\n\n```text\n#\n##\n###\n####\n```\n\nCom `N` igual a 1, a saída é uma linha só:\n\n```text\n#\n```\n\nDica: o `#` sai com `printf(\"#\")`, sem `\\n` — a quebra de linha é trabalho do laço de fora.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* trianguloDeHashtags le um inteiro N e desenha um triangulo de N linhas:\n   a linha 1 tem 1 marca #, a linha 2 tem 2, e assim por diante.\n   O laco de fora ja esta pronto: ele conta as linhas e imprime a quebra.\n   Falta o laco DE DENTRO, cuja condicao usa o contador i do laco de fora. */\nvoid trianguloDeHashtags(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    for (int i = 1; i <= n; i++) {\n        /* escreva aqui o laco de dentro: i vezes o caractere # */\n\n        printf(\"\\n\");\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio triangulo-de-hashtags — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4).\n   Os dois N sao diferentes de proposito, e as linhas do cenario de N=4 tem\n   tamanhos diferentes entre si: um desenho escrito a mao no codigo nao\n   passa nos dois cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid trianguloDeHashtags(void);\n\nSM_TEST(o_triangulo_de_4_linhas) {\n    /* o que a pessoa digita: 4 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"4\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    trianguloDeHashtags();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"linha 1 de N=4\", linha, \"#\\n\",\n              \"a linha 1 do triangulo tem 1 marca(s)\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 2 de N=4\", linha, \"##\\n\",\n              \"a linha 2 do triangulo tem 2 marca(s)\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 3 de N=4\", linha, \"###\\n\",\n              \"a linha 3 do triangulo tem 3 marca(s)\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 4 de N=4\", linha, \"####\\n\",\n              \"a linha 4 do triangulo tem 4 marca(s)\");\n\n    /* a saida TERMINA na linha 4 — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em N=4\", fim, \"(nada impresso)\",\n              \"com N=4 o triangulo acaba na quarta linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_triangulo_de_1_linha) {\n    /* o que a pessoa digita: 1 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_2.tmp */\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    trianguloDeHashtags();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"linha 1 de N=1\", linha, \"#\\n\",\n              \"a linha 1 do triangulo tem 1 marca(s)\");\n\n    /* a saida TERMINA na linha 1 — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em N=1\", fim, \"(nada impresso)\",\n              \"com N=1 o triangulo e uma linha so, com uma marca\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid trianguloDeHashtags(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= i; j++) {\n            printf(\"#\");\n        }\n\n        printf(\"\\n\");\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_triangulo_de_4_linhas",
+      "teste": "o_triangulo_de_4_linhas",
+      "descricao": "com 4 digitado no stdin, trianguloDeHashtags desenha quatro linhas de 1, 2, 3 e 4 marcas — cada linha com um tamanho diferente, o que exige a condicao do laco de dentro olhar para o contador de fora — e nao imprime nenhuma linha extra"
+    },
+    {
+      "id": "o_triangulo_de_1_linha",
+      "teste": "o_triangulo_de_1_linha",
+      "descricao": "com 1 digitado no stdin, a mesma funcao desenha uma linha so com uma marca — o desenho encolhe com o N, o que prova que ele vem dos dois lacos"
+    }
+  ]
+}

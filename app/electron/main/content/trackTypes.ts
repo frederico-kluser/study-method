@@ -37,6 +37,12 @@
  *     cada afirmação — a explicação do distrator que o aluno escolheu, o
  *     material do quiz ADAPTATIVO (errou → a IA explica AQUELE erro). AUSENTE
  *     ou `[]` é válido; presente e não vazio, tem o comprimento de `options`.
+ *   - cadeia / nivel / cursoAnterior (onda cadeia-em-codigo): a CADEIA DE
+ *     CURSOS em `track.json` — ver `TrackChainId` e §"A cadeia" abaixo. As
+ *     três trilhas do disco em 2026-09-22 (`python-iniciante`,
+ *     `rust-iniciante`, `c-iniciante`) NÃO declaravam nenhuma delas e
+ *     continuam carregando sem declarar: AUSÊNCIA DAS TRÊS = trilha fora de
+ *     cadeia (comprovado em tests/engineCadeia.test.ts, caso (e)).
  */
 
 import {
@@ -286,6 +292,62 @@ export interface TrackModuleSource {
   challenge?: string;
 }
 
+// ---------------------------------------------------------------------------
+// A CADEIA DE CURSOS — os três campos aditivos (onda cadeia-em-codigo)
+// ---------------------------------------------------------------------------
+//
+// PROBLEMA MEDIDO (2026-09-22): a cadeia iniciante → intermediário → avançado →
+// especialista existia SÓ EM DOCUMENTO. Nenhum dos três `track.json` do disco
+// apontava para curso anterior ou posterior (23 linhas cada, e o único campo de
+// fronteira era `entryCriteria`, prosa livre que nenhum gate lê); a descoberta
+// de trilhas é `readdir` + `sort()` alfabético (`trackLoader.ts:310-323`), que
+// põe `c-iniciante` antes de `python-iniciante` por acidente de alfabeto; e
+// `deriveTrackBudget` (`budget.ts:216`) não tem parâmetro de predecessor.
+// Consequência: a engine NÃO SABIA DIZER se uma construção que falta numa aula
+// já foi ensinada no curso anterior — e é essa a diferença entre "reintroduzir
+// na porta-de-entrada" e "quebrar a aula em mais aulas".
+//
+// POR QUE TRÊS CAMPOS E NÃO UM:
+//
+//   cadeia + nivel  dão a ORDEM. Com eles um validador detecta BURACO (nível 3
+//                   cujo predecessor é nível 1) e NÍVEL DUPLICADO (dois cursos
+//                   disputando o mesmo degrau) — coisas que uma aresta solta
+//                   não revela.
+//   cursoAnterior   dá a ARESTA EXPLÍCITA. É o que permite uma cadeia
+//                   NÃO-LINEAR no futuro (dois caminhos até o mesmo curso) sem
+//                   reinterpretar número: a aresta é declarada, não inferida de
+//                   `nivel - 1`. Inferir do número obrigaria a cadeia a ser uma
+//                   fila e a renumerar tudo ao inserir um curso no meio.
+//
+// Um campo só sempre perde uma das duas coisas: só `nivel` não diz QUEM é o
+// predecessor quando há empate; só `cursoAnterior` não detecta buraco nem
+// duplicidade, porque não existe escala.
+//
+// O leitor destes campos é `engine/graph/cadeia.ts` (`cadeiaAnteriorDe`,
+// `ensinadoAntesNaCadeia`). Contratos: `skills/trilha-author/references/
+// interligacao.md` §1-§3, `docs/17-trilha-python.md` §1, `docs/20-trilha-rust.md`
+// §1-§3 e `docs/20-trilha-c.md` §1-§2.
+
+/**
+ * Os ids de cadeia que os contratos DESENHARAM: três cadeias de 4 cursos cada
+ * (`docs/17-trilha-python.md` §1, `docs/20-trilha-rust.md` §1,
+ * `docs/20-trilha-c.md` §1). FECHADO de propósito: um id que nenhum contrato
+ * desenhou criaria uma cadeia de um curso só, e a comparação "mesma cadeia"
+ * (`cadeia.ts`) nunca disparava — o curso ficaria órfão EM SILÊNCIO. Cadeia
+ * nova = uma linha aqui + o doc da cadeia, na mesma mudança.
+ */
+export const TRACK_CHAIN_IDS = ['python', 'rust', 'c'] as const;
+
+/** Id da cadeia de cursos a que a trilha pertence. */
+export type TrackChainId = (typeof TRACK_CHAIN_IDS)[number];
+
+/**
+ * O maior nível de uma cadeia: 1 iniciante, 2 intermediário, 3 avançado,
+ * 4 especialista — as quatro fronteiras que os três contratos declaram
+ * (`docs/17-trilha-python.md` §1: iniciante/intermediario/avancado/especialista).
+ */
+export const TRACK_CHAIN_MAX_LEVEL = 4;
+
 export interface TrackSource {
   schemaVersion: number;
   slug: string;
@@ -360,6 +422,38 @@ export interface TrackSource {
    * próprio validador (nunca declarado no JSON).
    */
   entryCriteria?: string[];
+  /**
+   * ADITIVO (onda cadeia-em-codigo): A CADEIA a que este curso pertence — o id
+   * do grupo cujos cursos se sucedem (`python`, `rust`, `c`). Ver o bloco "A
+   * CADEIA DE CURSOS" acima para o motivo de serem TRÊS campos.
+   *
+   * OPCIONAL: trilha que não declara nenhum dos três está FORA de cadeia e
+   * carrega igual (é o estado das 3 trilhas do disco em 2026-09-22). Declarar
+   * UM dos três e não os outros é ERRO de validação — meia declaração não
+   * define ordem nem aresta, e o leitor teria de adivinhar qual metade valia.
+   */
+  cadeia?: TrackChainId;
+  /**
+   * ADITIVO (onda cadeia-em-codigo): o DEGRAU deste curso na cadeia —
+   * 1 iniciante, 2 intermediário, 3 avançado, 4 especialista
+   * (`TRACK_CHAIN_MAX_LEVEL`). É a ESCALA que permite detectar buraco e nível
+   * duplicado; a aresta em si é `cursoAnterior`.
+   *
+   * Coerência validada aqui mesmo, porque é local e barata: `nivel === 1`
+   * exige `cursoAnterior: null` (o primeiro da cadeia não tem predecessor) e
+   * `nivel > 1` exige `cursoAnterior` preenchido (a cadeia não começa no
+   * degrau 3 — isso é buraco, não trilha nova).
+   */
+  nivel?: number;
+  /**
+   * ADITIVO (onda cadeia-em-codigo): o slug do PREDECESSOR DIRETO, ou `null` no
+   * primeiro curso da cadeia. É a ARESTA EXPLÍCITA do grafo de cursos.
+   *
+   * `null` é significativo e NÃO é o mesmo que ausente: `null` afirma "este é o
+   * primeiro da cadeia" (é o valor dos 3 cursos do disco, todos de nível 1);
+   * ausente afirma "esta trilha não está em cadeia nenhuma".
+   */
+  cursoAnterior?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -708,6 +802,81 @@ export function validateTrackSource(raw: unknown, file: string): TrackValidation
         }
       });
     }
+  }
+  issues.push(...validateTrackChain(t, file));
+  return issues;
+}
+
+/**
+ * ADITIVO (onda cadeia-em-codigo): valida os três campos da CADEIA
+ * (`cadeia`, `nivel`, `cursoAnterior`) — ver o bloco "A CADEIA DE CURSOS".
+ *
+ * ADITIVIDADE PRIMEIRO: as três ausentes = trilha fora de cadeia, ZERO issue
+ * (é o estado de `python-iniciante`, `rust-iniciante` e `c-iniciante` antes
+ * desta onda, e o que o caso (e) de tests/engineCadeia.test.ts prova). Só
+ * quando ALGUMA aparece o grupo passa a ser exigido inteiro.
+ *
+ * As checagens aqui são só as LOCAIS (o que se decide lendo UM `track.json`).
+ * O que exige ler o disco — predecessor que não existe, predecessor de outra
+ * cadeia, ciclo — é de `engine/graph/cadeia.ts`, que falha fechado.
+ */
+export function validateTrackChain(
+  t: Partial<Pick<TrackSource, 'slug' | 'cadeia' | 'nivel' | 'cursoAnterior'>>,
+  file: string,
+): TrackValidationIssue[] {
+  const issues: TrackValidationIssue[] = [];
+  const declarados = (['cadeia', 'nivel', 'cursoAnterior'] as const).filter((c) => t[c] !== undefined);
+  if (declarados.length === 0) return issues;
+  if (declarados.length < 3) {
+    issues.push({
+      file,
+      message:
+        `cadeia incompleta: declarou ${declarados.map((c) => `'${c}'`).join(', ')} e faltam ` +
+        `${(['cadeia', 'nivel', 'cursoAnterior'] as const).filter((c) => t[c] === undefined).map((c) => `'${c}'`).join(', ')} ` +
+        `— os três campos da cadeia vêm juntos ou nenhum vem (meia declaração não define ordem nem aresta)`,
+    });
+  }
+  if (t.cadeia !== undefined && !(TRACK_CHAIN_IDS as readonly string[]).includes(t.cadeia)) {
+    issues.push({
+      file,
+      message: `cadeia inválida: ${JSON.stringify(t.cadeia)} (somente ${TRACK_CHAIN_IDS.map((c) => `'${c}'`).join(', ')})`,
+    });
+  }
+  if (t.nivel !== undefined) {
+    if (!Number.isInteger(t.nivel) || (t.nivel as number) < 1 || (t.nivel as number) > TRACK_CHAIN_MAX_LEVEL) {
+      issues.push({
+        file,
+        message:
+          `nivel inválido: ${JSON.stringify(t.nivel)} (esperado inteiro 1..${TRACK_CHAIN_MAX_LEVEL} — ` +
+          `1 iniciante, 2 intermediário, 3 avançado, 4 especialista)`,
+      });
+    }
+  }
+  if (t.cursoAnterior !== undefined && t.cursoAnterior !== null) {
+    if (typeof t.cursoAnterior !== 'string' || !SLUG_RE.test(t.cursoAnterior)) {
+      issues.push({
+        file,
+        message: `cursoAnterior inválido: ${JSON.stringify(t.cursoAnterior)} (esperado slug kebab-case ou null)`,
+      });
+    } else if (t.cursoAnterior === t.slug) {
+      issues.push({ file, message: `cursoAnterior aponta para a própria trilha (${JSON.stringify(t.slug)}) — ciclo de tamanho 1` });
+    }
+  }
+  // COERÊNCIA nivel × cursoAnterior: é o par que detecta BURACO sem sair do
+  // arquivo. `nivel: 1` com predecessor mente sobre ser o primeiro da cadeia;
+  // `nivel: 3` sem predecessor afirma que a cadeia começa no degrau 3, que é
+  // exatamente o buraco que os três campos existem para revelar.
+  if (t.nivel === 1 && t.cursoAnterior !== undefined && t.cursoAnterior !== null) {
+    issues.push({
+      file,
+      message: `nivel 1 com cursoAnterior ${JSON.stringify(t.cursoAnterior)} — o primeiro curso da cadeia não tem predecessor (use null)`,
+    });
+  }
+  if (typeof t.nivel === 'number' && t.nivel > 1 && t.cursoAnterior === null) {
+    issues.push({
+      file,
+      message: `nivel ${t.nivel} com cursoAnterior null — a cadeia não começa no degrau ${t.nivel} (buraco: declare o predecessor direto)`,
+    });
   }
   return issues;
 }

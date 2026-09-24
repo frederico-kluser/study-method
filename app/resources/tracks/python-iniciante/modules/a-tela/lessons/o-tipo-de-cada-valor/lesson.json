@@ -75,6 +75,11 @@
       "title": "type() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#type",
       "description": "A página oficial da ordem que responde de que tipo é um valor."
+    },
+    {
+      "title": "Objects, values and types — o modelo de dados",
+      "url": "https://docs.python.org/3/reference/datamodel.html#objects-values-and-types",
+      "description": "A regra oficial de que todo valor do Python tem um tipo — é esse tipo que o type mostra na tela."
     }
   ],
   "challenges": [

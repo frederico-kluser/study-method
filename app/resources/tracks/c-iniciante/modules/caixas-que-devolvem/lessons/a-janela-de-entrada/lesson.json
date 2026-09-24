@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "a-janela-de-entrada",
   "title": "A janela de entrada",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A mesma função, agora com uma janela de entrada: o parâmetro recebe uma cópia do valor que quem chamou colocou entre os parênteses.",
   "difficulty": 1,
-  "role": "regular",
-  "concepts": [],
+  "role": "consolidation",
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "o_parametro"
+  ],
   "prerequisites": [
     "chamar-a-caixa"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa deixa de ser fechada: na hora da chamada nasce dentro dela um nome novo (o parâmetro) já preenchido com uma CÓPIA do valor de quem chamou, e a mesma caixa passa a servir para valores diferentes",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-janela-na-assinatura",
+      "title": "Uma janela no lugar do (void)",
+      "markdown": "As suas caixas até aqui não recebiam nada: `(void)` entre os parênteses. No lugar do `(void)` pode ir uma **janela** por onde um valor entra — um tipo e um nome:\n\n```c\nvoid dobra(int n) {\n    printf(\"o dobro e %d\\n\", n * 2);\n}\n```\n\n`int n` é o **parâmetro**. Dentro do corpo, `n` é um nome com valor, como qualquer outro; a diferença é de onde o valor vem — não do seu código, mas de quem chamou."
+    },
+    {
+      "id": "quem-chama-preenche-a-janela",
+      "title": "Quem chama preenche a janela",
+      "markdown": "Na chamada, o valor entre parênteses é o **argumento**: ele entra pela janela e vira o valor do parâmetro naquela execução.\n\n```c\nvoid dobra(int n) {\n    printf(\"o dobro e %d\\n\", n * 2);\n}\n\nvoid tela(void) {\n    dobra(2);\n    dobra(7);\n}\n```\n\n```text\no dobro e 4\no dobro e 14\n```\n\nUma caixa só, dois valores, duas respostas. Sem a janela você precisaria de uma caixa para cada número."
+    },
+    {
+      "id": "o-que-entra-e-uma-copia",
+      "title": "O que entra é uma cópia",
+      "markdown": "O que entra pela janela é uma **cópia** do valor. Mexer no parâmetro dentro da caixa não muda quem chamou:\n\n```c\nvoid dobra(int n) {\n    n = n * 2;\n    printf(\"dentro: %d\\n\", n);\n}\n\nvoid tela(void) {\n    int valor = 5;\n    dobra(valor);\n    printf(\"fora: %d\\n\", valor);\n}\n```\n\n```text\ndentro: 10\nfora: 5\n```\n\nO `n` recebeu uma cópia do 5 e virou 10; o `valor` de fora continua 5. É assim que o C funciona por padrão."
+    },
+    {
+      "id": "o-nome-da-janela-e-seu",
+      "title": "O nome da janela é da caixa",
+      "markdown": "O nome do parâmetro é escolhido por quem DEFINE a caixa, e não precisa combinar com nada de fora:\n\n```c\nvoid dobra(int quanto) {\n    printf(\"o dobro e %d\\n\", quanto * 2);\n}\n\nvoid tela(void) {\n    int idade = 20;\n    dobra(idade);\n}\n```\n\n```text\no dobro e 40\n```\n\nDentro da caixa o valor se chama `quanto`; fora, `idade`. Quem chama acerta o **tipo** e a **posição** — o nome de dentro é assunto da caixa."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-parametro-e-uma-copia",
+      "statement": "O parâmetro é uma CÓPIA: mudá-lo dentro da caixa não muda quem chamou.",
+      "question": "A caixa faz `n = n * 2;` e imprime `n`. Fora, `int valor = 5;` e a chamada é `dobra(valor);`. Depois da chamada, quanto vale `valor`?",
+      "options": [
+        "5: o parâmetro mexeu só na cópia dele.",
+        "10: mudar `n` muda o `valor` que entrou.",
+        "0: o `valor` é esvaziado pela chamada.",
+        "Depende: às vezes 5, às vezes 10."
+      ],
+      "answerIndex": 0,
+      "feedback": "Na chamada, o parâmetro recebe uma cópia do valor. A caixa pode mexer na cópia à vontade — o nome de fora não sente nada.",
+      "sectionId": "o-que-entra-e-uma-copia",
+      "optionRationales": [
+        "O `n` é uma cópia: ele virou 10 dentro da caixa, e o `valor` de fora continua 5.",
+        "Isso suporia que o `n` e o `valor` são o mesmo nome; são dois, e um é cópia do outro.",
+        "A chamada não apaga nada de quem chamou: ela só copia o valor para dentro.",
+        "Não é sorte: a cópia é a regra da linguagem, e o resultado é sempre o mesmo."
+      ]
+    },
+    {
+      "id": "o-argumento-preenche-o-parametro",
+      "statement": "O valor entre parênteses da chamada entra pela janela e vira o valor do parâmetro.",
+      "question": "A caixa `dobra` imprime `o dobro e %d` com `n * 2`. O que a chamada `dobra(7);` imprime?",
+      "options": [
+        "`o dobro e 14`",
+        "`o dobro e 7`",
+        "`o dobro e 4`, como na primeira chamada do exemplo.",
+        "`o dobro e n`, com a letra na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "O argumento `7` preenche o parâmetro `n` nesta execução, e a conta `n * 2` dá 14. A mesma caixa serve para qualquer número.",
+      "sectionId": "quem-chama-preenche-a-janela",
+      "optionRationales": [
+        "O `7` entra pela janela, `n` vale 7 nesta execução e `n * 2` dá 14.",
+        "O que sai é o dobro, não o valor que entrou — a conta está dentro da caixa.",
+        "Cada chamada começa com o SEU valor: o 4 saiu da chamada com 2, não desta.",
+        "O `%d` é um buraco: ele mostra o valor do argumento, nunca o nome do parâmetro."
+      ]
+    },
+    {
+      "id": "o-nome-do-parametro-e-da-caixa",
+      "statement": "O nome do parâmetro é escolhido por quem define a caixa e não precisa combinar com o nome de fora.",
+      "question": "A caixa é `void dobra(int quanto)` e a chamada é `dobra(idade);`, com `int idade = 20;`. Isso funciona?",
+      "options": [
+        "Funciona: o valor de `idade` é copiado para `quanto`.",
+        "Não: a variável de fora tem de ter o mesmo nome do parâmetro.",
+        "Não: o parâmetro só aceita número escrito na chamada, nunca um nome.",
+        "Funciona, mas `idade` passa a se chamar `quanto` também fora da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem chama acerta o tipo e a posição; o nome de dentro é assunto da caixa. O argumento pode ser um número escrito, uma variável ou uma conta — o que vale é o VALOR.",
+      "sectionId": "o-nome-da-janela-e-seu",
+      "optionRationales": [
+        "O que viaja é o valor: `idade` vale 20, e `quanto` nasce com 20 dentro da caixa.",
+        "Os nomes são independentes: um é de dentro da caixa, o outro é de quem chama.",
+        "O argumento pode ser um nome ou até uma conta — basta ter um valor do tipo certo.",
+        "Nada muda fora: o nome `quanto` só existe dentro da caixa."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declarations — a referência oficial dos parâmetros",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial da lista de parâmetros em C: cada parâmetro tem tipo e nome, e `(void)` é a lista vazia."
+    },
+    {
+      "title": "Function definitions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A página oficial da definição de função: os parâmetros são variáveis locais da função, criadas a cada chamada."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: em 6.5.2.2 (Function calls), cada parâmetro recebe o valor do argumento — e a nota 93 diz que mudar o parâmetro não afeta o argumento."
+    }
+  ],
+  "challenges": [
+    "dobro-caixa"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

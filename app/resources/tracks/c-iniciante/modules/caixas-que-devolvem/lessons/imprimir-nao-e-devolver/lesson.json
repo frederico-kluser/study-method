@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "imprimir-nao-e-devolver",
   "title": "Imprimir não é devolver",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Devolver entrega um valor a quem chamou e imprimir manda texto para a tela: chamar a caixa que devolve, sozinha, não mostra nada.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ReturnStmt",
+  "concepts": [
+    "os_dois_canais"
+  ],
   "prerequisites": [
     "devolver-em-vez-de-mostrar"
   ],
+  "introduces": {
+    "productive": [
+      "node:ReturnStmt",
+      "api:printf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa passa a ter DOIS canais separados na cabeça do aluno: o valor que volta para quem chamou e o texto que vai para a tela — e uma chamada cujo valor ninguém guarda não deixa rastro nenhum",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "dois-canais",
+      "title": "Duas maneiras de falar",
+      "markdown": "A sua caixa tem duas maneiras de falar com o mundo, e elas **não** são a mesma coisa.\n\n**Devolver** é entregar um valor para quem chamou. **Imprimir** é mandar texto para a tela, para uma pessoa ler.\n\nPense no caixa da padaria: devolver é pôr o troco na sua mão; imprimir é dizer o valor em voz alta. Dizer em voz alta não põe dinheiro na sua mão — e pôr o troco na mão não faz som nenhum.\n\nEm C cada gesto tem a sua palavra: `return` devolve, `printf` mostra."
+    },
+    {
+      "id": "a-caixa-que-devolve",
+      "title": "A caixa que devolve",
+      "markdown": "O `return` entrega o valor e encerra a caixa na hora:\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n```\n\nQuem chamou recebe o valor **no lugar da chamada**: `dobro(2)` vira `4`. A tela não muda — nada foi impresso.\n\nO valor devolvido pode vir de qualquer conta, e quem chamou pode guardá-lo num nome:\n\n```c\nint soma(int a, int b) {\n    return a + b;\n}\n\nvoid tela(void) {\n    int valor = soma(3, 4);\n    printf(\"%d\\n\", valor);\n}\n```\n\n```text\n7\n```\n\nO tipo antes do nome (`int`) é a promessa: esta caixa devolve um inteiro."
+    },
+    {
+      "id": "a-caixa-que-mostra",
+      "title": "A caixa que mostra",
+      "markdown": "A caixa que mostra faz o contrário: escreve na tela e não entrega valor nenhum — e é por isso que ela abre com `void`.\n\n```c\nvoid mostrarDobro(int n) {\n    printf(\"o dobro de %d e %d\\n\", n, n * 2);\n}\n```\n\nChamar `mostrarDobro(2)` deixa isto na tela:\n\n```text\no dobro de 2 e 4\n```\n\nQuem chamou não recebeu valor: recebeu só o efeito na tela."
+    },
+    {
+      "id": "chamar-sozinha-nao-mostra",
+      "title": "Chamar sozinha não mostra nada",
+      "markdown": "E se você chamar a caixa que devolve e não fizer nada com o valor?\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n\nvoid usar(void) {\n    dobro(5);\n    int valor = dobro(5);\n    printf(\"valor: %d\\n\", valor);\n}\n```\n\n```text\nvalor: 10\n```\n\nUma linha só, e as chamadas foram duas: a primeira devolve 10 e joga o 10 fora, sem deixar nada na tela. A segunda guarda o valor num nome, e aí o `printf` o mostra.\n\nChamar não imprime. Imprimir é o outro canal."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "chamar-sozinha-nao-imprime",
+      "statement": "Chamar a caixa sozinha não imprime nada — imprimir e devolver são canais diferentes.",
+      "question": "O corpo de `dobro` é só `return n * 2;`. O que a linha `dobro(5);`, sozinha, mostra na tela?",
+      "options": [
+        "Nada: ela devolve 10, e o 10 é jogado fora.",
+        "`10`, porque a caixa calculou o dobro de 5.",
+        "`dobro(5)`, o texto da própria chamada.",
+        "`0`, o valor que sobra quando ninguém guarda o resultado."
+      ],
+      "answerIndex": 0,
+      "feedback": "Devolver entrega o valor a quem chamou; ninguém pediu para mostrar. Sem um `printf`, a tela não muda — para ver o 10 é preciso guardá-lo num nome e imprimi-lo.",
+      "sectionId": "chamar-sozinha-nao-mostra",
+      "optionRationales": [
+        "A chamada roda o corpo, o `return` entrega 10 — e como nada recebe o 10, ele se perde sem aparecer.",
+        "O valor existe, mas aparecer na tela é trabalho do `printf`; `dobro` não tem nenhum.",
+        "O texto da chamada é código-fonte: o computador executa a linha, não a exibe.",
+        "Não existe valor de consolação: o resultado é 10 e simplesmente não vai para lugar nenhum."
+      ]
+    },
+    {
+      "id": "return-entrega-o-valor",
+      "statement": "O `return` entrega o valor para quem chamou, no lugar da chamada.",
+      "question": "A caixa `soma` devolve `a + b`. Depois de `int valor = soma(3, 4);`, quanto vale `valor`?",
+      "options": [
+        "3, o primeiro argumento.",
+        "7: a chamada virou o valor devolvido.",
+        "Nada, porque `soma` não imprime nada.",
+        "Zero, até alguém imprimir a soma."
+      ],
+      "answerIndex": 1,
+      "feedback": "A chamada `soma(3, 4)` é substituída pelo valor que o `return` entregou: 7. É isso que \"devolver\" significa — o valor chega na linha de quem chamou.",
+      "sectionId": "a-caixa-que-devolve",
+      "optionRationales": [
+        "O primeiro argumento entra na caixa; o que sai é o que o `return` entrega.",
+        "O `return a + b;` entrega 7, e o 7 é o valor que a chamada passa a valer.",
+        "Imprimir e devolver são canais separados: não imprimir nada não impede de devolver.",
+        "O valor não espera impressão nenhuma: ele chega no ato da chamada."
+      ]
+    },
+    {
+      "id": "void-nao-devolve",
+      "statement": "A caixa que só mostra abre com `void`: ela não devolve valor nenhum.",
+      "question": "Por que `mostrarDobro` abre com `void` e não com `int`?",
+      "options": [
+        "Porque `void` é o tipo obrigatório de toda caixa que escreve na tela.",
+        "Porque ela recebe um `int` e não pode devolver outro.",
+        "Porque `void` é obrigatório em toda caixa com parâmetro.",
+        "Porque ela não entrega valor: só deixa o efeito na tela."
+      ],
+      "answerIndex": 3,
+      "feedback": "O tipo da frente descreve o RETORNO. `void` quer dizer \"nada volta\": `mostrarDobro` cumpre a tarefa na tela e devolve nada.",
+      "sectionId": "a-caixa-que-mostra",
+      "optionRationales": [
+        "Imprimir não tem tipo próprio, e nenhuma caixa é obrigada a usar `void` por imprimir: o tipo da frente fala do retorno.",
+        "O que a caixa recebe e o que ela devolve são independentes: `int dobro(int n)` recebe e devolve inteiro.",
+        "Parâmetro e retorno são coisas separadas: `int soma(int a, int b)` tem parâmetros e devolve `int`.",
+        "`void` é exatamente a palavra para \"não devolvo valor nenhum\" — o efeito dela é só a tela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "return statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/return",
+      "description": "A página oficial do `return`: ele encerra a função e entrega o valor a quem chamou."
+    },
+    {
+      "title": "printf, fprintf, sprintf, snprintf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/printf",
+      "description": "A página oficial do `printf`: o canal da tela, com o texto de formato e os especificadores."
+    },
+    {
+      "title": "Function definition — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A definição de função em C: o tipo de retorno na frente do nome, e o `void` de quem não devolve nada."
+    }
+  ],
+  "challenges": [
+    "a-virada"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

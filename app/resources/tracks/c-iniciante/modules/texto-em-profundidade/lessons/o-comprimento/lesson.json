@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "o-comprimento",
   "title": "Quantas letras tem",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O strlen conta as letras de um texto — sem contar o terminador — e ele chega ao seu arquivo pelo #include <string.h>.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:strlen",
+  "concepts": [
+    "o_comprimento"
+  ],
   "prerequisites": [
     "a-string-e-o-zero"
   ],
+  "introduces": {
+    "productive": [
+      "api:strlen",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:strlen"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa passa a saber o tamanho de um texto sem que o aluno conte: o strlen percorre as gavetas até a placa do fim e devolve o número de letras",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-de-ferramentas-do-texto",
+      "title": "Quem conta as letras",
+      "markdown": "Contar as letras de um texto à mão dá trabalho. A biblioteca do C já tem quem conte: a função `strlen`.\n\nEla mora numa caixa de ferramentas própria, e por isso o seu arquivo ganha uma linha nova no topo:\n\n```c\n#include <string.h>\n```\n\nO `<stdio.h>` trouxe o `printf`; o `<string.h>` traz as funções que trabalham com texto. Sem essa linha, o compilador não sabe o que `strlen` é — e avisa na hora de compilar."
+    },
+    {
+      "id": "quantas-letras",
+      "title": "Quantas letras tem",
+      "markdown": "Você entrega o nome da caixa e recebe um número:\n\n```c\nchar nome[] = \"Ana\";\nint quantas = strlen(nome);\nprintf(\"%d\\n\", quantas);\n```\n\n```text\n3\n```\n\nTrês letras, três — e a placa do fim **não entra na conta**. O `strlen` caminha pelas gavetas a partir da 0, para no `\\0` e devolve quantas passou.\n\nO texto também pode ir direto, sem caixa nenhuma:\n\n```c\nint n = strlen(\"abc\");\n```\n\nO `n` fica valendo 3, o mesmo número."
+    },
+    {
+      "id": "o-texto-nao-e-a-caixa",
+      "title": "O texto não é a caixa",
+      "markdown": "Cuidado com a confusão mais comum desta aula: `strlen` mede o **texto**, não a caixa.\n\n```c\nchar cidade[20] = \"Recife\";\nint letras = strlen(cidade);\nprintf(\"%d\\n\", letras);\n```\n\n```text\n6\n```\n\nA caixa tem 20 gavetas; o texto ocupa 6 e a sétima guarda o `\\0`. As outras treze estão lá, sem nada que interesse — e o `strlen` nem chega nelas, porque parou na placa.\n\nTamanho da caixa você escolhe ao declarar; tamanho do texto é o `strlen` que diz."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "strlen-nao-conta-o-terminador",
+      "statement": "`strlen` devolve o tamanho SEM contar o `\\0`: `strlen(\"abc\")` é 3.",
+      "question": "Quanto vale `strlen(\"abc\")`?",
+      "options": [
+        "3, uma para cada letra do texto.",
+        "4: as letras e a placa.",
+        "2, porque a contagem começa em zero.",
+        "Depende do tamanho da caixa declarada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `strlen` conta as letras e para na placa do fim. O `\\0` ocupa gaveta, mas não é letra: `\"abc\"` mede 3.",
+      "sectionId": "quantas-letras",
+      "optionRationales": [
+        "São três letras antes da placa, e é isso que o `strlen` devolve.",
+        "A placa ocupa gaveta, mas o `strlen` para nela sem contá-la.",
+        "A contagem de GAVETAS começa em zero; a contagem de letras é um total, não um índice.",
+        "`strlen` nem olha o tamanho da caixa: ele anda até achar o `\\0`."
+      ]
+    },
+    {
+      "id": "o-include-do-string-h",
+      "statement": "O `#include <string.h>` é o que traz o `strlen` para o seu arquivo.",
+      "question": "Você usou `strlen` e esqueceu o `#include <string.h>`. O que acontece?",
+      "options": [
+        "O compilador avisa que não conhece `strlen`.",
+        "Nada muda: ele vem com o `<stdio.h>`.",
+        "O programa roda e devolve sempre zero no lugar.",
+        "O `strlen` passa a contar a placa junto com as letras."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada cabeçalho anuncia um conjunto de funções. O `printf` vem do `<stdio.h>`; as funções de texto vêm do `<string.h>`.",
+      "sectionId": "a-caixa-de-ferramentas-do-texto",
+      "optionRationales": [
+        "Sem o cabeçalho o nome `strlen` não foi anunciado, e o compilador reclama na compilação.",
+        "Cada cabeçalho traz o seu conjunto: `<stdio.h>` é de entrada e saída, não de texto.",
+        "Não existe devolver zero em silêncio: o problema aparece antes de rodar, na compilação.",
+        "O cabeçalho não muda o que a função faz — ele só anuncia que ela existe."
+      ]
+    },
+    {
+      "id": "strlen-mede-o-texto",
+      "statement": "`strlen` mede o texto, e o texto pode ser menor que a caixa.",
+      "question": "Depois de `char cidade[20] = \"Recife\";`, quanto vale `strlen(cidade)`?",
+      "options": [
+        "6, o número de letras de `Recife`.",
+        "20, o tamanho da caixa.",
+        "7, as letras mais a gaveta da placa do fim.",
+        "13, as gavetas que sobraram sem uso nenhum."
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa tem 20 gavetas, mas o `strlen` para na placa da sétima: ele conta as 6 letras de `Recife`.",
+      "sectionId": "o-texto-nao-e-a-caixa",
+      "optionRationales": [
+        "`Recife` tem seis letras, e é onde o `strlen` para de contar.",
+        "20 é o tamanho da CAIXA, escolhido na declaração — é outra coisa.",
+        "A placa ocupa a gaveta 6, mas o `strlen` não a soma ao total.",
+        "As gavetas livres não entram em conta nenhuma: o `strlen` nem chega nelas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "strlen — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/strlen",
+      "description": "A página oficial do strlen: ele devolve o número de caracteres antes do caractere nulo."
+    },
+    {
+      "title": "strlen(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/strlen.3.html",
+      "description": "A man-page do strlen: a mesma função que o seu programa chama, descrita pelo sistema."
+    },
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A página que reúne as funções de <string.h> e explica o que o caractere nulo significa para cada uma."
+    }
+  ],
+  "challenges": [
+    "medidor-de-palavras"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

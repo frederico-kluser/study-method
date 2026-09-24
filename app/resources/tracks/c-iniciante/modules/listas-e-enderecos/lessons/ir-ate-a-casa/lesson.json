@@ -2,22 +2,135 @@
   "schemaVersion": 1,
   "slug": "ir-ate-a-casa",
   "title": "Ir até a casa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A estrela na frente do ponteiro vai até a casa: `*p` é o valor que está no endereço — e escrever em `*p` muda o original, sem tocar no nome dele.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:unary:*",
+  "concepts": [
+    "a_desreferencia"
+  ],
   "prerequisites": [
     "o-papel-com-o-endereco"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:*",
+      "node:UnaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryOperator",
+        "de": "op:unary:*"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o valor deixa de ter uma porta só: a mesma casa passa a ser lida e escrita pelo nome dela OU pela estrela no papel que guarda o endereço — inclusive de dentro de outra função",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "ir-ate-a-casa-e-olhar",
+      "title": "Ir até a casa e olhar",
+      "markdown": "O papel sozinho não mostra o valor: `p` é só o endereço. Para ver o que está NA casa, ponha uma estrela na frente do papel — é a **desreferência**.\n\n```c\nint x = 42;\nint *p = &x;\nprintf(\"%d\\n\", *p);\n```\n\n```text\n42\n```\n\n`p` é o endereço; `*p` é o valor que mora lá. A estrela da declaração e esta são o mesmo símbolo com trabalhos diferentes: na declaração ela diz \"isto é um papel\"; numa conta ela diz \"vá até lá\"."
+    },
+    {
+      "id": "escrever-pela-outra-porta",
+      "title": "Escrever pela outra porta",
+      "markdown": "`*p` também vale do lado esquerdo do `=`. Escrever em `*p` é escrever na casa.\n\n```c\nint x = 42;\nint *p = &x;\n*p = 7;\nprintf(\"%d\\n\", x);\n```\n\n```text\n7\n```\n\nNinguém escreveu `x = 7;` — e `x` mudou. Uma casa, duas portas: o nome `x` e o papel `p`. Note que `p` continua igual: quem mudou foi o conteúdo da casa, não o endereço no papel."
+    },
+    {
+      "id": "o-valor-lido-entra-em-conta",
+      "title": "O valor lido entra em conta",
+      "markdown": "`*p` é um `int` como qualquer outro: entra em conta, em comparação, em `printf`.\n\n```c\nint x = 10;\nint *p = &x;\nint dobro = *p * 2;\n*p = *p + 5;\nprintf(\"%d %d\\n\", dobro, x);\n```\n\n```text\n20 15\n```\n\nNa linha do `dobro` a primeira estrela vai até a casa e o `*` do meio multiplica — mesmo símbolo, dois trabalhos, e o compilador não se confunde porque a posição decide."
+    },
+    {
+      "id": "o-papel-pode-vir-de-fora",
+      "title": "O papel pode vir de fora",
+      "markdown": "Uma função pode receber o papel e escrever na casa de quem chamou.\n\n```c\nvoid zerar(int *p) {\n    *p = 0;\n}\n```\n\nQuem chama passa o endereço:\n\n```c\nint x = 8;\nzerar(&x);\nprintf(\"%d\\n\", x);\n```\n\n```text\n0\n```\n\nO parâmetro `p` é uma cópia do PAPEL — e papel copiado leva à mesma casa. Foi sempre assim que a `scanf` mudou as suas variáveis: você entregava `&nota` a ela."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-estrela-vai-ate-a-casa",
+      "statement": "`*p` é o valor que está NO endereço: ler e escrever pela outra porta.",
+      "question": "Depois de `int x = 42;`, `int *p = &x;` e `*p = 7;`, quanto vale `x`?",
+      "options": [
+        "7: escrever em `*p` escreve na casa.",
+        "42: mudou o papel, não a casa.",
+        "7, mas só até a linha seguinte.",
+        "42: `*p` serve para ler, nunca para escrever."
+      ],
+      "answerIndex": 0,
+      "feedback": "`*p` do lado esquerdo do `=` é a casa apontada por `p`. Escrever ali muda `x`, embora o nome `x` não apareça na linha.",
+      "sectionId": "escrever-pela-outra-porta",
+      "optionRationales": [
+        "A estrela leva a escrita até a casa: o 7 entra em `x`.",
+        "Mudar o papel seria `p = &outra;` — aqui a estrela mudou o conteúdo da casa.",
+        "O valor guardado fica: uma escrita na memória não expira no fim da linha.",
+        "`*p` funciona nos dois lados do `=`: à direita lê, à esquerda escreve."
+      ]
+    },
+    {
+      "id": "p-e-estrela-p-sao-diferentes",
+      "statement": "`p` é o endereço; `*p` é o valor que mora nele.",
+      "question": "Com `int x = 42;` e `int *p = &x;`, o que `printf(\"%d\\n\", *p);` imprime?",
+      "options": [
+        "42, o valor que está no endereço.",
+        "O endereço de `x`, como o `%p` faria.",
+        "A estrela e o nome, do jeito que estão: `*p`.",
+        "Nada: `%d` não aceita ponteiro."
+      ],
+      "answerIndex": 0,
+      "feedback": "A estrela troca o endereço pelo valor que está lá. Sem ela, `p` imprimiria o endereço — e aí o formato seria `%p`.",
+      "sectionId": "ir-ate-a-casa-e-olhar",
+      "optionRationales": [
+        "`*p` é o conteúdo da casa: o 42 que mora em `x`.",
+        "Isso sairia com `printf(\"%p\\n\", p);` — sem a estrela.",
+        "Código não é impresso como texto; o que sai é o valor que ele produz.",
+        "Com a estrela não há ponteiro nenhum no argumento: o que chega é um `int`."
+      ]
+    },
+    {
+      "id": "a-funcao-que-recebe-o-papel",
+      "statement": "Uma função que recebe `int *p` muda a variável de quem chamou.",
+      "question": "Com `void zerar(int *p) { *p = 0; }`, o que `int x = 8; zerar(&x);` deixa em `x`?",
+      "options": [
+        "0: a função escreveu na casa de `x`.",
+        "8: a função mexeu só na cópia dela.",
+        "8: só `x = 0;` muda o `x` de verdade.",
+        "Depende do valor que `zerar` devolver."
+      ],
+      "answerIndex": 0,
+      "feedback": "O que foi copiado para o parâmetro foi o endereço. A função seguiu o endereço e escreveu na casa original: `x` vira 0.",
+      "sectionId": "o-papel-pode-vir-de-fora",
+      "optionRationales": [
+        "A cópia é do papel, e o papel copiado leva à mesma casa.",
+        "A cópia do ENDEREÇO não protege a casa: é justamente por isso que se passa `&x`.",
+        "A estrela é a outra porta da mesma casa — escrever por ela vale igual.",
+        "`zerar` devolve `void`; o efeito dela é a escrita pelo endereço."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Pointer declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/pointer",
+      "description": "A página oficial do ponteiro em C: o que ele guarda e o que a estrela faz quando o programa vai até o endereço."
+    },
+    {
+      "title": "Member access operators — a referência oficial dos operadores",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do operador de desreferência (`*`) e do operador de endereço (`&`), com o que cada um recebe e devolve."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.3.2 define os operadores `&` e `*` e diz que o resultado de `*p` designa o objeto apontado."
+    }
+  ],
+  "challenges": [
+    "via-ponteiro"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

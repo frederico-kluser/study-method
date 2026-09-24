@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "mudar-o-dado",
   "title": "Mudar o dado",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O campo recebe valor novo como qualquer nome — e um `=` entre duas fichas do mesmo molde copia todos os campos de uma vez, uma foto que não acompanha mais o original.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:MemberExpr",
+  "concepts": [
+    "copiar_a_ficha"
+  ],
   "prerequisites": [
     "o-molde-e-o-dado",
     "mudar-o-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ficha passa a ser um valor INTEIRO que se copia num gesto só: depois do `=` existem duas fichas independentes, cada uma com a sua cópia dos campos",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-campo-recebe-de-novo",
+      "title": "O campo recebe valor novo",
+      "markdown": "Um campo se comporta como qualquer nome: recebe valor com `=`, e o valor antigo se perde.\n\n```c\nstruct Ponto {\n    int x;\n    int y;\n};\n\nstruct Ponto p;\np.x = 3;\np.x = 10;\np.y = p.x + 5;\n```\n\nDepois de `p.x = 10;`, o campo vale 10 — o 3 foi embora. E a última linha põe o campo nos DOIS lados do `=`: à direita ele é lido (10), à esquerda ele é o lugar que recebe (15 vai para `p.y`).\n\nMexer num campo não toca no outro: são lugares separados dentro da mesma ficha."
+    },
+    {
+      "id": "a-ficha-inteira-de-uma-vez",
+      "title": "A ficha inteira de uma vez",
+      "markdown": "Copiar campo a campo funciona, mas C dá um atalho: um `=` entre duas fichas do MESMO molde copia todos os campos.\n\n```c\nstruct Ponto {\n    int x;\n    int y;\n};\n\nstruct Ponto p1;\np1.x = 3;\np1.y = 4;\nstruct Ponto p2;\np2 = p1;\nprintf(\"p2 %d %d\\n\", p2.x, p2.y);\n```\n\n```text\np2 3 4\n```\n\n`p2 = p1;` tem a mesma direção de sempre: o da direita vai para o da esquerda. Só que agora o que viaja são os dois campos juntos."
+    },
+    {
+      "id": "a-copia-e-uma-foto",
+      "title": "A cópia é uma foto",
+      "markdown": "O que a cópia leva são os VALORES do instante da cópia. Depois dela, as duas fichas seguem a vida separadas:\n\n```c\nstruct Ponto {\n    int x;\n    int y;\n};\n\nstruct Ponto p1;\np1.x = 3;\nstruct Ponto p2;\np2 = p1;\np1.x = 99;\nprintf(\"p1 %d p2 %d\\n\", p1.x, p2.x);\n```\n\n```text\np1 99 p2 3\n```\n\n`p2` guarda a foto: 3. O molde não foi copiado — ele já estava nas duas pela declaração; a cópia é dos valores. Onde a analogia quebra: foto de papel amarela, esta não muda mais."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-copia-nao-acompanha-o-original",
+      "statement": "`p2 = p1` copia campo a campo — a foto, não o molde.",
+      "question": "Depois de `p2 = p1;`, o programa roda `p1.x = 99;`. Quanto vale `p2.x`?",
+      "options": [
+        "O valor que `p1.x` tinha no instante da cópia.",
+        "99, porque `p2` acompanha `p1` desde a cópia.",
+        "Zero: a cópia se apaga quando o original muda.",
+        "99 no `x` e o valor antigo no `y` da ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "A cópia leva os valores do instante em que foi feita. Depois disso são duas fichas independentes: mexer em `p1` não chega em `p2`.",
+      "sectionId": "a-copia-e-uma-foto",
+      "optionRationales": [
+        "É a foto: o valor do instante da cópia fica em `p2`, aconteça o que acontecer com `p1`.",
+        "O `=` copia uma vez; ele não liga as duas fichas para sempre.",
+        "Nada se apaga: `p2` tem os seus próprios campos, com os valores copiados.",
+        "O `=` copiou os dois campos de uma vez; nenhum deles acompanha `p1` depois."
+      ]
+    },
+    {
+      "id": "o-campo-nos-dois-lados",
+      "statement": "O campo pode ser lido e escrito na mesma linha: à direita do `=` ele é valor, à esquerda ele é lugar.",
+      "question": "Com `p.x` valendo 10, o que a linha `p.y = p.x + 5;` deixa em `p.y`?",
+      "options": [
+        "15, o resultado da conta da direita.",
+        "10, o valor que `p.x` tinha antes.",
+        "5, o número escrito na própria conta.",
+        "Nada: campo não recebe resultado de conta."
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro a conta à direita: `p.x` vale 10, mais 5 dá 15. Depois o `=` guarda o 15 em `p.y` — e `p.x` continua 10.",
+      "sectionId": "o-campo-recebe-de-novo",
+      "optionRationales": [
+        "Primeiro a conta (10 + 5), depois o `=` guarda o 15 no campo da esquerda.",
+        "10 é o valor lido de `p.x`; falta somar o 5 antes de guardar.",
+        "O 5 é uma parte da conta, nunca o resultado dela.",
+        "Um campo recebe qualquer valor `int` — inclusive o resultado de uma conta."
+      ]
+    },
+    {
+      "id": "um-igual-copia-tudo",
+      "statement": "Um `=` entre duas fichas do mesmo molde copia todos os campos de uma vez.",
+      "question": "As fichas `a` e `b` são do mesmo molde de dois campos. Quantas linhas `=` copiam `a` para `b`?",
+      "options": [
+        "Uma: `b = a;` leva os dois campos.",
+        "Duas, uma para cada campo do molde.",
+        "Três: um `=` por campo e um pela ficha.",
+        "Nenhuma: ficha não se copia com `=` em C."
+      ],
+      "answerIndex": 0,
+      "feedback": "Uma linha basta: `b = a;` copia todos os campos. Copiar campo a campo também funciona, mas é trabalho à mão que a linguagem já faz.",
+      "sectionId": "a-ficha-inteira-de-uma-vez",
+      "optionRationales": [
+        "O `=` entre fichas do mesmo molde é o atalho: uma linha, todos os campos.",
+        "Funciona, mas não é o mínimo: uma linha só já copia a ficha inteira.",
+        "Não existe um `=` a mais pela ficha: o da ficha JÁ leva os campos.",
+        "Copiar ficha com `=` é permitido em C — é o que esta aula mostra."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Simple assignment — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "A página oficial do `=`: entre dois valores de estrutura compatível, a atribuição copia o objeto inteiro."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct`: os campos de uma ficha são objetos separados dentro do mesmo objeto."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.5.16.1 diz que atribuir uma estrutura copia o valor dela para o objeto da esquerda."
+    }
+  ],
+  "challenges": [
+    "o-clonador"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

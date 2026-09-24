@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "passo-de-dois",
   "title": "Passo de dois",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O passo do for é uma atribuição qualquer: i += 2 anda de dois em dois e i-- anda para trás — e a condição muda de sentido junto com ele.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "o_passo_do_laco"
+  ],
   "prerequisites": [
     "para",
     "somar-no-lugar"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o contador do laço deixa de andar só de um em um: o passo passa a ser uma atribuição escolhida pelo aluno, e a direção da contagem (subindo ou descendo) passa a ser uma decisão dele",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-passo-nao-e-so-mais-um",
+      "title": "O passo não é obrigado a ser de um",
+      "markdown": "No `for` que você já escreve, o passo é `i++`: anda de um em um. Mas o terceiro pedaço do `for` aceita QUALQUER atribuição — e `i += 2` anda de dois em dois:\n\n```c\nfor (int i = 2; i <= 10; i += 2) {\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n2\n4\n6\n8\n10\n```\n\nO laço começa em 2, confere `i <= 10` antes de cada volta e, no fim de cada volta, soma 2 em `i`. Quem escolhe o tamanho do pulo é o passo, não o `for`."
+    },
+    {
+      "id": "andar-para-tras",
+      "title": "Andar para trás",
+      "markdown": "Se o passo pode somar, ele pode subtrair. O `i--` tira um a cada volta — e, descendo, a condição pergunta até onde ainda vale ficar:\n\n```c\nfor (int i = 3; i >= 1; i--) {\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n3\n2\n1\n```\n\nCom `i -= 5` o pulo é maior, e quem manda na parada continua sendo a condição:\n\n```c\nfor (int i = 20; i >= 5; i -= 5) {\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n20\n15\n10\n5\n```"
+    },
+    {
+      "id": "o-limite-pode-ser-um-nome",
+      "title": "O limite e o começo podem ser nomes",
+      "markdown": "As três partes do `for` são contas comuns: aceitam nomes, não só números. Com o limite num nome, o mesmo laço serve para qualquer valor:\n\n```c\nint n = 6;\nfor (int i = 2; i <= n; i += 2) {\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n2\n4\n6\n```\n\nO nome também cabe no NASCIMENTO — aqui o contador parte do `n` e desce:\n\n```c\nint n = 20;\nfor (int m = n; m >= 5; m -= 5) {\n    printf(\"%d\\n\", m);\n}\n```\n\n```text\n20\n15\n10\n5\n```\n\nTrocar o valor de `n` muda a lista sem tocar numa letra do laço."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-passo-e-qualquer-atribuicao",
+      "statement": "O passo pode ser qualquer atribuição — inclusive andar para trás.",
+      "question": "No `for`, o terceiro pedaço (o lugar onde costuma ir `i++`) aceita o quê?",
+      "options": [
+        "Só `i++` ou `i--`: o passo do `for` anda sempre de um em um.",
+        "Só somas: para descer é preciso trocar o `for` por um `while`.",
+        "Qualquer atribuição ao contador: `i++`, `i += 2` ou `i -= 5`.",
+        "Uma comparação: é ali que fica a condição de parada do laço."
+      ],
+      "answerIndex": 2,
+      "feedback": "O passo é uma atribuição comum. Trocar `i++` por `i += 2` pula de dois em dois; trocar por `i--` ou `i -= 5` faz o contador descer.",
+      "sectionId": "o-passo-nao-e-so-mais-um",
+      "optionRationales": [
+        "`i += 2` e `i -= 5` também valem ali: o passo não está preso ao um.",
+        "O `for` desce sem problema — basta o passo subtrair e a condição olhar para baixo (`i >= 1`).",
+        "As quatro são atribuições ao contador, e qualquer uma delas cabe no terceiro pedaço do `for`.",
+        "A condição é o SEGUNDO pedaço; o terceiro roda depois do corpo e mexe no contador."
+      ]
+    },
+    {
+      "id": "descer-muda-a-condicao",
+      "statement": "Quando o passo desce, a condição também vira: ela passa a perguntar até onde ainda vale ficar.",
+      "question": "O laço precisa imprimir 20, 15, 10 e 5, nessa ordem. Qual cabeçalho faz isso?",
+      "options": [
+        "`for (int i = 20; i >= 5; i -= 5)`",
+        "`for (int i = 20; i <= 5; i -= 5)`",
+        "`for (int i = 5; i >= 20; i += 5)`",
+        "`for (int i = 20; i >= 5; i += 5)`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Descendo, o começo é o valor maior e a condição pergunta se o contador ainda não passou do piso: `i >= 5`. O passo subtrai 5.",
+      "sectionId": "andar-para-tras",
+      "optionRationales": [
+        "Começa em 20, continua enquanto `i` não passou de 5 para baixo, e desce 5 por volta.",
+        "`20 <= 5` já é falso na primeira conferência: o laço não roda nenhuma vez.",
+        "`5 >= 20` também é falso de saída — e o passo ainda sobe, afastando do 20.",
+        "A condição está certa, mas o passo sobe: `i` vai para 25, 30... e o laço nunca para."
+      ]
+    },
+    {
+      "id": "o-limite-vem-de-um-nome",
+      "statement": "O limite do laço pode ser um nome, e não um número escrito à mão.",
+      "question": "Com `int n = 6;` antes dele, quantas linhas o laço `for (int i = 2; i <= n; i += 2)` imprime?",
+      "options": [
+        "Seis: uma para cada valor de 1 a 6.",
+        "Três: o contador vale 2, 4 e 6 dentro do limite.",
+        "Duas: 2 e 4, porque o 6 é igual ao limite e fica de fora.",
+        "Nenhuma: um nome não pode aparecer na condição do `for`."
+      ],
+      "answerIndex": 1,
+      "feedback": "O contador vale 2, 4 e 6 — e o 6 entra porque `i <= n` aceita o igual. Ler o limite de um nome é o que deixa o mesmo laço servir para qualquer valor.",
+      "sectionId": "o-limite-pode-ser-um-nome",
+      "optionRationales": [
+        "Seriam seis se o passo fosse `i++` e o começo fosse 1 — aqui o passo pula os ímpares.",
+        "Com passo de 2 a partir do 2, os valores dentro do limite são 2, 4 e 6: três linhas.",
+        "O `<=` inclui o igual: quando `i` vale 6 a condição ainda é verdadeira e a linha sai.",
+        "As três partes do `for` são contas comuns: nome é exatamente o que elas aceitam."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for` em C: as três partes do cabeçalho e a ordem em que elas rodam (o passo depois do corpo)."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `<`, `<=`, `>` e `>=`: a família que escreve a condição de parada do laço."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.5.3 descreve o `for` e diz que a expressão de passo é avaliada depois de cada execução do corpo."
+    }
+  ],
+  "challenges": [
+    "pares-e-regressivos"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

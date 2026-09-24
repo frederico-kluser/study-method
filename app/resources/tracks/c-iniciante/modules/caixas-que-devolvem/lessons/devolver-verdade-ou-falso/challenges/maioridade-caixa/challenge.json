@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "maioridade-caixa",
+  "title": "Maioridade em caixa",
+  "concept": "devolver_a_comparacao",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Maioridade em caixa\n\nEscreva a caixa `maioridadeCaixa`. Ela recebe uma idade e **devolve** a resposta da pergunta *\"esta idade alcança 18?\"*:\n\n- devolve `1` (o `true`) quando a idade alcança 18;\n- devolve `0` (o `false`) quando não alcança.\n\nO corpo tem uma linha só: a própria comparação vai no `return`. Nada é impresso aqui — esta caixa **devolve**, e quem chamou é que decide o que fazer com a resposta.\n\nA assinatura é `bool maioridadeCaixa(int idade)`, e o `#include <stdbool.h>` já está no topo do arquivo.\n\nNo teste o cartaz da sua caixa aparece como `_Bool maioridadeCaixa(int idade);` — `_Bool` é o nome oficial do tipo que o `stdbool.h` apelida de `bool`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdbool.h>\n\n/* Escreva AQUI EMBAIXO a caixa maioridadeCaixa inteira:\n\n   - ela devolve bool, se chama maioridadeCaixa e recebe int idade;\n   - o corpo tem uma linha so: devolva a propria comparacao da idade com 18.\n\n   Nada de printf: esta caixa DEVOLVE. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio maioridade-caixa — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Fase VALOR: nao ha captura de tela — o teste declara o PROTOTIPO da caixa\n   do aluno e compara o VALOR DEVOLVIDO com checa_int.\n   _Bool e o nome oficial do tipo que o stdbool.h apelida de bool: o cartaz\n   abaixo casa exatamente com a caixa que voce escreve com bool. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\n_Bool maioridadeCaixa(int idade);\n\nSM_TEST(com_21_a_caixa_devolve_um) {\n    checa_int(\"com 21 anos a caixa devolve 1\", maioridadeCaixa(21), 1,\n              \"21 alcanca 18: a comparacao vale 1 e o return entrega esse 1\");\n}\n\nSM_TEST(com_15_a_caixa_devolve_zero) {\n    checa_int(\"com 15 anos a caixa devolve 0\", maioridadeCaixa(15), 0,\n              \"15 nao alcanca 18: a comparacao vale 0, e e o 0 que volta\");\n}\n\nSM_TEST(com_18_a_caixa_ainda_devolve_um) {\n    checa_int(\"com 18 anos a caixa ainda devolve 1\", maioridadeCaixa(18), 1,\n              \"o sinal >= aceita o igual: com 18 a resposta continua 1\");\n}\n",
+  "solutionCode": "#include <stdbool.h>\n\nbool maioridadeCaixa(int idade) {\n    return idade >= 18;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "com_21_a_caixa_devolve_um",
+      "teste": "com_21_a_caixa_devolve_um",
+      "descricao": "maioridadeCaixa(21) devolve 1: a comparacao idade >= 18 e verdadeira e o return entrega o proprio valor dela"
+    },
+    {
+      "id": "com_15_a_caixa_devolve_zero",
+      "teste": "com_15_a_caixa_devolve_zero",
+      "descricao": "maioridadeCaixa(15) devolve 0: com outra idade a resposta MUDA, o que prova que a comparacao foi feita e nao escrita fixa no codigo"
+    },
+    {
+      "id": "com_18_a_caixa_ainda_devolve_um",
+      "teste": "com_18_a_caixa_ainda_devolve_um",
+      "descricao": "maioridadeCaixa(18) devolve 1: a borda da faixa, porque o sinal >= aceita o valor igual ao limite"
+    }
+  ]
+}

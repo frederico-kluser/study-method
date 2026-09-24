@@ -536,7 +536,7 @@ primeira em que o aluno escreve a função inteira.
 | 18 | `perguntar-ao-usuario` — Perguntar ao usuário | `api:scanf`, `op:unary:&` | `um-nome-para-um-valor` | O `&` entrega à `scanf` o ENDEREÇO da variável — é ela quem preenche a casa. | `dobro-do-digitado` — lê um inteiro e imprime o dobro; teste injeta 21 no stdin e espera 42. |
 | 19 | `dois-valores-de-uma-vez` — Dois valores de uma vez | cons. — `api:scanf` em forma nova (dois `%d` na mesma chamada, em prosa) | `perguntar-ao-usuario` | Digitando `3 4`, o `%d %d` lê os dois — espaço e Enter servem os dois. | `soma-digitada` — lê dois inteiros e imprime a soma; teste injeta 3 e 4, espera 7. |
 | 20 | `uma-letra-e-um-numero` — A letra que é um número | `node:CharacterLiteral` (a letra que é número; `decl:var` em forma nova: o tipo `char`; o `%c` fica em prosa) | `um-nome-para-um-valor`, `buraco-na-frase` | `'A'` é o número 65: `printf("%c", 'A' + 1)` imprime `B` (medido). | `proxima-letra` — dada a letra declarada no código, imprime a seguinte; teste compara a letra. |
-| 21 | `o-limite-do-int` — O maior número que cabe | cons. — `node:IncludeDirective` em forma nova (o `#include <limits.h>`; `INT_MAX`/`INT_MIN` são MACRO: sem nó no AST e sem `ApiRef` após a expansão — não emitem chave, §8.2) | `comparacoes` | `INT_MAX` é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa. | `o-teto-e-o-piso` — imprime `INT_MAX` e `INT_MIN`; teste compara os dois números. |
+| 21 | `o-limite-do-int` — O maior número que cabe | cons. — `node:IncludeDirective` em forma nova (o `#include <limits.h>`; `INT_MAX`/`INT_MIN` são MACRO e não emitem chave — ⚑ verdade só a partir de 2026-09-22, ver §8.2 P9) | `comparacoes` | `INT_MAX` é 2147483647 nesta máquina (medido); passar dele não é erro de compilação — é comportamento indefinido, e a trilha o evita, nunca o testa. | `o-teto-e-o-piso` — imprime `INT_MAX` e `INT_MIN`; teste compara os dois números. |
 
 **Progressão produtiva do M1 (22 chaves congeladas, na ordem — recontada após o remapeamento da
 onda 4: o cast saiu do `[pendente:]` e ganhou a chave `node:CStyleCastExpr`):** `api:printf →
@@ -783,6 +783,24 @@ aulas** — pode compor livremente o que o módulo ensinou, mas não pode introd
 Os aninhamentos que ficaram fora das tabelas por não serem átomos (laço dentro de laço com
 condição composta, array de structs com busca, string manipulada campo a campo) são o material
 natural desses desafios: composição é o que eles testam.
+
+**Os desafios de módulo no disco (autorados em 2026-09-22, cada um provado por execução —
+`solutionPasses` ✓ · `starterFails` ✓ · `countMatches` ✓):**
+
+| Módulo | slug | canal | cenários | o que ele compõe |
+|---|---|---|---|---|
+| `a-tela` | `a-ficha-do-caixa` | impressao | 4 | leitura de dois números, multiplicação, divisão inteira e resto, cast para real, comparação como 0/1, `+=` e `++` |
+| `decisao` | `a-portaria-do-clube` | impressao | 5 | painel de botões (`switch`/`break`/`default`), cascata de faixas, `&&`/`\|\|`/`!` na mesma decisão |
+| `repeticao` | `o-relatorio-da-portaria` | impressao | 5 | laço que lê até a sentinela, acumulador, contador com condição, laço dentro de laço (a escada) |
+| `caixas-que-devolvem` | `a-caixa-do-frete` | **retorno** | 5 | duas funções do aluno, uma chamando a outra; devolver cedo (a guarda); devolver a comparação; o teto |
+| `listas-e-enderecos` | — | — | — | ⚑ a autorar |
+| `texto-em-profundidade` | — | — | — | ⚑ a autorar |
+| `structs-e-arquivos` | — | — | — | ⚑ a autorar |
+
+O desafio de MÓDULO não é alcançado pelo `track:challenge:verify` (que resolve por
+`lessons/<aula>/challenges/`) nem pelo `audit`/`barra` (que iteram as aulas) — ele é coberto por
+`coverage`, `requirements` e `track:validate`. A prova por execução de um deles, isolada, sai de
+`verifyChallengePair` (`services/challengeExec.ts`) chamada direto sobre o `challenge.json`.
 
 ### Regras para os desafios de aula (`challenge.json`)
 
@@ -1102,8 +1120,33 @@ mais `[pendente: …]`.
 |---|---|---|---|
 | P7 | `const` — o qualificador (M5 a18) | qualificador de TIPO (`QualType`): sem nó próprio no AST do clang — só o texto do fonte o mostra | M5 a18 é consolidação com `term:const` em prosa |
 | P8 | `NULL` (M5 a19; M7 a9) | macro (`#define NULL ((void*)0)`): sem `CallExpr` → sem `ApiRef`; e o cast da expansão é derrubado pelo guard do P6 — o que o aluno escreveu é `NULL`, não um cast | M5 a19 é consolidação com `term:NULL` em prosa |
-| P9 | `INT_MAX`/`INT_MIN` (M1 a21) | macro → literal após a expansão; sem nó nomeável | M1 a21 (consolidação) cita em prosa |
+| P9 | `INT_MAX`/`INT_MIN` (M1 a21) | macro → literal após a expansão; sem nó nomeável — ⚑ **era meia-verdade até 2026-09-22**, ver abaixo | M1 a21 (consolidação) cita em prosa |
 | P10 | `bool` como tipo distinto (M2 a6; M3 a12) | tipo — a declaração emite `decl:var` e a aula é consolidação "em forma nova" com o tipo em prosa | M2 a6 / M3 a12 |
+
+> ⚑ **A correção de P9, medida em 2026-09-22 durante a autoria do M1.** A afirmação valia para
+> `INT_MAX` e era **FALSA** para `INT_MIN`. Medido com o extrator da própria engine (Apple clang 17):
+>
+> ```bash
+> cd app && npx tsx -e "import {extractAtoms} from './electron/main/engine/extract'; \
+>   console.log(extractAtoms('#include <stdio.h>\n#include <limits.h>\nvoid t(void){ printf(\"%d\\n\", INT_MIN); }\n', {language:'c'}))"
+> ```
+>
+> `INT_MAX` expande para um literal e emitia só `node:IntegerLiteral`; **`INT_MIN` expande para
+> `(-2147483647 - 1)`** e emitia `op:unary:-`, `op:binary:-`, `node:UnaryOperator` e
+> `node:BinaryOperator` — quatro eventos de currículo por um token que o aluno escreveu como
+> `INT_MIN`. Como `op:unary:-` **não tem origem em nenhuma das 115 aulas** deste contrato, o `audit`
+> acusava `[A2] LACUNA DE CURRÍCULO` no desafio `o-teto-e-o-piso` — que é o desafio que a própria
+> célula da aula 21 manda escrever. E não havia conteúdo capaz de fechá-la: declarar a chave seria
+> mentir, porque o sinal de menos vive dentro do `limits.h`.
+>
+> **O conserto é de ENGINE, e a célula ficou como estava.** O guard de expansão de macro do extrator
+> de C (`engine/vocab/c/extract_ast.py`), que já derrubava o `CStyleCastExpr` do `NULL` pela MESMA
+> razão ("o que o aluno escreveu é `NULL`, não um cast"), virou tabela —
+> `_NAO_EMITIDOS_QUANDO_DE_MACRO`: operador e literal vindos de expansão não emitem chave. O que
+> continua emergindo é o que IDENTIFICA o que o aluno escreveu: `FunctionDecl` (a expansão de
+> `SM_TEST`, de que a dupla-igualdade depende), `DeclRefExpr` (`stdout` é `#define stdout __stdoutp`)
+> e o `ApiRef` derivado dele. Prova de que o sinal real não se perdeu: `(int)3.7` continua emitindo
+> `node:CStyleCastExpr` e `-x` continua emitindo `op:unary:-` + `node:UnaryOperator`.
 
 **P11–P12 — DEFER (a decisão volta à onda que estender o vocabulário; hoje nada muda):**
 

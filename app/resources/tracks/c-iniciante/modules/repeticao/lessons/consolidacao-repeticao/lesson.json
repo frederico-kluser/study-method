@@ -2,20 +2,134 @@
   "schemaVersion": 1,
   "slug": "consolidacao-repeticao",
   "title": "O projeto do módulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O projeto do módulo: um while que lê uma lista de tamanho desconhecido e, na mesma volta, alimenta a soma, a contagem, a máxima e o contador de aprovados — e a média só nasce real com o cast.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "node:WhileStmt",
+  "concepts": [
+    "o_projeto_da_repeticao"
+  ],
+  "prerequisites": [
+    "enquanto",
+    "somar-tudo",
+    "ler-ate-sentar",
+    "a-flag-da-busca",
+    "a-divisao-real"
+  ],
+  "introduces": {
+    "productive": [
+      "node:WhileStmt",
+      "api:scanf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "os laços deixam de ser exercícios de uma conta só: uma passagem única sobre uma entrada de tamanho desconhecido alimenta quatro resultados ao mesmo tempo, porque o dado lido não volta",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "qual-laco-para-lista-sem-tamanho",
+      "title": "O laço que não sabe quantas voltas dá",
+      "markdown": "Este módulo te deu três laços. Para uma lista de tamanho **desconhecido**, o certo é o `while` com a leitura na própria condição:\n\n```c\nint nota = 0;\nwhile (scanf(\"%d\", &nota) == 1 && nota >= 0) {\n    printf(\"li %d\\n\", nota);\n}\n```\n\nO `for` pede o número de voltas escrito antes de começar — e é exatamente esse número que você não tem. O `do..while` roda o corpo ANTES de perguntar: com a lista vazia ele trabalharia uma nota que ninguém digitou.\n\nSó o `while` pergunta primeiro — e aqui a pergunta É a leitura."
+    },
+    {
+      "id": "varias-contas-numa-volta",
+      "title": "Várias contas na mesma volta",
+      "markdown": "A nota lida não volta: quem não guardar na passagem, perde. Por isso uma volta só alimenta todas as contas de uma vez:\n\n```c\nint nota = 0;\nint soma = 0;\nint quantas = 0;\nwhile (scanf(\"%d\", &nota) == 1 && nota >= 0) {\n    soma += nota;\n    quantas++;\n}\n```\n\nCada acumulador nasce FORA do laço, em 0, e cresce DENTRO. Se nascesse dentro, cada volta esqueceria a anterior — e fora do laço o nome nem existiria.\n\nNão existe um laço por estatística: a nota está na mão uma vez, e ali ela serve a soma e a contagem juntas."
+    },
+    {
+      "id": "o-maior-ate-agora",
+      "title": "O maior até agora",
+      "markdown": "Guardar o campeão é o mesmo gesto da flag da busca — só que agora a variável que sobrevive ao laço guarda um VALOR, não um sim/não:\n\n```c\nint nota = 0;\nint maxima = 0;\nwhile (scanf(\"%d\", &nota) == 1 && nota >= 0) {\n    if (nota >= maxima) {\n        maxima = nota;\n    }\n}\n```\n\nA cada volta `maxima` responde \"o maior até agora\". Quando a nota empata, trocar por valor igual não muda nada — por isso o `>=` serve aqui.\n\nOnde o piso 0 quebra: ele serve porque nota nunca é negativa. Em dados que podem ser negativos, o piso certo é a PRIMEIRA leitura."
+    },
+    {
+      "id": "a-media-precisa-do-cast",
+      "title": "A média é a conta que corta",
+      "markdown": "Soma e quantidade são dois inteiros — e a barra entre inteiros corta a parte quebrada antes de qualquer outra coisa:\n\n```c\nint soma = 15;\nint quantas = 2;\ndouble media = soma / quantas;\nprintf(\"media %f\\n\", media);\n```\n\n```text\nmedia 7.000000\n```\n\nSete e meio virou sete ANTES de entrar na caixa real. Nem a caixa nem o `%f` consertam o que já foi cortado. Quem conserta é o cast, antes da barra:\n\n```c\nint soma = 15;\nint quantas = 2;\nprintf(\"media %f\\n\", (double)soma / quantas);\n```\n\n```text\nmedia 7.500000\n```"
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "qual-laco-para-tamanho-desconhecido",
+      "statement": "Entrada de tamanho desconhecido pede o `while` com a leitura na condição: ele pergunta antes de cada volta, inclusive antes da primeira.",
+      "question": "Você vai ler notas sem saber quantas são, e a lista pode até vir vazia. Qual laço serve?",
+      "options": [
+        "O `for`: conte de 1 até o número de notas e leia uma a cada volta.",
+        "O `do..while`: ele é o laço próprio para ler o que a pessoa digita.",
+        "O `while` com a leitura na condição: ele pergunta antes da volta.",
+        "Qualquer um dos três: o que muda entre eles é só o jeito de escrever."
+      ],
+      "answerIndex": 2,
+      "feedback": "O `for` precisa do número de voltas escrito antes de começar — e é justamente esse número que falta. O `do..while` roda o corpo antes de perguntar, então com lista vazia ele processaria uma nota que ninguém digitou. Só o `while` testa primeiro.",
+      "sectionId": "qual-laco-para-lista-sem-tamanho",
+      "optionRationales": [
+        "Esse número de notas é justamente o que você não tem antes de começar a ler.",
+        "O `do..while` roda o corpo antes de perguntar: com lista vazia ele trabalha uma nota que não veio.",
+        "O `while` testa a condição antes de cada volta — e aqui a condição é a própria leitura.",
+        "A diferença não é de escrita: é QUANDO cada laço pergunta, e só o `while` pergunta antes da primeira volta."
+      ]
+    },
+    {
+      "id": "o-acumulador-nasce-fora-do-laco",
+      "statement": "Os acumuladores nascem FORA do laço e crescem dentro — e uma volta só alimenta todas as contas.",
+      "question": "O que acontece se `int soma = 0;` for escrita DENTRO do corpo do laço?",
+      "options": [
+        "Nada muda: o lugar da declaração não altera o resultado da conta.",
+        "Cada volta cria uma soma nova em 0, e ao fim sobra a última nota.",
+        "A soma acumula do mesmo jeito, só que o programa fica mais lento.",
+        "O compilador recusa: declarar variável dentro de um laço não é permitido."
+      ],
+      "answerIndex": 1,
+      "feedback": "A declaração com inicializador roda a cada volta, então `soma` volta a 0 antes de somar. E o nome criado dentro do corpo nem existe depois do laço, onde o resultado seria impresso. É por isso que o acumulador nasce antes do `while`.",
+      "sectionId": "varias-contas-numa-volta",
+      "optionRationales": [
+        "O lugar muda tudo: dentro do corpo, o inicializador `= 0` roda de novo a cada volta.",
+        "Cada volta zera a soma antes de somar, e o nome de dentro do corpo não sobrevive ao laço.",
+        "Não é questão de velocidade: a conta fica ERRADA, porque a soma reinicia em 0 toda volta.",
+        "Declarar dentro de um laço é permitido em C — o problema é que a variável renasce a cada volta."
+      ]
+    },
+    {
+      "id": "a-media-pede-o-cast",
+      "statement": "A média de inteiros precisa do cast antes da barra: nem a caixa `double` nem o `%f` recuperam o que a divisão inteira cortou.",
+      "question": "Com `soma` valendo 15 e `quantas` valendo 2, o que `double media = soma / quantas;` deixa o `printf(\"media %f\\n\", media);` mostrar?",
+      "options": [
+        "`media 7.500000` — a caixa `double` faz a conta virar real.",
+        "`media 7.000000` — a divisão entre inteiros já cortou a metade.",
+        "`media 7` — o `%f` não põe casas quando a conta é inteira.",
+        "`media 8.000000` — a divisão entre inteiros arredonda para cima."
+      ],
+      "answerIndex": 1,
+      "feedback": "`soma / quantas` é divisão entre dois inteiros: o resultado é 7, já sem a metade, e a caixa real só guarda esse 7. Para a conta nascer real, o cast vem antes da barra: `(double)soma / quantas`.",
+      "sectionId": "a-media-precisa-do-cast",
+      "optionRationales": [
+        "A caixa só GUARDA o que recebeu; quem decide se a conta é real é o cast, antes da barra.",
+        "Os dois lados são `int`, a divisão corta e entrega 7 — que a caixa real mostra como 7.000000.",
+        "O `%f` sempre imprime casas decimais; o que ele recebeu aqui é que já estava cortado.",
+        "A divisão inteira não arredonda: ela descarta a parte quebrada, então 15 / 2 dá 7, não 8."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/while",
+      "description": "A página oficial do `while`: a condição é avaliada ANTES de cada volta — é o que torna esse laço o certo para uma lista que pode vir vazia."
+    },
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da `scanf`: o valor devolvido é o número de campos atribuídos — o número que serve de condição do laço de leitura."
+    },
+    {
+      "title": "Cast operator — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/cast",
+      "description": "A página oficial do cast em C: o tipo entre parênteses converte o operando ANTES da conta, e é o que faz a média de inteiros nascer real."
+    }
+  ],
+  "challenges": [
+    "estatisticas-de-notas"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

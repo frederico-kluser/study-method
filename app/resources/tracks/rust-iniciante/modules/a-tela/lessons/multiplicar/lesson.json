@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "multiplicar",
+  "title": "Multiplicar",
+  "summary": "O `*` multiplica os valores dos dois lados e produz um número novo.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "op:binary:*",
+  "concepts": [
+    "multiplicacao"
+  ],
+  "prerequisites": [
+    "o-valor-que-entra"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:*",
+      "node:BinaryExpression"
+    ],
+    "receptive": [
+      "op:unary:-",
+      "node:UnaryExpression"
+    ],
+    "derived": [
+      {
+        "chave": "node:BinaryExpression",
+        "de": "op:binary:*"
+      },
+      {
+        "chave": "node:UnaryExpression",
+        "de": "op:unary:-"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-sinal-de-vezes",
+      "title": "O sinal de vezes",
+      "markdown": "Com um valor entrando pela porta, dá para fazer conta com ele. O `*` é o sinal de VEZES:\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\nO `x * 2` é uma EXPRESSÃO: ela lê o valor de cada lado do `*`, multiplica os dois e produz um número NOVO. Esse número é o que a função entrega.\n\nChamada com `2`, ela devolve `4`; chamada com `10`, devolve `20`."
+    },
+    {
+      "id": "os-dois-lados-do-sinal",
+      "title": "Os dois lados do sinal",
+      "markdown": "Dos dois lados do `*` cabe qualquer valor — o parâmetro de um lado e o número fixo do outro, em qualquer ordem:\n\n```rust\npub fn triplo(x: i32) -> i32 {\n    3 * x\n}\n```\n\nO `3 * x` daqui e o `x * 3` dão o mesmo resultado. O espaço em volta do `*` também é só para ler melhor: `x*2` faz a mesma conta que `x * 2`.\n\nO costume em Rust é deixar um espaço de cada lado do operador."
+    },
+    {
+      "id": "o-numero-negativo",
+      "title": "O número negativo (só leitura)",
+      "markdown": "Um número pode chegar com um `-` na frente: `-3` é o três NEGATIVO. Esse `-` colado no número inverte o sinal dele.\n\nA conta não muda de regra por causa disso:\n\n```rust\ndobro(-3)\n```\n\nChamada com `-3`, a função de cima entrega `-6`. E o negativo também cabe do outro lado do `*`:\n\n```rust\npub fn dobro_negativo(x: i32) -> i32 {\n    x * -2\n}\n```\n\nHoje o `-` é só LEITURA: você vai reconhecê-lo em testes e mensagens. Escrevê-lo é assunto do módulo da decisão."
+    },
+    {
+      "id": "a-conta-e-o-valor",
+      "title": "A conta é o valor",
+      "markdown": "Repare no que a função entrega: não é a conta escrita, é o RESULTADO dela.\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\nQuando alguém chama `dobro` com `10`, o Rust põe o `10` no lugar de `x`, faz a conta e a função entrega `20`.\n\nVale a pena escrever a conta em vez de escrever o resultado pronto: a MESMA função serve para qualquer número que chegar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-vezes-produz-valor",
+      "statement": "O `*` lê os dois valores ao lado dele e produz um número novo.",
+      "question": "Com o corpo `x * 2`, o que `dobro(10)` entrega?",
+      "options": [
+        "20",
+        "12",
+        "102",
+        "2"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `10` entra em `x`, a conta `10 * 2` produz 20, e é isso que volta.",
+      "sectionId": "o-sinal-de-vezes"
+    },
+    {
+      "id": "a-ordem-nao-muda",
+      "statement": "O número fixo pode ficar de qualquer lado do `*`.",
+      "question": "Com o corpo `3 * x`, o que `triplo(4)` entrega?",
+      "options": [
+        "12",
+        "34",
+        "7",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "`3 * 4` é 12 — e `x * 3` daria o mesmo.",
+      "sectionId": "os-dois-lados-do-sinal"
+    },
+    {
+      "id": "o-menos-inverte-o-sinal",
+      "statement": "O `-` colado na frente de um número inverte o sinal dele.",
+      "question": "Com o corpo `x * 2`, o que `dobro(-3)` entrega?",
+      "options": [
+        "-6",
+        "6",
+        "-3",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `-3` entra em `x`; `-3 * 2` é -6.",
+      "sectionId": "o-numero-negativo"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Data Types — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-02-data-types.html",
+      "description": "O capítulo oficial dos tipos, com as operações aritméticas sobre os inteiros."
+    },
+    {
+      "title": "Operator Expressions — The Rust Reference",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores, onde o `*` da multiplicação é definido."
+    }
+  ],
+  "challenges": [
+    "dobre-o-numero"
+  ]
+}

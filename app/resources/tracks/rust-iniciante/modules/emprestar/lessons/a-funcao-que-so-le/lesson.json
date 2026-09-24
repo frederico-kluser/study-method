@@ -39,18 +39,18 @@
       "statement": "A assinatura &str aceita o dono emprestado (&String vira &str na porta) e a fatia crua.",
       "question": "Quem assina `&str` aceita chegar de que formas?",
       "options": [
-        "O dono emprestado e a fatia crua",
-        "Só a fatia crua",
-        "Só o dono emprestado",
-        "Nem um nem outro"
+        "As duas formas: o dono emprestado e a fatia crua",
+        "Só a fatia crua, porque o dono pede a porta &String",
+        "Só o dono emprestado: a literal não tem caixa",
+        "Nenhuma das duas sem um to_string antes"
       ],
       "answerIndex": 0,
       "feedback": "O &str é a porta larga: quem lê, assina ele.",
       "optionRationales": [
         "O & do dono se vira &str na porta da função — e o literal já nasce &str.",
-        "O literal cru passa, mas o dono emprestado também.",
-        "O literal cru não cabe em &String — só o dono.",
-        "As duas formas passam: é o ponto da assinatura."
+        "A fatia crua passa, e o &String do dono também vira &str na porta.",
+        "A literal não tem caixa String para emprestar, mas ela já é um &str.",
+        "Nenhum to_string é preciso: as duas formas entram como estão."
       ]
     },
     {
@@ -59,18 +59,18 @@
       "statement": "Quem só lê o texto assina &str: a assinatura mais larga é a mais útil.",
       "question": "Por que assinar `&str` em vez de `&String`?",
       "options": [
-        "Porque aceita os dois textos — o dono emprestado e a fatia crua",
-        "Porque &String não existe",
-        "Porque o len só funciona com &str",
-        "Porque fica mais rápido para copiar"
+        "Porque aceita os dois: o dono emprestado e a fatia crua",
+        "Porque o &String é a porta de quem vai mudar o texto de fora",
+        "Porque o len só existe no &str, nunca no &String emprestado",
+        "Porque o &str é mais rápido: copia menos que o &String"
       ],
       "answerIndex": 0,
       "feedback": "&String estreita a porta: o literal ficaria de fora.",
       "optionRationales": [
         "A assinatura larga recebe mais: quem chama não é obrigado a criar caixa.",
-        "&String existe — só aceita menos.",
-        "O len funciona nos dois; a diferença é quem pode chegar.",
-        "Não há cópia em nenhuma das assinaturas."
+        "Mudar o texto pede &mut String; o &String também só lê, igual ao &str.",
+        "O len funciona nos dois; a diferença é quem pode chegar na porta.",
+        "Não há cópia em nenhuma das duas: as duas só emprestam o texto."
       ]
     }
   ],

@@ -2,22 +2,110 @@
   "schemaVersion": 1,
   "slug": "gavetas-vazias",
   "title": "Gavetas vazias",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O inicializador entre chaves pode ser mais curto que a caixa: os valores escritos entram nas primeiras gavetas, na ordem, e todas as que sobram nascem em 0.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:InitListExpr",
+  "concepts": [
+    "gavetas_vazias"
+  ],
   "prerequisites": [
     "a-caixa-com-gavetas"
   ],
+  "introduces": {
+    "productive": [
+      "node:InitListExpr",
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "decl:var",
+        "de": "node:InitListExpr"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa deixa de exigir um valor por gaveta: o inicializador curto passa a ser um contrato — o que foi escrito entra na ordem e o que sobrou nasce em zero",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-inicializador-pode-ser-curto",
+      "title": "O inicializador pode ser curto",
+      "markdown": "Na caixa com gavetas, os valores entre chaves eram um por gaveta. Não precisa ser:\n\n```c\nint v[5] = {1, 2};\n```\n\nO `[5]` continua mandando: a caixa tem cinco gavetas. As chaves só disseram o que vai nas duas primeiras — e o C não deixa as outras três ao acaso. Ele as preenche com **zero**.\n\n```c\nint v[5] = {1, 2};\nprintf(\"%d %d %d\\n\", v[2], v[3], v[4]);\n```\n\n```text\n0 0 0\n```\n\nO inicializador parcial é um contrato: o que você escreveu entra na ordem, o resto nasce em 0."
+    },
+    {
+      "id": "a-caixa-inteira-em-zero",
+      "title": "A caixa inteira em zero",
+      "markdown": "Se as gavetas que sobram nascem em zero, **um** valor zera a caixa inteira:\n\n```c\nint dias[7] = {0};\nprintf(\"%d\\n\", dias[6]);\n```\n\n```text\n0\n```\n\n`= {0}` é a forma que o C usa para \"comece tudo zerado\": o 0 vai para a primeira gaveta e a regra do parcial cuida das outras seis.\n\nCuidado com o caso sem chaves nenhuma: `int dias[7];` **não** zera nada. As gavetas ficam com o que estava na memória, e ler isso é comportamento indefinido — pode sair qualquer número. Quem garante o zero é o `= {0}`."
+    },
+    {
+      "id": "o-que-entra-nas-chaves",
+      "title": "O que entra nas chaves",
+      "markdown": "Entre as chaves cabe qualquer valor do tipo da caixa — inclusive o que veio de outro nome:\n\n```c\nint a = 7;\nint b = 3;\nint v[5] = {a, b};\nprintf(\"%d %d %d\\n\", v[0], v[1], v[2]);\n```\n\n```text\n7 3 0\n```\n\nAs duas primeiras gavetas copiaram `a` e `b`; as três de trás continuam em 0, pela mesma regra.\n\nOnde a analogia da caixa quebra: o zero das gavetas de trás não é \"vazio\". É o número 0, de verdade — e ele entra em conta, em comparação e em `printf` como qualquer outro."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-resto-nasce-em-zero",
+      "statement": "`int v[5] = {1, 2};` deixa as outras três gavetas em 0.",
+      "question": "Depois de `int v[5] = {1, 2};`, quanto vale `v[3]`?",
+      "options": [
+        "0 — gaveta que o inicializador não cobriu nasce em zero.",
+        "2 — o último valor das chaves se repete nas seguintes.",
+        "Qualquer número: a gaveta fica com o que havia ali.",
+        "Nada: as chaves criaram duas gavetas, e `v[3]` não existe."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem manda no tamanho é o `[5]`; as chaves só preenchem o começo. As gavetas de trás nascem em 0 — e o 0 é um valor de verdade, não um lugar vazio.",
+      "sectionId": "o-inicializador-pode-ser-curto",
+      "optionRationales": [
+        "O `[5]` criou cinco gavetas; as que ficaram fora das chaves são preenchidas com zero.",
+        "Nada se repete: o inicializador entra na ordem e para onde os valores acabam.",
+        "Isso vale para `int v[5];` — SEM chaves. Com chaves, mesmo parciais, o resto é zerado.",
+        "As gavetas vieram do `[5]`, não da quantidade de valores: `v[3]` existe e vale 0."
+      ]
+    },
+    {
+      "id": "zerar-a-caixa-inteira",
+      "statement": "`= {0}` zera a caixa inteira; sem chaves nenhuma, o conteúdo é indefinido.",
+      "question": "Qual das duas linhas garante as sete gavetas em zero?",
+      "options": [
+        "`int dias[7] = {0};` — a regra do parcial zera o resto.",
+        "`int dias[7];` — toda caixa nova já nasce zerada em C.",
+        "As duas: escrever `= {0}` é só um jeito mais claro.",
+        "Nenhuma: zerar as sete gavetas exige escrever sete zeros."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `= {0}` põe zero na primeira gaveta, e a regra do inicializador parcial cuida das outras seis. Sem chaves, o conteúdo é o que estava na memória — ler isso é comportamento indefinido.",
+      "sectionId": "a-caixa-inteira-em-zero",
+      "optionRationales": [
+        "O 0 entra na gaveta 0 e a regra do parcial preenche as outras seis com zero.",
+        "Sem inicializador as gavetas ficam com o que havia na memória: nada é garantido.",
+        "São diferentes: uma zera as sete, a outra não zera nenhuma.",
+        "Um zero basta: é exatamente o que a regra do inicializador parcial resolve."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array initialization — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array_initialization",
+      "description": "A regra oficial do inicializador entre chaves, incluindo o que acontece com os elementos que ficam de fora."
+    },
+    {
+      "title": "Arrays — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C: o tamanho entre colchetes, o tipo das gavetas e o índice que começa em zero."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.7.9 manda inicializar implicitamente com zero os elementos que o inicializador não alcança."
+    }
+  ],
+  "challenges": [
+    "zeros-garantidos"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

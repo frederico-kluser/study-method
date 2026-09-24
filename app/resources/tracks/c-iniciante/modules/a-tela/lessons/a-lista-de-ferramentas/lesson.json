@@ -2,22 +2,126 @@
   "schemaVersion": 1,
   "slug": "a-lista-de-ferramentas",
   "title": "O inventário de cima",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A linha #include <stdio.h> entrega ao compilador a lista das ferramentas de entrada e saída — e sem ela ele não sabe o que printf é.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:IncludeDirective",
+  "concepts": [
+    "a_lista_de_ferramentas"
+  ],
   "prerequisites": [
     "primeira-tela"
   ],
+  "introduces": {
+    "productive": [
+      "node:IncludeDirective"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "cabeçalho"
+  ],
+  "notionalMachineDelta": "o arquivo deixa de começar na função: acima dela existe uma linha que ENTREGA ao compilador a lista das ferramentas que o programa vai usar — e o que não está na lista o compilador não conhece",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-linha-que-estava-la",
+      "title": "A linha que estava lá desde o começo",
+      "markdown": "Desde a primeira aula o seu arquivo abre com esta linha. Você só a lia; agora ela é sua:\n\n```c\n#include <stdio.h>\n```\n\nLeia em voz alta: *inclua stdio ponto h*. `stdio` é o apelido de **st**andard **i**nput/**o**utput — entrada e saída padrão —, e o `printf` é uma das ferramentas que moram nessa caixa. Um arquivo de lista como esse se chama **cabeçalho**.\n\nO `#include` não copia a ferramenta para dentro do seu programa: ele copia a LISTA — o nome e o formato de cada ferramenta —, para o compilador saber que elas existem."
+    },
+    {
+      "id": "sem-a-lista-o-compilador-para",
+      "title": "Sem a lista, o compilador para",
+      "markdown": "Apague a linha e chame o `printf` do mesmo jeito. O compilador procura `printf` nas listas que recebeu, não encontra, e para dizendo exatamente o que falta:\n\n```text\nerror: call to undeclared library function 'printf'\nnote: include the header <stdio.h>\n```\n\nCom a lista no lugar, o mesmo arquivo compila:\n\n```c\n#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"agora o printf tem ficha na lista\\n\");\n}\n```\n\nE ela vai em CIMA porque o compilador lê o arquivo de cima para baixo: a lista tem de chegar antes do primeiro uso."
+    },
+    {
+      "id": "uma-caixa-para-cada-assunto",
+      "title": "Uma caixa para cada assunto",
+      "markdown": "Não existe uma lista só. Cada assunto tem a sua caixa, e você inclui as que usa:\n\n```c\n#include <math.h>\n#include <string.h>\n```\n\n`math.h` traz as contas de matemática (raiz quadrada, potência); `string.h`, as ferramentas de texto. Nesta trilha o `stdio.h` basta por muitas aulas — as outras chegam quando o conteúdo pedir.\n\nOs sinais `<` e `>` dizem \"procure nas caixas que vêm com o compilador\". Existe também a forma com aspas, para as caixas que VOCÊ escrever — bem mais para a frente."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sem-o-include-o-compilador-avisa",
+      "statement": "Sem `#include <stdio.h>` o compilador não sabe o que `printf` é e avisa na compilação.",
+      "question": "Você apagou a linha `#include <stdio.h>` e deixou o `printf` no corpo da função. O que acontece?",
+      "options": [
+        "O compilador reclama na compilação e não gera o programa.",
+        "O programa compila e roda, mas a frase sai em branco.",
+        "O programa compila e roda igual: o `#include` é um comentário.",
+        "O compilador troca o `printf` por outra ferramenta parecida."
+      ],
+      "answerIndex": 0,
+      "feedback": "A lista é o que apresenta o `printf` ao compilador. Sem ela ele não conhece o nome e avisa na hora de compilar — nos compiladores de hoje isso é erro, e o programa não nasce.",
+      "sectionId": "sem-a-lista-o-compilador-para",
+      "optionRationales": [
+        "O compilador não encontra `printf` em lista nenhuma, avisa citando o cabeçalho que falta e não gera o programa.",
+        "Não há programa para rodar: a reclamação acontece antes, na compilação.",
+        "O `#include` não é comentário: é a linha que entrega a lista ao compilador.",
+        "O compilador não adivinha nem substitui nomes — ele exige a declaração da ferramenta."
+      ]
+    },
+    {
+      "id": "o-include-traz-a-lista",
+      "statement": "O `#include` entrega ao compilador a LISTA das ferramentas, não as ferramentas.",
+      "question": "O que `#include <stdio.h>` coloca no seu arquivo?",
+      "options": [
+        "A lista com o nome e o formato das ferramentas de entrada e saída.",
+        "O código inteiro do `printf`, copiado linha por linha para o seu arquivo.",
+        "Uma ordem para mostrar algo na tela sem escrever `printf`.",
+        "Uma cópia de todos os programas em C já escritos até hoje."
+      ],
+      "answerIndex": 0,
+      "feedback": "O cabeçalho é um inventário: nome e formato de cada ferramenta. O código do `printf` já vem pronto com o sistema — a lista só o apresenta ao compilador.",
+      "sectionId": "a-linha-que-estava-la",
+      "optionRationales": [
+        "O cabeçalho é um inventário de nomes e formatos: é o que o compilador precisa para aceitar a chamada.",
+        "O código do `printf` não é copiado: ele já existe pronto, fora do seu arquivo.",
+        "Quem mostra na tela é a chamada `printf(...)`; o `#include` não imprime nada.",
+        "É só a lista de UMA caixa — a de entrada e saída —, não um depósito de programas."
+      ]
+    },
+    {
+      "id": "a-lista-vem-antes-do-uso",
+      "statement": "O `#include` fica no alto porque o compilador lê o arquivo de cima para baixo.",
+      "question": "Por que a linha do `#include` fica no ALTO do arquivo?",
+      "options": [
+        "Porque o compilador lê de cima para baixo: a lista vem antes do uso.",
+        "Porque em C toda linha que começa com `#` tem de ser a primeira do arquivo.",
+        "Porque fica mais organizado; o lugar em si não muda nada.",
+        "Porque o programa começa a rodar pela primeira linha do arquivo."
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador não volta atrás: quando ele chega no `printf`, ou o nome já foi apresentado, ou ele para. Por isso a lista vem antes de quem a usa.",
+      "sectionId": "sem-a-lista-o-compilador-para",
+      "optionRationales": [
+        "O compilador lê o arquivo em ordem: o que ele ainda não viu, ele não conhece.",
+        "Não é uma regra sobre o `#`: é sobre ordem de leitura — a lista antes do uso.",
+        "Muda tudo: abaixo do uso, a lista chega tarde e a compilação para.",
+        "O programa começa a rodar pelo `main`, não pela primeira linha do arquivo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Source file inclusion (#include) — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/preprocessor/include",
+      "description": "A página oficial do #include: a forma com < > e a forma com aspas."
+    },
+    {
+      "title": "Standard library header <stdio.h> — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/header/stdio",
+      "description": "O inventário do stdio.h: tudo o que essa caixa declara, printf incluído."
+    },
+    {
+      "title": "stdio(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/stdio.3.html",
+      "description": "A biblioteca de entrada e saída padrão descrita pelo sistema."
+    }
+  ],
+  "challenges": [
+    "include-proprio"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

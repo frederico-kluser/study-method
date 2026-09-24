@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "trocar-os-valores",
+  "title": "Trocar os valores",
+  "concept": "mudar_o_valor",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Trocar os valores\n\nA função `trocarOsValores` já começa com duas variáveis declaradas: `cofre` guardando **7** e `gaveta` guardando **2**. O seu trabalho é fazer as duas **trocarem de valor** e então imprimir as duas.\n\nA tela deve ficar exatamente assim:\n\n```text\ncofre: 2\ngaveta: 7\n```\n\nO caminho tem uma armadilha: se você escrever `cofre = gaveta;` primeiro, o 7 se perde na hora e não há como devolvê-lo. Guarde o valor de `cofre` numa **terceira** variável antes de sobrescrevê-lo — uma variável pode nascer com o valor de outra.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* o programa de fora chama trocarOsValores() pelo nome */\nvoid trocarOsValores(void) {\n    int cofre = 7;\n    int gaveta = 2;\n\n    /* troque os valores das duas variaveis aqui:\n       1. guarde o valor de cofre numa terceira variavel\n       2. ponha o valor de gaveta em cofre\n       3. ponha o valor guardado em gaveta */\n\n    printf(\"cofre: %d\\n\", cofre);\n    printf(\"gaveta: %d\\n\", gaveta);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio trocar-os-valores — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid trocarOsValores(void);\n\nSM_TEST(os_dois_valores_trocados) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    trocarOsValores();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o cofre depois da troca\", linha, \"cofre: 2\\n\",\n              \"depois da troca o cofre guarda o 2 que estava na gaveta\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta depois da troca\", linha, \"gaveta: 7\\n\",\n              \"o 7 do cofre so sobrevive a troca se estiver guardado num terceiro nome\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid trocarOsValores(void) {\n    int cofre = 7;\n    int gaveta = 2;\n\n    int guardado = cofre;\n    cofre = gaveta;\n    gaveta = guardado;\n\n    printf(\"cofre: %d\\n\", cofre);\n    printf(\"gaveta: %d\\n\", gaveta);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "os_dois_valores_trocados",
+      "teste": "os_dois_valores_trocados",
+      "descricao": "a funcao trocarOsValores troca os valores de cofre e gaveta usando um terceiro nome e imprime \"cofre: 2\" e \"gaveta: 7\", nesta ordem; o terceiro checa_str prova que a saida termina ali"
+    }
+  ]
+}

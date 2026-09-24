@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "conversor-de-unidades",
+  "title": "O conversor de unidades",
+  "concept": "o_conversor_de_unidades",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O conversor de unidades\n\nO projeto do módulo: três caixas que trabalham juntas.\n\n```text\ndouble metrosParaCentimetros(double metros)\ndouble quilosParaGramas(double quilos)\ndouble conversorDeUnidades(int opcao, double valor)\n```\n\n**As duas caixas de conversão** devolvem o valor convertido e não imprimem nada:\n\n- 1 metro tem 100 centímetros;\n- 1 quilo tem 1000 gramas.\n\n**A caixa que escolhe** recebe a opção do menu e o valor, e usa um `switch` na opção:\n\n- opção `1` → devolve o comprimento convertido, chamando `metrosParaCentimetros`;\n- opção `2` → devolve a massa convertida, chamando `quilosParaGramas`;\n- qualquer outra opção → devolve o valor **como veio**, sem converter.\n\nOs protótipos das duas caixas de conversão já estão no topo do arquivo: é o cartaz que autoriza `conversorDeUnidades` a chamá-las antes de o compilador ler as definições.\n\nO menu com `do-while` e `scanf` que você viu na teoria não entra aqui: quem escolhe a opção é o teste, que chama `conversorDeUnidades` com o número direto.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* os cartazes das duas caixas de conversao: o compilador le de cima para\n   baixo, e e isto que autoriza a caixa de escolha a chama-las mais abaixo. */\ndouble metrosParaCentimetros(double metros);\ndouble quilosParaGramas(double quilos);\n\n/* 1) 1 metro tem 100 centimetros — troque o 0.0 pela conta */\ndouble metrosParaCentimetros(double metros) {\n    return 0.0;\n}\n\n/* 2) 1 quilo tem 1000 gramas */\ndouble quilosParaGramas(double quilos) {\n    return 0.0;\n}\n\n/* 3) a caixa que escolhe: um switch na opcao.\n      1 -> comprimento, 2 -> massa, qualquer outra -> o valor como veio. */\ndouble conversorDeUnidades(int opcao, double valor) {\n    return 0.0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio conversor-de-unidades — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: sem captura de stdout. O teste declara os prototipos das tres\n   caixas do aluno e confere os valores devolvidos com checa_double. Todos os\n   valores tem representacao binaria exata (metades e quartos), por isso a\n   comparacao por igualdade e legitima (prova-c regra 12). */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\ndouble metrosParaCentimetros(double metros);\ndouble quilosParaGramas(double quilos);\ndouble conversorDeUnidades(int opcao, double valor);\n\nSM_TEST(a_opcao_1_converte_comprimento) {\n    checa_double(\"2.5 metros em centimetros\", conversorDeUnidades(1, 2.5), 250.0,\n                 \"a opcao 1 manda o valor para a caixa de comprimento\");\n}\n\nSM_TEST(a_opcao_2_converte_massa) {\n    checa_double(\"1.5 quilos em gramas\", conversorDeUnidades(2, 1.5), 1500.0,\n                 \"a opcao 2 manda o mesmo valor para a caixa de massa\");\n}\n\nSM_TEST(opcao_desconhecida_devolve_o_valor) {\n    checa_double(\"opcao 9 nao converte\", conversorDeUnidades(9, 7.25), 7.25,\n                 \"nenhum case casa com 9: a caixa devolve o valor como veio\");\n}\n\nSM_TEST(as_caixas_de_conversao_sozinhas) {\n    checa_double(\"meio metro em centimetros\", metrosParaCentimetros(0.5), 50.0,\n                 \"a caixa de comprimento multiplica por 100\");\n    checa_double(\"um quarto de quilo em gramas\", quilosParaGramas(0.25), 250.0,\n                 \"a caixa de massa multiplica por 1000\");\n}\n",
+  "solutionCode": "double metrosParaCentimetros(double metros);\ndouble quilosParaGramas(double quilos);\n\ndouble metrosParaCentimetros(double metros) {\n    return metros * 100.0;\n}\n\ndouble quilosParaGramas(double quilos) {\n    return quilos * 1000.0;\n}\n\ndouble conversorDeUnidades(int opcao, double valor) {\n    switch (opcao) {\n        case 1:\n            return metrosParaCentimetros(valor);\n        case 2:\n            return quilosParaGramas(valor);\n    }\n    return valor;\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "a_opcao_1_converte_comprimento",
+      "teste": "a_opcao_1_converte_comprimento",
+      "descricao": "conversorDeUnidades(1, 2.5) devolve 250.0: o case 1 do switch chama a caixa de comprimento e devolve o que ela calculou"
+    },
+    {
+      "id": "a_opcao_2_converte_massa",
+      "teste": "a_opcao_2_converte_massa",
+      "descricao": "conversorDeUnidades(2, 1.5) devolve 1500.0 — a mesma caixa de escolha, outro case, outra caixa de conversao"
+    },
+    {
+      "id": "opcao_desconhecida_devolve_o_valor",
+      "teste": "opcao_desconhecida_devolve_o_valor",
+      "descricao": "conversorDeUnidades(9, 7.25) devolve 7.25: nenhum case casa, e a saida do switch devolve o valor sem converter"
+    },
+    {
+      "id": "as_caixas_de_conversao_sozinhas",
+      "teste": "as_caixas_de_conversao_sozinhas",
+      "descricao": "metrosParaCentimetros(0.5) devolve 50.0 e quilosParaGramas(0.25) devolve 250.0 — cada caixa de conversao funciona chamada por conta propria"
+    }
+  ]
+}

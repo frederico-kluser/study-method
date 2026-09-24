@@ -49,17 +49,17 @@
       "question": "No `o_bilhete_de`, o que a resposta `Err(String::from(\"idade negativa\"))` carrega?",
       "options": [
         "O motivo de o bilhete não ter sido emitido",
-        "O bilhete com a idade negativa",
-        "Uma caixa vazia",
-        "O número da idade"
+        "O bilhete emitido mesmo com a idade negativa",
+        "Uma caixa vazia, sem valor e sem motivo",
+        "O número da idade que entrou na função"
       ],
       "answerIndex": 0,
       "feedback": "`Err` carrega o MOTIVO: por que o pedido falhou — aqui, uma String com a explicação.",
       "optionRationales": [
         "Isso: o `Err` é o braço da falha, e o que ele carrega é a explicação.",
-        "Bilhete nenhum foi emitido: idade negativa não vira bilhete.",
-        "Caixa vazia é `None`, do `Option` — o `Err` explica, não esvazia.",
-        "O `i32` chegou como argumento; o `Err` carrega uma String, não a idade."
+        "Idade negativa cai no `Err`: bilhete nenhum foi emitido nesse caminho.",
+        "Caixa vazia é o `None`, do `Option` — o `Err` explica em vez de esvaziar.",
+        "O `i32` chegou como argumento; o `Err` carrega a String do motivo, não a idade."
       ]
     },
     {
@@ -69,16 +69,16 @@
       "question": "O que o diamante `Result<String, String>` declara?",
       "options": [
         "O Ok carrega um String e o Err também carrega uma String",
-        "O Ok carrega uma String e o Err carrega nada",
-        "As duas variantes carregam um i32",
-        "O Result é uma struct com dois campos"
+        "O Ok carrega uma String e o Err não carrega nada",
+        "O Ok carrega o i32 da idade e o Err carrega a String do motivo",
+        "O Result é uma struct com dois campos String"
       ],
       "answerIndex": 0,
       "feedback": "Primeiro tipo = conteúdo do Ok; segundo = conteúdo do Err. Aqui, os dois são String.",
       "optionRationales": [
         "Isso: `Result<String, String>` — o acerto e o motivo têm os SEUS tipos, na ordem.",
-        "No Result as duas variantes carregam: o Err sempre tem o motivo do tipo E.",
-        "O i32 nem aparece: os dois tipos declarados são String.",
+        "No Result as duas variantes carregam: o Err sempre traz o motivo, do tipo E.",
+        "O diamante declara o tipo das VARIANTES, não o do argumento: o `i32` é só a idade que entra, e as duas posições aqui são String.",
         "Result é um ENUM (conjunto de variantes), não uma struct de campos."
       ]
     }

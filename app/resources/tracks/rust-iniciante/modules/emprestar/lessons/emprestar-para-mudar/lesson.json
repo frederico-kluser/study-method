@@ -41,9 +41,9 @@
       "question": "Em `texto: &mut String`, o que o `&mut` promete?",
       "options": [
         "Que quem recebe PODE escrever na caixa do dono",
-        "Que o texto será copiado",
-        "Que o texto é dono da função",
-        "Que a caixa é maior"
+        "Que o texto será copiado antes de mudar",
+        "Que a função passa a ser a dona da caixa do chamador",
+        "Que a função devolve a caixa mudada no fim"
       ],
       "answerIndex": 0,
       "feedback": "&mut é empréstimo com caneta: escreve na caixa alheia.",
@@ -51,7 +51,7 @@
         "O mut do empréstimo abre a caixa do dono para escrita.",
         "Nada é copiado: a mesma caixa é aberta pela ponta.",
         "Quem empresta é o chamador — a função só recebe a ponta.",
-        "O tamanho da caixa não muda com o mut."
+        "A mudança chega pela ponta, não pelo retorno: grava devolve só o tamanho."
       ]
     },
     {
@@ -62,7 +62,7 @@
       "options": [
         "O rótulo mudou: a mesma caixa, escrita pela ponta",
         "O rótulo vazio",
-        "Uma cópia do rótulo novo",
+        "Uma cópia do rótulo novo, perdida no fim da função",
         "O rótulo antigo intacto"
       ],
       "answerIndex": 0,
@@ -70,7 +70,7 @@
       "optionRationales": [
         "A ponta apontava para a caixa do chamador — o push_str escreveu nela.",
         "A caixa não esvazia: ela ganha texto.",
-        "Não há cópia — a escrita foi na caixa original.",
+        "Não há cópia — a escrita foi na caixa original, e ela fica.",
         "Intacto seria o empréstimo de leitura; aqui a promessa era mudar."
       ]
     }

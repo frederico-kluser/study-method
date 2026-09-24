@@ -5,6 +5,8 @@
   "order": 1,
   "lessons": [
     "a-primeira-funcao",
+    "o-valor-que-entra",
+    "multiplicar",
     "somar",
     "chamar-a-funcao",
     "a-mensagem-montada",

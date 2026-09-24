@@ -27,6 +27,10 @@
  * desafio). Sem challengeError o prompt é byte-idêntico ao fluxo normal;
  * 'next' continua determinístico e ignora o erro.
  *
+ * LAC (pré-requisito faltante): as regras 3 e 4 do prompt do sistema mudaram —
+ * o racional, o número medido e a limitação estão no comentário de
+ * `buildSystemPrompt`, junto do texto que elas governam.
+ *
  * PURE/DI: `chat` injetável (testes com fake; produção = llmClient).
  */
 
@@ -137,13 +141,36 @@ function buildSystemPrompt(input: TutorChatInput): string {
   // ONDA1 (error-contract): o contexto de erro é um BLOCO ADICIONAL ao final
   // do prompt — sem challengeError o texto retorna byte-idêntico ao fluxo
   // normal (sem regressão); com challengeError + 'answer', o bloco entra.
+  //
+  // LAC (pré-requisito que não existe em aula nenhuma). A regra 3 mandava
+  // responder "é um assunto avançado e sugira seguir o curso" — a resposta
+  // errada exatamente no caso em que seguir o curso NÃO entrega a construção,
+  // porque ela não está em aula nenhuma. Agora a regra 3 separa dois casos:
+  //   (i) o assunto vem ADIANTE e o material diz em qual aula → nomeia a aula,
+  //       ensina o mínimo que destrava a dúvida de agora, volta ao passo;
+  //   (ii) nenhuma aula ensina → LACUNA DO CURSO: ensina o mínimo e REGISTRA na
+  //       última linha da resposta, no mesmo formato de LAC-3 da skill de
+  //       tutoria (skills/study-method/SKILL.md), que é o que a autoria do
+  //       curso consome para transformar a lacuna em aula nova.
+  // A regra 4 deixou de mandar "revise a aula anterior" quando não há nenhuma:
+  // prereqTitles vazio imprime "(nenhuma)", e mandar revisar o nada é
+  // auto-engano. O caso não é hipotético — 9 das 330 aulas dos 3 cursos não
+  // declaram pré-requisito nenhum, e são as primeiras de cada trilha:
+  //   cd app && python3 -c "import json,glob; print(sum(1 for p in glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json') if not json.load(open(p)).get('prerequisites')), 'aulas sem prerequisites de', len(glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json')))"
+  //   -> 9 aulas sem prerequisites de 330
+  // LIMITAÇÃO DECLARADA: o payload traz só prereqTitles (aulas ANTERIORES). Não
+  // há lista das aulas POSTERIORES, então o caso (i) só dispara quando o próprio
+  // texto da aula nomeia a aula futura; sem isso a dúvida cai no caso (ii), que
+  // é o lado seguro (ensina + registra) — nunca o "assunto avançado".
   const base = `Você é o tutor do curso "${trackTitle}" do study-method. Está ensinando a aula "${lesson.title}" (resumo: ${lesson.summary}).
 
 REGRAS (obrigatórias):
 1. Fale em PORTUGUÊS, linguagem simples, como um professor de verdade: frases curtas, analogias do dia a dia, zero jargão sem explicar.
 2. NUNCA apresente mais de UMA seção por vez. O aluno avança seção a seção.
-3. NUNCA invente conteúdo que não está no material abaixo. Se a dúvida fugir do escopo da aula, diga que é um assunto avançado e sugira seguir o curso.
-4. Se o aluno disser que NÃO entendeu, ofereça revisar uma aula anterior da trilha (títulos disponíveis: ${prereqs}) e/ou uma nova analogia do MESMO conteúdo.
+3. NUNCA invente conteúdo que não está no material abaixo. Quando a dúvida do aluno exigir algo que o material desta aula não traz, escolha entre DOIS casos — e NUNCA responda "é assunto avançado, siga o curso":
+   (i) o assunto é ensinado ADIANTE no curso e o material acima deixa claro em qual aula: diga em que aula ele chega, ensine SÓ o mínimo que destrava a dúvida de agora (um exemplo curto que roda de verdade, nunca uma descrição do que você acha que aconteceria) e volte ao passo da aula;
+   (ii) você não consegue apontar NENHUMA aula que ensine isso: é LACUNA DO CURSO — nomeie a construção que falta pelo termo exato, ensine o mínimo do mesmo jeito, volte ao passo da aula e diga ao aluno que a falta é do material, não dele. Termine a resposta com uma última linha exatamente neste formato, para a lacuna ser registrada e virar aula nova: LACUNA DO CURSO: <termo exato> · aula "${lesson.title}" · dúvida do aluno: "<a pergunta dele>"
+4. Se o aluno disser que NÃO entendeu, ofereça uma nova analogia do MESMO conteúdo e/ou revisar uma aula anterior da trilha — mas SÓ quando houver alguma na lista (títulos disponíveis: ${prereqs}). Se a lista for "(nenhuma)", NÃO mande revisar aula nenhuma: diga que esta aula não declara pré-requisito e reexplique aqui mesmo, do começo, por outro caminho.
 5. NUNCA mostre URLs ou fontes — as fontes não aparecem no chat.
 6. Termine a apresentação de cada seção com UMA pergunta curta para o aluno checar se entendeu (ou um convite: "o que você quer saber?").
 

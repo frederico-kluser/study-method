@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "verdadeiro-e-falso-com-nome",
   "title": "Dar nome à verdade",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um segundo bilhete no topo do arquivo — `#include <stdbool.h>` — traz o tipo `bool` e os nomes `true` e `false` para guardar a resposta de uma comparação.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IncludeDirective",
+  "concepts": [
+    "a_flag_verdadeiro_ou_falso"
+  ],
   "prerequisites": [
     "negacao"
   ],
+  "introduces": {
+    "productive": [
+      "node:IncludeDirective",
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o 0 e o 1 das comparações ganham nome: o arquivo passa a ter mais de um bilhete no topo, e a resposta de uma pergunta pode ser guardada num nome que se lê como verdade ou mentira",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "mais-um-bilhete-no-topo",
+      "title": "Mais um bilhete no topo",
+      "markdown": "Você já escreveu `#include <stdio.h>`: o bilhete que avisa o compilador sobre o `printf`. O topo do arquivo aceita mais de um bilhete, um por linha:\n\n```c\n#include <stdio.h>\n#include <stdbool.h>\n```\n\nO segundo traz três palavras novas: `bool`, `true` e `false`.\n\nSem ele, o compilador não conhece a palavra `bool` e para na hora da compilação — do mesmo jeito que parava sem o `stdio.h` do `printf`. O bilhete não muda o que o programa faz; ele diz ao compilador quais palavras existem."
+    },
+    {
+      "id": "o-tipo-que-so-tem-dois-valores",
+      "title": "Um nome para sim e não",
+      "markdown": "`bool` é um tipo de caixa, como o `int` — mas cabem nele só dois valores, e cada um tem nome:\n\n```c\n#include <stdbool.h>\n\nbool aprovado = true;\nbool devendo = false;\nprintf(\"%d\\n\", aprovado);\n```\n\n```text\n1\n```\n\n`true` é outro nome para **1** e `false` é outro nome para **0** — por isso o `%d` continua servindo: não há um `%` próprio para `bool`.\n\nO bilhete aparece em cada exemplo daqui para frente porque é ele que faz a palavra `bool` existir."
+    },
+    {
+      "id": "a-flag-guarda-a-resposta",
+      "title": "A flag guarda a resposta",
+      "markdown": "Uma comparação já devolve 0 ou 1 — e o `bool` é a caixa com o nome certo para essa resposta:\n\n```c\n#include <stdbool.h>\n\nint nota = 8;\nbool passou = nota >= 6;\nprintf(\"%d\\n\", passou);\n```\n\n```text\n1\n```\n\nUma caixa assim se chama **flag** (bandeira): ela fica levantada (1) ou baixada (0).\n\nOnde o nome engana: guardar `true` não faz o C escrever \"true\" na tela. O nome é para QUEM LÊ o código; a tela recebe o número."
+    },
+    {
+      "id": "a-flag-como-condicao",
+      "title": "A flag como condição",
+      "markdown": "Sendo a resposta pronta, a flag serve direto como condição — sem comparação nenhuma dentro do `if`:\n\n```c\n#include <stdbool.h>\n\nbool passou = true;\nif (passou) {\n    printf(\"aprovado\\n\");\n}\n```\n\n```text\naprovado\n```\n\nA pergunta foi feita uma vez, guardada na flag, e depois só consultada. É o mesmo `if` de sempre: ele roda o bloco quando a condição é diferente de zero — e `true` é 1.\n\nCom `false` na flag, o bloco seria pulado."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "bool-imprime-zero-ou-um",
+      "statement": "`bool` guarda 0 ou 1 com os nomes `false` e `true` — e imprime com `%d`.",
+      "question": "Depois de `bool aprovado = true;`, o que `printf(\"%d\\n\", aprovado);` mostra na tela?",
+      "options": [
+        "1",
+        "true",
+        "0",
+        "aprovado"
+      ],
+      "answerIndex": 0,
+      "feedback": "`true` é outro nome para 1, e é o 1 que está guardado na caixa. O nome existe para quem lê o código; a tela recebe o número.",
+      "sectionId": "o-tipo-que-so-tem-dois-valores",
+      "optionRationales": [
+        "`true` é outro nome para 1, e o `%d` mostra o número guardado: 1.",
+        "A palavra `true` é do código-fonte; ela nunca chega à tela pelo `%d`.",
+        "0 é o valor de `false` — o oposto do que foi guardado nesta caixa.",
+        "`aprovado` é o nome da caixa; o `%d` mostra o valor dentro dela, não o nome."
+      ]
+    },
+    {
+      "id": "sem-o-bilhete-nao-ha-bool",
+      "statement": "Sem `#include <stdbool.h>` o compilador não conhece a palavra `bool`.",
+      "question": "Um arquivo usa `bool aprovado = true;` e tem só `#include <stdio.h>` no topo. O que acontece?",
+      "options": [
+        "Roda igual: `bool` é palavra da própria linguagem e não precisa de bilhete algum.",
+        "A compilação para: falta o `#include <stdbool.h>` que traz `bool`.",
+        "Roda, mas imprime `true` em vez de 1.",
+        "Roda, e a caixa passa a aceitar qualquer número inteiro."
+      ],
+      "answerIndex": 1,
+      "feedback": "No C11 as palavras `bool`, `true` e `false` vêm de `stdbool.h`. Sem o bilhete, o compilador não sabe o que `bool` é e reclama antes de rodar.",
+      "sectionId": "mais-um-bilhete-no-topo",
+      "optionRationales": [
+        "No C11 `bool` não é palavra da linguagem: ela vem do bilhete `stdbool.h`.",
+        "É o mesmo erro do `printf` sem `stdio.h`: falta apresentar a palavra ao compilador.",
+        "O que sai na tela depende do `%d`, não do bilhete — e sem ele o programa nem compila.",
+        "O que a caixa aceita é assunto do tipo, e sem o bilhete o tipo `bool` não existe para o compilador."
+      ]
+    },
+    {
+      "id": "a-comparacao-cabe-na-flag",
+      "statement": "Uma comparação cabe direto num `bool`: `bool passou = nota >= 6;` guarda a resposta pronta.",
+      "question": "Com `int nota = 4;`, o que fica guardado em `passou` depois de `bool passou = nota >= 6;`?",
+      "options": [
+        "O número 4, que é o valor da nota.",
+        "O número 6, que é o valor comparado.",
+        "O número 0, porque 4 não alcança 6.",
+        "Nada: comparação só pode ir dentro de um `if`."
+      ],
+      "answerIndex": 2,
+      "feedback": "A comparação é uma conta: ela devolve 0 ou 1, e é esse número que a flag guarda. Com nota 4 a resposta é não, ou seja, 0.",
+      "sectionId": "a-flag-guarda-a-resposta",
+      "optionRationales": [
+        "A nota está na sua própria caixa; na flag entra a RESPOSTA da comparação, não a nota.",
+        "O 6 é o lado direito da pergunta; ele também não é a resposta dela.",
+        "4 não alcança 6: a comparação devolve 0, e é o 0 que a flag guarda.",
+        "A comparação é uma conta como `2 + 3`: ela vale em qualquer lugar onde um número serve."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Boolean type support library — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/types/boolean",
+      "description": "A página oficial do tipo booleano em C e dos nomes `true` e `false`."
+    },
+    {
+      "title": "Standard library header <stdbool.h> — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/header/stdbool",
+      "description": "O que o bilhete `#include <stdbool.h>` traz para o seu arquivo, item por item."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 (C11) — o rascunho público N1570",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C que esta trilha usa: a seção 7.18 define `<stdbool.h>`, com `true` valendo 1 e `false` valendo 0."
+    }
+  ],
+  "challenges": [
+    "flag-de-aprovado"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

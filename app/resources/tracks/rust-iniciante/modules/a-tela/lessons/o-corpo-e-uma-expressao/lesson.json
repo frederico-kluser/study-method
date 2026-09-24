@@ -10,7 +10,7 @@
     "corpo_expressao"
   ],
   "prerequisites": [
-    "a-primeira-funcao"
+    "multiplicar"
   ],
   "introduces": {
     "productive": [
@@ -42,10 +42,10 @@
       "statement": "A última expressão do corpo, sem `;`, é o que a função devolve.",
       "question": "O que a função com corpo `x * 2` (sem `;`) devolve?",
       "options": [
-        "O resultado de x * 2",
-        "nada",
-        "x",
-        "2"
+        "O resultado da conta x * 2",
+        "O valor de x, sem a conta",
+        "Nada: o corpo não devolve",
+        "Um erro: falta o ; no fim."
       ],
       "answerIndex": 0,
       "feedback": "Sem `;`, a última linha é a expressão devolvida.",
@@ -57,9 +57,9 @@
       "question": "O que o `;` em `x * 2;` faz com o valor de `x * 2`?",
       "options": [
         "Descarta ele: a linha vira instrução.",
-        "Dobra ele.",
-        "Guarda ele no nome x.",
-        "Nada: é só estilo."
+        "Devolve ele igual: o tipo i32 garante.",
+        "Guarda ele para a próxima linha usar.",
+        "Nada: o ponto e vírgula é só decoração."
       ],
       "answerIndex": 0,
       "feedback": "Com `;` a linha executa e produz nada — a devolução se perde.",

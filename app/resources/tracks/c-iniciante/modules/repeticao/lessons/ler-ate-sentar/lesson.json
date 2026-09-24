@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "ler-ate-sentar",
   "title": "Ler até sentar",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A scanf devolve quantos campos ela conseguiu ler — e esse número serve de condição: o laço lê enquanto ainda vier número, e para no valor combinado.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:scanf",
+  "concepts": [
+    "o_retorno_do_scanf"
+  ],
   "prerequisites": [
     "para",
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "api:scanf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a entrada deixa de ter tamanho conhecido: o programa passa a descobrir quando a leitura acabou olhando o que a scanf devolveu, em vez de contar de antemão quantos números vêm",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-scanf-devolve-um-numero",
+      "title": "A scanf devolve um número",
+      "markdown": "A `scanf` não devolve o número digitado — ele vai para o nome que você passou com o `&`. O que ela DEVOLVE é outra coisa: **quantos campos ela conseguiu preencher**.\n\n```c\nint n = 0;\nint lidos = scanf(\"%d\", &n);\nprintf(\"%d\\n\", lidos);\n```\n\nCom `7` digitado sai `1`: um campo pedido, um campo preenchido. Se a pessoa digitar `oi`, o `%d` não casa com letra, nada entra em `n` e a devolução é `0`. E, quando a entrada acaba de vez, a `scanf` devolve um valor especial de fim de arquivo — que também não é 1."
+    },
+    {
+      "id": "essa-devolucao-vira-condicao",
+      "title": "Essa devolução vira condição",
+      "markdown": "Se a devolução é um número, ela cabe numa comparação — e comparação é o que um laço aceita como condição:\n\n```c\nint n = 0;\nwhile (scanf(\"%d\", &n) == 1) {\n    printf(\"li %d\\n\", n);\n}\n```\n\nCom `4 5` digitados e mais nada (a linha que você digita aparece primeiro):\n\n```text\n4 5\nli 4\nli 5\n```\n\nCada teste da condição faz UMA leitura. As duas deram certo e rodaram o corpo; a terceira não devolveu 1 e o laço parou. A leitura mora DENTRO da condição."
+    },
+    {
+      "id": "parar-num-valor-combinado",
+      "title": "Parar num valor combinado",
+      "markdown": "Quase sempre a parada é combinada: \"digite números; termine com um negativo\". Aí a condição tem dois pedaços, e o `&&` exige os dois verdadeiros:\n\n```c\nint n = 0;\nint soma = 0;\nwhile (scanf(\"%d\", &n) == 1 && n >= 0) {\n    soma += n;\n}\nprintf(\"%d\\n\", soma);\n```\n\n```text\n5 7 3 -1\n15\n```\n\nO `-1` é lido (o primeiro lado dá 1), mas reprova o `n >= 0` — e o laço para ANTES de somar o `-1`. O valor combinado avisa o fim e fica de fora da conta."
+    },
+    {
+      "id": "a-devolucao-fora-do-laco",
+      "title": "A devolução fora do laço",
+      "markdown": "Fora do laço a devolução continua sendo um número comum, e o `&&` continua valendo 1 só quando os dois lados valem. Aqui duas leituras viram uma conta só:\n\n```c\nint a = 0;\nint b = 0;\nint deu = scanf(\"%d\", &a) == 1 && scanf(\"%d\", &b) == 1;\nprintf(\"%d\\n\", deu);\n```\n\nCom `4 9` digitados sai `1`: as duas leituras deram certo. Com só o `4` e o fim da entrada sai `0` — a segunda falhou. É o mesmo número que, dentro do `while`, decide se vem outra volta."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-que-o-scanf-devolve",
+      "statement": "A scanf devolve QUANTOS campos leu — é por isso que ela pode ser condição de laço.",
+      "question": "Depois de `int lidos = scanf(\"%d\", &n);` com `7` digitado, quanto vale `lidos`?",
+      "options": [
+        "7 — a `scanf` devolve o número que a pessoa digitou.",
+        "1 — um campo foi pedido e um campo foi preenchido.",
+        "0 — a `scanf` nunca devolve nada útil, só preenche o nome.",
+        "2 — ela conta o `%d` e o `&n` como dois campos."
+      ],
+      "answerIndex": 1,
+      "feedback": "O valor digitado vai para `n`, pelo `&`. O que volta da chamada é a CONTAGEM de campos preenchidos: 1 aqui, 0 se a leitura não casar com o `%d`.",
+      "sectionId": "o-scanf-devolve-um-numero",
+      "optionRationales": [
+        "O 7 vai para dentro de `n` — é isso que o `&` pede. A devolução é a contagem, não o valor.",
+        "Um `%d` no formato, um campo preenchido: a contagem devolvida é 1.",
+        "Ela devolve sim: é a contagem de campos, e é ela que diz se a leitura deu certo.",
+        "O `&n` não é um campo: ele diz ONDE guardar o único campo que o `%d` pede."
+      ]
+    },
+    {
+      "id": "a-leitura-dentro-da-condicao",
+      "statement": "No laço `while (scanf(\"%d\", &n) == 1)` a leitura acontece dentro da condição, antes de cada volta.",
+      "question": "Com `4 5` digitados e depois o fim da entrada, quantas vezes o corpo de `while (scanf(\"%d\", &n) == 1)` roda?",
+      "options": [
+        "Três: as duas leituras boas mais a tentativa que falhou.",
+        "Uma: a `scanf` lê os dois números numa chamada só.",
+        "Nenhuma: a condição é testada antes da primeira leitura, então o corpo nunca roda.",
+        "Duas: uma para o 4, uma para o 5; a terceira leitura falha e encerra."
+      ],
+      "answerIndex": 3,
+      "feedback": "Cada teste da condição faz UMA leitura. As duas que deram certo devolveram 1 e rodaram o corpo; a terceira não devolveu 1 e encerrou o laço sem rodar o corpo.",
+      "sectionId": "essa-devolucao-vira-condicao",
+      "optionRationales": [
+        "A leitura que falha reprova a condição — e condição falsa não roda o corpo.",
+        "Um `%d` lê um número por chamada; para pegar dois, a `scanf` é chamada duas vezes.",
+        "A condição é testada antes de cada volta, mas testá-la JÁ executa a `scanf` que está dentro dela.",
+        "Duas leituras boas, duas voltas; a terceira tentativa reprova a condição e não roda o corpo."
+      ]
+    },
+    {
+      "id": "o-valor-combinado-fica-de-fora",
+      "statement": "Com `&&`, o valor combinado de parada é lido mas não é usado: o laço acaba antes do corpo.",
+      "question": "Com `5 7 3 -1` digitados, o que `while (scanf(\"%d\", &n) == 1 && n >= 0) { soma += n; }` deixa em `soma`?",
+      "options": [
+        "15 — o `-1` reprova o segundo lado e o corpo não roda nele.",
+        "14 — o `-1` também entra na soma, porque já tinha sido lido.",
+        "16 — o `-1` entra na soma e o sinal negativo é ignorado.",
+        "0 — o `&&` só aceita quando os dois lados são o mesmo número."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `-1` é lido de verdade (o primeiro lado devolve 1), mas `n >= 0` é falso: o `&&` reprova a condição inteira e o laço acaba sem somar o `-1`. Sobra 5 + 7 + 3.",
+      "sectionId": "parar-num-valor-combinado",
+      "optionRationales": [
+        "5 + 7 + 3 dá 15, e o `-1` fica de fora porque a condição foi reprovada antes do corpo.",
+        "Ser lido não é ser somado: o corpo só roda quando a condição inteira é verdadeira.",
+        "A soma não ignora sinal; e, de todo modo, o corpo não roda na volta do `-1`.",
+        "O `&&` pede que os dois lados sejam verdadeiros, não que sejam iguais."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da `scanf`: o valor de retorno é o número de campos atribuídos, ou `EOF` se a falha vier antes do primeiro campo."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da mesma função descrita pelo sistema, com a seção RETURN VALUE que esta aula usa como condição de laço."
+    },
+    {
+      "title": "while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/while",
+      "description": "A página oficial do `while`: a condição é avaliada ANTES de cada volta — e por isso a chamada que mora nela também roda antes de cada volta."
+    }
+  ],
+  "challenges": [
+    "soma-ate-sentinela"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

@@ -2,20 +2,129 @@
   "schemaVersion": 1,
   "slug": "consolidacao-decisao",
   "title": "O projeto do módulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "As três formas de decidir do módulo juntas num programa: a porta com condição composta, a faixa em cascata e o menu de valores exatos — e quando cada uma é a forma certa.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "node:IfStmt",
+  "concepts": [
+    "o_projeto_da_decisao"
+  ],
+  "prerequisites": [
+    "se-senao",
+    "e-logico",
+    "em-cascata",
+    "escolher-por-valor",
+    "faixas-com-prioridade"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IfStmt",
+      "op:logical:&&"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "as decisões deixam de ser exercícios isolados e passam a ser peças de um programa: porta, faixa e menu combinadas, cada uma no lugar em que a forma da pergunta pede",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "tres-formas-de-decidir",
+      "title": "Três formas de decidir",
+      "markdown": "O módulo te deu três formas de decidir, e cada uma tem o seu lugar:\n\n- **porta** — `if`/`else` com condição composta: passa ou não passa;\n- **faixa** — cascata `else if`, testada de cima para baixo;\n- **menu** — `switch`, quando a resposta vem de valores EXATOS.\n\n```c\nint dia = 6;\nswitch (dia) {\n    case 6:\n        printf(\"folga\\n\");\n        break;\n    default:\n        printf(\"trabalho\\n\");\n        break;\n}\n```\n\n```text\nfolga\n```\n\nO `switch` compara o valor com constantes, uma por uma. Uma faixa não é constante — por isso faixa é sempre cascata."
+    },
+    {
+      "id": "a-porta-antes-da-faixa",
+      "title": "A porta vem antes da faixa",
+      "markdown": "A porta vem primeiro: ela decide se vale a pena continuar. Uma condição composta cobra os DOIS fatos de uma vez, antes de qualquer conta:\n\n```c\nint peso = 3;\nint distancia = 30;\nif (peso >= 1 && distancia >= 1) {\n    printf(\"pedido aceito\\n\");\n} else {\n    printf(\"dados invalidos\\n\");\n}\n```\n\n```text\npedido aceito\n```\n\nSem a porta, cada degrau da cascata teria de repetir a mesma checagem — e um degrau esquecido é um defeito silencioso."
+    },
+    {
+      "id": "a-faixa-de-frete",
+      "title": "A faixa que cobra duas medidas",
+      "markdown": "No frete, duas medidas decidem juntas: o peso e a distância. Cada degrau cobra as duas com `&&`:\n\n```c\nint peso = 2;\nint distancia = 250;\nif (peso >= 5 && distancia >= 100) {\n    printf(\"frete 50\\n\");\n} else if (peso < 5 && distancia >= 100) {\n    printf(\"frete 20\\n\");\n}\n```\n\n```text\nfrete 20\n```\n\nCom as duas medidas escritas em cada degrau, cada linha diz exatamente qual combinação ela cobre — e quem lê o código depois não precisa reconstruir a ordem de cabeça."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "cascata-ou-switch",
+      "statement": "O `switch` compara o valor com constantes exatas; faixas de valores pedem cascata.",
+      "question": "Você precisa decidir o frete por FAIXA de peso (até 5 kg, de 5 kg para cima). Qual forma serve?",
+      "options": [
+        "O `switch`, com `case peso >= 5:` no lugar da constante.",
+        "Nenhuma das duas: faixa de peso só se resolve com `switch` de `double`.",
+        "A cascata `else if`: faixa é comparação, e `case` só aceita constante exata.",
+        "O `switch`: basta escrever um `case` para cada uma das duas faixas de peso do frete."
+      ],
+      "answerIndex": 2,
+      "feedback": "Cada `case` casa com UM valor constante — não com um intervalo nem com uma comparação. Faixa é `>=` e `<`, e quem testa comparações em ordem é a cascata.",
+      "sectionId": "tres-formas-de-decidir",
+      "optionRationales": [
+        "`case` aceita constante, não condição: essa linha não compila.",
+        "Faixa de peso se resolve com cascata; e `switch` nem aceita `double` como valor testado.",
+        "A faixa é uma comparação, e comparação é o que a cascata testa degrau por degrau.",
+        "Um `case` por faixa exigiria um `case` por valor possível da faixa — não é o que `case` faz."
+      ]
+    },
+    {
+      "id": "cada-degrau-cobra-os-dois-fatos",
+      "statement": "Num degrau com `&&`, as duas medidas precisam ser verdadeiras para aquele degrau valer.",
+      "question": "Com `peso = 2` e `distancia = 250`, o degrau `if (peso >= 5 && distancia >= 100)` casa?",
+      "options": [
+        "Não: `2 >= 5` é 0, e o `&&` exige os dois lados.",
+        "Sim: a distância passou de 100, e isso basta.",
+        "Sim: o `&&` soma os dois resultados e 0 + 1 dá 1.",
+        "Não: o `&&` só funciona entre valores do mesmo nome."
+      ],
+      "answerIndex": 0,
+      "feedback": "O lado esquerdo deu 0, então a condição inteira é 0 e a cascata desce para o degrau seguinte. Bastar um lado seria o `||`.",
+      "sectionId": "a-faixa-de-frete",
+      "optionRationales": [
+        "`2 >= 5` é falso, e o `&&` só é verdadeiro com os dois lados verdadeiros.",
+        "Bastar um lado é o `||`; o `&&` cobra os dois.",
+        "O `&&` não soma: ele devolve 1 só quando os dois lados são verdadeiros.",
+        "O `&&` liga duas condições quaisquer — os nomes envolvidos não importam."
+      ]
+    },
+    {
+      "id": "a-porta-antes-da-conta",
+      "statement": "A porta é uma decisão só, no começo: ela evita repetir a mesma checagem em cada degrau da cascata.",
+      "question": "Por que a checagem de dados válidos fica numa porta no começo, e não dentro de cada degrau da cascata?",
+      "options": [
+        "Porque o C não permite condição composta dentro de uma cascata.",
+        "Porque a cascata roda todos os degraus, e a porta impede isso.",
+        "Porque a porta é mais rápida de rodar: o `&&` fica mais lento quando está escrito dentro de um `else if`.",
+        "Porque escrita uma vez ela vale para todos os degraus — e nenhum degrau pode esquecê-la."
+      ],
+      "answerIndex": 3,
+      "feedback": "Repetir a mesma condição em vários degraus é onde o esquecimento entra: um degrau sem a checagem responde errado e ninguém percebe. A porta concentra a regra num lugar só.",
+      "sectionId": "a-porta-antes-da-faixa",
+      "optionRationales": [
+        "Permite, sim: a seção do frete faz exatamente isso em cada degrau.",
+        "A cascata roda no máximo UM degrau; não é disso que a porta protege.",
+        "Velocidade não é o motivo, e o `&&` não muda de custo por estar num `else if`.",
+        "Uma regra num lugar só não pode ser esquecida num degrau — é o motivo real."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "switch statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/switch",
+      "description": "A página oficial do `switch` em C: cada `case` casa com uma constante inteira, e sem `break` a execução cai para o `case` de baixo."
+    },
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial do `&&` em C: exige os dois lados e para de avaliar assim que o esquerdo dá falso."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`/`else` em C — a peça de que a porta e a cascata são feitas."
+    }
+  ],
+  "challenges": [
+    "frete-da-loja"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

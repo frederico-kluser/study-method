@@ -2,20 +2,100 @@
   "schemaVersion": 1,
   "slug": "consolidacao-listas",
   "title": "O projeto do módulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O projeto que junta o módulo: ler uma lista, somar, achar a maior e ordenar — com o tamanho viajando junto da lista.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "a_lista"
+  ],
+  "prerequisites": [
+    "andar-de-ponteiro"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-tamanho-viaja-junto",
+      "title": "O tamanho viaja junto",
+      "markdown": "Toda função deste módulo que recebe uma lista recebe **duas** coisas: a lista e quantos itens ela tem. Não é capricho — é necessidade:\n\n```c\nint somar(int v[], int n) {\n    int soma = 0;\n    for (int i = 0; i < n; i++) {\n        soma = soma + v[i];\n    }\n    return soma;\n}\n```\n\nSem o `n`, o laço não teria onde parar. A lista que chega na função não carrega o próprio tamanho."
+    },
+    {
+      "id": "o-sizeof-nao-atravessa-a-porta",
+      "title": "O `sizeof` não atravessa a porta",
+      "markdown": "Lá fora, onde a lista foi declarada, `sizeof` sabe o tamanho dela. Dentro da função, não:\n\n```c\nvoid contar(int v[]) {\n    printf(\"%d\\n\", (int) (sizeof(v) / sizeof(v[0])));\n}\n```\n\nEsse cálculo dá `2` numa máquina de 64 bits, com qualquer lista — porque o que chegou foi o endereço do primeiro item, não a lista inteira. A analogia quebra aqui: a função não recebe a caixa, recebe o papel com o endereço dela."
+    },
+    {
+      "id": "as-tres-pecas-do-projeto",
+      "title": "As três peças do projeto",
+      "markdown": "O projeto deste módulo junta o que você já fez separado: **percorrer** para somar, **comparar** para achar o maior, e **trocar os vizinhos fora de ordem** para ordenar.\n\n```c\nint v[5] = {3, 1, 4, 1, 5};\nint j = 0;\nif (v[j + 1] > v[j]) {\n    int guardado = v[j];\n    v[j] = v[j + 1];\n    v[j + 1] = guardado;\n}\n```\n\nA troca usa um terceiro nome para não perder o valor — a mesma de `trocar-os-valores`, agora dentro do laço dentro do laço."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-tamanho-precisa-viajar",
+      "statement": "A lista que chega numa função não carrega o próprio tamanho: ele viaja como segundo parâmetro.",
+      "question": "Por que `somar(v, n)` recebe o `n` junto da lista?",
+      "options": [
+        "Porque a lista que chega não diz quantos itens tem.",
+        "Porque o `n` deixa a soma mais rápida de calcular.",
+        "Porque toda função em C aceita no máximo dois parâmetros.",
+        "Porque sem o `n` o compilador recusa o parâmetro `v[]`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O que chega na função é o endereço do primeiro item; quantos vêm depois dele é informação que só quem chamou tem.",
+      "sectionId": "o-tamanho-viaja-junto"
+    },
+    {
+      "id": "sizeof-dentro-da-funcao",
+      "statement": "Dentro da função, `sizeof` mede o endereço, não a lista.",
+      "question": "Dentro de `contar(int v[])`, quanto dá `sizeof(v) / sizeof(v[0])` com uma lista de 10 itens?",
+      "options": [
+        "2, porque o `v` ali é um endereço e não a lista.",
+        "10, porque o `sizeof` enxerga a lista que foi passada.",
+        "1, porque o `sizeof` de um endereço é o de um item.",
+        "40, porque são 10 itens de 4 bytes cada um."
+      ],
+      "answerIndex": 0,
+      "feedback": "Num sistema de 64 bits o endereço ocupa 8 bytes e cada `int` ocupa 4: a conta dá 2, com qualquer lista.",
+      "sectionId": "o-sizeof-nao-atravessa-a-porta"
+    },
+    {
+      "id": "a-troca-precisa-do-terceiro",
+      "statement": "A troca de dois itens vizinhos precisa de um terceiro nome para não perder valor.",
+      "question": "Na troca de `v[j]` com `v[j + 1]`, para que serve o nome `guardado`?",
+      "options": [
+        "Para segurar o primeiro valor antes de ele ser sobrescrito.",
+        "Para contar quantas trocas o laço já fez até agora.",
+        "Para marcar a posição onde a ordenação deve recomeçar.",
+        "Para somar os dois valores antes de escrever de volta."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o terceiro nome, escrever em `v[j]` apagaria o valor que ainda precisa ir para `v[j + 1]`.",
+      "sectionId": "as-tres-pecas-do-projeto"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — cppreference",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A referência do array, incluindo o que acontece com ele quando vira parâmetro de função."
+    },
+    {
+      "title": "sizeof operator — cppreference",
+      "url": "https://en.cppreference.com/w/c/language/sizeof",
+      "description": "O operador que mede o tipo — e por que, dentro da função, ele mede o endereço."
+    }
+  ],
+  "challenges": [
+    "as-vendas-do-dia"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

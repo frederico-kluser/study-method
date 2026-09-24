@@ -53,7 +53,14 @@
 import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
 import { listTrackSlugs, loadTrack, TrackLoadError, type LoadedTrack } from '../../electron/main/content/trackLoader';
-import { auditTrack, linhasDeLimitacoes, type AuditReport, type Violation } from '../../electron/main/engine/audit';
+import { auditarBarra } from '../../electron/main/engine/quality/barra';
+import {
+  auditTrack,
+  linhasDeLimitacoes,
+  linhasDoPlacarDaBarra,
+  type AuditReport,
+  type Violation,
+} from '../../electron/main/engine/audit';
 import {
   deriveTrackBudget,
   type BudgetSource,
@@ -136,6 +143,17 @@ import {
   type ResultadoDeLacuna,
 } from '../../electron/main/engine/modes/curriculumGap';
 import {
+  convergirTrilha,
+  criarLeitorDaCadeia,
+  lerAmbienteDoHost,
+  lerCommitDoGit,
+  ErroDeConvergencia,
+  type AcaoPlanejada,
+  type DepsDaConvergencia,
+  type ModoDeConvergencia,
+  type ResultadoDeConvergencia,
+} from '../../electron/main/engine/modes/convergencia';
+import {
   SCHEMA_REGISTRY,
 } from '../../electron/main/engine/schemas/artifacts';
 import { lintSchemasDaEngine } from '../../electron/main/engine/schemas/fieldOrder';
@@ -158,6 +176,33 @@ comandos:
       Nao usa LLM e nao precisa de chave de API.
       --dir DIR carrega a trilha de outro diretorio (ex.: content-src ou uma
       fixture de teste) — o slug vira so o ROTULO do relatorio.
+
+  barra <slug> [--modo declared|inferred] [--aula MOD/AULA] [--limite N]
+               [--json] [--dir DIR]
+      a BARRA PEDAGOGICA A17-A23, AGNOSTICA DE LINGUAGEM — o substituto da
+      bateria A13-A16 (que e javascript-only e o audit PULA declarando
+      A13-A16-NAO-RODOU em toda trilha python/rust/c). Nao usa LLM, nao precisa
+      de chave, nao escreve nada. Mede o que o orcamento A1-A4 nao pergunta:
+        A17 teto do passo        |produtivas novas colapsadas| <= 2
+        A18 primeira aula        aula 1 da trilha: <= 1 produtiva nova, e toda
+                                 chave lida fora do axioma com demo propria
+        A19 declarar != demonstrar  toda chave nova aparece em bloco cercado com
+                                 tag da linguagem NESTA aula
+        A20 aula sem prova       aula regular sem desafio, ou sem construcao
+                                 produtiva nova, nao e aula
+        A21 carga de novidade    |novas| <= 4 e secoes >= max(2, ceil(novas/2))
+        A22 duas formas          cada produtiva nova em >=2 formas distintas
+                                 (AVISO com contagem, nunca erro)
+        A24 vazamento do quiz    a opcao correta nao pode ser a MAIS LONGA em
+                                 TODA afirmacao da aula (erro); ser a mais longa
+                                 numa afirmacao e AVISO. Medido: o acaso e 25%
+                                 das afirmacoes, e o rust-iniciante estava em 73%
+        A23 derivada mal declarada  'introduces.derived' exige pai declarado e
+                                 CO-OCORRENCIA NA MESMA LINHA de um bloco da
+                                 aula — a regra do par deixa de ser prosa
+      --aula MOD/AULA restringe o relatorio a uma aula (o resto da trilha
+      continua sendo medido: o orcamento e cumulativo).
+      Exit 1 quando ha ERRO (A22 sozinho nao reprova); 2 em uso incorreto.
 
   coverage <slug> [--modo declared|inferred] [--limite N] [--json] [--dir DIR]
       o ALGORITMO DO DONO (peça central): sintetiza, para cada desafio, o
@@ -367,6 +412,58 @@ comandos:
       Exit 0 quando nao ha lacuna a fechar (ou o aplicar fechou todas); 1
       quando sobra lacuna, aula recusada ou bloqueio; 2 em erro estruturado.
 
+  convergir <slug> [--dir DIR] [--modo declared|inferred] [--json]
+                   [--max-iteracoes N] [--aplicar] [--limite N]
+      o LACO DE CONVERGENCIA RECURSIVO — "recursao sem fim na validacao ate o
+      curso estar ideal". Uma iteracao = MEDIR -> CLASSIFICAR -> PLANEJAR ->
+      (APLICAR) -> MEDIR DE NOVO, com os dois gates rodando EM MEMORIA (audit
+      A1-A6/DEC/I12-I17 + barra A17-A23), ZERO LLM, ZERO rede, sem chave de API.
+      DEFAULT = DRY-RUN.
+      CLASSIFICA cada achado em UM dos SEIS ramos, e o ramo decide a acao do
+      catalogo FECHADO (§6.7):
+        ORDEM        primeiraAulaQueEnsina != null -> REWRITE_IN_BUDGET ou o
+                     movimento que o 'reorder' prova
+        CADEIA       a chave nao e ensinada nesta trilha MAS e ensinada num
+                     curso ANTERIOR -> MOVE_CONCEPT_TO_ENTRY_BUDGET
+        LACUNA       nao e ensinada em lugar nenhum da cadeia -> INSERT_INTERMEDIATE
+        QUEBRA       A17/A18/A21, o passo e grande demais -> SPLIT_LESSON
+        DEMONSTRACAO A19/A22/A23, declarar nao e demonstrar -> REWRITE_IN_BUDGET
+        PROVA        A20, aula sem desafio/sem produtiva nova -> ADD_TEST /
+                     DECLARE_INTEGRATIVE
+      O PLANEJADOR DA QUEBRA usa os GRUPOS de co-ocorrencia de linha que a barra
+      publica e NUNCA parte um grupo (tres chaves da mesma linha sao UMA
+      construcao para o aluno): empacota os grupos em N aulas com no maximo 2
+      grupos produtivos e 4 chaves novas cada, 1 grupo produtivo na aula 1 da
+      trilha (A18), preservando a ordem de dependencia (grupo que aparece antes
+      na teoria vem antes). Para cada aula nova: slug, titulo, posicao
+      (imediatamente antes da aula original), prerequisites e a FICHA DE AUTORIA
+      (ensina/presume/quiz/desafio) — o mesmo campo 'autoria' das aulas-esqueleto
+      do c-iniciante. Grupo que SOZINHO estoura o teto de chaves nao e partido:
+      o plano prescreve declarar 'introduces.derived' (A23 colapsa o grupo em 1).
+      A PARADA, na ordem em que dispara — NAO EXISTE teto de rodadas por default:
+        PONTO-FIXO     achados vazio E nada aplicado          -> exit 0
+        CICLO          o hash do vetor de estado repete       -> PARA e ESCALA
+        SEM-PROGRESSO  nenhuma componente desceu e nada foi aplicado -> ESCALA
+        TETO           so com --max-iteracoes N
+      "Aceitar por cansaco" e PROIBIDO (§6.6): o laco escala em vez de fingir.
+      --aplicar grava SO o que e deterministico: (i) os movimentos de ORDEM pelo
+      caminho que o reorder.ts prova (aplica em memoria, re-deriva o orcamento e
+      so grava se a violacao alvo sumiu e nenhuma nova apareceu) e (ii) a QUEBRA
+      como ESQUELETOS — cria o diretorio da aula nova com lesson.json de
+      esqueleto + campo 'autoria', e atualiza o array 'lessons' do module.json na
+      posicao certa. NUNCA escreve prosa de teoria, quiz, fonte ou desafio (isso
+      e autoria) e NUNCA reescreve o 'introduces' de aula existente. A aula nova
+      nasce declarando o que precisa ser escrito, e a iteracao seguinte a reprova
+      por A20 — o que e CORRETO: o trabalho fica visivel no gate.
+      ESCRITA DECLARADA: o DRY-RUN tambem GRAVA o ledger auditavel (append-only,
+      uma linha JSON por iteracao) em
+      content-src/<slug>/convergencia/ledger.jsonl, com iteracao, commit,
+      ambiente, medicoes (comando + exit + placar), limitacoesDeclaradas, vetor,
+      achadosPorRamo, acoesPlanejadas, acoesAplicadas, hashDoVetor e veredito. E
+      a unica escrita do dry-run e ela e de REGISTRO, nao de conteudo.
+      Exit 0 SO em PONTO-FIXO; 1 em CICLO, SEM-PROGRESSO, TETO ou achados
+      remanescentes; 2 em uso incorreto.
+
   lint-schemas
       preflight do build sobre o SCHEMA_REGISTRY real (INV-04 ordem /
       INV-05 opcionais, P-33 incluso). Exit 2 em qualquer violacao.
@@ -554,6 +651,14 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
   // inteira nao rodou. Devolve [] quando nada faltou — imprimir e incondicional.
   for (const linha of linhasDeLimitacoes(report)) console.log(linha);
 
+  // O PLACAR DA BARRA, antes do placar geral e pelo mesmo motivo das limitações:
+  // `totals.violacoes` já SOMA os achados da barra desde a fiação, e um total
+  // sozinho não diz o que consertar — "27 violações" manda o autor ler 27
+  // achados, e "A24 27 erros" diz que o defeito é o QUIZ em 27 aulas. Devolve
+  // [] quando a barra não rodou (orçamento `inferred`), e aí a limitação
+  // declarada acima é que fala. Imprimir é incondicional.
+  for (const linha of linhasDoPlacarDaBarra(report)) console.log(linha);
+
   const pct = totals.desafios > 0 ? Math.round((totals.desafiosComViolacao / totals.desafios) * 100) : 0;
   const naoExecutadas = totals.checagensNaoExecutadas ?? 0;
   console.log('PLACAR');
@@ -628,6 +733,92 @@ async function cmdAudit(pos: string[], flags: Record<string, string>, bools: Set
   }
 
   process.exit(report.totals.violacoes > 0 ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// barra — a BARRA PEDAGÓGICA A17–A23, agnóstica de linguagem
+// ---------------------------------------------------------------------------
+
+/**
+ * `barra <slug>` — o substituto AGNÓSTICO DE LINGUAGEM da bateria A13–A16.
+ *
+ * A bateria A13–A16 é javascript-only e o `audit` a PULA declarando
+ * (`A13-A16-NAO-RODOU`) em toda trilha de Python, Rust ou C. Este comando é o
+ * que mede, nessas trilhas, o TAMANHO DO PASSO e a EXISTÊNCIA DA DEMONSTRAÇÃO
+ * — as duas perguntas que o orçamento A1–A4 não faz e que deixaram a aula 1 do
+ * `rust-iniciante` (11 chaves novas em 1 seção) sair do gate com 0 violações.
+ */
+async function cmdBarra(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- barra rust-iniciante)');
+
+  const modo = flags.modo as BudgetSource | undefined;
+  if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
+    fail(`--modo invalido: ${modo} (esperado declared ou inferred)`);
+  }
+  const limite = flags.limite ? Number.parseInt(flags.limite, 10) : 40;
+  if (!Number.isFinite(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+  const filtro = flags.aula;
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  // `--aula` RECORTA A MEDIÇÃO, não só a impressão (medido em 2026-09-22: a
+  // extração de demonstração spawna clang/python3 por bloco, e medir 115 aulas
+  // para relatar uma custava minutos ao autor que roda isto por aula escrita).
+  // O orçamento cumulativo continua vindo da trilha INTEIRA — ver
+  // `OpcoesDaBarra.apenas`.
+  const relatorio = auditarBarra(track, {
+    ...(modo !== undefined ? { modo } : {}),
+    ...(filtro !== undefined ? { apenas: [filtro] } : {}),
+  });
+
+  const achados = relatorio.achados;
+  const metricas = relatorio.metricas;
+  if (filtro !== undefined && metricas.length === 0) {
+    fail(`--aula ${filtro} nao existe na trilha (formato: <modulo>/<aula>)`);
+  }
+
+  if (bools.has('json')) {
+    console.log(JSON.stringify({ ...relatorio, achados, metricas }, null, 2));
+  } else {
+    console.log('');
+    console.log(`BARRA PEDAGOGICA (A17-A23) — ${relatorio.trackSlug} · adaptador ${relatorio.adapterId} · orcamento ${relatorio.budgetSource}`);
+    console.log('');
+    const erros = achados.filter((a) => a.severidade === 'erro');
+    const avisos = achados.filter((a) => a.severidade === 'aviso');
+    let impressos = 0;
+    for (const achado of [...erros, ...avisos]) {
+      if (impressos >= limite) {
+        console.log(`  ... (${achados.length - impressos} achado(s) a mais; use --limite ou --json)`);
+        break;
+      }
+      impressos += 1;
+      const rotulo = achado.severidade === 'erro' ? 'ERRO ' : 'aviso';
+      console.log(`  ${rotulo} [${achado.regra}] ${achado.ref}${achado.chave ? ` · ${achado.chave}` : ''}`);
+      console.log(`        evidencia: ${achado.evidencia}`);
+      console.log(`        ${achado.mensagem}`);
+      console.log(`        acao prescrita: ${achado.acao}`);
+    }
+    if (achados.length === 0) console.log('  nenhum achado.');
+    console.log('');
+    console.log('HISTOGRAMA (aula: produtivas novas / colapsadas / novas totais / secoes / blocos / sem demo / 1 forma / desafios)');
+    for (const m of metricas) {
+      const sinal =
+        m.produtivasColapsadas > 2 || m.novasTotais > 4 || m.chavesSemDemonstracao > 0 || m.desafios === 0 ? ' <-' : '';
+      console.log(
+        `  ${String(m.index + 1).padStart(3)} ${m.ref.padEnd(46)} ${String(m.produtivasNovas).padStart(2)} / ${String(m.produtivasColapsadas).padStart(2)} / ${String(m.novasTotais).padStart(2)} / ${String(m.secoesDeTeoria).padStart(2)} / ${String(m.blocosDeCodigo).padStart(2)} / ${String(m.chavesSemDemonstracao).padStart(2)} / ${String(m.chavesComUmaFormaSo).padStart(2)} / ${String(m.desafios).padStart(2)}${sinal}`,
+      );
+    }
+    console.log('');
+    console.log('PLACAR');
+    console.log(`  aulas ................................ ${relatorio.totais.aulas}`);
+    console.log(`  ERROS (A17-A21, A23-A24) ............. ${relatorio.totais.erros}`);
+    console.log(`  aulas com erro ....................... ${relatorio.totais.aulasComErro}`);
+    console.log(`  avisos (A22 formas · A24 quiz) ....... ${relatorio.totais.avisos}`);
+    console.log(`  blocos de teoria que nao parseiam .... ${relatorio.totais.blocosQueNaoParseiam}`);
+    console.log('');
+  }
+
+  process.exit(relatorio.totais.erros > 0 ? 1 : 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -1997,6 +2188,211 @@ async function cmdGap(pos: string[], flags: Record<string, string>, bools: Set<s
   process.exit(sobrou ? 1 : 0);
 }
 
+// ---------------------------------------------------------------------------
+// convergir — o LAÇO DE CONVERGÊNCIA RECURSIVO (§6, sem teto de rodadas)
+// ---------------------------------------------------------------------------
+
+/** Uma linha por ação planejada, na forma do §7.3 (arquivo + alvo + resultado). */
+function printAcoes(acoes: readonly AcaoPlanejada[], limite: number): void {
+  let impressas = 0;
+  for (const a of acoes) {
+    if (impressas >= limite) {
+      console.log(`  ... (${acoes.length - impressas} acao(oes) a mais; use --limite N ou --json)`);
+      break;
+    }
+    impressas += 1;
+    const marca = a.aplicavel ? 'APLICA' : '     -';
+    console.log(`  ${marca} [${a.ramo}] ${a.acao}  ${a.ref}`);
+    console.log(`         arquivo: ${a.arquivo ?? '(nenhum)'}  ·  alvo: ${a.alvo}`);
+    console.log(`         esperado: ${a.resultadoEsperado}`);
+    if (a.motivoNaoAplicavel !== null) console.log(`         nao aplicada: ${a.motivoNaoAplicavel}`);
+  }
+}
+
+function printConvergencia(resultado: ResultadoDeConvergencia, limite: number): void {
+  console.log('');
+  console.log(`TRILHA ${resultado.slug} — CONVERGENCIA (modo ${resultado.modo})`);
+  console.log('');
+
+  for (const it of resultado.iteracoes) {
+    console.log(`ITERACAO ${it.iteracao}  ·  hash do vetor ${it.hashDoVetor}  ·  mu ${it.mu}`);
+    for (const m of it.medicoes) {
+      console.log(`  medicao  exit ${m.exit}  ${m.comando}`);
+      console.log(`           ${m.placar}`);
+    }
+    console.log(
+      '  VETOR  orcamento ' +
+        `${it.vetor.violacoesDeOrcamento} · lacunas ${it.vetor.lacunasDeCurriculo} · barra ${it.vetor.errosDaBarra} · ` +
+        `excesso-de-passo ${it.vetor.excessoDePasso} · sem-demo ${it.vetor.chavesSemDemonstracao} · ` +
+        `sem-desafio ${it.vetor.aulasSemDesafio} · secoes-insuficientes ${it.vetor.secoesInsuficientes}`,
+    );
+    console.log(
+      '  RAMOS  ' +
+        Object.entries(it.achadosPorRamo)
+          .map(([ramo, n]) => `${ramo} ${n}`)
+          .join(' · ') +
+        ` · fora-dos-ramos ${it.achadosForaDosRamos}`,
+    );
+    if (it.limitacoesDeclaradas.length > 0) {
+      console.log(`  LIMITACOES DECLARADAS: ${it.limitacoesDeclaradas.join(', ')}`);
+    }
+    console.log(`  ACOES PLANEJADAS: ${it.acoesPlanejadas.length}`);
+    printAcoes(it.acoesPlanejadas, limite);
+    if (it.planosDeQuebra.length > 0) {
+      console.log(`  PLANOS DE QUEBRA: ${it.planosDeQuebra.length}`);
+      for (const p of it.planosDeQuebra.slice(0, limite)) {
+        console.log(
+          `    ${p.ref}  ${p.grupos.length} grupo(s) · teto de grupos produtivos na 1a aula do pacote: ${p.tetoDeGruposProdutivos}`,
+        );
+        for (const g of p.grupos) {
+          console.log(
+            `        grupo ${g.produtivo ? 'PRODUTIVO ' : 'receptivo '} [${g.chaves.join(', ')}]` +
+              `${g.acimaDoTetoDeChaves ? '  <- sozinho acima do teto de chaves' : ''}`,
+          );
+        }
+        for (const nova of p.aulasNovas) {
+          console.log(
+            `        AULA NOVA ${nova.ref}${nova.jaExiste ? ' (JA EXISTE — nada a criar)' : ''}  "${nova.titulo}"`,
+          );
+          console.log(`            entra antes de ${nova.inserirAntesDe} (indice ${nova.indiceNoModulo} do module.json)`);
+          console.log(`            ensina: ${nova.chaves.join(', ')}`);
+          console.log(`            prerequisites: ${nova.prerequisites.join(', ') || '(nenhum)'}`);
+          console.log(`            autoria.quiz: ${nova.autoria.quiz}`);
+          console.log(`            autoria.desafio: ${nova.autoria.desafio}`);
+        }
+        console.log(`        a aula original FICA com: ${p.chavesQueFicam.join(', ') || '(nada)'}`);
+        console.log(`        a aula original PERDE:    ${p.chavesQuePerde.join(', ') || '(nada)'}`);
+        for (const d of p.derivadasAPropor) {
+          console.log(
+            `        DERIVADAS A DECLARAR em ${d.aula}: ${JSON.stringify(d.derived)}`,
+          );
+        }
+        for (const decl of p.declaracoes) console.log(`        - ${decl}`);
+      }
+    }
+    if (it.acoesAplicadas.length > 0) {
+      console.log(`  ACOES APLICADAS: ${it.acoesAplicadas.length}`);
+      for (const a of it.acoesAplicadas) {
+        console.log(`    [${a.ramo}] ${a.acao} ${a.ref}`);
+        for (const arq of a.arquivos) console.log(`        ${arq}`);
+      }
+    }
+    console.log(`  veredito desta iteracao: ${it.veredito ?? '(segue)'}`);
+    console.log('');
+  }
+
+  if (resultado.foraDosRamos.length > 0) {
+    console.log(`ACHADOS FORA DOS SEIS RAMOS — ${resultado.foraDosRamos.length} (declarados, nunca improvisados)`);
+    for (const f of resultado.foraDosRamos.slice(0, limite)) {
+      console.log(`  [${f.regra}] ${f.ref}  ${f.mensagem}`);
+      console.log(`      ${f.motivo}`);
+    }
+    console.log('');
+  }
+
+  console.log('LIMITACOES DECLARADAS (§9.2 — nunca omitidas)');
+  for (const d of resultado.declaracoes) console.log(`  - ${d}`);
+  console.log('');
+
+  if (resultado.escritos.length > 0) {
+    console.log(`ARQUIVOS GRAVADOS: ${resultado.escritos.length}`);
+    for (const a of resultado.escritos.slice(0, 40)) console.log(`  ${a}`);
+    if (resultado.escritos.length > 40) console.log(`  ... e mais ${resultado.escritos.length - 40}`);
+    console.log('');
+  }
+
+  // `N passou · N falhou · N pendente`:
+  //   passou   = iteracoes que rodaram inteiras;
+  //   falhou   = achados de ERRO que sobraram na ultima iteracao;
+  //   pendente = achados fora dos seis ramos (nenhuma acao do catalogo os cobre).
+  const erros = resultado.achadosRemanescentes.filter((a) => a.severidade === 'erro').length;
+  console.log('PLACAR (convergir)');
+  console.log(`  VEREDITO: ${resultado.veredito}`);
+  console.log(`  ${resultado.iteracoes.length} passou · ${erros} falhou · ${resultado.foraDosRamos.length} pendente`);
+  console.log('');
+}
+
+async function cmdConvergir(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- convergir rust-iniciante)');
+
+  const modoOrcamento = flags.modo as BudgetSource | undefined;
+  if (modoOrcamento !== undefined && modoOrcamento !== 'declared' && modoOrcamento !== 'inferred') {
+    fail(`--modo invalido: ${modoOrcamento} (esperado declared ou inferred)`);
+  }
+  const limite = flags.limite ? Number.parseInt(flags.limite, 10) : 40;
+  if (!Number.isFinite(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+
+  // `--max-iteracoes` AUSENTE = SEM TETO. É o pedido do dono ("recursao sem fim
+  // na validacao"), e a razão de não haver default está provada no cabeçalho de
+  // `modes/convergencia.ts`: a medida μ é um inteiro não-negativo e cada ação
+  // aplicada ou a faz descer ou é idempotente — o laço para sozinho, por
+  // PONTO-FIXO, CICLO ou SEM-PROGRESSO. Um teto default seria exatamente o
+  // "PARE(failsafe) rodada 3" que o dono mandou tirar.
+  let maxIteracoes: number | undefined;
+  if (flags['max-iteracoes'] !== undefined) {
+    const n = Number.parseInt(flags['max-iteracoes'], 10);
+    if (!Number.isInteger(n) || n < 1) {
+      fail(
+        `--max-iteracoes invalido: ${flags['max-iteracoes']} (esperado inteiro >= 1). ` +
+          'Sem a flag NAO HA TETO — a parada e por PONTO-FIXO, CICLO ou SEM-PROGRESSO.',
+      );
+    }
+    maxIteracoes = n;
+  }
+
+  const modo: ModoDeConvergencia = bools.has('aplicar') ? 'aplicar' : 'dry-run';
+  const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
+  const ledger = path.join(CONTENT_SRC_DIR, slug, 'convergencia', 'ledger.jsonl');
+
+  const deps: DepsDaConvergencia = {
+    carregarTrilha: (s) => carregarTrilhaOuFalhar(s, dirTrilha),
+    gravarArquivo: async (arquivo, conteudo) => {
+      const destino = path.join(dirTrilha, arquivo);
+      await fsp.mkdir(path.dirname(destino), { recursive: true });
+      await escreverAtomico(destino, conteudo.endsWith('\n') ? conteudo : `${conteudo}\n`);
+    },
+    // O LEDGER é APPEND-ONLY: `appendFile`, nunca `escreverAtomico` (que é
+    // tmp + rename e APAGARIA as iterações anteriores). Uma linha JSON por
+    // iteração, nos DOIS modos — e o `--help` diz isso, porque escrita não
+    // declarada é defeito.
+    registrarNoLedger: async (linha) => {
+      await fsp.mkdir(path.dirname(ledger), { recursive: true });
+      await fsp.appendFile(ledger, `${linha}\n`, 'utf-8');
+    },
+    lerCommit: lerCommitDoGit,
+    lerAmbiente: lerAmbienteDoHost,
+    lerCadeia: criarLeitorDaCadeia(TRACKS_DIR),
+  };
+
+  let resultado: ResultadoDeConvergencia;
+  try {
+    resultado = await convergirTrilha(deps, {
+      slug,
+      modo,
+      ...(modoOrcamento !== undefined ? { opcoesDeAudit: { mode: modoOrcamento } } : {}),
+      ...(maxIteracoes !== undefined ? { maxIteracoes } : {}),
+    });
+  } catch (erro) {
+    console.error('');
+    if (erro instanceof ErroDeConvergencia) {
+      console.error(`erro estruturado [${erro.codigo}] na etapa ${erro.etapa}: ${erro.message}`);
+      process.exit(2);
+    }
+    console.error(`erro inesperado: ${erro instanceof Error ? (erro.stack ?? erro.message) : String(erro)}`);
+    process.exit(2);
+  }
+
+  if (bools.has('json')) console.log(JSON.stringify(resultado, null, 2));
+  else printConvergencia(resultado, limite);
+  console.error(`ledger (append-only, uma linha por iteracao): ${ledger}`);
+
+  // Exit 0 SO em PONTO-FIXO. CICLO, SEM-PROGRESSO, TETO e DRY-RUN com achado
+  // saem 1 — e DRY-RUN sem achado nenhum JA e PONTO-FIXO (o veredito e
+  // calculado antes do modo, ver a cascata em `convergencia.ts`).
+  process.exit(resultado.veredito === 'PONTO-FIXO' ? 0 : 1);
+}
+
 async function cmdLintSchemas(): Promise<void> {
   const resultado = lintSchemasDaEngine(SCHEMA_REGISTRY);
   if (resultado.ordem.length === 0 && resultado.camposOpcionais.length === 0) {
@@ -2027,6 +2423,9 @@ async function main(): Promise<void> {
     case 'audit':
       await cmdAudit(pos, flags, bools);
       break;
+    case 'barra':
+      await cmdBarra(pos, flags, bools);
+      break;
     case 'coverage':
       await cmdCoverage(pos, flags, bools);
       break;
@@ -2050,6 +2449,9 @@ async function main(): Promise<void> {
       break;
     case 'gap':
       await cmdGap(pos, flags, bools);
+      break;
+    case 'convergir':
+      await cmdConvergir(pos, flags, bools);
       break;
     case 'lint-schemas':
       await cmdLintSchemas();

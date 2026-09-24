@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "include-proprio",
+  "title": "O include é seu",
+  "concept": "a_lista_de_ferramentas",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O include é seu\n\nO arquivo está quase pronto: a função `includeProprio` já tem as duas ordens `printf` escritas. Falta a **lista de ferramentas** no alto — e sem ela o compilador não sabe o que `printf` é: ele reclama na compilação e o programa não nasce.\n\nAcrescente, no **alto** do arquivo — antes da função, que é quem usa o `printf` —, a linha que traz a caixa de entrada e saída. O comentário que abre o arquivo pode ficar onde está. Com ela no lugar, o programa compila e imprime:\n\n```text\na lista de cima apresenta o printf\nsem ela o compilador nao compila\n```\n\nNão mude o texto das frases nem o nome da função — só falta a linha de cima.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* FALTA a lista de ferramentas aqui em cima.\n   Sem ela o compilador nao conhece o printf: ele reclama na\n   compilacao e o programa nao nasce. Escreva a linha que falta. */\n\nvoid includeProprio(void) {\n    printf(\"a lista de cima apresenta o printf\\n\");\n    printf(\"sem ela o compilador nao compila\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio include-proprio — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Sem a linha do include no arquivo do aluno este desafio nem compila —\n   e falhar na compilacao e a prova de que a lista de cima e necessaria. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid includeProprio(void);\n\nSM_TEST(as_duas_linhas_da_lista) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    includeProprio();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha\", linha, \"a lista de cima apresenta o printf\\n\",\n              \"a primeira frase sai do primeiro printf, que so existe porque a lista o apresentou\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha\", linha, \"sem ela o compilador nao compila\\n\",\n              \"a segunda frase vem depois da quebra de linha da primeira\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid includeProprio(void) {\n    printf(\"a lista de cima apresenta o printf\\n\");\n    printf(\"sem ela o compilador nao compila\\n\");\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_duas_linhas_da_lista",
+      "teste": "as_duas_linhas_da_lista",
+      "descricao": "com o #include <stdio.h> acrescentado pelo aluno o arquivo COMPILA e a funcao includeProprio imprime as duas linhas na ordem — \"a lista de cima apresenta o printf\" e \"sem ela o compilador nao compila\" —, e a saida acaba na segunda linha; sem o include o desafio falha ainda na compilacao"
+    }
+  ]
+}

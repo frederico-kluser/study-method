@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "area-e-perimetro",
+  "title": "Área e perímetro",
+  "concept": "dois_parametros",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Área e perímetro\n\nDuas caixas, as **mesmas duas janelas**. Escreva as duas no seu arquivo:\n\n- `int area(int largura, int altura)` — devolve a área do retângulo: largura vezes altura.\n- `int perimetro(int largura, int altura)` — devolve o contorno: `2 * (largura + altura)`.\n\nAs duas recebem a largura **primeiro** e a altura **depois**, na mesma ordem, e as duas **devolvem** o valor com `return`. Nenhuma das duas imprime nada.\n\nPara um retângulo de 3 por 5, `area(3, 5)` é 15 e `perimetro(3, 5)` é 16.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO as DUAS caixas, cada uma com as MESMAS duas janelas:\n\n   int area(int largura, int altura)       -> devolve largura vezes altura\n   int perimetro(int largura, int altura)  -> devolve 2 * (largura + altura)\n\n   as duas DEVOLVEM o valor; nenhuma delas imprime. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio area-e-perimetro — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Fase VALOR: o teste declara os prototipos das caixas do aluno no topo e\n   confere o RETORNO com checa_int — nenhuma captura de stdout aqui. Dois\n   retangulos por cenario: um numero fixo no return nao passa nos dois. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint area(int largura, int altura);\nint perimetro(int largura, int altura);\n\n/* cenario 1 — a area usa as duas janelas na multiplicacao */\nSM_TEST(a_area_e_largura_por_altura) {\n    checa_int(\"a area de 3 por 5\", area(3, 5), 15,\n              \"a area do retangulo e largura vezes altura\");\n    checa_int(\"a area de 2 por 7\", area(2, 7), 14,\n              \"outro retangulo, outra area: as duas janelas entram na conta\");\n}\n\n/* cenario 2 — o perimetro usa as MESMAS duas janelas em outra conta */\nSM_TEST(o_perimetro_e_o_contorno) {\n    checa_int(\"o perimetro de 3 por 5\", perimetro(3, 5), 16,\n              \"o contorno e 2 vezes a soma dos dois lados\");\n    checa_int(\"o perimetro de 2 por 7\", perimetro(2, 7), 18,\n              \"o mesmo par de janelas do cenario 1, com o trabalho de dentro trocado\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint area(int largura, int altura) {\n    return largura * altura;\n}\n\nint perimetro(int largura, int altura) {\n    return 2 * (largura + altura);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_area_e_largura_por_altura",
+      "teste": "a_area_e_largura_por_altura",
+      "descricao": "a caixa area DEVOLVE largura vezes altura — checa_int confere area(3, 5) == 15 e area(2, 7) == 14, dois retangulos para que um numero fixo nao passe"
+    },
+    {
+      "id": "o_perimetro_e_o_contorno",
+      "teste": "o_perimetro_e_o_contorno",
+      "descricao": "a caixa perimetro DEVOLVE 2 vezes a soma dos lados com as MESMAS duas janelas — checa_int confere perimetro(3, 5) == 16 e perimetro(2, 7) == 18"
+    }
+  ]
+}

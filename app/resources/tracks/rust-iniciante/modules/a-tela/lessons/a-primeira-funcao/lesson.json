@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "a-primeira-funcao",
   "title": "A primeira função",
-  "summary": "Uma função que devolve o dobro.",
+  "summary": "Uma função com nome, corpo e um valor fixo para entregar.",
   "difficulty": 1,
   "role": "regular",
   "targetAtom": "node:FunctionItem",
@@ -14,55 +14,132 @@
     "productive": [
       "node:FunctionItem",
       "node:Parameters",
-      "node:Parameter",
-      "node:IntegerLiteral",
-      "op:binary:*",
-      "node:BinaryExpression"
+      "node:PrimitiveType",
+      "node:VisibilityModifier",
+      "node:IntegerLiteral"
     ],
     "receptive": [
-      "node:VisibilityModifier",
-      "node:PrimitiveType",
-      "node:UnaryExpression",
-      "op:unary:-",
-      "api:todo!"
+      "api:todo!",
+      "node:MacroInvocation",
+      "node:TokenTree"
+    ],
+    "derived": [
+      {
+        "chave": "node:Parameters",
+        "de": "node:FunctionItem"
+      },
+      {
+        "chave": "node:PrimitiveType",
+        "de": "node:FunctionItem"
+      },
+      {
+        "chave": "node:VisibilityModifier",
+        "de": "node:FunctionItem"
+      },
+      {
+        "chave": "node:IntegerLiteral",
+        "de": "node:FunctionItem"
+      },
+      {
+        "chave": "node:MacroInvocation",
+        "de": "api:todo!"
+      },
+      {
+        "chave": "node:TokenTree",
+        "de": "api:todo!"
+      }
     ]
   },
+  "introducesTerms": [],
   "theory": [
     {
-      "id": "uma-funcao-e-so",
-      "title": "Uma função, e só",
-      "markdown": "A sua primeira função recebe um número e devolve o dobro dele.\n\n```rust\npub fn dobro(x: i32) -> i32 {\n    x * 2\n}\n```\n\nO `*` no corpo é a multiplicação — a expressão binária `x * 2`.\n\nChamada com `2`, ela devolve `4`:\n\n```text\ndobro(2) == 4\n```\n\nE o `-` na frente de um número é a NEGAÇÃO (o operador unário): o dobro de um número negativo também fecha.\n\n```rust\ndobro(-3)\n```\n\nChamada com `-3`, ela devolve `-6` — hoje a negação é só LEITURA: o desafio cobra o dobro com números positivos."
+      "id": "o-que-e-uma-funcao",
+      "title": "O que é uma função",
+      "markdown": "Programar em Rust é escrever FUNÇÕES. Uma função tem um nome, tem um corpo entre as chaves `{` e `}` — e ENTREGA um valor para quem a chamou.\n\nEsta cabe numa linha só:\n\n```rust\npub fn dois() -> i32 { 2 }\n```\n\nA mesma função, com o corpo em linhas separadas — é a forma que o resto do curso usa:\n\n```rust\npub fn dois() -> i32 {\n    2\n}\n```\n\nAs duas dizem a mesma coisa: a função `dois` entrega o número 2."
+    },
+    {
+      "id": "o-valor-que-volta",
+      "title": "O valor que volta",
+      "markdown": "Depois da seta `->` vem o TIPO do valor que a função entrega. `i32` quer dizer número inteiro.\n\n```rust\npub fn cinco() -> i32 {\n    5\n}\n```\n\nE agora a regra que assusta quem vem de outra linguagem: a ÚLTIMA expressão do corpo, SEM ponto e vírgula, é o valor que volta. Não se escreve `return` aqui.\n\nOnde a comparação quebra: o ponto e vírgula transforma a linha em instrução, e a função para de entregar. Este bloco NÃO compila:\n\n```rust\npub fn cinco() -> i32 {\n    5;\n}\n```"
+    },
+    {
+      "id": "o-pub-abre-a-porta",
+      "title": "O `pub` abre a porta",
+      "markdown": "O `pub` na frente do `fn` torna a função PÚBLICA: código de fora do seu arquivo pode chamá-la.\n\nIsso não é enfeite. O teste que confere o seu desafio não mora no arquivo que você escreve — ele fica em outro arquivo e importa a sua função. Sem `pub`, o teste nem compila.\n\n```rust\npub fn dois() -> i32 { 2 }\n```\n\nPor isso toda função de desafio deste curso começa com `pub`."
+    },
+    {
+      "id": "o-teste-que-confere",
+      "title": "O teste que confere",
+      "markdown": "Quem diz se o seu desafio está certo não é você: é um arquivo de TESTE que este curso escreveu e que mora AO LADO do seu.\n\n```rust\nuse desafio::dois;\n\n#[test]\nfn testa_dois_devolve_dois() {\n    assert_eq!(dois(), 2);\n}\n```\n\nVocê não escreve este arquivo — ele chega pronto junto com o desafio. Leia as três partes: `use desafio::dois` PEGA a sua função; `#[test]` marca a função de baixo como um teste; `assert_eq!` CONFERE se dois valores são iguais — o que a sua função entregou e o `2` esperado.\n\nSe forem iguais, o teste passa."
+    },
+    {
+      "id": "o-todo-do-starter",
+      "title": "O `todo!()` do starter",
+      "markdown": "Todo desafio já chega com a assinatura pronta e um buraco no corpo:\n\n```rust\npub fn dois() -> i32 {\n    todo!()\n}\n```\n\n`todo!()` é uma MACRO — dá para reconhecê-la pelo `!` antes dos parênteses. Ela diz ao compilador: *aqui ainda falta código*. O arquivo COMPILA, e o programa explode se essa linha chegar a rodar.\n\nÉ assim que o exercício começa: você apaga o `todo!()` e escreve no lugar dele o valor que a função deve entregar."
     }
   ],
   "assertions": [
     {
-      "id": "a-funcao-devolve",
-      "statement": "A função recebe um número, multiplica por 2 e devolve o resultado.",
-      "question": "O que `dobro(5)` devolve?",
+      "id": "a-ultima-linha-entrega",
+      "statement": "A última expressão do corpo, sem ponto e vírgula, é o valor que a função entrega.",
+      "question": "O que `pub fn dois() -> i32 { 2 }` entrega?",
       "options": [
-        "10",
-        "5",
-        "25",
-        "2"
+        "2",
+        "nada",
+        "i32",
+        "dois"
       ],
       "answerIndex": 0,
-      "feedback": "O corpo é `x * 2`: o `x` recebido, multiplicado por 2.",
-      "sectionId": "uma-funcao-e-so"
+      "feedback": "O corpo tem uma expressão só, `2`, e sem ponto e vírgula ela é o valor que volta.",
+      "sectionId": "o-que-e-uma-funcao"
+    },
+    {
+      "id": "o-i32-e-o-tipo",
+      "statement": "Depois da seta `->` vem o tipo do valor entregue; `i32` é número inteiro.",
+      "question": "No `-> i32`, o que o `i32` diz?",
+      "options": [
+        "Que a função entrega um número inteiro.",
+        "Que a função recebe 32 valores de uma vez.",
+        "Que a função tem 32 linhas de código.",
+        "Que a função não entrega valor nenhum."
+      ],
+      "answerIndex": 0,
+      "feedback": "O tipo depois da seta descreve o que volta: `i32` é o inteiro de 32 bits.",
+      "sectionId": "o-valor-que-volta"
+    },
+    {
+      "id": "o-todo-e-o-buraco",
+      "statement": "O `todo!()` marca o buraco que o aluno vai preencher: compila, mas explode se rodar.",
+      "question": "O que o `todo!()` do starter faz?",
+      "options": [
+        "Marca o buraco que falta preencher.",
+        "Entrega o número 0 no lugar do valor.",
+        "Apaga a função antes de compilar.",
+        "Mostra o resultado do corpo na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "Ele deixa o arquivo compilando enquanto o corpo não existe, e explode se a linha rodar; o seu trabalho é trocá-lo pelo valor.",
+      "sectionId": "o-todo-do-starter"
     }
   ],
   "sources": [
     {
       "title": "How Functions Work — The Rust Programming Language",
       "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
-      "description": "O capítulo oficial das funções: declaração, parâmetros e o valor que a função devolve."
+      "description": "O capítulo oficial das funções: a declaração, o corpo e o valor que volta sem `return`."
     },
     {
-      "title": "Hello, World! — Rust by Example",
-      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
-      "description": "O primeiro programa em Rust, do site oficial de exemplos."
+      "title": "Data Types — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-02-data-types.html",
+      "description": "O capítulo oficial dos tipos, onde o `i32` é definido."
+    },
+    {
+      "title": "Macro todo! — a referência oficial do std",
+      "url": "https://doc.rust-lang.org/std/macro.todo.html",
+      "description": "A macro que marca o código que ainda falta — a que aparece no starter de todo desafio."
     }
   ],
   "challenges": [
-    "dobre-o-numero"
+    "devolva-dois"
   ]
 }

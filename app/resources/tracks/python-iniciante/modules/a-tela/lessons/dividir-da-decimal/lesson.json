@@ -72,6 +72,11 @@
       "title": "Expressões — as contas da linguagem",
       "url": "https://docs.python.org/3/reference/expressions.html",
       "description": "A referência oficial dos operadores de conta do Python."
+    },
+    {
+      "title": "Literais de ponto flutuante na Análise léxica",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#floating-point-literals",
+      "description": "A forma oficial de escrever um decimal: o ponto que separa a casa, nunca a vírgula."
     }
   ],
   "challenges": [

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "eco-do-numero",
+  "title": "Eco do número",
+  "concept": "parametro",
+  "difficulty": 1,
+  "language": "rust",
+  "statement": "# Eco do número\n\nEscreva a função `eco`: ela recebe um número inteiro e devolve ESSE MESMO número.\n\nA assinatura já traz o parâmetro `x`. Apague o `todo!()` e escreva no lugar dele o nome do parâmetro — sem ponto e vírgula, porque a última expressão do corpo é o que volta.",
+  "starterCode": "pub fn eco(x: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn eco(x: i32) -> i32 {\n    x\n}\n",
+  "testsCode": "use desafio::eco;\n\n#[test]\nfn testa_eco_de_sete() {\n    assert_eq!(eco(7), 7);\n}\n\n#[test]\nfn testa_eco_de_zero() {\n    assert_eq!(eco(0), 0);\n}\n",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função eco deve devolver 7 quando chamada com 7.",
+      "teste": "testa_eco_de_sete"
+    },
+    {
+      "id": "REQ-2",
+      "descricao": "A função eco deve devolver 0 quando chamada com 0.",
+      "teste": "testa_eco_de_zero"
+    }
+  ],
+  "expectedTestCount": 2
+}

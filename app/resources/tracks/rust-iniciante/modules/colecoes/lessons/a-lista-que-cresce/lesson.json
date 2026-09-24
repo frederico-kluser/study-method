@@ -18,7 +18,13 @@
       "node:GenericType",
       "node:TypeArguments"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:TypeArguments",
+        "de": "node:GenericType"
+      }
+    ]
   },
   "introducesTerms": [
     "term:coleção"
@@ -32,12 +38,12 @@
     {
       "id": "a-lista-cresce-e-encolhe",
       "title": "A lista cresce e encolhe",
-      "markdown": "Até aqui, os valores tiveram tamanho fixo: o texto da aula 1 já nascia pronto. A COLEÇÃO é a promessa nova: ela cresce e encolhe enquanto o programa roda — o tamanho não está fixado em lugar nenhum:\n\n```rust\nlet vazia = vec![];\nlet um = vec![7];\n```\n\nAs duas listas são do MESMO tipo — o que muda é quantos valores têm dentro agora."
+      "markdown": "Até aqui, os valores tiveram tamanho fixo: o texto da aula 1 já nascia pronto. A COLEÇÃO é a promessa nova: ela cresce e encolhe enquanto o programa roda — o tamanho não está fixado em lugar nenhum:\n\n```rust\nlet vazia: Vec<i32> = vec![];\nlet um = vec![7];\n```\n\nAs duas listas são do MESMO tipo, `Vec<i32>` — o que muda é quantos valores têm dentro agora. A vazia precisa dizer o tipo na testa: sem nenhum valor dentro, o compilador não tem de onde adivinhar."
     },
     {
       "id": "o-tipo-da-lista",
       "title": "O tipo da lista",
-      "markdown": "O tipo da lista de números é `Vec<i32>` — e a lista guarda valores de UM tipo só: um `Vec<i32>` guarda números; um `Vec<String>` guarda textos donos.\n\n```rust\npub fn pares() -> Vec<i32> {\n    vec![2, 4, 6]\n}\n```\n\n`Vec` vem do prelude: o nome aparece solto, sem `use` nenhum — a lista é do mesmo jeito que a `String`."
+      "markdown": "O tipo da lista de números é `Vec<i32>` — e a lista guarda valores de UM tipo só: um `Vec<i32>` guarda números; um `Vec<String>` guarda textos donos.\n\n```rust\npub fn pares() -> Vec<i32> {\n    vec![2, 4, 6]\n}\n\npub fn nomes() -> Vec<String> {\n    vec![String::from(\"ana\")]\n}\n```\n\n`Vec` vem do prelude: o nome aparece solto, sem `use` nenhum — a lista é do mesmo jeito que a `String`."
     }
   ],
   "assertions": [
@@ -48,17 +54,17 @@
       "question": "O que `vec![2, 4, 6]` monta?",
       "options": [
         "Uma lista Vec com os valores 2, 4 e 6, nessa ordem",
-        "O texto \"2 4 6\" numa String só",
-        "A soma dos três: 12",
-        "Três variáveis soltas, sem caixa nenhuma"
+        "O texto \"2 4 6\" guardado numa String só",
+        "A soma dos três valores: o número 12",
+        "Três variáveis soltas, uma para cada valor, sem caixa"
       ],
       "answerIndex": 0,
       "feedback": "A macro `vec!` monta a lista com os valores dentro, na ordem em que aparecem.",
       "optionRationales": [
         "A lista é a caixa que guarda vários valores numa ordem — e o vec! já a entrega cheia.",
-        "Texto com espaçamento é outra coisa; aqui a construção é a lista de números.",
-        "A soma é uma operação sobre a lista; o vec! não soma.",
-        "Cada valor está DENTRO da lista — não há três nomes soltos."
+        "`vec!` não costura texto: o que sai é uma lista de números, não uma String.",
+        "Somar é uma operação SOBRE a lista, feita depois; o `vec!` só monta a caixa com os valores.",
+        "Os três valores estão DENTRO de uma caixa só, alcançados por posição — não há três nomes soltos."
       ]
     },
     {
@@ -68,17 +74,17 @@
       "question": "O que torna uma lista uma COLEÇÃO, e não só três valores?",
       "options": [
         "Ela cresce e encolhe enquanto o programa roda",
-        "Ela guarda só números",
-        "Ela não precisa de tipo nenhum",
-        "Ela é escrita com colchetes"
+        "Ela guarda só números, nunca texto",
+        "Ela não precisa declarar tipo nenhum para os itens",
+        "Ela é escrita com colchetes dentro da macro vec!"
       ],
       "answerIndex": 0,
       "feedback": "A promessa da coleção é mudar de tamanho: cresce quando você guarda, encolhe quando você tira.",
       "optionRationales": [
         "O tamanho em tempo de execução é o que define a coleção.",
-        "Um Vec<String> também é coleção — o tipo dos itens não decide.",
-        "Toda lista tem tipo: Vec<i32>, Vec<String>…",
-        "Colchete é a forma da macro; a promessa de crescer é o conteúdo."
+        "Um `Vec<String>` também é coleção: o tipo dos itens não é o que define a promessa.",
+        "Toda lista tem tipo — `Vec<i32>`, `Vec<String>`; o que muda enquanto o programa roda é o TAMANHO.",
+        "Colchete é só a forma de escrever a macro; a promessa de crescer é o que está por baixo."
       ]
     }
   ],

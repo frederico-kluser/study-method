@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobro-do-digitado",
+  "title": "Dobro do digitado",
+  "concept": "ler_do_teclado",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Dobro do digitado\n\nA função `dobroDoDigitado` lê **um número inteiro** digitado pela pessoa e imprime o dobro dele, numa linha só.\n\nA linha que dobra e a linha que imprime já estão no arquivo: `n += n;` soma `n` em `n` mesmo — é a aula \"Somar no próprio nome\" dobrando o valor. O que falta é a leitura.\n\nEscreva a chamada à `scanf` com `%d` e com o `&` na frente do nome, para ela saber onde escrever o número que chegou.\n\nSe a pessoa digitar `21`, a saída é exatamente:\n\n```text\n42\n```\n\n**Aqui a `scanf` fica sozinha: não imprima pergunta nenhuma.** A teoria mostrou um `printf` de pergunta antes da leitura, e ele é o certo num programa de verdade — mas neste desafio quem \"digita\" é o teste, que confere a saída exata: o texto da pergunta cairia na mesma linha do resultado e reprovaria.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* dobroDoDigitado le um inteiro digitado e imprime o dobro dele.\n   O n += n dobra o valor e o printf mostra o resultado — os dois ja estao\n   escritos. Falta a linha que LE o numero digitado para dentro de n.\n   Nao imprima pergunta nenhuma: a saida deste desafio e so a linha do dobro. */\nvoid dobroDoDigitado(void) {\n    int n = 0;\n\n    /* leia aqui o inteiro digitado para dentro de n (scanf, %d e o &) */\n\n    n += n;\n    printf(\"%d\\n\", n);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio dobro-do-digitado — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid dobroDoDigitado(void);\n\nSM_TEST(o_dobro_de_21) {\n    /* o que a pessoa digita: 21 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"21\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    dobroDoDigitado();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dobro de 21\", linha, \"42\\n\",\n              \"o 21 digitado entrou em n pela scanf, e o dobro de 21 e 42\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o dobro, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_dobro_de_7) {\n    /* outro numero digitado: a saida tem de MUDAR com a entrada */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"7\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    dobroDoDigitado();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dobro de 7\", linha, \"14\\n\",\n              \"quem le de verdade responde 14 quando o 7 e digitado\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid dobroDoDigitado(void) {\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    n += n;\n    printf(\"%d\\n\", n);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_dobro_de_21",
+      "teste": "o_dobro_de_21",
+      "descricao": "com 21 digitado no stdin, a funcao dobroDoDigitado le o numero com scanf e imprime 42 numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "o_dobro_de_7",
+      "teste": "o_dobro_de_7",
+      "descricao": "com 7 digitado no stdin, a mesma funcao imprime 14 — a saida muda com a entrada, o que prova que o numero foi lido e nao escrito no codigo"
+    }
+  ]
+}

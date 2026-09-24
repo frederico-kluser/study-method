@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-diario",
+  "title": "O diário de três linhas",
+  "concept": "escrever_no_arquivo",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O diário de três linhas\n\nEscreva a função `oDiario` — ela recebe um `int dia` e devolve um `int`.\n\nO que ela faz:\n\n1. abre o arquivo `diario.txt` no modo `\"w\"`;\n2. se o `fopen` devolveu `NULL`, devolve `0`;\n3. grava **três linhas de log** do dia recebido, nesta ordem, com `fprintf`;\n4. fecha o caderno com `fclose` e devolve `1`.\n\nCom `oDiario(1)`, o `diario.txt` tem de ficar exatamente assim:\n\n```text\ndia 1: acordei\ndia 1: estudei C\ndia 1: dormi\n```\n\nO número vem do parâmetro: com `oDiario(7)` as três linhas começam com `dia 7:`. Cada linha acaba em fim de linha, e não há quarta linha.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao oDiario inteira:\n\n       int oDiario(int dia)\n\n   abre diario.txt no modo \"w\", grava as tres linhas de log com fprintf\n   (o numero do dia entra pelo %d), fecha com fclose e devolve 1.\n   Quando o fopen devolver NULL, devolva 0 sem gravar nada. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-diario — counter_protocol (03-tdd 3.9.3).\n   Canal retorno: nenhuma captura de stdout. Cada cenario zera o caderno\n   (remove + um fopen \"w\" vazio) ANTES de chamar a funcao do aluno: assim\n   o fopen de leitura nunca devolve NULL, e um aluno que nao grava nada\n   reprova pelo sentinel em vez de derrubar o teste. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oDiario(int dia);\n\nSM_TEST(as_tres_linhas_do_dia_1) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fclose(semente);\n\n    checa_int(\"o diario devolve 1\", oDiario(1), 1,\n              \"com o caderno aberto, gravar as tres linhas da certo\");\n\n    FILE *f = fopen(\"diario.txt\", \"r\");\n    char linha[80] = \"(nada gravado)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha do log\", linha, \"dia 1: acordei\\n\",\n              \"a primeira linha do diario traz o dia e o primeiro registro\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha do log\", linha, \"dia 1: estudei C\\n\",\n              \"a segunda linha repete o dia e traz o segundo registro\");\n    fgets(linha, 80, f);\n    checa_str(\"a terceira linha do log\", linha, \"dia 1: dormi\\n\",\n              \"a terceira linha fecha o dia\");\n    char fim[80] = \"(nada gravado)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada gravado)\",\n              \"o diario do dia acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_dia_entra_pelo_formato) {\n    FILE *semente = fopen(\"diario.txt\", \"w\");\n    fclose(semente);\n\n    oDiario(7);\n\n    FILE *f = fopen(\"diario.txt\", \"r\");\n    char linha[80] = \"(nada gravado)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha do dia 7\", linha, \"dia 7: acordei\\n\",\n              \"o numero do dia vem do parametro, pelo %d do fprintf\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha do dia 7\", linha, \"dia 7: estudei C\\n\",\n              \"o mesmo parametro preenche o buraco das tres linhas\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint oDiario(int dia) {\n    FILE *f = fopen(\"diario.txt\", \"w\");\n    if (f == NULL) {\n        return 0;\n    }\n    fprintf(f, \"dia %d: acordei\\n\", dia);\n    fprintf(f, \"dia %d: estudei C\\n\", dia);\n    fprintf(f, \"dia %d: dormi\\n\", dia);\n    fclose(f);\n    return 1;\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_tres_linhas_do_dia_1",
+      "teste": "as_tres_linhas_do_dia_1",
+      "descricao": "oDiario(1) devolve 1 e grava no diario.txt as tres linhas de log na ordem (acordei, estudei C, dormi), sem nenhuma linha extra"
+    },
+    {
+      "id": "o_dia_entra_pelo_formato",
+      "teste": "o_dia_entra_pelo_formato",
+      "descricao": "oDiario(7) grava o numero do parametro nas linhas — o %d do fprintf e preenchido pelo dia recebido, nao por um texto fixo"
+    }
+  ]
+}

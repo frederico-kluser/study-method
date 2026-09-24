@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "sua-primeira-caixa",
   "title": "A sua primeira caixa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Você define a sua própria caixa — uma função com o nome que você escolheu — e descobre que definir não roda: quem define precisa chamar.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:func",
+  "concepts": [
+    "a_sua_caixa"
+  ],
   "prerequisites": [
     "devolver-zero",
     "buraco-na-frase"
   ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de ter uma função só: o aluno passa a criar caixas com nome próprio e a decidir, pela chamada, quando o corpo de cada uma roda",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-com-o-seu-nome",
+      "title": "A caixa com o seu nome",
+      "markdown": "Em cada desafio até aqui você escreveu UMA função: a que o programa de fora chama. Uma função é uma caixa com nome — você guarda ordens dentro dela, e o nome passa a valer por todas elas.\n\nAgora a caixa é sua, e quem escolhe o nome é você:\n\n```c\nvoid saudacao(void) {\n    printf(\"bom dia\\n\");\n}\n```\n\nO `void` da frente diz que ela não devolve nada; o `(void)` de dentro, que ela não recebe nada. O corpo entre as chaves guarda a ordem — e guardar não é rodar."
+    },
+    {
+      "id": "definir-nao-roda",
+      "title": "Definir não roda",
+      "markdown": "Escrever a caixa no arquivo não a executa: definir é **guardar**. Quem roda o corpo é a **chamada** — o nome seguido de parênteses e de ponto e vírgula.\n\nE a chamada precisa morar dentro de alguma função, porque em C nada roda solto. Então a função que a tela pede chama a sua:\n\n```c\nvoid saudacao(void) {\n    printf(\"bom dia\\n\");\n}\n\nvoid tela(void) {\n    saudacao();\n}\n```\n\n```text\nbom dia\n```\n\nSem a linha `saudacao();`, o programa compila igual — e a tela fica vazia."
+    },
+    {
+      "id": "a-caixa-usada-duas-vezes",
+      "title": "A mesma caixa, duas vezes",
+      "markdown": "O nome da caixa vale quantas vezes você quiser usá-lo. Duas chamadas rodam o mesmo corpo duas vezes, uma depois da outra:\n\n```c\nvoid saudacao(void) {\n    printf(\"bom dia\\n\");\n}\n\nvoid tela(void) {\n    saudacao();\n    saudacao();\n}\n```\n\n```text\nbom dia\nbom dia\n```\n\nO texto foi escrito UMA vez, dentro da caixa, e apareceu duas. É para isso que a caixa serve: escrever uma vez, usar muitas."
+    },
+    {
+      "id": "onde-a-caixa-mora",
+      "title": "Onde a caixa mora",
+      "markdown": "A sua caixa nasce **fora** das outras: em C uma função nunca é definida dentro de outra. E ela fica **acima** de quem a chama, porque o compilador lê o arquivo de cima para baixo.\n\n```c\nvoid borda(void) {\n    printf(\"-----\\n\");\n}\n\nvoid tela(void) {\n    borda();\n    printf(\"oi\\n\");\n    borda();\n}\n```\n\n```text\n-----\noi\n-----\n```\n\nDuas caixas lado a lado, cada uma com o seu nome — e a de cima usada duas vezes pela de baixo."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "definir-nao-roda-precisa-chamar",
+      "statement": "Definir não roda: quem define `void saudacao(void) { ... }` precisa CHAMAR.",
+      "question": "O arquivo tem a caixa `saudacao` definida, com um `printf` dentro, e a função `tela` está com o corpo vazio. O que aparece na tela?",
+      "options": [
+        "Nada: a caixa foi definida, mas ninguém a chamou.",
+        "`bom dia`: definir a caixa já roda o corpo dela.",
+        "`bom dia` duas vezes: uma pela definição e uma pela chamada.",
+        "Um erro de compilação: toda caixa definida tem de ser chamada."
+      ],
+      "answerIndex": 0,
+      "feedback": "Definir é guardar as ordens sob um nome. Sem uma chamada — `saudacao();` dentro de outra função — o corpo nunca roda, e a tela fica vazia.",
+      "sectionId": "definir-nao-roda",
+      "optionRationales": [
+        "A definição guarda o corpo; sem chamada nenhuma, ele não roda e nada é impresso.",
+        "Definir não executa: o corpo fica guardado esperando alguém chamar o nome.",
+        "A definição não imprime nada, então não há como sair duas linhas — nem uma.",
+        "Uma caixa nunca chamada compila sem erro: o compilador não cobra o uso."
+      ]
+    },
+    {
+      "id": "cada-chamada-roda-o-corpo-de-novo",
+      "statement": "A mesma caixa pode ser chamada quantas vezes você quiser, e cada chamada roda o corpo inteiro de novo.",
+      "question": "A `tela` tem duas linhas `saudacao();`, e a `saudacao` imprime `bom dia` com `\\n` no fim. O que sai na tela?",
+      "options": [
+        "Duas linhas, `bom dia` em cada uma.",
+        "Uma linha `bom dia`: o corpo já rodou na primeira chamada.",
+        "Uma linha só, com `bom diabom dia`.",
+        "Nada: chamar a mesma caixa duas vezes é erro."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada chamada roda o corpo do começo ao fim. Duas chamadas, dois `printf` — e o `\\n` do texto entre aspas põe cada frase na sua linha.",
+      "sectionId": "a-caixa-usada-duas-vezes",
+      "optionRationales": [
+        "Cada chamada executa o corpo inteiro outra vez: dois `printf`, e o `\\n` de cada um abre a linha seguinte.",
+        "O corpo não \"gasta\": ele roda de novo a cada chamada.",
+        "Isso aconteceria se o texto entre aspas não tivesse `\\n` — mas ele tem, e cada frase fica na sua linha.",
+        "Chamar a mesma caixa várias vezes é o motivo de ela existir."
+      ]
+    },
+    {
+      "id": "a-caixa-mora-fora-e-acima",
+      "statement": "A caixa é definida fora das outras funções, e acima de quem a chama.",
+      "question": "Onde a definição de `saudacao` pode ficar?",
+      "options": [
+        "No arquivo, fora de qualquer função e acima da que a chama.",
+        "Dentro da função que a chama, na primeira linha do corpo.",
+        "Em qualquer lugar do arquivo: o compilador acha o nome sozinho.",
+        "Sempre abaixo de quem a chama: o C lê o arquivo de baixo para cima."
+      ],
+      "answerIndex": 0,
+      "feedback": "Em C uma função não nasce dentro de outra, e o compilador lê de cima para baixo: a definição vem antes do uso. (Existe um jeito de avisar o compilador antes da definição — é aula mais adiante.)",
+      "sectionId": "onde-a-caixa-mora",
+      "optionRationales": [
+        "Fora de todas as funções e antes de quem a usa: é assim que o compilador, lendo de cima para baixo, já conhece o nome na hora da chamada.",
+        "Em C uma função não pode ser definida dentro de outra função.",
+        "O compilador lê de cima para baixo — ele não volta atrás para procurar o nome.",
+        "A leitura é de cima para baixo; é a definição que vem antes, não depois."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function definitions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A página oficial da definição de função em C: o tipo de retorno, o nome, a lista de parâmetros e o corpo entre chaves."
+    },
+    {
+      "title": "Functions — o índice oficial do assunto em C",
+      "url": "https://en.cppreference.com/w/c/language/functions",
+      "description": "A visão geral oficial: definir uma função, declarar uma função e chamá-la pelo nome são três coisas distintas."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.9.1 (Function definitions) descreve a definição de função como uma definição EXTERNA — fora de qualquer outra função."
+    }
+  ],
+  "challenges": [
+    "saudacao-em-dois-mundos"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

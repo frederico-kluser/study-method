@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-valor-que-entra",
+  "title": "O valor que entra",
+  "summary": "O parâmetro: o nome e o tipo do valor que a função recebe pelos parênteses.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "node:Parameter",
+  "concepts": [
+    "parametro"
+  ],
+  "prerequisites": [
+    "a-primeira-funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Parameter"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-que-a-funcao-recebe",
+      "title": "O que a função recebe",
+      "markdown": "A função da aula passada entregava sempre o mesmo número. Para ela responder coisas diferentes, alguém precisa DAR um valor a ela — e esse valor entra pelos parênteses:\n\n```rust\npub fn eco(x: i32) -> i32 {\n    x\n}\n```\n\nO `x: i32` dentro dos parênteses é o PARÂMETRO. Quem chama `eco` entrega um número; dentro do corpo esse número atende pelo nome `x`.\n\nEsta função devolve o que recebeu: com `7` ela entrega `7`, e com `0` ela entrega `0`."
+    },
+    {
+      "id": "o-nome-e-o-tipo",
+      "title": "O nome e o tipo",
+      "markdown": "O parâmetro tem duas partes, separadas por dois-pontos:\n\n- o NOME, que você escolhe — é por ele que o corpo chama o valor;\n- o TIPO, que diz o que pode entrar. `i32` de novo: número inteiro.\n\nO nome é seu, e o corpo troca junto com ele:\n\n```rust\npub fn eco(numero: i32) -> i32 {\n    numero\n}\n```\n\nO tipo, ao contrário do nome, não é opcional: o compilador exige saber na assinatura o que cada parâmetro recebe."
+    },
+    {
+      "id": "mais-de-um-parametro",
+      "title": "Mais de um parâmetro",
+      "markdown": "Dentro dos parênteses cabe mais de um parâmetro, separados por vírgula. Cada um traz o seu nome e o seu tipo:\n\n```rust\npub fn o_primeiro(a: i32, b: i32) -> i32 {\n    a\n}\n```\n\nChamada com `4` e `9`, ela entrega `4` — o valor guardado em `a`. O `b` chegou e não foi usado: isso compila, e o compilador só AVISA que `b` ficou sem uso.\n\nParênteses vazios, como no `pub fn dois()` da aula passada, querem dizer o contrário: esta função não recebe nada."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-parametro-chega-pelo-nome",
+      "statement": "O valor recebido atende, dentro do corpo, pelo nome do parâmetro.",
+      "question": "Com o corpo `x`, o que `eco(7)` entrega?",
+      "options": [
+        "7",
+        "x",
+        "0",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `7` entra pelo parâmetro `x`, e o corpo entrega justamente `x`.",
+      "sectionId": "o-que-a-funcao-recebe"
+    },
+    {
+      "id": "o-tipo-e-obrigatorio",
+      "statement": "O parâmetro declara nome e tipo; o tipo não é opcional.",
+      "question": "No parâmetro `numero: i32`, o que é o `i32`?",
+      "options": [
+        "O tipo do valor que pode entrar.",
+        "O nome que o corpo usa.",
+        "A quantidade de parâmetros.",
+        "O valor inicial que o parâmetro recebe."
+      ],
+      "answerIndex": 0,
+      "feedback": "Antes dos dois-pontos vai o nome que você escolhe; depois, o tipo que o compilador exige.",
+      "sectionId": "o-nome-e-o-tipo"
+    },
+    {
+      "id": "dois-parametros-por-virgula",
+      "statement": "Dois parâmetros se separam por vírgula, cada um com nome e tipo.",
+      "question": "Com o corpo `a`, o que `o_primeiro(4, 9)` entrega?",
+      "options": [
+        "4",
+        "9",
+        "13",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `4` entrou em `a` e o `9` em `b`; o corpo entrega `a`.",
+      "sectionId": "mais-de-um-parametro"
+    }
+  ],
+  "sources": [
+    {
+      "title": "How Functions Work — The Rust Programming Language",
+      "url": "https://doc.rust-lang.org/book/ch03-03-how-functions-work.html",
+      "description": "O capítulo oficial das funções, com a seção dos parâmetros e dos tipos que eles declaram."
+    },
+    {
+      "title": "Functions — Rust by Example",
+      "url": "https://doc.rust-lang.org/rust-by-example/fn.html",
+      "description": "Os exemplos oficiais de funções que recebem um e mais de um valor."
+    }
+  ],
+  "challenges": [
+    "eco-do-numero"
+  ]
+}

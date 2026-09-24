@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-biblioteca-geometria",
+  "title": "A biblioteca de geometria",
+  "concept": "a_biblioteca_em_dois_arquivos",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A biblioteca de geometria\n\nVocê vai escrever as **caixas** de uma pequena biblioteca de geometria: duas funções que qualquer programa pode chamar.\n\nNo topo do arquivo já estão os **cartazes** — os dois protótipos. São exatamente as linhas que iriam no `ponto.h` da aula; aqui eles ficam no mesmo arquivo, porque o desafio é de um arquivo só. O `main` é do harness, como sempre.\n\n**`distancia(ax, ay, bx, by)`** — devolve a distância entre os pontos `(ax, ay)` e `(bx, by)`:\n\n```text\ndx = bx - ax        dy = by - ay        distancia = raiz de (dx*dx + dy*dy)\n```\n\nA raiz quadrada é a `sqrt`, e ela vem do `#include <math.h>` que já está no arquivo.\n\n**`areaRetangulo(largura, altura)`** — devolve `largura * altura`.\n\nOs dois protótipos do topo já dizem tudo: `double` de entrada, `double` de saída. Complete os corpos embaixo — cada protótipo sem corpo é um símbolo que falta na hora de ligar o programa.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <math.h>\n\n/* os cartazes da biblioteca — o que iria no ponto.h */\ndouble distancia(double ax, double ay, double bx, double by);\ndouble areaRetangulo(double largura, double altura);\n\n/* as caixas da biblioteca — o que iria no ponto.c.\n   escreva os DOIS corpos abaixo, um para cada cartaz de cima. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-biblioteca-geometria — counter_protocol (03-tdd 3.9.3).\n   O teste NUNCA inclui o header do desafio: ele repete os PROTOTIPOS no\n   topo, que e a forma autorizada em toda aula desta trilha. Os valores\n   asseverados tem representacao binaria exata (5, 7, 10 e 9), porque o\n   checa_double compara por igualdade. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\ndouble distancia(double ax, double ay, double bx, double by);\ndouble areaRetangulo(double largura, double altura);\n\nSM_TEST(a_distancia_do_triangulo_3_4_5) {\n    checa_double(\"a distancia de (0,0) a (3,4)\", distancia(0, 0, 3, 4), 5.0,\n                 \"dx = 3 e dy = 4: a raiz de 9 + 16 e 5\");\n}\n\nSM_TEST(a_distancia_na_vertical) {\n    checa_double(\"a distancia de (2,2) a (2,9)\", distancia(2, 2, 2, 9), 7.0,\n                 \"dx = 0 e dy = 7: a raiz de 0 + 49 e 7\");\n}\n\nSM_TEST(a_area_do_retangulo) {\n    checa_double(\"a area de 2,5 por 4\", areaRetangulo(2.5, 4.0), 10.0,\n                 \"area e largura vezes altura: 2,5 x 4 = 10\");\n    checa_double(\"a area de 3 por 3\", areaRetangulo(3.0, 3.0), 9.0,\n                 \"o quadrado e o retangulo de lados iguais: 3 x 3 = 9\");\n}\n",
+  "solutionCode": "#include <math.h>\n\n/* os cartazes da biblioteca — o que iria no ponto.h */\ndouble distancia(double ax, double ay, double bx, double by);\ndouble areaRetangulo(double largura, double altura);\n\n/* as caixas da biblioteca — o que iria no ponto.c */\ndouble distancia(double ax, double ay, double bx, double by) {\n    double dx = bx - ax;\n    double dy = by - ay;\n    return sqrt(dx * dx + dy * dy);\n}\n\ndouble areaRetangulo(double largura, double altura) {\n    return largura * altura;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "a_distancia_do_triangulo_3_4_5",
+      "teste": "a_distancia_do_triangulo_3_4_5",
+      "descricao": "distancia(0, 0, 3, 4) devolve 5: a funcao calcula dx e dy e aplica a raiz quadrada da soma dos quadrados"
+    },
+    {
+      "id": "a_distancia_na_vertical",
+      "teste": "a_distancia_na_vertical",
+      "descricao": "distancia(2, 2, 2, 9) devolve 7 — com dx igual a zero, a conta continua valendo e o resultado nao e um valor fixo"
+    },
+    {
+      "id": "a_area_do_retangulo",
+      "teste": "a_area_do_retangulo",
+      "descricao": "areaRetangulo devolve 10 para 2,5 por 4 e 9 para 3 por 3: a segunda caixa da biblioteca multiplica largura por altura"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "leitor-de-notas",
+  "title": "Leitor de notas",
+  "concept": "preencher_a_lista_lendo",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Leitor de notas\n\nA função `leitorDeNotas` lê as notas digitadas e as imprime **na ordem inversa**: a última nota lida sai na primeira linha.\n\nA leitura tem duas partes:\n\n1. o primeiro número digitado é o `n` — quantas notas vêm depois (no máximo 50);\n2. depois vêm as `n` notas, que entram nas gavetas `0` a `n - 1` da caixa.\n\nAí a função imprime, **uma por linha**, da gaveta `n - 1` até a `0`.\n\nSe a pessoa digitar\n\n```text\n4\n7 2 9 4\n```\n\na saída é exatamente:\n\n```text\n4\n9\n2\n7\n```\n\nA caixa de 50 gavetas e o `n` já estão escritos no arquivo: faltam os dois laços — o que lê com `scanf(\"%d\", &notas[i])` e o que imprime de trás para a frente.\n\n**Não imprima pergunta nenhuma:** a saída é só a lista invertida.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* leitorDeNotas le o n (quantas notas vem, no maximo 50), le as n notas\n   para dentro da caixa e imprime as notas na ordem INVERSA, uma por linha:\n   a ultima nota lida sai na primeira linha.\n   A caixa e a leitura do n ja estao aqui. Faltam os dois lacos.\n   Nao imprima pergunta nenhuma. */\nvoid leitorDeNotas(void) {\n    int notas[50] = {0};\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    /* 1) leia as n notas, uma por gaveta: scanf(\"%d\", &notas[i]) */\n\n    /* 2) imprima de tras para a frente, da gaveta n - 1 ate a 0 */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio leitor-de-notas — counter_protocol (03-tdd 3.9.3).\n   Cada cenario escreve num arquivo o que a pessoa digitaria, aponta o stdin\n   para esse arquivo (freopen) e captura o stdout no proprio cenario. Os\n   nomes dos temporarios sao POR CENARIO: um cenario nunca le a entrada nem\n   a captura do outro. Nunca ha fclose de stdin/stdout — so fflush — para o\n   segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid leitorDeNotas(void);\n\nSM_TEST(quatro_notas_de_tras_para_frente) {\n    /* o que a pessoa digita: 4 notas, e depois as quatro */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"4\\n7 2 9 4\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    leitorDeNotas();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ultima nota lida vem primeiro\", linha, \"4\\n\",\n              \"a gaveta 3 guardou o 4, e a impressao comeca pela ultima gaveta\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha invertida\", linha, \"9\\n\",\n              \"descendo o indice, a gaveta 2 guardou o 9\");\n    fgets(linha, 80, f);\n    checa_str(\"a terceira linha invertida\", linha, \"2\\n\",\n              \"a gaveta 1 guardou o 2\");\n    fgets(linha, 80, f);\n    checa_str(\"a primeira nota lida vem por ultimo\", linha, \"7\\n\",\n              \"a gaveta 0 guardou o 7 e sai na ultima linha\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"foram quatro notas: a saida acaba na quarta linha\");\n    fclose(f);\n}\n\nSM_TEST(so_tres_notas_so_tres_linhas) {\n    /* agora o n digitado e 3: a saida tem de encurtar junto */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"3\\n5 1 8\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    leitorDeNotas();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ultima das tres vem primeiro\", linha, \"8\\n\",\n              \"com n valendo 3, a impressao comeca na gaveta 2\");\n    fgets(linha, 80, f);\n    checa_str(\"a do meio continua no meio\", linha, \"1\\n\",\n              \"a gaveta 1 guardou o 1\");\n    fgets(linha, 80, f);\n    checa_str(\"a primeira das tres vem por ultimo\", linha, \"5\\n\",\n              \"a gaveta 0 guardou o 5\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"a saida para no n lido\", fim, \"(nada impresso)\",\n              \"o laco anda ate o n digitado, nao ate o fim da caixa de 50\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid leitorDeNotas(void) {\n    int notas[50] = {0};\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    for (int i = 0; i < n; i++) {\n        scanf(\"%d\", &notas[i]);\n    }\n\n    for (int i = n - 1; i >= 0; i--) {\n        printf(\"%d\\n\", notas[i]);\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "quatro_notas_de_tras_para_frente",
+      "teste": "quatro_notas_de_tras_para_frente",
+      "descricao": "com 4 e depois 7 2 9 4 digitados, a funcao le as quatro notas pelas gavetas e imprime 4, 9, 2 e 7 — uma por linha, sem nenhuma linha extra"
+    },
+    {
+      "id": "so_tres_notas_so_tres_linhas",
+      "teste": "so_tres_notas_so_tres_linhas",
+      "descricao": "com 3 e depois 5 1 8 digitados, a saida e 8, 1 e 5 e termina na terceira linha: os dois lacos obedecem ao n lido, nao ao tamanho da caixa"
+    }
+  ]
+}

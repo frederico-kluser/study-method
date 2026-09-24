@@ -23,6 +23,24 @@
       "node:StructExpression",
       "node:FieldInitializerList",
       "node:FieldInitializer"
+    ],
+    "derived": [
+      {
+        "chave": "node:FieldDeclarationList",
+        "de": "node:StructItem"
+      },
+      {
+        "chave": "node:FieldDeclaration",
+        "de": "node:StructItem"
+      },
+      {
+        "chave": "node:FieldInitializerList",
+        "de": "node:StructExpression"
+      },
+      {
+        "chave": "node:FieldInitializer",
+        "de": "node:StructExpression"
+      }
     ]
   },
   "introducesTerms": [],
@@ -30,7 +48,7 @@
     {
       "id": "o-molde-declara-os-campos",
       "title": "O molde declara os campos",
-      "markdown": "A `struct` é o MOLDE: ela declara os campos que TODO valor dela vai ter — e não guarda valor nenhum:\n\n```rust\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\nCada linha do molde é um CAMPO: nome e tipo. `x: i32` diz que todo ponto tem um `x`, e que esse `x` é um número inteiro. O molde é a forma; a peça vem depois."
+      "markdown": "A `struct` é o MOLDE: ela declara os campos que TODO valor dela vai ter — e não guarda valor nenhum:\n\n```rust\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n```\n\nCada linha do molde é um CAMPO: `pub`, nome e tipo — o `pub` do campo abre ele para fora, como no `fn`. `x: i32` diz que todo ponto tem um `x` inteiro. Molde curto cabe numa linha só — mesma `struct`, mesmas chaves, mesmos campos:\n\n```rust\npub struct Par { pub a: i32, pub b: i32 }\n```\n\nUma linha ou quatro, o molde é a forma; a peça vem depois."
     },
     {
       "id": "o-valor-e-a-peca",
@@ -51,17 +69,17 @@
       "question": "O que `pub struct Ponto { pub x: i32, pub y: i32 }` guarda?",
       "options": [
         "A declaração dos campos que todo Ponto tem",
-        "Um valor de x e um valor de y",
-        "Uma função que monta pontos",
-        "A conta de quantos pontos existem"
+        "Um valor de x e um valor de y já guardados",
+        "Uma função que monta pontos a partir de x e y",
+        "Um Ponto pronto, com x e y ainda sem valor"
       ],
       "answerIndex": 0,
       "feedback": "O molde declara os campos — o VALOR é a peça montada nele, com `Ponto { … }`.",
       "optionRationales": [
         "Estrutura: o molde diz o formato; o valor é montado à parte.",
-        "Os valores ficam nas PEÇAS — cada `Ponto { … }` traz os seus.",
-        "Função é outro item; o molde declara campos.",
-        "O molde não conta nada: ele desenha a forma de todo ponto."
+        "Os valores ficam nas PEÇAS — cada `Ponto { … }` traz os seus; o molde fica sem nenhum.",
+        "Quem monta a peça a partir de x e y é `Ponto { … }`; o molde só declara os campos.",
+        "A declaração não monta peça nenhuma: o molde é a forma, e a peça só nasce com todos os campos cheios."
       ]
     },
     {
@@ -71,7 +89,7 @@
       "question": "Como se monta um valor do molde `Ponto` com x = 2 e y = 3?",
       "options": [
         "Ponto { x: 2, y: 3 }",
-        "struct Ponto(2, 3)",
+        "struct Ponto { x: 2, y: 3 }",
         "Ponto(2, 3)",
         "new Ponto(2, 3)"
       ],
@@ -79,7 +97,7 @@
       "feedback": "A peça é `Ponto { x: 2, y: 3 }`: o nome do molde, e cada campo recebendo o seu valor.",
       "optionRationales": [
         "O nome do molde abre as chaves, e campo por campo recebe o valor.",
-        "struct é a PALAVRA da declaração do molde — a peça usa só o nome.",
+        "struct é a PALAVRA da declaração do molde — a peça abre com o nome sozinho.",
         "Sem chaves a peça não cita os campos: o compilador não sabe o que é.",
         "Não há `new` solto em Rust: a peça é o nome do molde com chaves."
       ]

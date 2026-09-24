@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "chamar-a-caixa",
   "title": "Chamar a caixa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A chamada é uma ordem: ela desvia a execução para dentro da caixa, roda o corpo inteiro e volta para a linha de baixo.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:CallExpr",
+  "concepts": [
+    "a_chamada"
+  ],
   "prerequisites": [
     "sua-primeira-caixa"
   ],
+  "introduces": {
+    "productive": [
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a execução deixa de ser uma fila reta de linhas: a chamada desvia para o corpo da caixa e volta ao ponto seguinte, e o aluno passa a prever a ordem da saída por esse vai-e-volta",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-chamada-e-uma-ordem",
+      "title": "Definir não é chamar",
+      "markdown": "Definir e chamar são duas escritas diferentes, e é fácil confundi-las. Olhe as duas no mesmo arquivo:\n\n```c\nvoid passo(void) {\n    printf(\"um passo\\n\");\n}\n\nvoid tela(void) {\n    passo();\n}\n```\n\nA primeira linha **define**: `void` na frente, o nome, os parênteses e o corpo entre chaves — e nenhum ponto e vírgula depois do `)`.\n\nA linha `passo();` **chama**: só o nome, os parênteses e o `;`. É uma ordem, como um `printf`."
+    },
+    {
+      "id": "vai-e-volta",
+      "title": "Vai, roda, e volta",
+      "markdown": "A chamada desvia a execução para dentro da caixa e, quando o corpo acaba, **volta para a linha de baixo**. A tela prova isso:\n\n```c\nvoid passo(void) {\n    printf(\"-- dentro --\\n\");\n}\n\nvoid tela(void) {\n    printf(\"antes\\n\");\n    passo();\n    printf(\"depois\\n\");\n}\n```\n\n```text\nantes\n-- dentro --\ndepois\n```\n\nO `depois` saiu por último porque a chamada voltou para a linha seguinte: a caixa empresta a vez e devolve."
+    },
+    {
+      "id": "tres-vezes-a-mesma-caixa",
+      "title": "Três vezes a mesma caixa",
+      "markdown": "Três chamadas rodam o corpo três vezes, na ordem em que estão escritas:\n\n```c\nvoid passo(void) {\n    printf(\"um passo\\n\");\n}\n\nvoid tela(void) {\n    passo();\n    passo();\n    passo();\n}\n```\n\n```text\num passo\num passo\num passo\n```\n\nA frase foi escrita uma vez só. Para trocar `um passo` por outra coisa, você muda em UM lugar — e as três linhas mudam juntas."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-chamada-volta-para-a-linha-de-baixo",
+      "statement": "A chamada executa o corpo e volta para a linha de baixo.",
+      "question": "A `tela` tem, nesta ordem: `printf(\"antes\\n\");`, `passo();` e `printf(\"depois\\n\");` — e a `passo` imprime `-- dentro --`. Qual é a saída?",
+      "options": [
+        "`antes`, `-- dentro --`, `depois`.",
+        "`antes`, `depois`, `-- dentro --`.",
+        "`-- dentro --`, `antes`, `depois`.",
+        "`antes` e `depois`: a chamada só roda no fim do programa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Na linha da chamada a execução entra na caixa, roda o corpo inteiro e volta para a linha seguinte — por isso o `depois` sai por último.",
+      "sectionId": "vai-e-volta",
+      "optionRationales": [
+        "A chamada acontece no lugar onde está escrita: imprime `antes`, entra na caixa, volta e imprime `depois`.",
+        "Isso suporia que a chamada fica para depois; ela roda na hora, na linha em que está.",
+        "O corpo da caixa não roda antes da chamada — ele fica guardado até alguém chamar.",
+        "A chamada não é adiada: ela roda na sua linha, e a caixa imprime ali mesmo."
+      ]
+    },
+    {
+      "id": "definir-e-chamar-sao-escritas-diferentes",
+      "statement": "Definir a caixa e chamar a caixa são duas escritas diferentes: `void passo(void) { ... }` define, `passo();` chama.",
+      "question": "Qual dessas linhas faz o corpo da caixa RODAR?",
+      "options": [
+        "`passo();`",
+        "`void passo(void) {`",
+        "`void passo(void);`",
+        "As duas juntas: definir já roda, e a chamada repete."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem roda o corpo é a chamada: nome, parênteses e ponto e vírgula. A linha com `void` na frente e chaves só guarda o corpo sob um nome.",
+      "sectionId": "a-chamada-e-uma-ordem",
+      "optionRationales": [
+        "É a chamada: só o nome, os parênteses e o `;` — uma ordem como qualquer outra.",
+        "Essa é a assinatura da definição: ela guarda o corpo, não o executa.",
+        "Essa linha é uma promessa de que a função existe (aula mais adiante) — e promessa também não roda nada.",
+        "Definir nunca roda: sem chamada, o corpo fica guardado e nada acontece."
+      ]
+    },
+    {
+      "id": "tres-chamadas-tres-execucoes",
+      "statement": "Três chamadas rodam o corpo três vezes, na ordem em que aparecem.",
+      "question": "A `saudacao` imprime uma linha. Para que a tela mostre a mesma linha três vezes, o que você escreve?",
+      "options": [
+        "Três chamadas `saudacao();`, uma embaixo da outra.",
+        "Três `printf` iguais dentro da `saudacao`.",
+        "Uma chamada só: a caixa repete sozinha o que está dentro dela.",
+        "Três definições da caixa `saudacao`, cada uma com o seu `printf`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada chamada roda o corpo uma vez. Três chamadas, três execuções do mesmo corpo — e a frase continua escrita em um só lugar.",
+      "sectionId": "tres-vezes-a-mesma-caixa",
+      "optionRationales": [
+        "Cada chamada roda o corpo uma vez: três chamadas dão três linhas, e o texto fica escrito num lugar só.",
+        "Isso funcionaria, mas escreve a frase três vezes — é exatamente o trabalho que a caixa existe para evitar.",
+        "A caixa não repete nada por conta própria: quem repete é quem chama.",
+        "Duas funções com o mesmo nome no mesmo arquivo nem compilam — o nome é único."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Other operators — o operador de chamada de função",
+      "url": "https://en.cppreference.com/w/c/language/operator_other",
+      "description": "A página oficial dos demais operadores de C: a seção Function call descreve o `()` que executa a função nomeada."
+    },
+    {
+      "title": "Statements — a referência oficial das ordens de C",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens: a chamada seguida de `;` é uma ordem (expression statement) como qualquer outra."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.5.2.2 (Function calls) define o que acontece na chamada e o retorno ao ponto seguinte."
+    }
+  ],
+  "challenges": [
+    "saudacao-tres-vezes"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

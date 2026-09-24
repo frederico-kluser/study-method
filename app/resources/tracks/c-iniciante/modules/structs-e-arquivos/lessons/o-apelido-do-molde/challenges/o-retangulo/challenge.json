@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-retangulo",
+  "title": "O retângulo",
+  "concept": "o_apelido_do_tipo",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O retângulo\n\nUm retângulo na tela são QUATRO números: o canto (`x`, `y`) e o tamanho (`largura`, `altura`). Uma ficha só, com um nome de tipo seu.\n\nEscreva a função `oRetangulo`, que recebe os quatro números:\n\n```text\nvoid oRetangulo(int x, int y, int largura, int altura)\n```\n\nDentro dela: declare com `typedef` o tipo `Retangulo`, com os quatro campos `int`; crie a ficha; guarde nela os quatro números que entraram; e imprima três linhas — a última é a área, `largura * altura`, calculada com os campos:\n\n```text\ncanto 2 3\ntamanho 4 5\narea 20\n```\n\nO exemplo é com 2, 3, 4 e 5; o teste também chama a sua função com outros números, então tudo o que sai tem de vir do que entrou. A saída acaba na terceira linha.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* 1. declare AQUI o tipo com typedef: Retangulo, com os campos\n      int x, int y, int largura e int altura.\n   2. no corpo: crie a ficha, guarde os quatro numeros que entraram\n      nos campos e imprima as tres linhas (a ultima e a area). */\nvoid oRetangulo(int x, int y, int largura, int altura) {\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-retangulo — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: captura do stdout DENTRO de cada cenario (freopen -> chamada\n   -> fflush -> fopen de leitura). Dois retangulos diferentes: nenhum texto\n   fixo passa nos dois, e a area tem de sair da conta com os campos. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oRetangulo(int x, int y, int largura, int altura);\n\nSM_TEST(o_retangulo_2_3_4_5) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oRetangulo(2, 3, 4, 5);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do canto\", linha, \"canto 2 3\\n\",\n              \"a primeira linha mostra os campos x e y da ficha\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do tamanho\", linha, \"tamanho 4 5\\n\",\n              \"a segunda linha mostra os campos largura e altura\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha da area\", linha, \"area 20\\n\",\n              \"a area e largura * altura, calculada com os campos\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_retangulo_0_0_7_6) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oRetangulo(0, 0, 7, 6);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o canto na origem\", linha, \"canto 0 0\\n\",\n              \"os numeros impressos vem do que entrou, nunca de texto fixo\");\n    fgets(linha, 80, f);\n    checa_str(\"o tamanho 7 por 6\", linha, \"tamanho 7 6\\n\",\n              \"a segunda linha acompanha o segundo retangulo\");\n    fgets(linha, 80, f);\n    checa_str(\"a area 42\", linha, \"area 42\\n\",\n              \"7 * 6 da 42: a conta sai dos campos da ficha\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    int x;\n    int y;\n    int largura;\n    int altura;\n} Retangulo;\n\nvoid oRetangulo(int x, int y, int largura, int altura) {\n    Retangulo r;\n    r.x = x;\n    r.y = y;\n    r.largura = largura;\n    r.altura = altura;\n    printf(\"canto %d %d\\n\", r.x, r.y);\n    printf(\"tamanho %d %d\\n\", r.largura, r.altura);\n    printf(\"area %d\\n\", r.largura * r.altura);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_retangulo_2_3_4_5",
+      "teste": "o_retangulo_2_3_4_5",
+      "descricao": "com 2, 3, 4 e 5 a funcao imprime canto 2 3, tamanho 4 5 e area 20 (largura * altura lidos dos campos), e a saida acaba na terceira linha"
+    },
+    {
+      "id": "o_retangulo_0_0_7_6",
+      "teste": "o_retangulo_0_0_7_6",
+      "descricao": "com 0, 0, 7 e 6 as linhas acompanham o retangulo que entrou (canto 0 0, tamanho 7 6, area 42) — texto fixo nao passa nos dois cenarios"
+    }
+  ]
+}

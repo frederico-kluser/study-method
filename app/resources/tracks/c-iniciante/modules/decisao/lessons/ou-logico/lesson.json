@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "ou-logico",
   "title": "Um caminho ou o outro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O || aceita a condição quando um dos lados é verdadeiro — e é o que permite testar dois valores diferentes do mesmo nome.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:logical:||",
+  "concepts": [
+    "o_ou_logico"
+  ],
   "prerequisites": [
     "e-logico"
   ],
+  "introduces": {
+    "productive": [
+      "op:logical:||",
+      "node:BinaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:logical:||"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a condição passa a aceitar alternativas: um mesmo nome pode ser testado contra vários valores na mesma linha, e basta um acerto para o bloco rodar",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "basta-um-dos-dois",
+      "title": "Basta um dos dois",
+      "markdown": "Domingo é folga; sábado também. São dois valores diferentes do MESMO nome, e para isso o `&&` não serve: nenhum dia é os dois ao mesmo tempo. O `||` — *ou* — pede que **um** dos lados seja verdadeiro:\n\n```c\nint dia = 7;\nif (dia == 1 || dia == 7) {\n    printf(\"folga\\n\");\n}\n```\n\n```text\nfolga\n```\n\nNeste curso o dia vai de 1 (domingo) a 7 (sábado). Com `dia` valendo 7 o lado esquerdo dá 0 e o direito dá 1 — um só já basta, e o bloco roda."
+    },
+    {
+      "id": "a-tabela-do-ou",
+      "title": "A tabela do ||",
+      "markdown": "O `||` também é uma conta que devolve 0 ou 1:\n\n```c\nprintf(\"%d\\n\", 0 || 7);\nprintf(\"%d\\n\", 1 || 0);\nprintf(\"%d\\n\", 0 || 0);\n```\n\n```text\n1\n1\n0\n```\n\nSó a última linha dá 0: o `||` devolve 0 quando os DOIS lados são 0. Repare no `0 || 7`: a resposta é 1, não 7 — em C qualquer número diferente de zero conta como verdadeiro, e o `||` sempre responde 0 ou 1."
+    },
+    {
+      "id": "o-ou-se-contenta-com-um",
+      "title": "O && exige os dois; o || se contenta com um",
+      "markdown": "Cabem vários `||` na mesma condição, e o resultado cabe num nome, como no `&&`:\n\n```c\nint dia = 3;\nint feriado = 1;\nint folga = dia == 1 || dia == 7 || feriado == 1;\nprintf(\"%d\\n\", folga);\n```\n\n```text\n1\n```\n\nTerça-feira não é fim de semana, mas é feriado: um lado verdadeiro basta e `folga` guarda 1. Troque os `||` por `&&` e o mesmo código passa a exigir que o dia seja domingo E sábado E feriado — o que nunca acontece."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "zero-ou-sete-da-um",
+      "statement": "`0 || 7` é 1: basta um lado verdadeiro.",
+      "question": "Quanto vale `0 || 7`?",
+      "options": [
+        "1: um lado verdadeiro já basta, e o `||` responde 0 ou 1.",
+        "7, porque o `||` devolve o lado que é verdadeiro.",
+        "0, porque o primeiro lado é 0.",
+        "Erro de compilação: o `||` só aceita 0 e 1 nos seus dois lados."
+      ],
+      "answerIndex": 0,
+      "feedback": "Qualquer número diferente de zero conta como verdadeiro, então o lado direito é verdadeiro e o `||` dá 1. Ele nunca devolve o número do lado: a resposta é 0 ou 1.",
+      "sectionId": "a-tabela-do-ou",
+      "optionRationales": [
+        "Um lado verdadeiro basta, e o resultado do `||` é sempre 0 ou 1.",
+        "O `||` não repassa o valor do lado: ele responde com 0 ou 1.",
+        "O primeiro lado em 0 não decide nada no `||` — ele ainda olha o segundo.",
+        "Qualquer `int` serve nos lados do `||`: zero é falso, o resto é verdadeiro."
+      ]
+    },
+    {
+      "id": "o-ou-da-zero-so-com-os-dois-zeros",
+      "statement": "O `||` só devolve 0 quando os DOIS lados são 0.",
+      "question": "Qual destas expressões vale 0?",
+      "options": [
+        "`0 || 0`",
+        "`1 || 0`",
+        "`0 || 7`",
+        "`1 || 1`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `||` procura um verdadeiro. Se não encontra nenhum — os dois lados em 0 —, a resposta é 0. Em qualquer outro caso é 1.",
+      "sectionId": "a-tabela-do-ou",
+      "optionRationales": [
+        "Nenhum lado verdadeiro: é o único caso em que o `||` dá 0.",
+        "O lado esquerdo é verdadeiro, então a resposta é 1.",
+        "O 7 é diferente de zero, logo verdadeiro: a resposta é 1.",
+        "Os dois lados verdadeiros também dão 1 — o `||` não exige exclusividade."
+      ]
+    },
+    {
+      "id": "quando-usar-ou-em-vez-de-e",
+      "statement": "Testar o mesmo nome contra dois valores diferentes pede `||`, nunca `&&`.",
+      "question": "Por que `dia == 1 && dia == 7` nunca roda o bloco?",
+      "options": [
+        "Porque `dia` teria de ser 1 e 7 ao mesmo tempo, e ele guarda um valor só.",
+        "Porque o `&&` não aceita `==` nos seus lados.",
+        "Porque 1 e 7 não são vizinhos na semana.",
+        "Porque o `&&` só funciona em faixas de números, como `n >= 1 && 100 >= n`."
+      ],
+      "answerIndex": 0,
+      "feedback": "As duas comparações olham o MESMO `dia`. Para o `&&` dar 1 as duas teriam de ser verdadeiras juntas — impossível, porque `dia` guarda um valor só. Alternativa é trabalho do `||`.",
+      "sectionId": "o-ou-se-contenta-com-um",
+      "optionRationales": [
+        "Um nome guarda um valor: as duas comparações nunca são verdadeiras ao mesmo tempo.",
+        "O `&&` aceita qualquer expressão nos lados, `==` inclusive.",
+        "Vizinhança não tem papel nenhum: o problema é exigir dois valores do mesmo nome.",
+        "O `&&` serve para faixas e para muito mais; o defeito aqui é a exigência, não a forma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial de `&&`, `||` e `!`: o `||` devolve 0 só quando os dois lados são zero, e o resultado é sempre um `int` 0 ou 1."
+    },
+    {
+      "title": "Order of evaluation — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/eval_order",
+      "description": "A página oficial da ordem de avaliação: o lado esquerdo do `||` é calculado primeiro, e o direito só se o esquerdo for 0."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.5.14 define o `||`, o resultado `int` 0 ou 1 e a garantia de que o lado direito não é calculado à toa."
+    }
+  ],
+  "challenges": [
+    "fim-de-semana"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",
@@ -25,6 +133,6 @@
     "ensina": "op:logical:||",
     "presume": "e-logico",
     "quiz": "0 || 7 é 1: basta um lado verdadeiro.",
-    "desafio": "fim-de-semana — lê o dia (1–7) e imprime folga para 6 ou 7; teste com 6, 7 e 3."
+    "desafio": "fim-de-semana — lê o dia (1 = domingo … 7 = sábado) e imprime folga para 1 ou 7; teste com 1, 7, 3 e 6. Desvio do docs/20 (que pede folga para 6 ou 7 testado com 6, 7 e 3): aquele recorte é resolvido por `if (dia >= 6)`, sem o || da aula; o recorte {1, 7} exige o operador."
   }
 }

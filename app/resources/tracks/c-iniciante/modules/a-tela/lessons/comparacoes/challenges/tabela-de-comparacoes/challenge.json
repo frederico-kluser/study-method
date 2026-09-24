@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "tabela-de-comparacoes",
+  "title": "Tabela de comparações",
+  "concept": "comparar_devolve_numero",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Tabela de comparações\n\nA função `tabelaDeComparacoes` imprime cinco linhas, cada uma mostrando o RESULTADO de uma comparação — o `0` ou o `1` que ela devolve.\n\nA **primeira linha já está escrita** e é o seu modelo: a comparação entra como argumento do `%d`, e o `printf` imprime o número que ela devolve.\n\n```text\n4 == 4 -> 1\n```\n\nEscreva as outras quatro no mesmo formato, na ordem dos comentários do arquivo: `4 == 5`, `7 >= 7`, `9 >= 7` e `5 >= 9`. Quem calcula o `0` e o `1` é a comparação — não você.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* tabelaDeComparacoes imprime o resultado de cinco comparacoes.\n   A primeira linha ja esta pronta e serve de modelo: a comparacao vai como\n   argumento do %d, e o printf imprime o 0 ou o 1 que ela devolve.\n   Escreva as outras quatro linhas no mesmo formato. */\nvoid tabelaDeComparacoes(void) {\n    printf(\"4 == 4 -> %d\\n\", 4 == 4);\n\n    /* linha 2: a comparacao 4 == 5 */\n\n    /* linha 3: a comparacao 7 >= 7 */\n\n    /* linha 4: a comparacao 9 >= 7 */\n\n    /* linha 5: a comparacao 5 >= 9 */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio tabela-de-comparacoes — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste (modelo cenario-do-harness):\n   freopen manda o stdout para o arquivo temporario, o teste chama a funcao\n   do aluno e le o arquivo de volta — stdlib puro, sem runner proprio. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid tabelaDeComparacoes(void);\n\nSM_TEST(a_tabela_das_cinco_comparacoes) {\n    /* captura: o stdout vira o arquivo sm_saida.tmp */\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    tabelaDeComparacoes();\n    fflush(stdout);\n\n    /* leitura linha a linha: uma comparacao por linha, na ordem do arquivo */\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 4 == 4\", linha, \"4 == 4 -> 1\\n\",\n              \"os dois lados sao iguais, entao o == devolve 1\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 4 == 5\", linha, \"4 == 5 -> 0\\n\",\n              \"quatro nao e cinco, entao o == devolve 0\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 7 >= 7\", linha, \"7 >= 7 -> 1\\n\",\n              \"o >= aceita o igual: sete e maior ou igual a sete\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 9 >= 7\", linha, \"9 >= 7 -> 1\\n\",\n              \"nove e maior que sete, entao o >= devolve 1\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 5 >= 9\", linha, \"5 >= 9 -> 0\\n\",\n              \"cinco nao e maior nem igual a nove, entao o >= devolve 0\");\n    /* a saida TERMINA na quinta linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"sao cinco comparacoes: nenhuma sexta linha e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid tabelaDeComparacoes(void) {\n    printf(\"4 == 4 -> %d\\n\", 4 == 4);\n    printf(\"4 == 5 -> %d\\n\", 4 == 5);\n    printf(\"7 >= 7 -> %d\\n\", 7 >= 7);\n    printf(\"9 >= 7 -> %d\\n\", 9 >= 7);\n    printf(\"5 >= 9 -> %d\\n\", 5 >= 9);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_tabela_das_cinco_comparacoes",
+      "teste": "a_tabela_das_cinco_comparacoes",
+      "descricao": "a funcao tabelaDeComparacoes imprime o resultado das cinco comparacoes na ordem do arquivo — 4 == 4 -> 1, 4 == 5 -> 0, 7 >= 7 -> 1, 9 >= 7 -> 1 e 5 >= 9 -> 0 — e nada alem disso"
+    }
+  ]
+}

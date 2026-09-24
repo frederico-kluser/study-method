@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "na-faixa",
+  "title": "Na faixa",
+  "concept": "o_e_logico",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Na faixa\n\nA função `naFaixa` lê **um número inteiro** digitado pela pessoa e imprime `ok` apenas quando ele está na faixa **de 1 a 100** (os dois extremos valem).\n\nMetade do teste já está escrita: o `if` confere o piso (`n >= 1`). Falta o teto. Junte as duas metades numa condição só com o `&&` — o teto se escreve com o `>=` que você já tem, na forma `100 >= n` (\"100 é maior ou igual a n\").\n\nCom `50` digitado, a saída é:\n\n```text\nok\n```\n\nCom `0` ou com `101`, a função não imprime **nada**: um dos lados do `&&` vale 0, e o bloco é saltado.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* naFaixa le um inteiro digitado e imprime \"ok\" so quando ele esta\n   na faixa de 1 a 100. O piso da faixa ja esta escrito.\n   Falta o teto: junte a segunda comparacao com && (100 >= n). */\nvoid naFaixa(void) {\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    if (n >= 1) {\n        printf(\"ok\\n\");\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio na-faixa — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4).\n   Os tres valores cercam a faixa: 50 dentro, 0 abaixo do piso e 101 acima\n   do teto — nenhuma comparacao sozinha acerta os tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid naFaixa(void);\n\nSM_TEST(o_50_esta_na_faixa) {\n    /* o que a pessoa digita: 50 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"50\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    naFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 50 esta na faixa\", linha, \"ok\\n\",\n              \"50 passa no piso e no teto: os dois lados do && valem 1\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o ok da faixa, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_0_fica_fora) {\n    /* o que a pessoa digita: 0 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"0\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    naFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 0 fica fora\", linha, \"(nada impresso)\",\n              \"0 nao chega a 1: o lado esquerdo vale 0 e o && inteiro vale 0\");\n    fclose(f);\n}\n\nSM_TEST(o_101_fica_fora) {\n    /* o que a pessoa digita: 101 */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"101\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    naFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 101 fica fora\", linha, \"(nada impresso)\",\n              \"101 passa do teto: o lado direito vale 0 e o && inteiro vale 0\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid naFaixa(void) {\n    int n = 0;\n\n    scanf(\"%d\", &n);\n\n    if (n >= 1 && 100 >= n) {\n        printf(\"ok\\n\");\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_50_esta_na_faixa",
+      "teste": "o_50_esta_na_faixa",
+      "descricao": "com 50 digitado no stdin, a funcao naFaixa imprime exatamente \"ok\" e mais nenhuma linha — 50 passa no piso e no teto, e os dois lados do && valem 1"
+    },
+    {
+      "id": "o_0_fica_fora",
+      "teste": "o_0_fica_fora",
+      "descricao": "com 0 digitado no stdin, a funcao nao imprime nada: o piso reprova (0 nao chega a 1) e um lado em 0 derruba o && inteiro"
+    },
+    {
+      "id": "o_101_fica_fora",
+      "teste": "o_101_fica_fora",
+      "descricao": "com 101 digitado no stdin, a funcao nao imprime nada: o teto reprova (100 >= 101 vale 0) — e este cenario e o que reprova quem escreveu so metade da faixa"
+    }
+  ]
+}

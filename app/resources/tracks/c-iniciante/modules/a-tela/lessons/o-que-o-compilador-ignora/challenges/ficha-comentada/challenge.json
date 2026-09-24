@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "ficha-comentada",
+  "title": "A ficha comentada",
+  "concept": "o_comentario",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A ficha comentada\n\nA função `fichaComentada` já vem com o comentário de cabeçalho (o bloco `/* */` que explica a função inteira). Falta o **corpo**: três `printf` que imprimem, nesta ordem:\n\n```text\nficha do aluno\nnome: Ana\nturma: C1\n```\n\nE tem uma segunda parte, para gente: deixe um comentário `//` no fim de cada uma das três linhas, dizendo o que ela imprime.\n\nO teste compara a saída linha a linha — é ele que prova o que a aula afirma: **o comentário não muda o que aparece na tela**. Se algum comentário for para dentro das aspas, ele vira texto e o teste reprova.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* Ficha do aluno: imprime as tres linhas da ficha.\n   Este bloco em cima da funcao e o comentario de cabecalho dela. */\nvoid fichaComentada(void) {\n    /* escreva aqui os tres printf, um por linha, cada um com \\n no fim,\n       e deixe um comentario // no fim de cada linha dizendo o que ela imprime */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio ficha-comentada — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   O teste nao ve os comentarios do aluno: ele ve a SAIDA. E e isso que\n   prova a afirmacao da aula — comentario nenhum aparece na tela. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid fichaComentada(void);\n\nSM_TEST(a_ficha_sai_sem_comentario) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    fichaComentada();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o titulo da ficha\", linha, \"ficha do aluno\\n\",\n              \"a ficha abre pelo titulo, sem nenhum texto de comentario\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do nome\", linha, \"nome: Ana\\n\",\n              \"a segunda linha traz o nome, exatamente como o enunciado pede\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha da turma\", linha, \"turma: C1\\n\",\n              \"a terceira linha traz a turma, exatamente como o enunciado pede\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira linha: comentario nao imprime nada\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\n/* Ficha do aluno: imprime as tres linhas da ficha.\n   Este bloco em cima da funcao e o comentario de cabecalho dela. */\nvoid fichaComentada(void) {\n    printf(\"ficha do aluno\\n\");  // o titulo da ficha\n    printf(\"nome: Ana\\n\");       // o nome de quem e a ficha\n    printf(\"turma: C1\\n\");       // a turma do aluno\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_ficha_sai_sem_comentario",
+      "teste": "a_ficha_sai_sem_comentario",
+      "descricao": "a funcao fichaComentada imprime as tres linhas da ficha na ordem — \"ficha do aluno\", \"nome: Ana\" e \"turma: C1\" — e a saida acaba na terceira linha: nenhum texto de comentario (de cabecalho ou de fim de linha) aparece no stdout capturado"
+    }
+  ]
+}

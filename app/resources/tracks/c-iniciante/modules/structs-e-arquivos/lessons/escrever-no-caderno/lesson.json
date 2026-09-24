@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "escrever-no-caderno",
   "title": "Escrever no caderno",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O fprintf é o printf que escolhe o caderno: o primeiro argumento diz onde escrever, e o resto da linha é o formato que você já conhece.",
+  "difficulty": 3,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:fprintf",
+  "concepts": [
+    "escrever_no_arquivo"
+  ],
   "prerequisites": [
     "o-caderno",
     "buraco-na-frase"
   ],
+  "introduces": {
+    "productive": [
+      "api:fprintf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a escrita formatada deixa de ter destino fixo: a mesma frase com buracos pode ir para a tela (printf) ou para um caderno do disco (fprintf), e quem decide é o primeiro argumento",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-printf-que-escolhe-o-caderno",
+      "title": "O printf que escolhe o caderno",
+      "markdown": "O `printf` escreve sempre no mesmo lugar: a tela. Para escrever no caderno existe o `fprintf` — o mesmo `printf`, com um argumento a mais **na frente**: em qual caderno.\n\n```c\nFILE *f = fopen(\"diario.txt\", \"w\");\nfprintf(f, \"primeira linha\\n\");\nfclose(f);\n```\n\nDepois de rodar, o `diario.txt` tem uma linha:\n\n```text\nprimeira linha\n```"
+    },
+    {
+      "id": "o-mesmo-formato-do-printf",
+      "title": "O mesmo %d, o mesmo %s",
+      "markdown": "Do segundo argumento em diante, `fprintf` e `printf` são a MESMA coisa: os mesmos buracos na frase, preenchidos pelos valores que vêm depois.\n\n```c\nint dia = 3;\nFILE *f = fopen(\"diario.txt\", \"w\");\nfprintf(f, \"dia %d: %s\\n\", dia, \"estudei C\");\nfclose(f);\n```\n\nNo caderno fica:\n\n```text\ndia 3: estudei C\n```\n\nO `%d` recebe o número, o `%s` recebe o texto, e o `\\n` passa para a linha de baixo."
+    },
+    {
+      "id": "o-printf-e-um-fprintf",
+      "title": "O printf é um fprintf disfarçado",
+      "markdown": "E o `printf` da aula 1? Ele é um `fprintf` com o caderno já escolhido: a tela. Esse caderno-tela tem nome — `stdout` — e as duas linhas abaixo fazem exatamente a mesma coisa:\n\n```c\nprintf(\"oi\\n\");\nfprintf(stdout, \"oi\\n\");\n```\n\nOnde a analogia quebra: o `stdout` não é arquivo no disco, é para onde a saída do programa vai. Você não o abre nem o fecha — ele já vem aberto."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-caderno-vem-primeiro",
+      "statement": "O `fprintf` é o `printf` que escolhe o caderno: o primeiro argumento é o caderno, e o resto é igual.",
+      "question": "Você tem um `FILE *f` aberto para escrita. Qual linha grava `oi` nele?",
+      "options": [
+        "`fprintf(f, \"oi\\n\");` — o caderno vem antes do texto.",
+        "`fprintf(\"oi\\n\", f);` — o texto vem antes do caderno.",
+        "`printf(f, \"oi\\n\");` — o printf aceita o caderno.",
+        "`fprintf(\"diario.txt\", \"oi\\n\");` — grava pelo nome."
+      ],
+      "answerIndex": 0,
+      "feedback": "O caderno é o PRIMEIRO argumento, e é o `FILE *` que o `fopen` devolveu — nunca o nome do arquivo. O `printf` não recebe caderno nenhum: ele só escreve na tela.",
+      "sectionId": "o-printf-que-escolhe-o-caderno",
+      "optionRationales": [
+        "É a ordem do `fprintf`: primeiro o caderno, depois a frase com os buracos, depois os valores.",
+        "Invertido: nessa ordem o compilador receberia a frase onde espera o caderno.",
+        "O `printf` tem um caderno fixo (a tela) e não aceita outro — quem escolhe é o `fprintf`.",
+        "O `fprintf` não recebe o NOME do arquivo: recebe o `FILE *` que o `fopen` devolveu."
+      ]
+    },
+    {
+      "id": "o-formato-e-o-mesmo",
+      "statement": "Do segundo argumento em diante o `fprintf` usa o formato do `printf`: `%d` para inteiro, `%s` para texto.",
+      "question": "Com `int dia = 3;`, o que `fprintf(f, \"dia %d\\n\", dia);` grava no caderno?",
+      "options": [
+        "`dia 3` e, depois dele, o fim de linha.",
+        "`dia %d` e o fim de linha: o buraco não é preenchido.",
+        "`dia 3`, mas sem o fim de linha.",
+        "`dia` numa linha e `3` na linha seguinte."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `%d` é substituído pelo valor de `dia` antes de o texto chegar ao caderno — no arquivo não sobra nenhum `%`. E o `\\n` grava o fim de linha, igualzinho ao do `printf`.",
+      "sectionId": "o-mesmo-formato-do-printf",
+      "optionRationales": [
+        "O `%d` vira `3` e o `\\n` vira o fim da linha: o caderno guarda o texto já pronto.",
+        "O buraco é preenchido na hora de gravar; o `%d` nunca chega ao arquivo.",
+        "O `\\n` está na frase, então o fim de linha vai para o caderno junto.",
+        "Um `\\n` só, e no fim: `dia` e `3` ficam na MESMA linha."
+      ]
+    },
+    {
+      "id": "o-stdout-ja-vem-aberto",
+      "statement": "O `printf` é um `fprintf` no `stdout` — o caderno-tela, que já vem aberto.",
+      "question": "Por que você nunca precisou chamar `fopen` para usar o `printf`?",
+      "options": [
+        "Porque o `stdout` já vem aberto quando o programa começa.",
+        "Porque o `printf` chama `fopen` e `fclose` por você, a cada linha.",
+        "Porque a tela não é um caderno, e só caderno abre.",
+        "Porque o `fopen` só abre caderno nos modos `\"w\"` e `\"r\"`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Todo programa C começa com três cadernos já abertos, e um deles é o `stdout`. Por isso o `printf` funciona na primeira linha do programa, sem preparo nenhum.",
+      "sectionId": "o-printf-e-um-fprintf",
+      "optionRationales": [
+        "O programa nasce com o `stdout` aberto — não há o que abrir nem o que fechar.",
+        "O `printf` não abre nada: ele escreve num caderno que já estava aberto.",
+        "A tela é um caderno como os outros para o `fprintf`; a diferença é que ela já está aberta.",
+        "Os modos são do arquivo no disco, mas o motivo é outro: o `stdout` já está aberto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fprintf — a referência oficial da biblioteca de C",
+      "url": "https://en.cppreference.com/w/c/io/fprintf",
+      "description": "A página oficial da família printf: o fprintf recebe o FILE * na frente e usa o mesmo formato do printf."
+    },
+    {
+      "title": "fprintf(3) — a man-page do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fprintf.3.html",
+      "description": "A man-page do sistema: a família printf inteira lado a lado, com a tabela dos conversores %d e %s."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C: a seção 7.21.6.1 define o fprintf, e a 7.21.1 declara o stdout como um dos fluxos já abertos."
+    }
+  ],
+  "challenges": [
+    "o-diario"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

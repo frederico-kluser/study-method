@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-swap",
+  "title": "O swap",
+  "concept": "a_troca_que_funciona",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O swap\n\nEscreva a função `oSwap` — a troca que funciona:\n\n```c\nvoid oSwap(int *a, int *b)\n```\n\nEla recebe **dois endereços** e troca os valores que estão neles. Depois da chamada, quem chamou fica com os dois valores invertidos:\n\n```c\nint x = 3;\nint y = 8;\noSwap(&x, &y);\n/* agora x vale 8 e y vale 3 */\n```\n\nA função não devolve nada e não imprime nada. Lembre da armadilha da aula: escrever direto uma casa em cima da outra perde um dos números — você precisa de uma variável para guardar o primeiro valor antes de sobrescrevê-lo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* oSwap troca os valores que estao nos dois enderecos recebidos.\n   O programa de fora (o harness) chama esta funcao — voce escreve o corpo.\n   Dica: sem uma variavel para guardar o primeiro valor, ele se perde. */\nvoid oSwap(int *a, int *b) {\n    /* escreva aqui os tres passos da troca */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-swap — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A funcao do aluno nao devolve nem imprime: o teste declara as variaveis,\n   entrega os ENDERECOS delas e confere o que sobrou em cada uma. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oSwap(int *a, int *b);\n\nSM_TEST(troca_dois_positivos) {\n    int x = 3;\n    int y = 8;\n    oSwap(&x, &y);\n    checa_int(\"o primeiro recebeu o valor do segundo\", x, 8,\n              \"depois da troca, x fica com o 8 que estava em y\");\n    checa_int(\"o segundo recebeu o valor do primeiro\", y, 3,\n              \"depois da troca, y fica com o 3 que estava em x — nenhum valor se perde\");\n}\n\nSM_TEST(troca_com_negativo_e_zero) {\n    int a = -5;\n    int b = 0;\n    oSwap(&a, &b);\n    checa_int(\"o negativo foi para a segunda casa\", b, -5,\n              \"a troca nao olha o sinal: vale para qualquer int\");\n    checa_int(\"o zero foi para a primeira casa\", a, 0,\n              \"o zero e um valor como outro qualquer e tambem viaja na troca\");\n}\n\nSM_TEST(trocar_uma_casa_com_ela_mesma) {\n    int v = 7;\n    oSwap(&v, &v);\n    checa_int(\"trocar uma casa com ela mesma nao muda nada\", v, 7,\n              \"os dois enderecos sao o mesmo: o valor sai e volta para o mesmo lugar\");\n}\n",
+  "solutionCode": "void oSwap(int *a, int *b) {\n    int guarda = *a;\n    *a = *b;\n    *b = guarda;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "troca_dois_positivos",
+      "teste": "troca_dois_positivos",
+      "descricao": "com x = 3 e y = 8, depois de oSwap(&x, &y) o x vale 8 e o y vale 3: os dois valores trocam de lugar nas variaveis de quem chamou"
+    },
+    {
+      "id": "troca_com_negativo_e_zero",
+      "teste": "troca_com_negativo_e_zero",
+      "descricao": "a troca vale para qualquer int: com -5 e 0, o -5 vai para a segunda casa e o 0 para a primeira"
+    },
+    {
+      "id": "trocar_uma_casa_com_ela_mesma",
+      "teste": "trocar_uma_casa_com_ela_mesma",
+      "descricao": "chamando oSwap(&v, &v) com v = 7, o valor continua 7 — os dois enderecos sao o mesmo e nada se perde"
+    }
+  ]
+}

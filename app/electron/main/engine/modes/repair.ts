@@ -448,6 +448,23 @@ export interface PlanoDeReparo {
  * A13/A13d/A16 carregam `construcao` e caem na máquina P-13 normal: ordem
  * (reescrever) — A13d aponta para a própria aula (reescreva o exemplo ou a
  * declaração); A16 sempre aponta para alguma demonstração (adiante-a).
+ *
+ * 2026-09-22 — A BARRA A17–A24 entra aqui pelo MESMO argumento. Desde que o
+ * `audit` mescla os achados da barra (`audit.ts::violacaoDaBarra`), as regras
+ * dela que falam da AULA e não de uma chave — A17 (teto do passo), A20 (aula sem
+ * prova), A21 (carga e seções), A24 (vazamento do quiz) e o A18 de teto — chegam
+ * com `construcao === null` e cairiam em "CRIAR AULA", que é exatamente o
+ * sem-sentido que o parágrafo acima descreve: o defeito de A17 é a aula ensinar
+ * DEMAIS, e criar uma aula a mais sem redistribuir o que ela ensina não fecha
+ * nada. Elas são defeito de DESENHO, e o executor delas é o laço
+ * `convergir` (`modes/convergencia.ts`), que as classifica nos ramos QUEBRA e
+ * PROVA e sabe planejar `SPLIT_LESSON`. Aqui viram BLOQUEIO declarado.
+ *
+ * As que carregam CHAVE continuam na máquina P-13 normal, e é o certo: A19
+ * (chave declarada sem demonstração), A22 (uma forma só), A23 (derivada sem
+ * co-ocorrência) e o A18 de chave apontam para a PRÓPRIA aula, logo
+ * `introduzido_em !== null` e a ação é REWRITE_IN_BUDGET — escrever a
+ * demonstração que falta, que é exatamente o conserto.
  */
 const REGRAS_ESTRUTURAIS: ReadonlySet<string> = new Set<string>([
   'I12',
@@ -459,6 +476,16 @@ const REGRAS_ESTRUTURAIS: ReadonlySet<string> = new Set<string>([
   'A14b',
   'A15a',
   'A15b',
+  // a barra A17–A24: as que falam da AULA. A entrada por REGRA é segura porque o
+  // call-site já exige `construcao === null` (linha do `if` abaixo) — `A18` está
+  // aqui pelas suas duas caras: a de TETO vem sem chave e é desenho; a de CHAVE
+  // ("chave lida sem demonstração") vem COM chave e continua caindo na máquina
+  // P-13 como ordem, que é o conserto certo dela.
+  'A17',
+  'A18',
+  'A20',
+  'A21',
+  'A24',
 ]);
 
 /**

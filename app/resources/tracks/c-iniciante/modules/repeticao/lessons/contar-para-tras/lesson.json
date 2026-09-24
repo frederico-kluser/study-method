@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "contar-para-tras",
   "title": "Contar para trás",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O mesmo while, agora descendo: o contador nasce grande, a condição pergunta >= 1 e o passo é o -- — e a última volta é o número que está na condição.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:WhileStmt",
+  "concepts": [
+    "a_contagem_regressiva"
+  ],
   "prerequisites": [
     "enquanto",
     "um-de-cada-vez"
   ],
+  "introduces": {
+    "productive": [
+      "node:WhileStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o laço deixa de ter um só sentido: o contador pode descer, e o número que aparece na condição passa a ser lido como a ÚLTIMA volta, não como o começo",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-contador-que-desce",
+      "title": "O contador que desce",
+      "markdown": "Na aula passada o contador subia. Ele também pode descer: o valor nasce grande e o passo tira um.\n\n```c\nint i = 3;\nwhile (i >= 1) {\n    printf(\"%d\\n\", i);\n    i--;\n}\n```\n\n```text\n3\n2\n1\n```\n\nDuas peças mudaram de lugar, e só duas: o valor de nascimento (3 em vez de 1) e o sinal do passo (`--` em vez de `++`). A forma do `while` é exatamente a mesma — condição entre parênteses, corpo entre chaves."
+    },
+    {
+      "id": "a-condicao-que-segura-o-um",
+      "title": "A condição segura a última volta",
+      "markdown": "Descendo, a pergunta vira `>= 1`: *ainda estou em 1 ou acima?*\n\n```c\nint restam = 2;\nwhile (restam >= 1) {\n    printf(\"faltam %d\\n\", restam);\n    restam--;\n}\n```\n\n```text\nfaltam 2\nfaltam 1\n```\n\nQuando `restam` chega a 0 a resposta é 0 e o laço para: o zero nunca é impresso. Com `>= 0` no lugar, o zero entraria e haveria uma volta a mais.\n\nGuarde assim: **o número da condição é a última volta**, não a primeira."
+    },
+    {
+      "id": "depois-do-laco-a-vida-continua",
+      "title": "Depois do laço, a vida continua",
+      "markdown": "O que vem DEPOIS do `}` roda uma vez só, quando o laço já acabou:\n\n```c\nint i = 2;\nwhile (i >= 1) {\n    printf(\"%d\\n\", i);\n    i--;\n}\nprintf(\"FOGO\\n\");\n```\n\n```text\n2\n1\nFOGO\n```\n\nO último `printf` está fora das chaves: o laço não o alcança. Dentro delas, ele sairia a cada volta — duas linhas de `FOGO`.\n\nEm C a margem não manda nada: quem decide o que é dentro e o que é fora do laço são as chaves."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-contagem-termina-em-um",
+      "statement": "A contagem decrescente termina em 1: a condição é `>= 1`.",
+      "question": "Com `int i = 3;` e o passo `i--`, qual condição faz o laço imprimir 3, 2 e 1 — e parar?",
+      "options": [
+        "`i >= 0`, porque a contagem só termina quando alcança o zero.",
+        "`i >= 1`, porque a resposta só vira 0 quando `i` chega a 0.",
+        "`i == 1`, porque a última volta é o 1.",
+        "`i >= 3`, porque o contador nasceu valendo 3."
+      ],
+      "answerIndex": 1,
+      "feedback": "O número da condição é a ÚLTIMA volta aceita. Com `>= 1` o laço imprime até o 1 e para no 0; com `>= 0` ele imprimiria uma linha a mais.",
+      "sectionId": "a-condicao-que-segura-o-um",
+      "optionRationales": [
+        "Com `>= 0` o próprio zero passaria pela pergunta e seria impresso: seriam quatro linhas, não três.",
+        "O `>=` aceita a igualdade, então o 1 entra; quando `i` vira 0 a resposta é 0 e o laço para.",
+        "`i == 1` é falso já na primeira conferência (`i` vale 3), e o laço não rodaria nenhuma vez.",
+        "`i >= 3` é verdade só na primeira volta; na segunda, com `i` valendo 2, o laço já pararia."
+      ]
+    },
+    {
+      "id": "o-passo-que-desce",
+      "statement": "Num laço que desce, o passo é o `--`.",
+      "question": "Por que trocar `i++` por `i--` é obrigatório quando o contador desce?",
+      "options": [
+        "Porque o `++` não pode ser usado junto com a comparação `>=` num laço.",
+        "Porque o `--` é mais rápido que o `++` quando o contador é grande.",
+        "Porque quem imprime o número na tela a cada volta é o próprio `--`.",
+        "Porque só o `--` aproxima o contador do número que a condição vigia."
+      ],
+      "answerIndex": 3,
+      "feedback": "Passo e condição andam em par: a cada volta o passo tem de levar o contador PARA a fronteira que a condição vigia. Subindo com `i++` e perguntando `>= 1`, a resposta seria sim para sempre.",
+      "sectionId": "o-contador-que-desce",
+      "optionRationales": [
+        "Os dois sinais funcionam com qualquer comparação — o problema não é de compatibilidade, é de direção.",
+        "Velocidade não entra nessa conversa: os dois mudam o valor em um, e o programa nem sente a diferença.",
+        "Quem imprime é o `printf`; o `--` só muda o valor guardado no nome.",
+        "Passo e condição andam em par: o passo precisa levar o contador para a fronteira que a condição vigia."
+      ]
+    },
+    {
+      "id": "fora-das-chaves-roda-uma-vez",
+      "statement": "O que está fora das chaves do laço roda uma vez só, depois que ele acaba.",
+      "question": "No trecho da seção final, quantas vezes `FOGO` é impresso?",
+      "options": [
+        "Uma vez só, depois de o laço terminar.",
+        "Duas vezes, uma a cada volta do laço.",
+        "Nenhuma: o que vem depois do `}` não roda.",
+        "Três vezes: duas voltas mais a linha final."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço repete só o que está entre as suas chaves. O `printf` de fora é a próxima ordem do programa: roda uma vez, quando a condição já respondeu 0.",
+      "sectionId": "depois-do-laco-a-vida-continua",
+      "optionRationales": [
+        "O laço repete só o que está entre as chaves; a linha de fora é a próxima ordem do programa.",
+        "Sairia duas vezes se o `printf` estivesse DENTRO das chaves, junto com o corpo.",
+        "O laço não encerra o programa: quando a condição responde 0, a execução segue na linha seguinte.",
+        "As duas voltas imprimem os números; o `FOGO` é uma linha só, e vem depois delas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/while",
+      "description": "A página oficial do `while`: a condição é avaliada antes de cada execução do corpo, e o corpo é uma ordem só (aqui, o bloco entre chaves)."
+    },
+    {
+      "title": "Increment/decrement operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_incdec",
+      "description": "A página oficial de `++` e `--`: o decremento subtrai um do próprio nome."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `>=` e da família de comparações: todas devolvem 1 ou 0."
+    }
+  ],
+  "challenges": [
+    "contagem-final"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

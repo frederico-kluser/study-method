@@ -2,23 +2,132 @@
   "schemaVersion": 1,
   "slug": "a-ordem-das-contas",
   "title": "A ordem das contas",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Numa conta com vários operadores, * e / vêm antes de + e -; e os parênteses mandam mais que a precedência — 2 + 3 * 4 é 14, (2 + 3) * 4 é 20.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:binary:*",
+  "concepts": [
+    "a_ordem_das_contas"
+  ],
   "prerequisites": [
     "somar-e-subtrair",
     "multiplicar-e-dividir"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:*",
+      "op:binary:+",
+      "node:BinaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:binary:*"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a conta deixa de ser lida da esquerda para a direita: a expressão passa a ter ordem própria (precedência) e o aluno ganha o comando dessa ordem pelos parênteses",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "primeiro-o-vezes",
+      "title": "Primeiro o vezes, depois o mais",
+      "markdown": "Numa conta com mais de um operador, o C não vai simplesmente da esquerda para a direita: ele segue a ordem da matemática. `*` e `/` acontecem **antes** de `+` e `-`.\n\n```c\nprintf(\"%d\\n\", 2 + 3 * 4);\n```\n\n```text\n14\n```\n\nLeia como um caixa de mercado leria: `3 * 4` é o total de um item (12), e o `2` é outro item que entra na soma depois. Dá 14 — nunca 20.\n\nEssa preferência tem nome: **precedência**. A multiplicação tem precedência sobre a soma."
+    },
+    {
+      "id": "os-parenteses-mandam",
+      "title": "Os parênteses mandam mais",
+      "markdown": "Quando a ordem que você quer não é a da precedência, os parênteses resolvem: o que está dentro deles é calculado primeiro.\n\n```c\nprintf(\"%d\\n\", (2 + 3) * 4);\n```\n\n```text\n20\n```\n\nAgora a soma vem antes: `2 + 3` dá 5, e o `* 4` leva o 5 para 20. A conta é a mesma; a ordem, não.\n\nOs parênteses não deixam rastro no programa — não são um operador, não fazem conta nenhuma. Eles só mandam no **quando**."
+    },
+    {
+      "id": "onde-isso-decide",
+      "title": "Onde isso decide o resultado",
+      "markdown": "Uma média ponderada mostra o tamanho do estrago. A prova pesa 3, o trabalho pesa 2, e os pesos somam 5. Quem tirou 8 na prova e 3 no trabalho:\n\n```c\nprintf(\"%d\\n\", 8 * 3 + 3 * 2 / 5);\nprintf(\"%d\\n\", (8 * 3 + 3 * 2) / 5);\n```\n\n```text\n25\n6\n```\n\nNa primeira linha a precedência divide **só o último pedaço** (`3 * 2 / 5`) e o resultado não é média de nada. Na segunda, os parênteses somam os dois pontos primeiro (24 + 6) e só então dividem por 5.\n\nSem parênteses a conta roda e o compilador não reclama — o resultado é que fica errado."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-precedencia-do-vezes",
+      "statement": "`2 + 3 * 4` é 14: a multiplicação acontece antes da soma.",
+      "question": "Quanto o C calcula em `2 + 3 * 4`?",
+      "options": [
+        "20, porque ele lê da esquerda para a direita: 2 + 3, depois × 4.",
+        "14, porque 3 × 4 vem primeiro e o 2 entra na soma depois.",
+        "9, porque ele soma tudo e ignora o `*`.",
+        "24, porque ele multiplica os três números."
+      ],
+      "answerIndex": 1,
+      "feedback": "A multiplicação tem precedência: `3 * 4` dá 12 e a soma com 2 fecha em 14. Ler da esquerda para a direita é justamente o erro que a precedência evita.",
+      "sectionId": "primeiro-o-vezes",
+      "optionRationales": [
+        "20 é o resultado de `(2 + 3) * 4` — com parênteses, que aqui não existem.",
+        "O `*` age primeiro: 12, e só então a soma com 2 dá 14.",
+        "Nenhum operador é ignorado; cada um age na sua vez.",
+        "Só existem duas operações nessa conta: uma multiplicação e uma soma."
+      ]
+    },
+    {
+      "id": "os-parenteses-vencem",
+      "statement": "`(2 + 3) * 4` é 20: os parênteses mandam mais que a precedência.",
+      "question": "O que `printf(\"%d\\n\", (2 + 3) * 4);` imprime?",
+      "options": [
+        "20",
+        "14",
+        "9",
+        "os parênteses são ignorados, então 14"
+      ],
+      "answerIndex": 0,
+      "feedback": "O que está entre parênteses é calculado primeiro: 5, e o `* 4` leva a 20. Os parênteses não fazem conta nenhuma — eles decidem a ordem.",
+      "sectionId": "os-parenteses-mandam",
+      "optionRationales": [
+        "A soma entre parênteses vem primeiro (5) e a multiplicação fecha em 20.",
+        "14 é o resultado sem parênteses, quando o `*` age antes.",
+        "9 seria 2 + 3 + 4, e não há três somas aqui.",
+        "Parênteses nunca são ignorados: são eles que mandam na ordem."
+      ]
+    },
+    {
+      "id": "a-media-ponderada-precisa-do-parenteses",
+      "statement": "Na média ponderada, a soma dos pontos tem de estar entre parênteses antes da divisão.",
+      "question": "Com a prova valendo 3 e o trabalho 2, qual conta dá a média de 8 na prova e 3 no trabalho?",
+      "options": [
+        "`8 * 3 + 3 * 2 / 5`",
+        "`8 + 3 * 3 + 2 / 5`",
+        "`(8 * 3 + 3 * 2) / 5`",
+        "`8 * 3 + 3 * 2 / (5)`"
+      ],
+      "answerIndex": 2,
+      "feedback": "A divisão precisa agir sobre a soma inteira dos pontos: por isso ela vai entre parênteses. Sem eles, o `/ 5` só alcança o último pedaço da conta.",
+      "sectionId": "onde-isso-decide",
+      "optionRationales": [
+        "Sem parênteses o `/ 5` divide só o `3 * 2`, e o resultado é 25.",
+        "Aqui as notas e os pesos trocaram de lugar: a conta não é essa.",
+        "Os parênteses somam 24 e 6 primeiro; a divisão por 5 então dá a média 6.",
+        "Parênteses em volta do 5 não mudam nada: o problema é o que a divisão alcança à esquerda."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "C operator precedence — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_precedence",
+      "description": "A tabela oficial de precedência: multiplicação e divisão num nível, soma e subtração no nível de baixo."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial das contas em C, com a forma e o resultado de cada operador aritmético."
+    },
+    {
+      "title": "ISO/IEC 9899:201x — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão por dentro: §6.5 monta a gramática das expressões, e é dela que a ordem das contas nasce."
+    }
+  ],
+  "challenges": [
+    "media-ponderada"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

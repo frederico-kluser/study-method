@@ -2,22 +2,132 @@
   "schemaVersion": 1,
   "slug": "o-ponteiro-que-nao-aponta",
   "title": "O papel sem endereço",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um ponteiro pode não apontar para nada: `NULL` é o endereço nenhum, e `!=` é o teste que se faz ANTES de ir até a casa.",
+  "difficulty": 4,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:binary:!=",
+  "concepts": [
+    "o_papel_em_branco"
+  ],
   "prerequisites": [
     "o-papel-com-o-endereco"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:!=",
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "term:NULL"
+  ],
+  "notionalMachineDelta": "o ponteiro ganha um estado que ele não tinha: além de apontar para uma casa, ele pode estar EM BRANCO — e o programa passa a ter de perguntar antes de ir",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-papel-em-branco",
+      "title": "O papel em branco",
+      "markdown": "O ponteiro é um papel com o endereço de uma casa. E um papel pode estar **em branco**: nenhum endereço escrito nele.\n\nEsse valor tem nome em C — `NULL` — e ele vem do mesmo `#include <stdio.h>` que traz o `printf`:\n\n```c\nint notas[3] = {8, 5, 9};\nconst int *papel = NULL;\npapel = &notas[2];\n```\n\nNa primeira linha o papel nasce em branco; na última ele recebe um endereço de verdade. `NULL` não é o endereço zero de alguma casa: é a marca de que não há casa nenhuma."
+    },
+    {
+      "id": "o-teste-antes-de-ir",
+      "title": "O teste antes de ir",
+      "markdown": "Ir até a casa de um papel em branco derruba o programa na hora. Por isso o teste vem ANTES, e o operador é `!=` — *diferente de*:\n\n```c\nint notas[3] = {8, 5, 9};\nconst int *papel = &notas[1];\nif (papel != NULL) {\n    printf(\"o papel tem endereco\\n\");\n}\nprintf(\"%d\\n\", papel != NULL);\n```\n\nO `!=` vale 1 quando os dois lados são diferentes e 0 quando são iguais. Na condição do `if` ou solto dentro do `printf`, é o mesmo teste — e o `printf` mostra `1`."
+    },
+    {
+      "id": "quem-devolve-o-papel-em-branco",
+      "title": "Quem devolve o papel em branco",
+      "markdown": "Uma função que procura algo na lista precisa de resposta para \"não achei\". Com ponteiro, essa resposta é `NULL`:\n\n```c\n#include <stdio.h>\n\nconst int *maiorDe(const int v[], int n) {\n    if (n == 0) {\n        return NULL;\n    }\n    int melhor = 0;\n    for (int i = 1; i < n; i++) {\n        if (v[melhor] < v[i]) {\n            melhor = i;\n        }\n    }\n    return &v[melhor];\n}\n```\n\nLista vazia, papel em branco. Lista com notas, o endereço da maior."
+    },
+    {
+      "id": "por-que-o-teste-vem-primeiro",
+      "title": "Por que o teste vem primeiro",
+      "markdown": "O papel em branco não é erro que o C avise: ele é um valor legal de guardar, de devolver e de comparar. O que não é legal é IR até a casa dele — aí o programa morre no meio, com uma mensagem que não ensina nada:\n\n```text\nSegmentation fault (core dumped)\n```\n\nEntão a ordem é sempre esta: pegar o papel, testar com `!=`, e só então usar. Quem testa depois testa tarde."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "null-e-o-endereco-nenhum",
+      "statement": "`NULL` é o endereço \"nenhum\"; usá-lo como casa desaba o programa — por isso se testa antes.",
+      "question": "O que acontece se o programa for até a casa de um papel em branco (`NULL`)?",
+      "options": [
+        "O programa morre no meio, com Segmentation fault.",
+        "O compilador recusa o programa antes de ele rodar.",
+        "A leitura devolve 0, o valor do endereço nenhum.",
+        "Nada: o C pula a linha se o papel estiver em branco."
+      ],
+      "answerIndex": 0,
+      "feedback": "`NULL` não endereça casa nenhuma, então não há valor para buscar: o sistema derruba o programa em plena execução. O compilador não tem como avisar — só o seu teste com `!=` evita a ida.",
+      "sectionId": "por-que-o-teste-vem-primeiro",
+      "optionRationales": [
+        "Não existe casa no endereço nenhum: a ida quebra o programa enquanto ele roda.",
+        "O compilador aceita a linha — o valor do papel só é conhecido durante a execução.",
+        "Não há valor guardado no endereço nenhum; nem zero, nem qualquer outro.",
+        "O C não faz esse teste por você: pular a linha é trabalho do seu `if`."
+      ]
+    },
+    {
+      "id": "o-teste-vem-antes",
+      "statement": "O teste com `!=` vem ANTES de qualquer uso do ponteiro.",
+      "question": "Numa função que recebe um papel e vai usá-lo, onde entra o `if (papel != NULL)`?",
+      "options": [
+        "Antes de usar o papel, na primeira linha útil.",
+        "Depois de buscar o valor, para conferir se a busca deu certo.",
+        "Em lugar nenhum: o `for` não roda com papel em branco.",
+        "Dentro do `printf`, que é quem chega até a casa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Testar depois é testar tarde: o programa já teria caído ao ir até a casa. O `!=` é uma porteira, e porteira fica na entrada.",
+      "sectionId": "por-que-o-teste-vem-primeiro",
+      "optionRationales": [
+        "A porteira fica na entrada: nada de usar o papel antes de saber se ele tem endereço.",
+        "Se a ida já aconteceu, o programa caiu antes de chegar à conferência.",
+        "O `for` não sabe nada sobre o papel; quem decide se pode ir é o seu `if`.",
+        "O `printf` é justamente um dos usos que precisam do teste feito antes."
+      ]
+    },
+    {
+      "id": "o-que-o-diferente-devolve",
+      "statement": "`papel != NULL` é uma expressão que vale 1 ou 0 — não só uma condição de `if`.",
+      "question": "O que `printf(\"%d\\n\", papel != NULL);` imprime quando `papel` guarda um endereço?",
+      "options": [
+        "1, porque os dois lados são diferentes.",
+        "0, porque o papel não está em branco.",
+        "O endereço que está escrito no papel.",
+        "Nada: `!=` só funciona dentro de um `if`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Comparação em C é conta: dá 1 para verdadeiro e 0 para falso. O `if` só usa esse número — ele não é dono dele.",
+      "sectionId": "o-teste-antes-de-ir",
+      "optionRationales": [
+        "O papel tem endereço, então ele é diferente de `NULL`: a comparação vale 1.",
+        "O 0 é a resposta do caso contrário — papel igual a `NULL`, isto é, em branco.",
+        "Para mostrar o endereço é preciso outro formato; o `%d` aqui mostra o resultado da comparação.",
+        "O `!=` é um operador como o `+`: produz um valor em qualquer lugar, não só em condição."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "NULL — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/types/NULL",
+      "description": "A página oficial do `NULL` em C: a constante de ponteiro nulo e os cabeçalhos que a definem, entre eles o `<stdio.h>`."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial do `!=` e dos demais operadores de comparação, inclusive a comparação entre ponteiros."
+    },
+    {
+      "title": "Pointer declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/pointer",
+      "description": "A página oficial do ponteiro em C: o que ele guarda, o valor nulo e por que ir até a casa de um ponteiro nulo é comportamento indefinido."
+    }
+  ],
+  "challenges": [
+    "o-gate-do-nulo"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

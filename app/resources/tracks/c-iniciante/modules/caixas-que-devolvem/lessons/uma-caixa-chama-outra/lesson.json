@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "uma-caixa-chama-outra",
   "title": "Uma caixa chama outra",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A chamada vale o valor devolvido no lugar em que foi escrita — por isso uma caixa pode chamar outra, e uma chamada cabe dentro de outra chamada.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:CallExpr",
+  "concepts": [
+    "uma_caixa_chama_outra"
+  ],
   "prerequisites": [
     "devolver-em-vez-de-mostrar"
   ],
+  "introduces": {
+    "productive": [
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a chamada deixa de ser um evento do programa principal: qualquer corpo pode chamar outra caixa, e o valor devolvido entra na expressão como se fosse um número digitado ali",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-chamada-dentro-de-outra-caixa",
+      "title": "A chamada dentro de outra caixa",
+      "markdown": "Uma caixa pode chamar outra caixa. A chamada não precisa estar no `main`: ela vale em qualquer corpo.\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n\nint quadruplo(int n) {\n    int meio = dobro(n);\n    return dobro(meio);\n}\n```\n\nCom `n` valendo 3: `dobro(3)` devolve 6, o 6 fica em `meio`, e `dobro(meio)` devolve 12.\n\nO valor devolvido chega no lugar exato onde a chamada foi escrita — como se você tivesse digitado o 6 ali."
+    },
+    {
+      "id": "uma-chamada-dentro-de-outra",
+      "title": "Uma chamada dentro de outra",
+      "markdown": "Se a chamada vale o valor devolvido, ela cabe DENTRO de outra chamada, sem nome de passagem:\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n\nint quadruplo(int n) {\n    return dobro(dobro(n));\n}\n```\n\nResolve-se de dentro para fora. Com 3: o `dobro` de dentro devolve 6; esse 6 entra pela janela do `dobro` de fora, que devolve 12.\n\nAs duas formas — com `meio` e sem — fazem a mesma conta. A de cima é mais fácil de ler."
+    },
+    {
+      "id": "uma-caixa-por-pergunta",
+      "title": "Uma caixa por pergunta",
+      "markdown": "Cada caixa responde UMA pergunta, e quem chama compõe as respostas:\n\n```c\nint maior(int a, int b) {\n    if (a >= b) {\n        return a;\n    }\n    return b;\n}\n\nint maiorDeTres(int a, int b, int c) {\n    return maior(maior(a, b), c);\n}\n```\n\n`maiorDeTres` não repete comparação nenhuma: ela chama `maior` duas vezes.\n\nOnde a analogia quebra: quem chama não vê o corpo da outra caixa, só o valor que volta. Trocar o corpo de `maior` não muda uma linha de `maiorDeTres`."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-chamada-vale-o-valor-devolvido",
+      "statement": "A caixa que chama recebe o valor devolvido na hora da expressão.",
+      "question": "Dentro de `quadruplo` está escrito `int meio = dobro(n);`, com `n` valendo 3. O que fica em `meio`?",
+      "options": [
+        "O número 6, que é o que `dobro` devolveu para esse `n`.",
+        "A chamada `dobro(n)`, que roda outra vez a cada uso de `meio`.",
+        "O próprio 3, porque a caixa de fora só empresta o valor.",
+        "Nada: a conta só acontece quando o programa acabar."
+      ],
+      "answerIndex": 0,
+      "feedback": "A chamada roda na hora e o valor devolvido entra no lugar dela. O que `meio` guarda é um número, não a chamada.",
+      "sectionId": "a-chamada-dentro-de-outra-caixa",
+      "optionRationales": [
+        "A chamada é resolvida ali mesmo, e o valor devolvido (6) é o que fica guardado.",
+        "O nome guarda um valor, nunca a chamada — usar `meio` não roda `dobro` de novo.",
+        "O 3 entrou pela janela de `dobro`; o que volta é o dobro dele.",
+        "O corpo de uma caixa roda no momento da chamada, não no fim do programa."
+      ]
+    },
+    {
+      "id": "de-dentro-para-fora",
+      "statement": "Numa chamada dentro de outra, a de dentro é resolvida primeiro.",
+      "question": "Com `n` valendo 3, como `dobro(dobro(n))` é resolvido?",
+      "options": [
+        "`dobro(3)` é resolvido primeiro e dá 6; depois, `dobro(6)` dá 12.",
+        "O `dobro` de fora roda primeiro e recebe a chamada de dentro por argumento.",
+        "Os dois rodam juntos, e o resultado é 6.",
+        "Não roda: uma chamada não pode ser argumento de outra."
+      ],
+      "answerIndex": 0,
+      "feedback": "A janela de uma caixa recebe VALORES. Para ter o valor de dentro, a chamada de dentro roda primeiro: 6, e depois 12.",
+      "sectionId": "uma-chamada-dentro-de-outra",
+      "optionRationales": [
+        "A de dentro resolve antes justamente para haver um valor a passar para a de fora.",
+        "A janela recebe um valor pronto, e por isso a chamada de dentro acontece antes.",
+        "Nada roda junto aqui: uma chamada depende do valor da outra.",
+        "Chamada como argumento é o uso normal: o que passa é o valor devolvido."
+      ]
+    },
+    {
+      "id": "quem-chama-nao-ve-o-corpo",
+      "statement": "Quem chama vê o valor devolvido, não o corpo da outra caixa.",
+      "question": "`maiorDeTres` chama `maior`. O que ela precisa saber sobre `maior`?",
+      "options": [
+        "O nome dela, o que entra pela janela e o que ela devolve.",
+        "As linhas do corpo de `maior`, para repetir a mesma comparação.",
+        "O nome do parâmetro de `maior`, que tem de ser igual ao dela.",
+        "Nada: chamar uma caixa de dentro de outra não é permitido."
+      ],
+      "answerIndex": 0,
+      "feedback": "Chamar é usar pelo contrato: nome, o que entra e o que volta. O corpo é assunto da outra caixa — e pode mudar sem mexer em quem chama.",
+      "sectionId": "uma-caixa-por-pergunta",
+      "optionRationales": [
+        "Basta o contrato da caixa: o nome, o que entra e o que volta.",
+        "Repetir o corpo desfaria a vantagem de ter uma caixa para essa pergunta.",
+        "Os nomes dos parâmetros são locais de cada caixa e podem ser diferentes.",
+        "Uma caixa chamando outra é o padrão de todo programa C um pouco maior."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Other operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_other",
+      "description": "A página oficial do operador de chamada de função: a chamada é uma expressão, e o seu valor é o que a função devolve."
+    },
+    {
+      "title": "Functions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/functions",
+      "description": "A página oficial das funções em C: definir, chamar e o que atravessa a janela em cada chamada."
+    },
+    {
+      "title": "Order of evaluation — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/eval_order",
+      "description": "A página oficial da ordem de avaliação: os argumentos são avaliados antes de a função ser chamada."
+    }
+  ],
+  "challenges": [
+    "enquadra"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

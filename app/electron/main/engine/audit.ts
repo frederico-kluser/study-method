@@ -28,6 +28,36 @@
  * PURO/DI: recebe a trilha já carregada, não abre arquivo, não vai à rede, não
  * chama LLM nenhuma — roda sem chave de API.
  *
+ * A BARRA PEDAGÓGICA A17–A23 RODA AQUI (2026-09-22), e é o que faz este gate
+ * parar de dizer "0 violações" num curso com penhasco. O que estava medido
+ * ANTES desta fiação, na trilha que motivou tudo (registro DATADO: o
+ * `rust-iniciante` está sendo corrigido em paralelo e o número cai a cada aula
+ * quebrada — o que se reproduz hoje é a IGUALDADE das duas medidas, não o 20):
+ *
+ *   npm run engine -- audit rust-iniciante --limite 0  -> 0 violacoes · 0 avisos · exit 0
+ *   npm run engine -- barra rust-iniciante --limite 0  -> 20 erros em 15 aulas · 64 avisos
+ *
+ * As duas medidas eram sobre O MESMO conteúdo, no mesmo instante. O gate de orçamento (A1–A6,
+ * DEC, I12–I17) confere o desafio contra o orçamento CUMULATIVO, e esse
+ * orçamento é DECLARADO pela própria aula: `saida = entrada ∪ introduces`
+ * (`budget.ts:281`). Declarar 11 construções novas em UMA seção de teoria é,
+ * para essa régua, legal — a aula legaliza o seu próprio penhasco. Faltava a
+ * régua do TAMANHO DO PASSO e da EXISTÊNCIA DA DEMONSTRAÇÃO, que é
+ * `quality/barra.ts`: pura, offline e AGNÓSTICA DE LINGUAGEM (é o que a
+ * A13–A16 não pode ser). Ela entra com a MESMA disciplina da A13–A16: os
+ * achados são mesclados em `violations`, erro conta no placar, aviso não
+ * reprova — e, como a A13–A16, ela tem um ESCOPO declarado. O dela não é a
+ * linguagem: é o MODO DO ORÇAMENTO. A barra vale em `declared` e é declarada
+ * como limitação em `inferred` (`barraValePara` tem o argumento medido; a
+ * entrada é `A17-A23-NAO-RODOU-EM-INFERRED`). As três trilhas do produto
+ * declaram `introduces` e auditam em `declared`.
+ *
+ * SOBREPOSIÇÃO DECLARADA (trilha JavaScript): A13 aceita a demonstração em
+ * aula ANTERIOR (∪ A13d), A19 exige demonstração NESTA aula. Nas trilhas de
+ * JavaScript as duas baterias rodam e o mesmo defeito pode sair com dois ids —
+ * é sobreposição de réguas, declarada aqui, não contagem dupla acidental. Em
+ * Python/Rust/C só a barra roda, e é ela que responde pelo passo.
+ *
  * Referência: `docs/16-engine-de-trilha.md` §5.1, §5.2 e §5.5.
  */
 
@@ -38,6 +68,12 @@ import { LessonBudget, TrackBudget, deriveTrackBudget, DeriveOptions } from './b
 import { extractAtoms } from './extract';
 import { DEFAULT_ADAPTER_ID, type LanguageId } from './lang/registry';
 import { collectLessonCode } from './theoryCode';
+import {
+  REGRAS_DA_BARRA,
+  auditarBarra,
+  type AchadoDaBarra,
+  type RegraDaBarra,
+} from './quality/barra';
 import {
   auditarProgressao,
   type ProgressaoLessonInput,
@@ -59,8 +95,16 @@ export type BudgetRule =
 /** Invariantes de estrutura (`docs/16-engine-de-trilha.md` §5.2). */
 export type StructureRule = 'I12' | 'I14' | 'I15' | 'I16' | 'I17';
 
-/** Bateria A13–A16 (ensino-efetivo, micro-avanço, progressividade, primeira-atividade). */
-export type AuditRule = BudgetRule | StructureRule | ProgressaoRule;
+/**
+ * Toda regra que este gate sabe reprovar.
+ *
+ * `ProgressaoRule` é a bateria A13–A16 (ensino-efetivo, micro-avanço,
+ * progressividade, primeira-atividade), javascript-only. `RegraDaBarra` é a
+ * barra A17–A23 (teto do passo, primeira aula, declarar-não-é-demonstrar, aula
+ * sem prova, carga de novidade, duas formas, regra do par), AGNÓSTICA de
+ * linguagem — `quality/barra.ts`.
+ */
+export type AuditRule = BudgetRule | StructureRule | ProgressaoRule | RegraDaBarra;
 
 /** Superfície do artefato em que a violação foi encontrada. */
 export type Surface = 'starterCode' | 'solutionCode' | 'testsCode' | 'statement' | 'theory';
@@ -119,6 +163,49 @@ export interface LessonMetrics {
   conceitosDeclarados: number;
   desafios: number;
   violacoes: number;
+  /**
+   * ADITIVO (2026-09-22): as colunas que a BARRA A17–A23 mede nesta aula — o
+   * insumo do histograma que denuncia penhasco em QUALQUER linguagem.
+   *
+   * Por que num campo só, e não oito campos soltos: são as métricas de UMA
+   * bateria, e quem imprime precisa saber se ela mediu. Ausente significa NÃO
+   * MEDIDO — nunca "zero": relatório montado à mão num fixture, de antes desta
+   * onda, ou auditoria cujo orçamento é `inferred` (ali a barra não roda e
+   * `limitacoes` diz por quê — ver `barraValePara`).
+   */
+  barra?: MetricasDaBarraNaAula;
+}
+
+/**
+ * O que a barra A17–A23 mede numa aula (`quality/barra.ts` → `MetricaDaBarra`).
+ *
+ * `produtivasNovas` × `produtivasColapsadas` é a diferença que a REGRA DO PAR
+ * faz: a segunda já desconta as derivadas declaradas em `introduces.derived` e
+ * PROVADAS por co-ocorrência de linha (A23). Ler só a primeira superestima o
+ * passo; ler só a segunda esconde o que foi colapsado.
+ */
+export interface MetricasDaBarraNaAula {
+  /** produtivas novas antes do colapso da regra do par. */
+  produtivasNovas: number;
+  /** produtivas novas DEPOIS do colapso (o número que A17/A18 medem). */
+  produtivasColapsadas: number;
+  /** novas totais (produtivas ∪ receptivas) colapsadas (o número de A21). */
+  novasTotais: number;
+  secoesDeTeoria: number;
+  /** blocos de teoria na linguagem da trilha (os que demonstram). */
+  blocosDeCodigo: number;
+  /** chaves novas sem NENHUMA demonstração nesta aula (A19/A18). */
+  chavesSemDemonstracao: number;
+  /** chaves produtivas novas com uma forma sintática só (A22, aviso). */
+  chavesComUmaFormaSo: number;
+  /**
+   * quantos GRUPOS de co-ocorrência de linha a aula tem — componentes conexas
+   * de "ocorre na mesma linha de um bloco desta aula" sobre as chaves novas.
+   * É o piso de aulas em que o conteúdo pode ser QUEBRADO: um grupo nunca se
+   * parte. A composição de cada grupo sai em
+   * `npm run engine -- barra <slug> --json` (campo `metricas[].grupos`).
+   */
+  gruposDaRegraDoPar: number;
 }
 
 /**
@@ -154,6 +241,45 @@ export interface LimitacaoDeclarada {
   consequencia: string;
 }
 
+/**
+ * O PLACAR DA BARRA A17–A23 dentro do relatório do gate (`docs/16` §9.2).
+ *
+ * Existe porque um total sozinho não diz o que consertar: "20 erros" manda o
+ * autor ler 20 achados, e "A17 12 · A18 2 · A19 3 · A21 3" diz que o defeito é
+ * TAMANHO DE PASSO em 12 aulas. Medido em 2026-09-22 (o `rust-iniciante` está
+ * sendo corrigido em paralelo — o seu número cai; o do curso de referência é o
+ * que fica de pé):
+ *
+ *   npm run engine -- barra rust-iniciante --limite 0
+ *   -> 20 erros (A17 12 · A18 2 · A19 3 · A21 3) em 15 aulas · 64 avisos A22
+ *   npm run engine -- barra python-iniciante --limite 0
+ *   -> 0 erros · 88 avisos · 112 aulas   (o curso de referência; os avisos são
+ *      30 de A22 "duas formas" + 58 de A24 "vazamento do quiz por comprimento",
+ *      a regra que entrou no catálogo no mesmo dia)
+ *
+ * O `audit` e a `barra` reportam o MESMO número de erros sobre a mesma trilha
+ * — é a igualdade que prova que a fiação não perdeu nem inventou achado:
+ *
+ *   npm run engine -- audit <slug> --limite 0 --json | ... totals.errosDaBarra
+ *   npm run engine -- barra <slug> --limite 0          -> ERROS (A17-A21, A23-A24)
+ *
+ * `porRegra` traz TODA regra do catálogo, inclusive as que deram zero: aqui o
+ * zero é informação, porque a SEÇÃO SÓ EXISTE quando a barra rodou — quando ela
+ * não roda (orçamento `inferred`), `AuditReport.barra` fica AUSENTE e
+ * `limitacoes` diz por quê. É a mesma disciplina do `avisos` da A13–A16, cujo
+ * zero só é informação quando `checagensNaoExecutadas == 0` (§9.2), com a
+ * ausência fazendo o trabalho no lugar do zero.
+ */
+export interface PlacarDaBarra {
+  /** uma linha por regra do catálogo A17–A23, na ordem em que reprovam. */
+  porRegra: Array<{ regra: RegraDaBarra; erros: number; avisos: number }>;
+  erros: number;
+  avisos: number;
+  aulasComErro: number;
+  /** blocos de teoria que o parser recusou — não medido nunca conta como verde. */
+  blocosQueNaoParseiam: number;
+}
+
 export interface AuditReport {
   trackSlug: string;
   /** de onde veio o orçamento — ver `budget.ts`. */
@@ -163,6 +289,14 @@ export interface AuditReport {
   totals: {
     aulas: number;
     desafios: number;
+    /**
+     * ADITIVO (2026-09-22): desafios de MÓDULO medidos contra o orçamento de
+     * saída da última aula do módulo. Separado de `desafios` (que conta os de
+     * AULA) para não mudar, em silêncio, o significado de um número que já
+     * existia. Ausente ⇒ relatório de antes desta onda, NUNCA "zero desafio de
+     * módulo".
+     */
+    desafiosDeModulo?: number;
     desafiosComViolacao: number;
     violacoes: number;
     /**
@@ -187,6 +321,22 @@ export interface AuditReport {
     checagensNaoExecutadas?: number;
     lacunasDeCurriculo: number;
     aulasSemConstrucaoNova: number;
+    /**
+     * ADITIVO (2026-09-22): a parte de `violacoes` e de `avisos` que veio da
+     * BARRA A17–A23.
+     *
+     * Os dois totais de cima continuam sendo os TOTAIS (o contrato do placar
+     * não muda: `violacoes` conta todo erro, `avisos` conta todo aviso). Estes
+     * dois separam a barra do resto porque, sem eles, `avisos` passaria a somar
+     * A13–A16 (D4/A14a-0) com A22 (duas formas) numa linha só e ninguém
+     * conseguiria dizer de onde o número veio.
+     *
+     * OPCIONAIS pela mesma razão que `avisos` é: são aditivos, e os fixtures de
+     * teste que montam um `AuditReport` à mão não os conhecem. Ausente ⇒
+     * relatório de antes desta onda, NUNCA "zero erro de barra".
+     */
+    errosDaBarra?: number;
+    avisosDaBarra?: number;
   };
   /** defeitos de formato da teoria (não são violações de orçamento). */
   hygiene: TrackBudget['hygiene'];
@@ -196,6 +346,15 @@ export interface AuditReport {
    * lista vazia é a afirmação "nada deixou de rodar", nunca uma omissão.
    */
   limitacoes: LimitacaoDeclarada[];
+  /**
+   * O placar da barra A17–A23 desta trilha (ADITIVO, 2026-09-22). Presente
+   * quando a barra RODOU (orçamento `declared`); ausente quando ela não rodou
+   * (orçamento `inferred` — com a entrada `A17-A23-NAO-RODOU-EM-INFERRED` em
+   * `limitacoes`) e em relatório montado à mão. No ausente,
+   * `linhasDoPlacarDaBarra` devolve `[]` em vez de imprimir zeros que ninguém
+   * mediu.
+   */
+  barra?: PlacarDaBarra;
 }
 
 /** Superfícies de código de um desafio, já achatando o formato multi-arquivo. */
@@ -341,8 +500,141 @@ function bateriaDeProgressaoValePara(adapterId: LanguageId): boolean {
   return adapterId === DEFAULT_ADAPTER_ID;
 }
 
+/**
+ * A BARRA A17–A23 vale para este ORÇAMENTO?
+ *
+ * Vale em `declared`, e NÃO vale em `inferred` — e a razão é a mesma classe de
+ * razão que faz a bateria A13–A16 ser javascript-only: rodá-la no modo errado
+ * não daria erro, daria VEREDITO ERRADO E SILENCIOSO. Medido em 2026-09-22:
+ *
+ *   1. A19 ("declarar não é demonstrar") é VAZIA por construção em `inferred`:
+ *      ali o conjunto de chaves novas SAI dos blocos de teoria da própria aula
+ *      (`budget.ts:253-278`), então toda chave nova está, por definição,
+ *      demonstrada. A regra nunca dispararia — e quem lê o placar concluiria
+ *      "toda declaração tem demonstração".
+ *   2. A23 (a regra do par) é INDECLARÁVEL em `inferred`: declarar
+ *      `introduces.derived` na aula faz `deriveTrackBudget` mudar o modo para
+ *      `declared` (`budget.ts:225` — `anyDeclared` testa a PRESENÇA do campo
+ *      `introduces`, não o seu conteúdo). Sem o colapso da regra do par,
+ *      A17/A18/A21 contam chave por chave.
+ *   3. E contar chave por chave reprova TUDO, sem reescrita que aprove: UMA
+ *      linha de JavaScript introduz 4 construções fora do axioma estrutural —
+ *      `const tipo = typeof 10;` → `decl:const`, `node:NumericLiteral`,
+ *      `node:TypeOfExpression`, `op:unary:typeof` (reproduz com
+ *      `extractAtoms` + `structuralAlwaysAllowed('javascript')`). O teto da
+ *      aula 1 (A18) é 1: nenhuma aula 1 de trilha inferida passaria, nem a
+ *      perfeita.
+ *
+ * As TRÊS trilhas do produto declaram `introduces` e auditam em `declared` (é o
+ * que o contrato A5/A7 exige do autor), então a barra roda onde ela mede
+ * conteúdo de verdade: `npm run engine -- audit python-iniciante --limite 0
+ * --json` → `budgetSource: "declared"`, `totals.errosDaBarra: 0`. Quem quiser a
+ * barra numa trilha sem declaração força o modo: `--modo declared`.
+ */
+function barraValePara(source: TrackBudget['source']): boolean {
+  return source === 'declared';
+}
+
 function severidadeDe(v: Violation): 'erro' | 'aviso' {
   return v.severidade ?? 'erro';
+}
+
+/**
+ * A SUPERFÍCIE de um achado da barra, por regra — tabela explícita, sem
+ * adivinhação.
+ *
+ * A barra mede a AULA (o `lesson.json`), não um desafio: `campo` diz em qual
+ * parte do arquivo está a evidência, e é o que o CLI imprime antes da linha:coluna.
+ *
+ *   A19, A22            → `theory`  (o que falta é DEMONSTRAÇÃO em bloco de código)
+ *   A18 com chave       → `theory`  (a mesma falta, na aula 1: "o aluno só copia")
+ *   A17, A18, A20, A21, → `lesson`  (o que está errado é o `introduces`, o
+ *   A23                             `theory[]` como um todo ou o `challenges[]`)
+ */
+function campoDoAchadoDaBarra(achado: AchadoDaBarra): Surface | 'lesson' {
+  if (achado.regra === 'A19' || achado.regra === 'A22') return 'theory';
+  if (achado.regra === 'A18' && achado.chave !== null) return 'theory';
+  return 'lesson';
+}
+
+/**
+ * A TRADUÇÃO `AchadoDaBarra` → `Violation`, campo por campo, sem inventar campo
+ * nenhum. Escrita explícita (e não por spread) porque os dois formatos NÃO são
+ * o mesmo objeto: a barra fala de aula e ação prescrita, a violação fala de
+ * arquivo, ponto no arquivo e origem da construção.
+ *
+ *   regra                 ← achado.regra (A17…A23; ids estáveis do catálogo)
+ *   arquivo               ← o `lesson.json` da aula (a barra dá a `ref`)
+ *   ref, construcao       ← achado.ref, achado.chave
+ *   campo                 ← `campoDoAchadoDaBarra` (tabela acima)
+ *   linha, coluna         ← 1:1 — A BARRA NÃO MEDE PONTO NO ARQUIVO. Ela mede a
+ *                           aula inteira (quantas construções novas, quantas
+ *                           seções, se existe desafio), e 1:1 é a MESMA
+ *                           convenção que os estruturais I12/I14/I15/I16 já
+ *                           usam para o defeito que é do arquivo, não de um
+ *                           trecho dele. Cravar a linha de um bloco daria uma
+ *                           precisão falsa.
+ *   eixo                  ← `axisOf(chave)` quando há chave
+ *   faixa                 ← `null` SEMPRE: a barra não confronta superfície
+ *                           contra faixa de orçamento (é o que A1–A4 fazem);
+ *                           ela mede o TAMANHO DO PASSO. Dizer `productive`
+ *                           aqui misturaria o achado da barra com o agrupamento
+ *                           por faixa do relatório (§9.2) e mentiria sobre a
+ *                           régua que reprovou.
+ *   trechoOfensor         ← achado.evidencia (a evidência vem ANTES do veredito,
+ *                           §6.3 — é o que o disco mostra)
+ *   primeiraAulaQueEnsina ← `firstTaughtIn` da chave, com a PRÓPRIA aula como
+ *                           piso. NUNCA `null` quando há chave: `null` significa
+ *                           LACUNA DE CURRÍCULO no placar
+ *                           (`totals.lacunasDeCurriculo` — "nenhuma aula ensina
+ *                           isto, falta criar a aula"), e toda chave de achado
+ *                           da barra está declarada no `introduces` DESTA aula,
+ *                           por construção (A19/A18/A22 percorrem as novas da
+ *                           aula; A23, as derivadas declaradas). O piso é
+ *                           necessário e foi MEDIDO: `budget.ts:290` só registra
+ *                           `firstTaughtIn` a partir de `introduces.productive`,
+ *                           então uma chave nova só RECEPTIVA não está no mapa —
+ *                           sem o piso, o `audit` do `rust-iniciante` passava a
+ *                           reportar 1 lacuna de currículo que não existe
+ *                           (`npm run engine -- audit rust-iniciante --limite 0
+ *                           --json` → `totals.lacunasDeCurriculo`: 1 com `null`,
+ *                           0 com o piso). Com `chave` nula (A17/A20/A21 e o
+ *                           A18 do teto) o campo é `null`, que é a MESMA
+ *                           convenção dos estruturais I12/I14/I15/I16/I17 —
+ *                           sem construção não existe aula que a ensine, e
+ *                           `totals.lacunasDeCurriculo` não conta esses casos
+ *                           (ele exige `construcao !== null`). Atenção ao
+ *                           imprimir: a saída humana do CLI rotula
+ *                           `primeiraAulaQueEnsina === null` como "LACUNA DE
+ *                           CURRICULO" (`cli.ts`, na linha do achado), e esse
+ *                           rótulo já era impreciso para os estruturais —
+ *                           passa a ser também para a barra.
+ *   mensagem              ← achado.mensagem + a AÇÃO PRESCRITA do catálogo
+ *                           fechado (§6.7). A ação não tem campo em `Violation`,
+ *                           e perdê-la seria perder a única parte do achado que
+ *                           diz o que FAZER — então ela entra na frase, nomeada.
+ *   severidade            ← achado.severidade (A22 é aviso; o resto é erro)
+ */
+function violacaoDaBarra(
+  achado: AchadoDaBarra,
+  lessonDir: string,
+  firstTaughtIn: ReadonlyMap<AtomKey, string>,
+): Violation {
+  return {
+    regra: achado.regra,
+    arquivo: `${lessonDir}/lesson.json`,
+    ref: achado.ref,
+    campo: campoDoAchadoDaBarra(achado),
+    linha: 1,
+    coluna: 1,
+    construcao: achado.chave,
+    eixo: achado.chave === null ? null : axisOf(achado.chave),
+    faixa: null,
+    trechoOfensor: achado.evidencia,
+    primeiraAulaQueEnsina: achado.chave === null ? null : firstTaughtIn.get(achado.chave) ?? achado.ref,
+    mensagem: `${achado.mensagem} — acao prescrita: ${achado.acao}`,
+    severidade: achado.severidade,
+  };
 }
 
 /**
@@ -367,6 +659,13 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
   const metrics: LessonMetrics[] = [];
 
   let desafios = 0;
+  /**
+   * Desafios de MÓDULO medidos contra o orçamento (bloco no fim desta função).
+   * Contador SEPARADO de `desafios` de propósito: `totals.desafios` significa
+   * "desafios de aula" desde a primeira rodada e mudar o significado dele faria
+   * todo número histórico do placar passar a medir coisa diferente sem aviso.
+   */
+  let desafiosDeModulo = 0;
   const desafiosComViolacao = new Set<string>();
 
   // ── bateria A13–A16 ──────────────────────────────────────────────────────
@@ -400,17 +699,49 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       })
     : { violations: [], novosPorAula: new Map<string, number>() };
 
+  // ── barra pedagógica A17–A23 (`quality/barra.ts`) ────────────────────────
+  // AGNÓSTICA DE LINGUAGEM: roda em trilha de Python, Rust, C ou JavaScript sem
+  // distinção. É a diferença que ela tem em relação à A13–A16 e a razão de ela
+  // existir — o penhasco da aula 1 do `rust-iniciante` (11 construções novas
+  // numa seção de teoria, para um aluno "zero absoluto") saía deste gate com 0
+  // violações porque a única régua de PASSO que o gate tinha era
+  // javascript-only.
+  //
+  // SEM try/catch, de propósito: a barra recebe a MESMA trilha e re-deriva o
+  // MESMO orçamento que `deriveTrackBudget` acabou de derivar com sucesso, e o
+  // resto dela é aritmética de conjuntos e contagem de seções. Um lançamento
+  // aqui é BUG do gate, não indisponibilidade de ambiente — e bug de gate tem
+  // de ser ALTO. Engolir isso numa "limitação declarada" é exatamente a
+  // aprovação por omissão que o §9.3 proíbe.
+  //
+  // `modo: budget.source` passa o modo JÁ RESOLVIDO: `options.mode` pode vir
+  // ausente (e aí quem escolhe declared/inferred é a trilha), e as duas réguas
+  // têm de medir UM orçamento, nunca dois.
+  //
+  // ELA VALE NO MODO `declared`, E O MODO `inferred` É DECLARADO COMO LIMITAÇÃO
+  // (`barraValePara` abaixo tem o argumento inteiro, medido).
+  const barraRodou = barraValePara(budget.source);
+  const barra = barraRodou ? auditarBarra(track, { modo: budget.source }) : null;
+  const barraPorRef = new Map<string, AchadoDaBarra[]>();
+  for (const achado of barra?.achados ?? []) {
+    const lista = barraPorRef.get(achado.ref) ?? [];
+    lista.push(achado);
+    barraPorRef.set(achado.ref, lista);
+  }
+  const metricaDaBarraPorRef = new Map((barra?.metricas ?? []).map((m) => [m.ref, m]));
+
   // ONDA 10 — O PLACAR PASSA A DIZER O QUE NÃO RODOU (ver `LimitacaoDeclarada`).
   // A bateria continua javascript-only; o que muda é que a saída para de deixar
   // o leitor concluir "0 avisos ⇒ está tudo certo" quando o certo é "não medido".
-  const limitacoes: LimitacaoDeclarada[] = bateriaRodou
-    ? []
-    : [
+  const limitacoes: LimitacaoDeclarada[] = [];
+  if (!bateriaRodou) {
+    limitacoes.push(
         {
           id: 'A13-A16-NAO-RODOU',
           checagem:
             'bateria A13–A16 (A13 ensino-efetivo, A13d, A14a micro-avanço, A14b, A15a/A15b ' +
-            'progressividade, A16 primeira-atividade)',
+            'progressividade, A16 primeira-atividade) — as partes que dependem de `ts.SyntaxKind`, ' +
+            'das tabelas H13/AX do runner `node:test` e dos spans mecânicos S13',
           motivo:
             `a trilha é \`${budget.adapterId}\` e a bateria é javascript-only: ` +
             '`quality/progressao.ts:432` LANÇA `EngineLinguagemError` para adaptador não-default ' +
@@ -418,12 +749,72 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
             'spans mecânicos S13 saem de `ts.createSourceFile`. Rodá-la aqui não daria erro: daria ' +
             'veredito ERRADO E SILENCIOSO (tudo "não demonstrado", todo desafio reprovado).',
           consequencia:
-            'o contador `avisos` NÃO fala por ela (0 significa "não rodou", não "sem aviso"), e ' +
-            '`metrics[].novosVerdadeiros` (a 2ª coluna do histograma, "verdadeiramente novas") fica ' +
-            'AUSENTE em todas as aulas. PROVA POR MUTAÇÃO (docs/19): apagar TODOS os blocos de código ' +
-            'da teoria da aula 1 desta trilha não muda o placar — 0 violações · 0 avisos · exit 0.',
+            // ESTE TEXTO MUDOU EM 2026-09-22, E A HISTÓRIA FICOU. Até aqui ele dizia que o
+            // contador `avisos` não falava por nada e citava a prova por mutação ("apagar todos
+            // os blocos de código da teoria da aula 1 não muda o placar"). A prova ERA verdadeira
+            // e deixou de ser: a barra A17–A23 roda nesta trilha e A19/A18 reprovam exatamente
+            // essa mutação. Uma limitação que continuasse afirmando isso seria o mesmo defeito
+            // que ela nasceu para consertar — o placar dizendo o que não é.
+            (barraRodou
+              ? 'A BARRA A17–A23 (`quality/barra.ts`) COBRE PARTE DESTE BURACO NESTA TRILHA, porque é ' +
+                'agnóstica de linguagem e RODOU aqui: teto do passo (A17, ≤2 produtivas novas ' +
+                'colapsadas), primeira aula do curso (A18), declarar-não-é-demonstrar (A19), aula sem ' +
+                'prova (A20), carga de novidade e seções que a sustentem (A21), duas formas (A22, ' +
+                'aviso) e a regra do par medida no disco (A23). Por isso a PROVA POR MUTAÇÃO que esta ' +
+                'entrada citava (docs/19: "apagar TODOS os blocos de código da teoria da aula 1 não ' +
+                'muda o placar — 0 violações · 0 avisos · exit 0") JÁ NÃO VALE: A19/A18 reprovam ' +
+                'exatamente isso, e `totals.violacoes`/`totals.errosDaBarra` mudam. '
+              : 'E A BARRA A17–A23 TAMBÉM NÃO RODOU nesta auditoria (o orçamento é `inferred` — ver a ' +
+                'entrada `A17-A23-NAO-RODOU-EM-INFERRED`), então NADA nesta auditoria mede o TAMANHO ' +
+                'DO PASSO: a PROVA POR MUTAÇÃO que esta entrada cita (docs/19: "apagar TODOS os blocos ' +
+                'de código da teoria da aula 1 não muda o placar") CONTINUA VALENDO aqui. ') +
+            'O QUE CONTINUA NÃO MEDIDO nesta trilha, porque a barra NÃO cobre: A14b (≤1 construção ' +
+            'nova por LINHA do solutionCode — a lacuna única); A15a/A15b (progressividade ' +
+            'intra-aula entre os desafios e inter-aula, o reuso obrigatório do que veio antes); ' +
+            'A16b (a primeira atividade resolvível com a PRIMEIRA SEÇÃO da teoria — a barra CONTA ' +
+            'seções, não mede a seção 1); e os spans mecânicos S13 do arquivo de teste (import ' +
+            'inteiro, assinatura) com as tabelas H13/AX do runner. ' +
+            'NO PLACAR: o contador `avisos` soma as duas baterias, e a parte A13–A16 dele continua ' +
+            'significando "não rodou", não "sem aviso" — `totals.avisosDaBarra` é a parte que FOI ' +
+            'medida (A22); `metrics[].novosVerdadeiros` (a 2ª coluna do histograma, ' +
+            '"verdadeiramente novas") continua AUSENTE em todas as aulas, e é `metrics[].barra` ' +
+            'que traz as colunas medidas para esta trilha.',
         },
-      ];
+    );
+  }
+  // A BARRA A17–A23 no modo `inferred` — o argumento inteiro está em
+  // `barraValePara`. O que esta entrada faz é o que o §9.2 exige: dizer que a
+  // checagem não rodou, por quê, e QUAL comando a faz rodar.
+  if (!barraRodou) {
+    limitacoes.push({
+      id: 'A17-A23-NAO-RODOU-EM-INFERRED',
+      checagem:
+        'barra pedagógica A17–A23 (A17 teto do passo, A18 primeira aula, A19 declarar-não-é-' +
+        'demonstrar, A20 aula sem prova, A21 carga de novidade, A22 duas formas, A23 regra do par, ' +
+        'A24 vazamento do quiz por comprimento)',
+      motivo:
+        `o orçamento desta auditoria é \`${budget.source}\`: nenhuma aula declara \`introduces\` e o ` +
+        'que a aula "introduz" é DERIVADO da própria teoria (`budget.ts:253-278`). Nesse modo a barra ' +
+        'mediria ARTEFATO DA INFERÊNCIA e não o passo — (a) A19 é VAZIA por construção, porque as ' +
+        'chaves novas SAEM dos blocos de teoria da aula; (b) A23 é INDECLARÁVEL, porque declarar ' +
+        '`introduces.derived` muda o modo para `declared` (`budget.ts:225`: `anyDeclared` testa a ' +
+        'PRESENÇA do campo `introduces`); (c) sem o colapso da regra do par, A17/A18/A21 contam chave ' +
+        'por chave, e UMA linha de JavaScript introduz 4 construções fora do axioma estrutural ' +
+        '(`const tipo = typeof 10;` → `decl:const`, `node:NumericLiteral`, `node:TypeOfExpression`, ' +
+        '`op:unary:typeof`), de modo que NENHUMA aula 1 passaria no teto de 1 do A18 — nem a ' +
+        'perfeita. Rodar assim não daria erro: daria veredito ERRADO E SILENCIOSO.',
+      consequencia:
+        'nada em `violations` fala pelo TAMANHO DO PASSO nem pela EXISTÊNCIA DA DEMONSTRAÇÃO nesta ' +
+        'auditoria: `totals.errosDaBarra`, `totals.avisosDaBarra`, `AuditReport.barra` e ' +
+        '`metrics[].barra` ficam AUSENTES (ausente = NÃO MEDIDO, nunca zero) e ' +
+        '`linhasDoPlacarDaBarra` devolve []. PARA MEDIR: declare `introduces` nas aulas (o contrato ' +
+        'A5/A7 já exige isso do autor) — ou force o modo: `npm run engine -- audit <slug> --limite 0 ' +
+        '--modo declared`, `npm run engine -- barra <slug> --limite 0 --modo declared`. Nas três ' +
+        'trilhas do produto o orçamento é DECLARADO e a barra roda: `npm run engine -- audit ' +
+        'python-iniciante --limite 0 --json` → `budgetSource: "declared"`, `totals.errosDaBarra: 0`, ' +
+        '`totals.avisosDaBarra: 88` (30 de A22 + 58 de A24 — medido em 2026-09-22).',
+    });
+  }
   const progressaoPorRef = new Map<string, ReturnType<typeof auditarProgressao>['violations']>();
   for (const pv of progressao.violations) {
     const lista = progressaoPorRef.get(pv.ref) ?? [];
@@ -535,6 +926,19 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
         mensagem: pv.mensagem,
         severidade: pv.severidade,
       });
+    }
+
+    // A barra A17–A23 desta aula — MESMA disciplina da A13–A16: o achado entra
+    // em `violations`, erro conta em `violacoesDaAula` e no placar, aviso (A22)
+    // não reprova.
+    //
+    // NÃO alimenta `desafiosComViolacao`: o achado da barra é da AULA, e
+    // `desafiosComViolacao / desafios` é a razão que mede DESAFIO — A20 ("aula
+    // sem desafio é aula sem prova") é justamente o caso em que não existe
+    // desafio a marcar. O que a barra move é `totals.violacoes`,
+    // `totals.errosDaBarra` e `metrics[].violacoes`.
+    for (const achado of barraPorRef.get(lessonBudget.ref) ?? []) {
+      push(violacaoDaBarra(achado, lessonDir, budget.firstTaughtIn));
     }
 
     // A4 — a teoria também está sujeita ao orçamento de saída.
@@ -742,6 +1146,11 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
     // positiva ("toda construção declarada é verdadeiramente nova") derivada de
     // uma checagem que não rodou. Ausente = não medido, e `limitacoes` diz por quê.
     const medido = bateriaRodou ? progressao.novosPorAula.get(lessonBudget.ref) : undefined;
+    // As colunas da BARRA nesta aula. A barra roda em toda trilha, então o
+    // `undefined` aqui só acontece se a aula não estiver no orçamento que a
+    // barra percorreu — e nesse caso o campo fica AUSENTE (não medido), pela
+    // mesma regra do `novosVerdadeiros`: nunca um zero que ninguém mediu.
+    const daBarra = metricaDaBarraPorRef.get(lessonBudget.ref);
     metrics.push({
       ref: lessonBudget.ref,
       index: lessonBudget.index,
@@ -750,8 +1159,130 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       conceitosDeclarados: lesson.meta.concepts.length,
       desafios: lesson.challenges.length,
       violacoes: violacoesDaAula,
+      ...(daBarra !== undefined
+        ? {
+            barra: {
+              produtivasNovas: daBarra.produtivasNovas,
+              produtivasColapsadas: daBarra.produtivasColapsadas,
+              novasTotais: daBarra.novasTotais,
+              secoesDeTeoria: daBarra.secoesDeTeoria,
+              blocosDeCodigo: daBarra.blocosDeCodigo,
+              chavesSemDemonstracao: daBarra.chavesSemDemonstracao,
+              chavesComUmaFormaSo: daBarra.chavesComUmaFormaSo,
+              gruposDaRegraDoPar: daBarra.grupos.length,
+            },
+          }
+        : {}),
     });
   }
+
+  // ── o DESAFIO DE MÓDULO, contra o orçamento da ÚLTIMA aula do módulo ───────
+  //
+  // O BURACO QUE ISTO FECHA, medido em 2026-09-22. O `track:validate` PROVA o
+  // desafio de módulo por execução desde a rodada 9 (`tools/track-cli.ts`, o
+  // ramo `if (mod.challenge)`), mas este audit NUNCA o mediu contra o orçamento:
+  // a caminhada de cima é `budget.lessons` → `lesson.challenges`, e o desafio do
+  // módulo não pertence a aula nenhuma. Resultado medido nos três cursos: o
+  // `c-iniciante` tinha 4 dos 6 desafios de módulo cobrando construção fora do
+  // orçamento — `op:binary:>` (que o curso ensina RECEPTIVA e nunca autoriza a
+  // escrever), `op:binary:!=` e `op:unary:-` (ensinadas no módulo SEGUINTE) —
+  // enquanto o placar dizia 0 violações. É o defeito central do produto ("nunca
+  // cobrar o que não foi ensinado") na MAIOR prova de cada módulo.
+  //
+  // O ORÇAMENTO QUE VALE é o de SAÍDA da última aula do módulo, e é o único
+  // defensável: é exatamente o que o aluno tem na mão quando chega no desafio
+  // de módulo. O desafio de módulo não tem `introduces` (não é aula), logo não
+  // legaliza nada por conta própria — o `saida = entrada ∪ introduces` do
+  // `budget.ts:281` não tem onde agir aqui, e é por isso que este gate não
+  // podia ser dispensado.
+  //
+  // A ASSIMETRIA DAS SUPERFÍCIES é a mesma do §5.1 (A1 starter ⊆ receptivo,
+  // A2 solução ⊆ produtivo, A3 testes ⊆ receptivo de ENTRADA), com a MESMA
+  // subtração do diff starter → solução: o que o starter já traz não se cobra
+  // do aluno. Um módulo sem aula nenhuma não é medido (não há orçamento) e sai
+  // em `limitacoes` pela via normal do loader.
+  for (const mod of track.modules) {
+    if (!mod.challenge) continue;
+    desafiosDeModulo += 1;
+    const doModulo = budget.lessons.filter((l) => l.moduleSlug === mod.meta.slug);
+    const ultima = doModulo[doModulo.length - 1];
+    if (ultima === undefined) continue;
+    const challengeFile = `modules/${mod.meta.slug}/challenges/${mod.challenge.slug}/challenge.json`;
+    const antes = violations.length;
+    const superficies = challengeSurfaces(mod.challenge);
+
+    const doStarter = new Set<AtomKey>();
+    for (const s of superficies) {
+      if (s.surface !== 'starterCode' || s.code.trim().length === 0) continue;
+      const r = extractAtoms(s.code, { fileName: `${challengeFile}#${s.label}`, language: adapterId });
+      if (r.ok) for (const k of r.keys) doStarter.add(k);
+    }
+
+    for (const { surface, code, label } of superficies) {
+      if (code.trim().length === 0) continue;
+      const result = extractAtoms(code, {
+        fileName: `${challengeFile}#${label}`,
+        language: adapterId,
+        surface,
+      });
+      if (!result.ok) {
+        violations.push({
+          regra: 'A2',
+          arquivo: challengeFile,
+          ref: `${mod.meta.slug}/module`,
+          campo: surface,
+          linha: result.error.line,
+          coluna: result.error.column,
+          construcao: null,
+          eixo: null,
+          faixa: null,
+          trechoOfensor: label,
+          primeiraAulaQueEnsina: null,
+          mensagem: mensagemDeParse(label, adapterId, result.error),
+        });
+        continue;
+      }
+      const { set, faixa, rule } = allowedFor(surface, ultima);
+      for (const occ of result.occurrences) {
+        if (set.has(occ.key)) continue;
+        if (surface === 'solutionCode' && doStarter.has(occ.key)) continue;
+        const taughtIn = budget.firstTaughtIn.get(occ.key) ?? null;
+        violations.push({
+          regra: rule,
+          arquivo: challengeFile,
+          ref: `${mod.meta.slug}/module`,
+          campo: surface,
+          linha: occ.line,
+          coluna: occ.column,
+          construcao: occ.key,
+          eixo: axisOf(occ.key),
+          faixa,
+          trechoOfensor: occ.snippet,
+          primeiraAulaQueEnsina: taughtIn,
+          mensagem: `${messageFor(occ.key, taughtIn, ultima.ref, surface)} — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de \`${ultima.ref}\`, a última aula do módulo`,
+        });
+      }
+    }
+    if (violations.length > antes) desafiosComViolacao.add(challengeFile);
+  }
+
+  // O placar da barra, regra por regra — inclusive as que deram ZERO. Aqui o
+  // zero é MEDIDO (a barra rodou); quando ela não roda, a seção inteira fica
+  // AUSENTE e `limitacoes` diz por quê — nunca um zero que ninguém mediu.
+  const placarDaBarra: PlacarDaBarra | undefined =
+    barra === null
+      ? undefined
+      : {
+          porRegra: REGRAS_DA_BARRA.map((regra) => ({
+            regra,
+            erros: barra.achados.filter((a) => a.regra === regra && a.severidade === 'erro').length,
+            avisos: barra.achados.filter((a) => a.regra === regra && a.severidade === 'aviso').length,
+          })),
+          erros: barra.totais.erros,
+          avisos: barra.totais.avisos,
+          aulasComErro: barra.totais.aulasComErro,
+          blocosQueNaoParseiam: barra.totais.blocosQueNaoParseiam,
+        };
 
   return {
     trackSlug: track.root.slug,
@@ -761,6 +1292,7 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
     totals: {
       aulas: budget.lessons.length,
       desafios,
+      desafiosDeModulo,
       desafiosComViolacao: desafiosComViolacao.size,
       violacoes: violations.filter((v) => severidadeDe(v) !== 'aviso').length,
       avisos: violations.filter((v) => severidadeDe(v) === 'aviso').length,
@@ -769,11 +1301,72 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
         (v) => severidadeDe(v) !== 'aviso' && v.construcao !== null && v.primeiraAulaQueEnsina === null,
       ).length,
       aulasSemConstrucaoNova: metrics.filter((m) => m.novas === 0).length,
+      ...(barra !== null ? { errosDaBarra: barra.totais.erros, avisosDaBarra: barra.totais.avisos } : {}),
     },
     hygiene: budget.hygiene,
     parseErrors: budget.parseErrors,
     limitacoes,
+    ...(placarDaBarra !== undefined ? { barra: placarDaBarra } : {}),
   };
+}
+
+/**
+ * O rótulo humano de cada regra da barra, para a linha do placar. Curto de
+ * propósito: quem precisa da regra inteira tem `docs/16` §5.1 e o cabeçalho de
+ * `quality/barra.ts`; quem lê o placar precisa saber QUAL defeito são 12 erros.
+ */
+const ROTULO_DA_REGRA_DA_BARRA: Readonly<Record<RegraDaBarra, string>> = {
+  A17: 'teto do passo (<=2 produtivas novas)',
+  A18: 'primeira aula do curso',
+  A19: 'declarar nao e demonstrar',
+  A20: 'aula sem prova',
+  A21: 'carga de novidade e secoes',
+  A22: 'duas formas sintaticas (AVISO)',
+  A23: 'derivada mal declarada (regra do par)',
+  A24: 'vazamento do quiz por comprimento',
+};
+
+/**
+ * O PLACAR DA BARRA A17–A23 como LINHAS de texto, prontas para o resumo.
+ *
+ * Está aqui pelos mesmos dois motivos que `linhasDeLimitacoes`: quem MEDIU é
+ * `auditTrack`, não quem imprime; e uma função que devolve linhas é testável
+ * sem capturar stdout.
+ *
+ * Devolve `[]` quando o relatório não tem a seção (`report.barra` ausente = a
+ * barra não rodou, ou relatório montado à mão) — imprimir zeros que ninguém
+ * mediu é justamente o defeito que o §9.2 proíbe. Quando ela não rodou, quem
+ * fala é `linhasDeLimitacoes`.
+ *
+ * Os erros listados aqui JÁ ESTÃO em `totals.violacoes`: esta seção não soma
+ * nada ao placar, ela diz de QUE REGRA o número veio (`totals.errosDaBarra` é o
+ * subtotal).
+ */
+export function linhasDoPlacarDaBarra(report: AuditReport): string[] {
+  const barra = report.barra;
+  if (barra === undefined) return [];
+  const l: string[] = [];
+  // A faixa sai do CATÁLOGO, nunca de uma string cravada: a barra ganhou A24
+  // (vazamento do quiz por comprimento) em 2026-09-22, e um título fixo em
+  // "A17-A23" passaria a mentir sobre o que as linhas abaixo contam.
+  const faixa = `${REGRAS_DA_BARRA[0]}-${REGRAS_DA_BARRA[REGRAS_DA_BARRA.length - 1]}`;
+  l.push(`BARRA PEDAGOGICA ${faixa} (agnostica de linguagem — quality/barra.ts)`);
+  l.push(`  erros (ja contados em violacoes) ..... ${barra.erros}`);
+  l.push(`  aulas com erro de barra .............. ${barra.aulasComErro}`);
+  l.push(`  avisos (A22 formas · A24 quiz) ....... ${barra.avisos}`);
+  l.push(
+    `  blocos de teoria que nao parseiam .... ${barra.blocosQueNaoParseiam}` +
+      (barra.blocosQueNaoParseiam > 0
+        ? '  <- bloco que o parser recusa nao demonstra nada: entra como erro A19 (fail-closed)'
+        : ''),
+  );
+  for (const linha of barra.porRegra) {
+    const rotulo = `    ${linha.regra} ${ROTULO_DA_REGRA_DA_BARRA[linha.regra]} `;
+    l.push(`${rotulo.padEnd(56, '.')} ${linha.erros} erro(s) · ${linha.avisos} aviso(s)`);
+  }
+  l.push(`  reproduz: npm run engine -- barra ${report.trackSlug} --limite 0`);
+  l.push('');
+  return l;
 }
 
 /**

@@ -43,9 +43,9 @@
       "statement": "O break pode carregar um valor: break quadrado; interrompe o laço E entrega o valor do quadrado.",
       "question": "O que faz `break quadrado;`?",
       "options": [
-        "interrompe o laço e faz o laço inteiro valer o valor de `quadrado`",
-        "interrompe o laço e apaga o valor de `quadrado`",
-        "soma `quadrado` em um acumulador",
+        "interrompe o laço e faz o laço valer o valor de `quadrado`",
+        "interrompe o laço e descarta o valor de `quadrado` na saída",
+        "soma `quadrado` num acumulador e segue as voltas",
         "interrompe só a volta atual, como o break sem valor"
       ],
       "answerIndex": 0,
@@ -53,8 +53,8 @@
       "sectionId": "o-pare-que-leva-um-presente",
       "optionRationales": [
         "É o PARE com presente: sai do laço levando o valor — o laço vale o que o break carregou.",
-        "O valor não se apaga — ele VIAJA para fora do laço no break.",
-        "Somar em acumulador é papel do `+=` — o break não soma.",
+        "O valor não se perde na saída: é justamente ele que VIAJA para fora no break.",
+        "Somar em acumulador é papel do `+=` — o break não soma e não segue.",
         "O break sem valor só interrompe; o com valor interrompe E entrega o valor."
       ]
     },
@@ -63,10 +63,10 @@
       "statement": "Se o laço é a última expressão do corpo, o valor que o break carrega é o que a função devolve.",
       "question": "Por que `primeiro_quadrado_apos` não tem linha nenhuma depois do laço?",
       "options": [
-        "porque o break quadrado já leva a resposta para fora — o laço É a resposta",
-        "porque a função não devolve nada",
-        "porque o quadrado precisa ficar dentro do laço",
-        "porque as linhas depois do laço não compilam"
+        "porque o break quadrado já leva a resposta para fora do laço",
+        "porque a função não devolve nada: o laço só roda",
+        "porque o quadrado só existe dentro do laço e não pode sair de lá",
+        "porque nenhuma linha depois de um loop compila em Rust"
       ],
       "answerIndex": 0,
       "feedback": "O laço é a última expressão do corpo — e o valor que o `break` carrega é o valor do laço: a resposta já viajou.",
@@ -84,9 +84,9 @@
       "question": "Em `primeiro_quadrado_apos(0)`, o que acontece na primeira volta?",
       "options": [
         "o quadrado 1 passa do teto 0 e o break leva o 1 para fora",
-        "o laço roda três voltas antes de achar",
-        "o n vai para 0 e o laço acaba sem valor",
-        "o break devolve 0, porque o teto é 0"
+        "o laço roda três voltas antes de achar o primeiro quadrado",
+        "o n vai para 0 e o laço acaba sem valor nenhum para entregar",
+        "o break leva o 0 para fora, porque o teto recebido é 0"
       ],
       "answerIndex": 0,
       "feedback": "O primeiro quadrado (`1 * 1`) já passa do teto `0`: a busca acha na primeira volta — e o break leva o `1`.",
@@ -94,8 +94,8 @@
       "optionRationales": [
         "A primeira volta já acha: `1 > 0` é `true` e o break entrega o `1`.",
         "Com o teto 0, a primeira volta já acha — as voltas de busca só existem quando não achou.",
-        "O `n` começa em 1 e a busca devolve o QUADRADO — nunca 0.",
-        "O break carrega o ACHADO (o quadrado), não o teto."
+        "O `n` começa em 1 e cresce; a busca devolve o QUADRADO, e nunca sai sem valor.",
+        "O break carrega o ACHADO (o quadrado), não o teto que a função recebeu."
       ]
     }
   ],

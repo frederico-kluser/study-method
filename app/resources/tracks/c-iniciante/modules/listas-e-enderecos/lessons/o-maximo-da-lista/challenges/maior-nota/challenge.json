@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-nota",
+  "title": "A maior nota",
+  "concept": "o_maximo_da_lista",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A maior nota\n\nEscreva a caixa `maiorNota`, com as duas janelas de entrada e um valor de volta:\n\n```text\nint maiorNota(int primeira, int ultima)\n```\n\nDentro dela, monte a caixa de cinco gavetas do módulo:\n\n```c\nint notas[5] = {primeira, 8, 6, 9, ultima};\n```\n\nE **devolva a maior das cinco notas**. Não imprime nada: o teste confere o valor devolvido.\n\nAtenção ao começo do padrão: o `maior` nasce valendo a primeira gaveta, e o laço segue da gaveta 1 até a 4. O teste vem com três turmas — numa a maior nota está na **primeira** gaveta, noutra na **última**, e na terceira no meio da caixa —, então nenhum atalho do tipo \"devolve a primeira\" passa.\n\nCom `primeira` valendo 20 e `ultima` valendo 2, a maior nota é 20. Com 1 e 15, é 15.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* escreva AQUI a caixa maiorNota, com as duas janelas de entrada:\n\n       int maiorNota(int primeira, int ultima)\n\n   Dentro dela: monte a caixa\n   int notas[5] = {primeira, 8, 6, 9, ultima};\n   comece o maior valendo notas[0], percorra de i = 1 ate 4\n   e DEVOLVA a maior nota. Nenhum printf: esta caixa entrega o valor. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio maior-nota — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o prototipo\n   da caixa do aluno, chama-a e confere o VALOR devolvido com checa_int.\n   Os tres cenarios poem o maximo em lugares diferentes da caixa: na\n   primeira gaveta, na ultima e no meio — devolver sempre a mesma gaveta\n   reprova em ao menos um deles. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint maiorNota(int primeira, int ultima);\n\nSM_TEST(o_maximo_na_primeira_gaveta) {\n    checa_int(\"o maximo na primeira gaveta\", maiorNota(20, 2), 20,\n              \"na caixa {20, 8, 6, 9, 2} a maior nota e a da gaveta 0\");\n}\n\nSM_TEST(o_maximo_na_ultima_gaveta) {\n    checa_int(\"o maximo na ultima gaveta\", maiorNota(1, 15), 15,\n              \"na caixa {1, 8, 6, 9, 15} a maior nota e a da gaveta 4\");\n}\n\nSM_TEST(o_maximo_no_meio_da_caixa) {\n    checa_int(\"o maximo no meio da caixa\", maiorNota(2, 3), 9,\n              \"na caixa {2, 8, 6, 9, 3} a maior nota nao esta em nenhuma das pontas\");\n}\n",
+  "solutionCode": "int maiorNota(int primeira, int ultima) {\n    int notas[5] = {primeira, 8, 6, 9, ultima};\n    int maior = notas[0];\n    for (int i = 1; i < 5; i++) {\n        if (notas[i] >= maior) {\n            maior = notas[i];\n        }\n    }\n    return maior;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_maximo_na_primeira_gaveta",
+      "teste": "o_maximo_na_primeira_gaveta",
+      "descricao": "com (20, 2), maiorNota devolve 20 — o maximo esta na gaveta 0, e o valor inicial do maior ja o cobre"
+    },
+    {
+      "id": "o_maximo_na_ultima_gaveta",
+      "teste": "o_maximo_na_ultima_gaveta",
+      "descricao": "com (1, 15), devolve 15: o maximo esta na ultima gaveta, so alcancada por um laco que vai ate a 4"
+    },
+    {
+      "id": "o_maximo_no_meio_da_caixa",
+      "teste": "o_maximo_no_meio_da_caixa",
+      "descricao": "com (2, 3), devolve 9 — o caso em que o maximo nao esta em nenhuma ponta, e devolver a primeira ou a ultima gaveta reprova"
+    }
+  ]
+}

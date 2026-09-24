@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "devolver-cedo",
   "title": "Devolver cedo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Cada caminho da caixa pode ter o seu return, e o primeiro que a execução alcança encerra tudo — é assim que a guarda devolve um valor combinado antes do problema.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ReturnStmt",
+  "concepts": [
+    "a_guarda_que_devolve"
+  ],
   "prerequisites": [
     "devolver-em-vez-de-mostrar",
     "se-senao"
   ],
+  "introduces": {
+    "productive": [
+      "node:ReturnStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa deixa de ter uma única saída no fim do corpo: passa a ter uma saída por caminho, e a execução para no primeiro `return` que alcança",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-return-por-caminho",
+      "title": "Um return por caminho",
+      "markdown": "Quando a caixa tem dois caminhos, cada caminho pode ter o seu próprio `return`:\n\n```c\nint maior(int a, int b) {\n    if (a >= b) {\n        return a;\n    } else {\n        return b;\n    }\n}\n```\n\nExatamente um dos dois roda — é o que o `else` garante. Não existe \"os dois\": o primeiro `return` que a execução alcança encerra a caixa e entrega o valor a quem chamou."
+    },
+    {
+      "id": "depois-do-return",
+      "title": "Depois do return, nada roda",
+      "markdown": "O `return` não é só a entrega: é o **fim** da caixa. O que vier depois dele, naquele caminho, não roda.\n\n```c\nint menor(int a, int b) {\n    if (a <= b) {\n        return a;\n    }\n    return b;\n}\n```\n\nCom `a` valendo 3 e `b` valendo 9, o `return a;` entrega 3 e a caixa acaba ali: a última linha nem é alcançada. Com `a` valendo 9, a condição é falsa, o `if` não faz nada e a execução cai no `return b;`.\n\nÉ a mesma decisão de antes, sem `else` — e é esta forma que a guarda usa."
+    },
+    {
+      "id": "a-guarda-que-devolve",
+      "title": "A guarda que devolve",
+      "markdown": "A guarda trata o caso ruim **primeiro**, com um valor de saída combinado:\n\n```c\nint repartir(int total, int pessoas) {\n    if (pessoas == 0) {\n        return -1;\n    }\n    return total / pessoas;\n}\n```\n\nDividir por zero não é conta: o C não define o que sai dali — medido aqui, o programa nem quebra, devolve um número sem sentido e sem aviso. Com `pessoas` igual a 0 o `return -1;` encerra a caixa antes, e a divisão **nunca acontece**.\n\nO `-1` é combinado por você: escolha um que a conta normal não produza."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "depois-do-return-nada-roda",
+      "statement": "Depois do `return`, nada mais da caixa roda.",
+      "question": "Na caixa `menor`, com `a` valendo 3 e `b` valendo 9, o que acontece com a linha `return b;` do fim?",
+      "options": [
+        "Ela roda depois e sobrescreve o valor: a caixa devolve 9.",
+        "Ela roda e a caixa devolve os dois valores.",
+        "Ela não é alcançada: o `return a;` já encerrou a caixa.",
+        "Ela vira erro de compilação, porque há dois `return` na mesma caixa."
+      ],
+      "answerIndex": 2,
+      "feedback": "O `return a;` entrega 3 e encerra a caixa naquele ponto. A linha de baixo continua no arquivo, mas a execução nunca chega nela neste caminho.",
+      "sectionId": "depois-do-return",
+      "optionRationales": [
+        "Nada roda depois do `return` naquele caminho — não há como sobrescrever o valor já entregue.",
+        "Uma caixa devolve UM valor por chamada: o do `return` que ela alcançou.",
+        "Exato: o `return` é a saída, e a linha de baixo só rodaria se a condição fosse falsa.",
+        "Vários `return` na mesma caixa são normais — um por caminho."
+      ]
+    },
+    {
+      "id": "a-guarda-sai-antes-do-problema",
+      "statement": "A guarda trata o caso ruim primeiro e sai antes do trabalho perigoso.",
+      "question": "Em `repartir`, com a guarda `if (pessoas == 0) { return -1; }` no alto, o que acontece quando `pessoas` vale 0?",
+      "options": [
+        "A caixa devolve -1 e a divisão nem é executada.",
+        "A caixa faz a divisão e devolve -1 no fim.",
+        "A caixa devolve `total`, porque não havia por quanto dividir.",
+        "A caixa devolve -1 e depois imprime um aviso na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "A guarda é verdadeira, o `return -1;` encerra a caixa ali e a linha da divisão fica atrás — que é justamente o ponto: dividir por zero nunca chega a acontecer.",
+      "sectionId": "a-guarda-que-devolve",
+      "optionRationales": [
+        "O `return -1;` sai antes: a divisão fica numa linha que a execução não alcança.",
+        "Se a divisão rodasse, a guarda não teria servido para nada — ela existe para evitá-la.",
+        "O valor de saída do caso ruim é combinado no código: aqui, -1.",
+        "Esta caixa não imprime nada: devolver e imprimir são canais diferentes."
+      ]
+    },
+    {
+      "id": "um-caminho-de-cada-vez",
+      "statement": "Com `if`/`else`, exatamente um dos dois `return` roda.",
+      "question": "Na caixa `maior`, com `if (a >= b) { return a; } else { return b; }`, quantos `return` rodam numa chamada?",
+      "options": [
+        "Os dois, na ordem em que estão escritos.",
+        "Nenhum, até alguém imprimir o resultado.",
+        "Depende dos valores: dois quando `a` e `b` são iguais.",
+        "Um só: o do caminho que a condição escolheu."
+      ],
+      "answerIndex": 3,
+      "feedback": "O `if`/`else` escolhe um caminho, e o `return` daquele caminho encerra a caixa. Mesmo com `a` igual a `b`, a condição é verdadeira e só o primeiro roda.",
+      "sectionId": "um-return-por-caminho",
+      "optionRationales": [
+        "O `else` existe justamente para que só um dos blocos rode.",
+        "O valor é entregue na chamada, sem depender de impressão nenhuma.",
+        "Com `a` igual a `b` a condição `a >= b` é verdadeira: roda o primeiro, e só ele.",
+        "Um por chamada: a condição escolhe o caminho e o `return` dele encerra tudo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "return statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/return",
+      "description": "A página oficial do `return`: ele encerra a execução da função no ponto em que aparece e entrega o valor a quem chamou."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A decisão que escolhe o caminho: com `else`, exatamente um dos dois blocos roda."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A divisão inteira de C — e a nota oficial de que divisor zero deixa o comportamento indefinido, que é o motivo da guarda."
+    }
+  ],
+  "challenges": [
+    "divisao-segura"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",
@@ -26,6 +128,6 @@
     "ensina": "cons. — node:ReturnStmt em forma nova (um return por ramo)",
     "presume": "devolver-em-vez-de-mostrar, se-senao",
     "quiz": "Depois do return, nada mais da caixa roda.",
-    "desafio": "divisao-segura — dividir(a, b) devolve 0 se b == 0 (a guarda); teste com (7, 2) → 3 e (7, 0) → 0."
+    "desafio": "divisao-segura — divisaoSegura(a, b) devolve -1 se b == 0 (a guarda); teste com (7, 2) → 3 e (7, 0) → -1. O -1 (e não 0) é o que discrimina a guarda: medido, a divisão por zero devolve 0 nesta máquina."
   }
 }

@@ -45,18 +45,18 @@
       "statement": "O insert põe o par: a chave aponta para o valor — insert(String::from(\"ana\"), 9) guarda \"ana\" → 9.",
       "question": "O que `idades.insert(String::from(\"ana\"), 9)` faz?",
       "options": [
-        "Guarda o par \"ana\" → 9 no mapa",
-        "Guarda o número 9 numa lista",
-        "Devolve a idade da ana",
-        "Cria uma chave sem valor"
+        "Guarda o par \"ana\" → 9 dentro do mapa",
+        "Guarda o par 9 → \"ana\": o valor na frente",
+        "Devolve a idade da ana, sem guardar nada",
+        "Cria a chave \"ana\" sem valor nenhum"
       ],
       "answerIndex": 0,
       "feedback": "O insert põe o par inteiro: a chave \"ana\" aponta para o 9.",
       "optionRationales": [
         "Par completo, na ordem do método: primeiro a chave, depois o valor.",
-        "Mapa não é lista — o par vai para o mapa, com porta e conteúdo.",
-        "Ler é o .get, que vem na próxima aula — o insert guarda.",
-        "Todo par entra completo: chave e valor, juntos."
+        "A ordem é chave, valor — o 9 é o conteúdo, não a porta do par.",
+        "Ler é o .get, que vem na próxima aula — o insert guarda o par.",
+        "Chave sem valor não existe no mapa: todo par entra completo."
       ]
     },
     {
@@ -66,15 +66,15 @@
       "question": "Depois de `idades.insert(String::from(\"ana\"), 9);`, quem é o dono do texto \"ana\"?",
       "options": [
         "O mapa — a chave se moveu para dentro dele",
-        "A variável idades — o texto continua solto",
-        "Ninguém — o texto foi apagado",
+        "A String continua dona: o mapa só empresta a chave",
+        "Ninguém — o texto foi apagado no insert",
         "O compilador, que guarda uma cópia"
       ],
       "answerIndex": 0,
       "feedback": "O insert move a chave: o mapa passa a ser o dono do texto.",
       "optionRationales": [
         "Regra do M4: passar o dono por valor move — e o insert recebe a chave por valor.",
-        "O nome não fica solto: ele virou parte do mapa.",
+        "Emprestar é o &: o insert recebe a chave por valor, e por valor move o dono.",
         "O texto não se apaga: ele mora dentro do mapa, como chave.",
         "O compilador não guarda cópia — ele conta os donos."
       ]
@@ -85,10 +85,10 @@
       "statement": "Insert numa chave que já existe TROCA o valor — a chave não se repete no mapa.",
       "question": "Dois inserts na mesma chave — o que fica no mapa?",
       "options": [
-        "A chave uma vez só, com o valor do último insert",
-        "Duas chaves iguais, com os dois valores",
-        "A chave com o primeiro valor, travado",
-        "Um erro de compilação"
+        "A chave uma vez só, com o último valor",
+        "Duas chaves \"ana\", uma com cada valor guardado",
+        "A chave com o primeiro valor, travado nela",
+        "Um erro de compilação: chave repetida"
       ],
       "answerIndex": 0,
       "feedback": "Chave é única: o insert de novo troca o valor — o último manda.",

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-porta-secreta",
+  "title": "A porta secreta",
+  "concept": "comparar_textos",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A porta secreta\n\nA função `aPortaSecreta` lê **uma palavra** (letras sem acento, até 49) e decide se a porta abre. A palavra secreta é `abrir`, e só ela:\n\nDigitando `abrir`:\n\n```text\nporta aberta\n```\n\nDigitando `fechar`:\n\n```text\nporta trancada\n```\n\nDigitando `abrirtudo`:\n\n```text\nporta trancada\n```\n\nO terceiro caso é o que separa quem comparou de verdade de quem só olhou o começo: `abrirtudo` **começa** com `abrir` e mesmo assim não é a palavra secreta.\n\nPassos:\n\n1. compare a palavra lida com `\"abrir\"` usando `strcmp` — lembre que **zero quer dizer igual**;\n2. imprima `porta aberta` quando os textos forem iguais;\n3. imprima `porta trancada` em qualquer outro caso.\n\nA leitura da palavra já vem pronta no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* aPortaSecreta le uma palavra digitada e imprime \"porta aberta\" quando a\n   palavra e exatamente abrir; em qualquer outro caso imprime\n   \"porta trancada\". */\nvoid aPortaSecreta(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    /* 1) compare palavra com \"abrir\" usando strcmp (zero quer dizer igual) */\n\n    /* 2) imprima \"porta aberta\" no caso igual */\n\n    /* 3) imprima \"porta trancada\" em qualquer outro caso */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-porta-secreta — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do stdout\n   acontece dentro do proprio cenario (freopen + fflush, sem fclose no stdout).\n   Tres cenarios: a palavra certa, uma palavra diferente e uma palavra que\n   COMECA igual — nenhuma frase fixa no codigo passa nos tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid aPortaSecreta(void);\n\nSM_TEST(a_palavra_certa_abre) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"abrir\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    aPortaSecreta();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a palavra certa abre\", linha, \"porta aberta\\n\",\n              \"abrir e a palavra secreta: a comparacao devolve zero e a porta abre\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_palavra_diferente_tranca) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"fechar\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    aPortaSecreta();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a palavra diferente tranca\", linha, \"porta trancada\\n\",\n              \"fechar nao e abrir: a comparacao devolve um numero diferente de zero\");\n    fclose(f);\n}\n\nSM_TEST(quase_igual_tambem_tranca) {\n    FILE *digitado = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(digitado, \"abrirtudo\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    aPortaSecreta();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"quase igual tambem tranca\", linha, \"porta trancada\\n\",\n              \"abrirtudo comeca igual e nao e igual: a comparacao vai ate a placa do fim\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid aPortaSecreta(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    if (strcmp(palavra, \"abrir\") == 0) {\n        printf(\"porta aberta\\n\");\n    } else {\n        printf(\"porta trancada\\n\");\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_palavra_certa_abre",
+      "teste": "a_palavra_certa_abre",
+      "descricao": "com abrir digitado no stdin, a funcao aPortaSecreta imprime porta aberta e mais nada — a comparacao com strcmp devolveu zero"
+    },
+    {
+      "id": "a_palavra_diferente_tranca",
+      "teste": "a_palavra_diferente_tranca",
+      "descricao": "com fechar digitado no stdin, a mesma funcao imprime porta trancada: o resultado do strcmp foi diferente de zero"
+    },
+    {
+      "id": "quase_igual_tambem_tranca",
+      "teste": "quase_igual_tambem_tranca",
+      "descricao": "com abrirtudo digitado no stdin, a funcao imprime porta trancada — a prova de que a comparacao vai ate o fim do texto e nao se contenta com o comeco igual"
+    }
+  ]
+}

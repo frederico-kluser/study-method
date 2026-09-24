@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-soma-do-arquivo",
+  "title": "A soma do arquivo",
+  "concept": "ler_numeros_do_arquivo",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A soma do arquivo\n\nO caderno `numeros.txt` chega pronto na pasta do desafio: um número inteiro por linha, e você **não sabe quantos são**.\n\nEscreva a função `aSomaDoArquivo`, que:\n\n1. abre `numeros.txt` no modo `\"r\"`;\n2. soma todos os números que estiverem lá dentro, do primeiro ao último;\n3. fecha o caderno e **devolve** a soma.\n\nO laço termina quando o `fscanf` não conseguir mais ler um campo — é ele quem sabe onde o caderno acaba. Um caderno vazio soma `0`.\n\n```text\n10\n20\n3\n7\n5\n```\n\nPara esse caderno, a função devolve `45`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* aSomaDoArquivo abre o caderno numeros.txt, soma tudo o que esta\n   escrito nele e devolve a soma. O caderno ja existe na pasta. */\nint aSomaDoArquivo(void) {\n    FILE *f = fopen(\"numeros.txt\", \"r\");\n    int n = 0;\n    int soma = 0;\n\n    /* escreva aqui o laco: enquanto o fscanf ler um campo (== 1),\n       some o numero lido em soma */\n\n    fclose(f);\n    return soma;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-soma-do-arquivo — counter_protocol (03-tdd 3.9.3).\n   Cada cenario ESCREVE o caderno numeros.txt com o modo \"w\" (que trunca)\n   e depois chama a funcao do aluno: o valor devolvido tem de sair do\n   arquivo, nunca de um numero fixo no codigo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint aSomaDoArquivo(void);\n\nSM_TEST(cinco_numeros_somam_45) {\n    FILE *c = fopen(\"numeros.txt\", \"w\");\n    fprintf(c, \"10\\n20\\n3\\n7\\n5\\n\");\n    fclose(c);\n\n    checa_int(\"a soma dos cinco numeros\", aSomaDoArquivo(), 45,\n              \"10 + 20 + 3 + 7 + 5 = 45: o laco vai ate o fim do caderno\");\n}\n\nSM_TEST(outro_caderno_outra_soma) {\n    FILE *c = fopen(\"numeros.txt\", \"w\");\n    fprintf(c, \"1\\n2\\n4\\n8\\n16\\n\");\n    fclose(c);\n\n    checa_int(\"a soma de outro caderno\", aSomaDoArquivo(), 31,\n              \"1 + 2 + 4 + 8 + 16 = 31: a soma sai do arquivo, nao do codigo\");\n}\n\nSM_TEST(caderno_vazio_soma_zero) {\n    FILE *c = fopen(\"numeros.txt\", \"w\");\n    fclose(c);\n\n    checa_int(\"o caderno vazio soma zero\", aSomaDoArquivo(), 0,\n              \"sem nenhum campo para ler, o laco nao roda e a soma fica em 0\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint aSomaDoArquivo(void) {\n    FILE *f = fopen(\"numeros.txt\", \"r\");\n    int n = 0;\n    int soma = 0;\n\n    while (fscanf(f, \"%d\", &n) == 1) {\n        soma = soma + n;\n    }\n\n    fclose(f);\n    return soma;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "cinco_numeros_somam_45",
+      "teste": "cinco_numeros_somam_45",
+      "descricao": "com o caderno de cinco numeros (10, 20, 3, 7 e 5) escrito pelo teste, aSomaDoArquivo devolve 45 — o laco de fscanf percorre o arquivo inteiro"
+    },
+    {
+      "id": "outro_caderno_outra_soma",
+      "teste": "outro_caderno_outra_soma",
+      "descricao": "com outro caderno (1, 2, 4, 8 e 16), a mesma funcao devolve 31: a soma vem do arquivo e nao de um valor fixo no codigo"
+    },
+    {
+      "id": "caderno_vazio_soma_zero",
+      "teste": "caderno_vazio_soma_zero",
+      "descricao": "com o caderno vazio, o fscanf nao le campo nenhum na primeira volta, o laco nao roda e a funcao devolve 0"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-de-dois",
+  "title": "O maior de dois",
+  "concept": "a_condicao_que_devolve",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O maior de dois\n\nEscreva a função `maiorDeDois`. Ela lê **dois inteiros** digitados na mesma linha e imprime o maior dos dois, numa linha só.\n\nCom `3 9` digitado, a saída é exatamente:\n\n```text\n9\n```\n\nE com `12 5` digitado:\n\n```text\n12\n```\n\nA leitura e a impressão já estão no arquivo, e no meio delas há a linha `int maior = 0;`. Troque esse `0`: guarde em `maior` o maior entre `a` e `b` usando a condição que devolve (`? :`).\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* maiorDeDois le dois inteiros digitados e imprime o maior dos dois.\n   A leitura (scanf) e a impressao (printf) ja estao escritas.\n   Troque o 0 da linha do meio: guarde em maior o maior entre a e b, com a\n   condicao que devolve — pergunta, depois o ?, depois os dois valores. */\nvoid maiorDeDois(void) {\n    int a = 0;\n    int b = 0;\n\n    scanf(\"%d %d\", &a, &b);\n\n    int maior = 0;\n\n    printf(\"%d\\n\", maior);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio maior-de-dois — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4).\n   As duas saidas esperadas sao DIFERENTES (9 e 12): um printf com numero\n   fixo no codigo reprova num dos dois cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid maiorDeDois(void);\n\nSM_TEST(o_maior_vem_depois) {\n    /* o que a pessoa digita: 3 e 9 — o maior e o SEGUNDO */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"3 9\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    maiorDeDois();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"entre 3 e 9 o maior e 9\", linha, \"9\\n\",\n              \"a pergunta 3 > 9 deu falso, entao o lado do : foi devolvido\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o maior, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_maior_vem_antes) {\n    /* outra ordem e outro resultado: 12 e 5 — o maior e o PRIMEIRO */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"12 5\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    maiorDeDois();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"entre 12 e 5 o maior e 12\", linha, \"12\\n\",\n              \"com o maior na frente a pergunta deu verdadeiro e o lado do ? foi devolvido\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid maiorDeDois(void) {\n    int a = 0;\n    int b = 0;\n\n    scanf(\"%d %d\", &a, &b);\n\n    int maior = a >= b ? a : b;\n\n    printf(\"%d\\n\", maior);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_maior_vem_depois",
+      "teste": "o_maior_vem_depois",
+      "descricao": "com 3 e 9 digitados, a funcao maiorDeDois escolhe o SEGUNDO valor pela condicao que devolve e imprime 9 numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "o_maior_vem_antes",
+      "teste": "o_maior_vem_antes",
+      "descricao": "com 12 e 5 digitados, a mesma funcao escolhe o PRIMEIRO valor e imprime 12 — a saida muda com a entrada, o que prova que a escolha foi calculada e nao escrita no codigo"
+    }
+  ]
+}

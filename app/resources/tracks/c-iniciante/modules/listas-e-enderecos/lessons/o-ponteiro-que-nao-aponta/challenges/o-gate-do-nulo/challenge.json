@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-gate-do-nulo",
+  "title": "O gate do nulo",
+  "concept": "o_papel_em_branco",
+  "difficulty": 4,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O gate do nulo\n\nDuas funções, e as duas são suas:\n\n```c\nconst int *maiorDe(const int v[], int n)\nint oGateDoNulo(const int *papel)\n```\n\nA `maiorDe` devolve o **endereço** da maior nota de `v`. Quando `n` é 0 não existe gaveta para apontar: ela devolve `NULL`, o papel em branco.\n\nA `oGateDoNulo` é a porteira: recebe um papel e devolve **1** quando ele tem endereço, **0** quando está em branco. É aqui que entra o `papel != NULL`.\n\nO teste entrega à porteira o papel que a `maiorDe` devolveu, e confere também PARA ONDE esse papel aponta — sem nunca ir até a casa de um papel que pode estar em branco.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI as DUAS funcoes.\n\n   1) const int *maiorDe(const int v[], int n)\n      com n == 0 devolve NULL (nao ha gaveta para apontar);\n      senao acha o indice da maior nota e devolve &v[indice].\n\n   2) int oGateDoNulo(const int *papel)\n      devolve 1 quando papel != NULL, e 0 quando o papel\n      esta em branco. A porteira nunca vai ate a casa. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-gate-do-nulo — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: sem captura de stdout. Cada cenario chama maiorDe, entrega\n   o papel a porteira e COMPARA o papel com o endereco da gaveta esperada\n   — sem nunca ir ate a casa de um papel que pode estar em branco (ler o\n   valor de um ponteiro nulo e comportamento indefinido, proibido nesta\n   trilha). */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nconst int *maiorDe(const int v[], int n);\nint oGateDoNulo(const int *papel);\n\nSM_TEST(a_lista_vazia_devolve_papel_em_branco) {\n    int notas[4] = {8, 5, 9, 2};\n    checa_int(\"com n = 0 a porteira recusa\", oGateDoNulo(maiorDe(notas, 0)), 0,\n              \"sem gaveta nenhuma para apontar, maiorDe devolve o papel em branco\");\n    checa_int(\"papel em branco entregue na mao\", oGateDoNulo(NULL), 0,\n              \"a porteira responde 0 para qualquer papel sem endereco\");\n}\n\nSM_TEST(a_maior_nota_no_meio) {\n    int notas[4] = {8, 5, 9, 2};\n    checa_int(\"a porteira aceita o papel\", oGateDoNulo(maiorDe(notas, 4)), 1,\n              \"com quatro notas existe uma maior, e o papel volta com endereco\");\n    checa_int(\"o papel aponta para a gaveta 2\", maiorDe(notas, 4) == &notas[2], 1,\n              \"a maior nota da lista e o 9, que mora na gaveta 2\");\n}\n\nSM_TEST(a_maior_nota_na_ultima_gaveta) {\n    int notas[3] = {4, 6, 7};\n    checa_int(\"a porteira aceita o papel\", oGateDoNulo(maiorDe(notas, 3)), 1,\n              \"a lista tem notas, entao o papel tem endereco\");\n    checa_int(\"o papel aponta para a ultima gaveta\", maiorDe(notas, 3) == &notas[2], 1,\n              \"o 7 e a maior nota e mora na ultima gaveta da lista\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nconst int *maiorDe(const int v[], int n) {\n    if (n == 0) {\n        return NULL;\n    }\n    int melhor = 0;\n    for (int i = 1; i < n; i++) {\n        if (v[melhor] < v[i]) {\n            melhor = i;\n        }\n    }\n    return &v[melhor];\n}\n\nint oGateDoNulo(const int *papel) {\n    if (papel != NULL) {\n        return 1;\n    }\n    return 0;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_lista_vazia_devolve_papel_em_branco",
+      "teste": "a_lista_vazia_devolve_papel_em_branco",
+      "descricao": "com n = 0, maiorDe devolve o papel em branco e a porteira responde 0; oGateDoNulo(NULL) tambem responde 0"
+    },
+    {
+      "id": "a_maior_nota_no_meio",
+      "teste": "a_maior_nota_no_meio",
+      "descricao": "com {8, 5, 9, 2} a porteira responde 1 e o papel devolvido por maiorDe e igual a &notas[2], a gaveta do 9"
+    },
+    {
+      "id": "a_maior_nota_na_ultima_gaveta",
+      "teste": "a_maior_nota_na_ultima_gaveta",
+      "descricao": "com {4, 6, 7} a porteira responde 1 e o papel aponta para &notas[2], a ultima gaveta — a maior nota tambem e achada no fim da lista"
+    }
+  ]
+}

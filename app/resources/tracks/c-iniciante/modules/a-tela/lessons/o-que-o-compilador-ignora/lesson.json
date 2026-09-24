@@ -2,22 +2,131 @@
   "schemaVersion": 1,
   "slug": "o-que-o-compilador-ignora",
   "title": "O que o compilador ignora",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Comentário é o texto que o compilador joga fora — de // até o fim da linha, ou de /* até */ — e o programa roda exatamente igual.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:printf",
+  "concepts": [
+    "o_comentario"
+  ],
   "prerequisites": [
     "primeira-tela"
   ],
+  "introduces": {
+    "productive": [
+      "api:printf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "comentário"
+  ],
+  "notionalMachineDelta": "o arquivo passa a ter duas camadas: o que o compilador lê e o que ele joga fora — e o aluno ganha um lugar para escrever para gente sem mudar o programa",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "duas-barras-e-o-resto-da-linha",
+      "title": "Duas barras e o resto da linha",
+      "markdown": "Nem tudo no arquivo é ordem para o computador. Ao encontrar `//`, o compilador pula TUDO até o fim daquela linha:\n\n```c\n// esta linha inteira o compilador joga fora\nprintf(\"eu apareco\\n\");   // e isto aqui tambem vai fora\n```\n\nNa tela:\n\n```text\neu apareco\n```\n\nO texto jogado fora não mudou o programa em nada — e o `printf` continua sendo o mesmo `printf` da primeira aula. Esse texto se chama **comentário**: recado escrito para gente, dentro de um arquivo de programa."
+    },
+    {
+      "id": "de-barra-estrela-a-estrela-barra",
+      "title": "De /* até */",
+      "markdown": "A outra forma não para no fim da linha: começa em `/*` e só termina em `*/` — pode atravessar quantas linhas você quiser, ou caber no meio de uma:\n\n```c\n/* Ficha do programa:\n   imprime duas linhas fixas.\n   Nada daqui de dentro roda. */\nprintf(\"primeira\\n\");\nprintf(/* ate no meio da linha */ \"segunda\\n\");\n```\n\nEscolha pela forma: `//` para o recado curto no fim da linha; `/* */` para o bloco de explicação em cima da função. Esquecer o `*/` é o erro clássico — o compilador segue engolindo o seu código como se fosse texto até achar um."
+    },
+    {
+      "id": "o-comentario-nao-muda-a-saida",
+      "title": "O comentário não muda a saída",
+      "markdown": "Duas versões do MESMO programa — uma cheia de comentário, outra sem nenhum:\n\n```c\n/* imprime o cartao de visita */\nprintf(\"nome: Ana\\n\");  // primeiro o nome\nprintf(\"turma: C1\\n\");  // depois a turma\n```\n\n```c\nprintf(\"nome: Ana\\n\");\nprintf(\"turma: C1\\n\");\n```\n\nAs duas imprimem as mesmas duas linhas. É por isso que o desafio compara a saída: o comentário é para quem LÊ o arquivo, e quem roda o programa nunca vê a diferença. E existe um caso que parece comentário e não é — a próxima seção o mostra."
+    },
+    {
+      "id": "dentro-das-aspas-nao-ha-comentario",
+      "title": "Dentro das aspas não há comentário",
+      "markdown": "Falta o caso que reprova o desafio: dentro das aspas NÃO existe comentário. Ali `//` e `/*` são letras como quaisquer outras, e saem na tela:\n\n```c\nprintf(\"50// de desconto\\n\");\nprintf(\"preco /* hoje */ 10\\n\");\n```\n\n```text\n50// de desconto\npreco /* hoje */ 10\n```\n\nO compilador só corta o que está FORA do texto. Por isso o recado para gente vai DEPOIS do `;` — dentro das aspas ele viraria parte da frase impressa."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "barra-barra-vai-ate-o-fim-da-linha",
+      "statement": "O compilador ignora tudo entre `//` e o fim da linha, e entre `/*` e `*/`.",
+      "question": "O que o compilador faz com a linha `printf(\"oi\\n\");  // mostra um cumprimento`?",
+      "options": [
+        "Executa o `printf` e joga fora o texto depois de `//`.",
+        "Executa o `printf` e imprime também o texto depois de `//`.",
+        "Não executa nada: a linha toda virou comentário.",
+        "Reclama: `//` não pode ficar na mesma linha de uma ordem."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `//` corta da sua posição até o fim da linha. O que estava ANTES dele continua sendo ordem — e roda.",
+      "sectionId": "duas-barras-e-o-resto-da-linha",
+      "optionRationales": [
+        "O corte começa no `//`: a ordem que veio antes na mesma linha continua valendo.",
+        "O comentário nunca é impresso: ele desaparece antes de o programa existir.",
+        "Só o trecho depois do `//` é jogado fora, não a linha inteira.",
+        "É permitido e comum: o recado curto no fim da linha da ordem."
+      ]
+    },
+    {
+      "id": "o-bloco-termina-no-estrela-barra",
+      "statement": "O comentário `/* */` atravessa várias linhas e só termina no `*/`.",
+      "question": "Um arquivo tem `/* nota` na primeira linha e `*/` na quarta. O que o compilador lê dessas quatro linhas?",
+      "options": [
+        "Nada: tudo entre `/*` e `*/` é jogado fora, inclusive as linhas do meio.",
+        "Só a primeira linha é jogada fora; as outras três valem como ordens.",
+        "Tudo vale: `/* */` serve só para o editor colorir o texto.",
+        "O arquivo não compila: `/*` tem de fechar na mesma linha."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `/*` abre e só o `*/` fecha. Tudo no meio — quantas linhas forem — é jogado fora, e é por isso que esquecer o `*/` apaga o código seguinte sem avisar.",
+      "sectionId": "de-barra-estrela-a-estrela-barra",
+      "optionRationales": [
+        "O bloco vai do `/*` ao `*/`, sem se importar com quebras de linha.",
+        "Quem para no fim da linha é o `//`; o `/* */` continua até o fechamento.",
+        "Não é enfeite de editor: o compilador realmente descarta esse texto.",
+        "Atravessar linhas é exatamente para o que essa forma serve."
+      ]
+    },
+    {
+      "id": "comentar-nao-muda-a-tela",
+      "statement": "Acrescentar comentário não muda o que o programa imprime.",
+      "question": "Você acrescentou três comentários numa função que imprime duas linhas. O que muda na tela?",
+      "options": [
+        "Nada: continuam saindo as mesmas duas linhas.",
+        "Aparecem três linhas novas, uma por comentário.",
+        "As duas linhas saem na ordem contrária.",
+        "A tela fica em branco: o comentário desliga os `printf`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O comentário sai do programa antes de ele rodar. A tela só mostra o que os `printf` mandam — e eles não mudaram.",
+      "sectionId": "o-comentario-nao-muda-a-saida",
+      "optionRationales": [
+        "Comentário não é ordem: ele não imprime nem altera a ordem das que existem.",
+        "Comentário nunca vira saída — a menos que você o escreva DENTRO das aspas, e aí ele é texto.",
+        "A ordem da saída é a ordem dos `printf`, que continua a mesma.",
+        "Nada é desligado: os `printf` seguem intactos ao lado dos comentários."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Comments — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/comment",
+      "description": "A página oficial das duas formas de comentário em C: // até o fim da linha e /* */ em bloco."
+    },
+    {
+      "title": "Phases of translation — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/translation_phases",
+      "description": "As fases da tradução: o comentário é substituído por espaço ANTES de o compilador analisar o programa."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.4.9 define o comentário e onde ele começa e termina."
+    }
+  ],
+  "challenges": [
+    "ficha-comentada"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

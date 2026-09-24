@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-caixa-que-nao-devolve-nada",
   "title": "A caixa que não devolve nada",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa void não entrega valor a quem chamou, e dentro dela o return sozinho serve só para encerrar o trabalho antes do fim.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:func",
+  "concepts": [
+    "a_caixa_sem_valor"
+  ],
   "prerequisites": [
     "imprimir-nao-e-devolver"
   ],
+  "introduces": {
+    "productive": [
+      "decl:func",
+      "node:ReturnStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o retorno deixa de ser obrigatoriamente um valor: a caixa pode prometer `void` e o `return;` passa a ser um jeito de sair do corpo antes da última linha",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "nada-a-devolver",
+      "title": "Nada a devolver",
+      "markdown": "Você já escreveu caixas `void`: elas fazem o trabalho e não entregam valor a ninguém. A palavra fica no lugar do tipo de retorno:\n\n```c\nvoid aviso(void) {\n    printf(\"atencao\\n\");\n}\n```\n\n`void` quer dizer *nada*. O primeiro fala do que a caixa devolve; o segundo, entre parênteses, do que ela recebe.\n\nUma caixa `void` pode receber, sim — o que ela não faz é devolver:\n\n```c\nvoid mostrarTotal(int total) {\n    printf(\"total: %d\\n\", total);\n}\n```"
+    },
+    {
+      "id": "o-return-sem-valor",
+      "title": "O return sozinho",
+      "markdown": "Dentro de uma caixa `void` existe outro `return`: o `return;` **sozinho**, sem valor depois dele. Ele não entrega nada — só **encerra a caixa ali**.\n\n```c\nvoid mostrarPositivo(int n) {\n    if (n <= 0) {\n        return;\n    }\n    printf(\"%d e positivo\\n\", n);\n}\n\nvoid tela(void) {\n    mostrarPositivo(0);\n    mostrarPositivo(4);\n}\n```\n\n```text\n4 e positivo\n```\n\nDuas chamadas, uma linha na tela: com `n` igual a 0 o `return;` acabou a caixa antes do `printf`; com 4, a execução passou reto e a linha saiu."
+    },
+    {
+      "id": "os-dois-returns",
+      "title": "Os dois returns, lado a lado",
+      "markdown": "Compare os dois `return`. Com valor, quando a frente prometeu um tipo:\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n```\n\nSozinho, quando a frente é `void`:\n\n```c\nvoid repetir(int n) {\n    if (n == 0) {\n        return;\n    }\n    printf(\"repetindo %d\\n\", n);\n}\n```\n\nA frente manda, e o compilador cobra as duas pontas: `return 0;` numa caixa `void` é erro (*void function should not return a value*), e `return;` numa caixa `int` também (*non-void function should return a value*)."
+    },
+    {
+      "id": "a-guarda-no-alto",
+      "title": "A guarda no alto da caixa",
+      "markdown": "Essa saída antecipada tem um nome: **guarda**. Ela fica no começo da caixa, trata o caso que não interessa e sai:\n\n```c\nvoid mostrarNota(int nota) {\n    if (nota == 0) {\n        return;\n    }\n    printf(\"nota %d\\n\", nota);\n    printf(\"obrigado\\n\");\n}\n```\n\nSem a guarda, as duas linhas do fim teriam de entrar num `if` — e cada linha nova precisaria entrar também. A guarda resolve o caso ruim uma vez, no alto, e deixa o resto da caixa limpo."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "void-devolve-nada",
+      "statement": "`void` devolve \"nada\"; o `return` sem valor só encerra cedo.",
+      "question": "O que o `return;` sozinho, dentro de uma caixa `void`, faz?",
+      "options": [
+        "Devolve zero para quem chamou.",
+        "Encerra a caixa naquele ponto, sem entregar valor nenhum.",
+        "Apaga o que já foi impresso na tela.",
+        "Volta para a primeira linha do corpo e roda tudo de novo."
+      ],
+      "answerIndex": 1,
+      "feedback": "O `return;` é só a saída: o que vem depois dele, dentro da caixa, não roda. Como a caixa é `void`, não há valor nenhum para entregar.",
+      "sectionId": "o-return-sem-valor",
+      "optionRationales": [
+        "Zero é um valor, e uma caixa `void` não entrega valor — `return 0;` ali é erro de compilação.",
+        "É exatamente isso: a caixa acaba naquele ponto, e nada é entregue a quem chamou.",
+        "O que foi impresso já foi: nenhum `return` desfaz saída na tela.",
+        "Repetir é trabalho de laço; o `return` faz o oposto — sai."
+      ]
+    },
+    {
+      "id": "a-guarda-evita-a-linha",
+      "statement": "A guarda no alto da caixa trata o caso que não interessa e sai antes do trabalho.",
+      "question": "Em `void mostrarPositivo(int n)`, com a guarda `if (n <= 0) { return; }` antes do `printf`, o que aparece na tela quando `n` vale 0?",
+      "options": [
+        "`0 e positivo`, porque o `printf` está no corpo.",
+        "Nada: a guarda encerra a caixa antes do `printf`.",
+        "Uma linha vazia, porque o `return;` imprime o `\\n`.",
+        "`0`, o valor que a guarda devolveu."
+      ],
+      "answerIndex": 1,
+      "feedback": "Com `n` igual a 0 a condição `n <= 0` é verdadeira, o `return;` encerra a caixa e o `printf` de baixo nem é alcançado: a tela não muda.",
+      "sectionId": "o-return-sem-valor",
+      "optionRationales": [
+        "Estar no corpo não basta: a linha só roda se a execução chegar até ela, e a guarda saiu antes.",
+        "A guarda é verdadeira para 0, o `return;` sai, e nada chega ao `printf`.",
+        "O `return;` não imprime nada — quem escreve na tela é o `printf`.",
+        "Uma caixa `void` não devolve valor: a guarda só encerra."
+      ]
+    },
+    {
+      "id": "void-e-a-promessa-da-frente",
+      "statement": "O tipo na frente do nome é a promessa do retorno, e ela manda no que o `return` pode levar.",
+      "question": "Por que `void repetir(int n) { return 0; }` não compila?",
+      "options": [
+        "Porque a caixa recebe um parâmetro, e caixa com janela de entrada não pode ter `return` nenhum.",
+        "Porque `return 0;` só vale dentro do `main`.",
+        "Porque o `void` prometeu não devolver valor, e o `return` leva um.",
+        "Porque falta imprimir algo antes de sair."
+      ],
+      "answerIndex": 2,
+      "feedback": "A frente da caixa é um contrato: `void` diz \"não devolvo valor\". Levar um valor no `return` quebra o contrato, e o compilador recusa antes de rodar.",
+      "sectionId": "os-dois-returns",
+      "optionRationales": [
+        "Receber e devolver são independentes: `void mostrarTotal(int total)` recebe e pode ter `return;` sozinho.",
+        "O `return` com valor vale em qualquer caixa que prometeu um tipo, não só no `main`.",
+        "É a contradição entre a promessa (`void`) e a entrega (`0`) que o compilador recusa.",
+        "Imprimir é outro canal: nenhuma caixa é obrigada a imprimir antes de sair."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "return statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/return",
+      "description": "A página oficial do `return`: a forma sem expressão só encerra a função, e ela é a exigida em função `void`."
+    },
+    {
+      "title": "Function definition — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A definição de função em C, com o tipo de retorno na frente do nome e o caso `void` de quem não devolve nada."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.6.4 proíbe `return` com expressão em função cujo retorno é `void`."
+    }
+  ],
+  "challenges": [
+    "cedo-demais"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

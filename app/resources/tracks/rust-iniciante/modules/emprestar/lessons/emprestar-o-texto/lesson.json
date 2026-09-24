@@ -40,9 +40,9 @@
       "question": "Em `texto: &str`, o que o `&` promete?",
       "options": [
         "Que o texto chega emprestado: a função só lê",
-        "Que o texto é dono da função",
-        "Que o texto será copiado",
-        "Que o texto tem 4 letras"
+        "Que a função passa a ser a dona do texto recebido",
+        "Que o texto será copiado para dentro da função",
+        "Que a função pode mudar o texto do dono"
       ],
       "answerIndex": 0,
       "feedback": "O & na frente do tipo é o empréstimo: o texto só passa.",
@@ -50,7 +50,7 @@
         "&str é o texto emprestado — a função lê, mede e devolve.",
         "Quem empresta é o chamador; a função nunca vira dona.",
         "Não há cópia: o empréstimo aponta para o texto original.",
-        "O tamanho é papel do len; o & fala de dono."
+        "O & sozinho promete só leitura: mudar pede outra promessa na assinatura."
       ]
     },
     {
@@ -60,8 +60,8 @@
       "question": "Depois de `tamanho(\"Ana\")`, o que acontece com o texto?",
       "options": [
         "Nada — ele segue com quem o emprestou",
-        "Ele muda de dono",
-        "Ele vira um String",
+        "Ele muda de dono: a função fica com ele",
+        "Ele vira um String dentro da função",
         "Ele é apagado da memória"
       ],
       "answerIndex": 0,
@@ -80,9 +80,9 @@
       "question": "Por que `tamanho(\"Ana\")` compila com o parâmetro em `&str`?",
       "options": [
         "Porque o literal já é o texto emprestado",
-        "Porque todo texto é um String",
-        "Porque o & é opcional em Rust",
-        "Porque o Ana é um número"
+        "Porque todo texto em Rust nasce String dono",
+        "Porque o & é opcional na chamada",
+        "Porque a chamada faz uma cópia do literal"
       ],
       "answerIndex": 0,
       "feedback": "O literal mora no programa e não tem dono móvel: já entra emprestado.",
@@ -90,7 +90,7 @@
         "O literal é o próprio texto cru — o &str o recebe de graça.",
         "String é a caixa dona; o literal é o texto emprestado.",
         "O & nunca é opcional: a assinatura pede o empréstimo.",
-        "Ana é texto; o tamanho 3 é quem é número."
+        "Não há cópia na chamada: o literal mora no programa e é lido de lá."
       ]
     }
   ],

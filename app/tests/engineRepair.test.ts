@@ -222,6 +222,15 @@ function caminhoDoDesafio(lessonSlug: string, desafioSlug: string): string {
 
 /**
  * As regras da bateria A13–A16 (rodada 12) — para o ESCOPO desta suíte.
+ *
+ * (2026-09-22) A BARRA A17–A23 (`engine/quality/barra.ts`) entrou no
+ * `auditTrack` e NÃO precisou entrar neste escopo: ela é declared-only
+ * (`audit.ts` → `barraValePara`) e as fixtures desta suíte não declaram
+ * `introduces` — o orçamento delas sai `inferred`, a barra não roda e o
+ * relatório DECLARA a limitação `A17-A23-NAO-RODOU-EM-INFERRED`. Se alguma
+ * fixture aqui passar a declarar `introduces`, a barra passa a medir e o
+ * conjunto determinístico de violações muda: o lugar de acomodar isso é este
+ * `Set`, com a razão escrita.
  */
 const REGRAS_DA_BATERIA_A13_A16 = new Set<string>(['A13', 'A13d', 'A14a', 'A14b', 'A15a', 'A15b', 'A16']);
 
@@ -1157,6 +1166,15 @@ describe('P-23 · delegação: as guardas do laço rodam ANTES da primeira escri
     );
     // Mover resolveu a ORDEM: o residual que chegou ao laço não tem o que
     // reescrever, e por isso nenhuma rodada (nenhuma chamada de LLM) aconteceu.
+    //
+    // ESTE CASO USA O AUDIT DE PRODUÇÃO (`auditar: undefined` — é o CONTROLE
+    // POSITIVO), e o audit de produção roda a BARRA A17–A23 desde 2026-09-22.
+    // Aqui ela NÃO fala: a fixture não declara `introduces`, o orçamento é
+    // `inferred` e a barra é declared-only (`audit.ts` → `barraValePara`) — o
+    // relatório declara `A17-A23-NAO-RODOU-EM-INFERRED`. Numa fixture que
+    // DECLARE o orçamento, o residual da barra (achado pedagógico que mover
+    // uma aula não resolve) passaria a chegar ao laço como ORDEM e esta
+    // contagem mudaria; ver a nota no `Set` de escopo acima.
     assert.deepEqual(aplicado.plano.ordens, [], 'a re-entrada re-auditou: nenhuma ordem sobrou');
     assert.equal(aplicado.rodadas.length, 0, 'nenhuma rodada do laço');
     assert.ok(aplicado.placarFinal.violacoes < aplicado.placarInicial.violacoes, 'e o placar do audit MELHOROU');

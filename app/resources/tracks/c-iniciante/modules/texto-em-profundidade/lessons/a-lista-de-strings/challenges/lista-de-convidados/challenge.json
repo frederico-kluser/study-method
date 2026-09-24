@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "lista-de-convidados",
+  "title": "A lista de convidados",
+  "concept": "a_lista_de_strings",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A lista de convidados\n\nA função `listaDeConvidados` lê **três nomes** digitados e, só depois de ler os três, imprime a lista numerada — um convidado por linha.\n\nCada nome é uma palavra só, de até 19 letras, sem acento.\n\nDigitando `ana`, `bia` e `caio`:\n\n```text\n1. ana\n2. bia\n3. caio\n```\n\nDigitando `rui`, `edu` e `tom`:\n\n```text\n1. rui\n2. edu\n3. tom\n```\n\nO formato de cada linha é: o número, um ponto, um espaço e o nome.\n\nPassos:\n\n1. leia os três nomes para dentro da caixa de caixas, um por linha, com o freio de mão do `%19s`;\n2. depois de ler os três, percorra a caixa outra vez e imprima cada linha numerada — o número é `i + 1`, porque a gente conta do 1 e a caixa conta do 0.\n\nA caixa já vem declarada no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* listaDeConvidados le tres nomes digitados (uma palavra cada, ate 19\n   letras, sem acento) e imprime a lista numerada, um nome por linha:\n   o numero, um ponto, um espaco e o nome. */\nvoid listaDeConvidados(void) {\n    char nomes[3][20] = {\"\", \"\", \"\"};\n    /* 1) leia os tres nomes para dentro da caixa, um por linha\n          (um for de 0 a 2, com o freio de mao do %19s) */\n\n    /* 2) so depois de ler os tres, percorra a caixa outra vez e\n          imprima cada linha numerada, com o numero valendo i + 1 */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio lista-de-convidados — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem os tres nomes num arquivo\n   e o freopen troca o stdin por ele; a captura do stdout acontece dentro\n   do proprio cenario (freopen + fflush, sem fclose no stdout). Dois\n   cenarios com nomes diferentes: as linhas tem de vir da caixa lida,\n   nunca de textos fixos no codigo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid listaDeConvidados(void);\n\nSM_TEST(a_lista_de_ana_bia_e_caio) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"ana bia caio\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    listaDeConvidados();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o primeiro convidado\", linha, \"1. ana\\n\",\n              \"a linha 0 da caixa sai numerada como 1\");\n    fgets(linha, 80, f);\n    checa_str(\"o segundo convidado\", linha, \"2. bia\\n\",\n              \"a linha 1 da caixa sai numerada como 2\");\n    fgets(linha, 80, f);\n    checa_str(\"o terceiro convidado\", linha, \"3. caio\\n\",\n              \"a linha 2 da caixa sai numerada como 3\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a lista acaba no terceiro convidado: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_lista_de_rui_edu_e_tom) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"rui edu tom\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    listaDeConvidados();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o primeiro convidado\", linha, \"1. rui\\n\",\n              \"outros nomes, mesma forma: o texto sai da caixa lida\");\n    fgets(linha, 80, f);\n    checa_str(\"o segundo convidado\", linha, \"2. edu\\n\",\n              \"a segunda linha da caixa guardou o segundo nome digitado\");\n    fgets(linha, 80, f);\n    checa_str(\"o terceiro convidado\", linha, \"3. tom\\n\",\n              \"a terceira linha da caixa guardou o terceiro nome digitado\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid listaDeConvidados(void) {\n    char nomes[3][20] = {\"\", \"\", \"\"};\n    for (int i = 0; i < 3; i++) {\n        scanf(\"%19s\", nomes[i]);\n    }\n    for (int i = 0; i < 3; i++) {\n        printf(\"%d. %s\\n\", i + 1, nomes[i]);\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_lista_de_ana_bia_e_caio",
+      "teste": "a_lista_de_ana_bia_e_caio",
+      "descricao": "com ana, bia e caio digitados no stdin a funcao listaDeConvidados guarda os tres na caixa de caixas e imprime as tres linhas numeradas de 1 a 3 — e nada depois disso"
+    },
+    {
+      "id": "a_lista_de_rui_edu_e_tom",
+      "teste": "a_lista_de_rui_edu_e_tom",
+      "descricao": "com rui, edu e tom digitados no stdin a mesma funcao imprime as tres linhas com esses nomes: a prova de que cada linha vem da gaveta lida e nao de um texto fixo no codigo"
+    }
+  ]
+}

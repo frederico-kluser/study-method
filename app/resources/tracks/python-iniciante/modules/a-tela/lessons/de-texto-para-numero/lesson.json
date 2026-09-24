@@ -87,6 +87,11 @@
       "title": "Funções embutidas",
       "url": "https://docs.python.org/3/library/functions.html",
       "description": "A lista das ordens que já vêm prontas no Python."
+    },
+    {
+      "title": "Numeric Types — int, float, complex (tipos embutidos)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex",
+      "description": "A página do tipo int, onde a documentação diz que int() é o construtor que produz um número a partir de outro valor."
     }
   ],
   "challenges": [

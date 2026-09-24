@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "a-lista-de-strings",
   "title": "A lista de listas de letras",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "`char nomes[3][20]` é uma caixa de caixas: três linhas de texto, cada uma com 20 gavetas — 19 letras e a placa `\\0`.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "a_lista_de_strings"
+  ],
   "prerequisites": [
     "a-string-e-o-zero",
     "a-caixa-com-gavetas"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a caixa deixa de guardar valores simples e passa a guardar textos inteiros: uma gaveta de linha é um texto completo, com a placa \\0 dentro dela",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "uma-caixa-de-caixas",
+      "title": "Uma caixa de caixas",
+      "markdown": "Um texto é uma caixa de letras. Três textos, então, são uma caixa de caixas — e a declaração leva dois números, nesta ordem: quantas linhas, e quantas gavetas cada linha tem.\n\n```c\nchar nomes[3][20] = {\"ana\", \"bia\", \"caio\"};\nprintf(\"%s\\n\", nomes[0]);\nprintf(\"%s\\n\", nomes[2]);\n```\n\n```text\nana\ncaio\n```\n\n`nomes[0]` não é uma letra: é o texto inteiro da linha 0. O primeiro número conta as linhas; o segundo é o teto de cada uma."
+    },
+    {
+      "id": "dezenove-letras-e-a-placa",
+      "title": "Dezenove letras e a placa",
+      "markdown": "O 20 de `char nomes[3][20]` é o tamanho da caixa, não do texto. Uma gaveta é sempre da placa `\\0`, então cabem **19 letras** por linha:\n\n```c\nchar nomes[3][20] = {\"maria\", \"jose\", \"ana\"};\nprintf(\"%s\\n\", nomes[1]);\nprintf(\"%d\\n\", strlen(nomes[1]));\n```\n\n```text\njose\n4\n```\n\n`jose` ocupa 4 gavetas, a quinta guarda o `\\0` e as outras quinze ficam sobrando. O 20 é o teto que você escolheu; o `strlen` continua dizendo o tamanho real de cada texto."
+    },
+    {
+      "id": "uma-linha-por-volta",
+      "title": "Uma linha por volta",
+      "markdown": "Com o laço, cada volta cuida de uma linha inteira — e `nomes[i]` é o texto que entra no `%s`:\n\n```c\nchar nomes[3][20] = {\"\", \"\", \"\"};\nfor (int i = 0; i < 3; i++) {\n    scanf(\"%19s\", nomes[i]);\n    printf(\"oi, %s\\n\", nomes[i]);\n}\n```\n\nO `%19s` é o freio de mão da linha: 19 letras mais a placa cabem nas 20 gavetas. E não vai `&` na frente de `nomes[i]`: o nome da linha já é o endereço da primeira gaveta dela."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "dezenove-letras-por-linha",
+      "statement": "`char nomes[5][20]`: 5 palavras de até 19 letras + terminador cada.",
+      "question": "Quantas letras cabem em cada linha de `char nomes[5][20]`?",
+      "options": [
+        "19, porque uma gaveta é da placa `\\0`.",
+        "20, porque a linha tem 20 gavetas.",
+        "5, o número de linhas da caixa.",
+        "100, contando todas as gavetas da caixa junta."
+      ],
+      "answerIndex": 0,
+      "feedback": "A placa `\\0` também ocupa gaveta, e sem ela o texto não teria fim. Das 20 gavetas da linha, 19 sobram para letras.",
+      "sectionId": "dezenove-letras-e-a-placa",
+      "optionRationales": [
+        "A placa precisa de uma gaveta, então as letras ficam com as outras 19.",
+        "As 20 gavetas existem, mas uma delas é reservada à placa do fim.",
+        "O 5 diz quantas linhas a caixa tem, não quanto cabe em cada uma.",
+        "100 é o total de gavetas da caixa inteira, somando as cinco linhas."
+      ]
+    },
+    {
+      "id": "a-linha-e-um-texto-inteiro",
+      "statement": "`nomes[i]` é o texto inteiro da linha `i`, não uma letra.",
+      "question": "Com `char nomes[3][20] = {\"ana\", \"bia\", \"caio\"};`, o que `printf(\"%s\\n\", nomes[2]);` mostra?",
+      "options": [
+        "`caio`, o texto inteiro da linha 2.",
+        "`c`, só a primeira letra da linha 2.",
+        "`bia`, porque a contagem começa em 1.",
+        "Os três textos, um por linha da tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "Um índice só escolhe a LINHA, e uma linha é um texto completo — é isso que o `%s` sabe imprimir. A letra viria com dois índices: `nomes[2][0]`.",
+      "sectionId": "uma-caixa-de-caixas",
+      "optionRationales": [
+        "Um índice escolhe a linha, e a linha 2 guarda o texto `caio` inteiro.",
+        "A primeira letra seria `nomes[2][0]`, com o segundo índice.",
+        "As linhas são numeradas do 0: a linha 2 é a terceira, não a segunda.",
+        "Cada `printf` com `%s` mostra um texto; imprimir os três pede um laço."
+      ]
+    },
+    {
+      "id": "o-freio-de-mao-da-linha",
+      "statement": "O `%19s` é o freio de mão de cada linha da caixa.",
+      "question": "Por que `scanf(\"%19s\", nomes[i]);` e não `scanf(\"%20s\", nomes[i]);`?",
+      "options": [
+        "Porque o `\\0` precisa da vigésima gaveta.",
+        "Porque a linha tem só 19 gavetas de fato.",
+        "Porque o `scanf` nunca lê mais de 19 letras.",
+        "Porque a última gaveta é reservada ao `%s`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `scanf` põe a placa depois das letras que leu. Com 20 letras lidas, a placa cairia fora da linha — e escrever fora da caixa é o erro que o compilador não avisa.",
+      "sectionId": "uma-linha-por-volta",
+      "optionRationales": [
+        "O `scanf` acrescenta a placa depois das letras, e ela precisa caber na linha.",
+        "A linha tem as 20 gavetas declaradas; uma delas fica para a placa.",
+        "O limite não é da função: é você quem o escolhe no próprio `%19s`.",
+        "O `%s` é só o buraco do formato; a gaveta extra é da placa `\\0`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — arrays de arrays",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A regra oficial da declaração com dois tamanhos: por que `char nomes[3][20]` é uma caixa cujas gavetas são caixas."
+    },
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A definição do texto que termina em `\\0` — a gaveta que cada linha reserva para a placa do fim."
+    },
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial do `scanf`: o que o `%s` lê e o que o número de largura máxima (`%19s`) garante."
+    }
+  ],
+  "challenges": [
+    "lista-de-convidados"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

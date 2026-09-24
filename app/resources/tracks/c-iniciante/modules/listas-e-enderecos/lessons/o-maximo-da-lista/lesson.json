@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "o-maximo-da-lista",
   "title": "O máximo da lista",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O índice ganha a forma nova do padrão do máximo: um nome guarda o campeão até agora, começando pela primeira gaveta, e o laço só o troca por um valor que está de verdade na lista.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "o_maximo_da_lista"
+  ],
   "prerequisites": [
     "varrer-a-lista",
     "devolver-em-vez-de-mostrar"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o laço deixa de só percorrer: ele passa a CARREGAR um resultado parcial entre as voltas — o campeão até agora —, e o valor inicial desse resultado passa a ser uma decisão",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-padrao-do-maximo",
+      "title": "O padrão do máximo",
+      "markdown": "Achar a maior nota não pede fórmula: pede um laço e um nome que guarda o campeão até agora.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint maior = notas[0];\nfor (int i = 1; i < 5; i++) {\n    if (notas[i] >= maior) {\n        maior = notas[i];\n    }\n}\nprintf(\"%d\\n\", maior);\n```\n\n```text\n10\n```\n\nO `maior` começa valendo a PRIMEIRA gaveta, e o laço parte da gaveta 1 — a 0 já entrou. A cada volta, quem for maior toma o lugar."
+    },
+    {
+      "id": "por-que-comecar-pela-primeira",
+      "title": "Por que começar pela primeira",
+      "markdown": "Por que não começar o `maior` em zero?\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint maior = notas[0];\n```\n\nPorque zero é um valor inventado, que pode não estar na lista. Se as gavetas guardassem temperaturas de um congelador, todas abaixo de zero, o resultado sairia 0 — um número que nunca esteve na caixa.\n\nComeçar pela primeira gaveta resolve isso: o campeão inicial é um valor REAL da lista, e o laço só o troca por outro valor dela."
+    },
+    {
+      "id": "o-maximo-devolvido",
+      "title": "O máximo devolvido",
+      "markdown": "Numa caixa que devolve, o padrão é o mesmo — muda o fim: em vez de imprimir, `return`.\n\n```c\nint maiorPreco(void) {\n    int precos[3] = {12, 30, 25};\n    int maior = precos[0];\n    for (int i = 1; i < 3; i++) {\n        if (precos[i] >= maior) {\n            maior = precos[i];\n        }\n    }\n    return maior;\n}\n```\n\nTrês gavetas em vez de cinco, e o laço para em `i < 3`: o padrão não depende do tamanho. Quem chamar `maiorPreco()` recebe 30 — e nada aparece na tela."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-maximo-comeca-no-primeiro",
+      "statement": "Comece o máximo com o PRIMEIRO elemento, não com zero.",
+      "question": "Por que o `maior` começa valendo `notas[0]` em vez de 0?",
+      "options": [
+        "Porque 0 pode não estar na lista, e o primeiro está.",
+        "Porque a gaveta 0 guarda sempre o maior valor.",
+        "Porque começar em 0 faria o laço dar uma volta extra.",
+        "Porque o `if` não funciona com o valor 0 do lado direito."
+      ],
+      "answerIndex": 0,
+      "feedback": "Começando em 0, uma lista de valores todos abaixo de zero devolveria 0 — um número que não está nela. A primeira gaveta é um valor real da lista, e por isso serve de campeão inicial.",
+      "sectionId": "por-que-comecar-pela-primeira",
+      "optionRationales": [
+        "O campeão inicial tem de ser um valor da própria lista, e `notas[0]` é.",
+        "A gaveta 0 pode guardar o menor valor de todos: nada a privilegia.",
+        "O número de voltas vem da condição do `for`, não do valor inicial do `maior`.",
+        "A comparação funciona com qualquer `int`; o problema do 0 é ele não estar na lista."
+      ]
+    },
+    {
+      "id": "o-laco-parte-de-um",
+      "statement": "O laço do máximo parte de `i = 1`, porque a gaveta 0 já deu o valor inicial.",
+      "question": "No padrão do máximo, por que o `for` começa em `i = 1`?",
+      "options": [
+        "A gaveta 0 já foi usada para iniciar o `maior`.",
+        "A gaveta 0 nunca pode ser a maior.",
+        "O laço não pode começar em 0 quando há um `if` dentro.",
+        "Começar em 0 compararia a gaveta 0 com ela mesma e daria erro."
+      ],
+      "answerIndex": 0,
+      "feedback": "Começar em `i = 0` não estaria errado: só compararia a gaveta 0 com ela mesma, uma volta sem efeito. Partir de 1 diz no código que a primeira gaveta já foi contada.",
+      "sectionId": "o-padrao-do-maximo",
+      "optionRationales": [
+        "O valor inicial do `maior` veio da gaveta 0, então o laço segue da 1 em diante.",
+        "Ela entra, e por dois caminhos: dá o valor inicial e pode ser a maior de todas.",
+        "O `if` dentro do corpo não tem relação com o valor inicial do contador.",
+        "Comparar um valor com ele mesmo é legal em C e não dá erro nenhum."
+      ]
+    },
+    {
+      "id": "devolver-o-maximo-nao-imprime",
+      "statement": "Devolver o máximo e imprimi-lo são canais diferentes: o `return` entrega o valor a quem chamou.",
+      "question": "O que a caixa `maiorPreco` faz aparecer na tela?",
+      "options": [
+        "Nada: ela devolve o valor, não imprime.",
+        "O número 30, o maior dos três preços.",
+        "Os três preços, um por linha.",
+        "O valor de `i` no fim do laço, que é 3."
+      ],
+      "answerIndex": 0,
+      "feedback": "Não há `printf` nessa caixa: ela entrega 30 a quem chamou. Mostrar na tela é decisão de quem recebe o valor.",
+      "sectionId": "o-maximo-devolvido",
+      "optionRationales": [
+        "Sem `printf` no corpo, nada é impresso: o valor volta pelo `return`.",
+        "O 30 é devolvido, e devolver não é aparecer na tela.",
+        "O laço só compara os preços; nenhum deles é impresso.",
+        "O contador do laço morre no fim dele e nunca é impresso."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Comparison operators — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `>=` e dos outros operadores de comparação em C: o resultado é 1 ou 0."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`: o corpo roda só quando a condição é diferente de zero."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.8 define os operadores relacionais e a 6.8.6.4 define o `return`."
+    }
+  ],
+  "challenges": [
+    "maior-nota"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

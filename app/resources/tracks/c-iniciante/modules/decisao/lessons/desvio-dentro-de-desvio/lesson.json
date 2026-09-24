@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "desvio-dentro-de-desvio",
   "title": "Desvio dentro de desvio",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um `if` dentro do bloco de outro só é testado quando o de fora deu verdadeiro — e o `else` pertence sempre ao `if` mais próximo, por isso as chaves são sempre.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IfStmt",
+  "concepts": [
+    "um_desvio_dentro_do_outro"
+  ],
   "prerequisites": [
     "se-senao"
   ],
+  "introduces": {
+    "productive": [
+      "node:IfStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a decisão ganha profundidade: o bloco deixa de ser um destino final e passa a ser um lugar onde outra pergunta pode morar, testada só se a de fora abriu a porta",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "dentro-do-bloco-cabe-outro-if",
+      "title": "Dentro do bloco cabe outro `if`",
+      "markdown": "Dentro de um bloco cabe qualquer ordem — inclusive outro `if`. É assim que uma decisão passa a depender da outra: a de dentro só é testada quando a de fora já deu verdadeiro.\n\n```c\nint idade = 20;\nint ingresso = 1;\nif (idade >= 18) {\n    if (ingresso == 1) {\n        printf(\"pode entrar\\n\");\n    }\n}\n```\n\n```text\npode entrar\n```\n\nCom `idade = 15`, o `if` de fora dá falso e o de DENTRO nem é olhado: a pergunta do ingresso simplesmente não acontece."
+    },
+    {
+      "id": "cada-else-no-seu-nivel",
+      "title": "Cada `else` no seu nível",
+      "markdown": "Cada `if` pode ter o seu `else`, e cada um responde pelo seu nível: o de dentro cuida do ingresso, o de fora cuida da idade.\n\n```c\nint idade = 20;\nint ingresso = 0;\nif (idade >= 18) {\n    if (ingresso == 1) {\n        printf(\"pode entrar\\n\");\n    } else {\n        printf(\"compre o ingresso\\n\");\n    }\n} else {\n    printf(\"menor de idade\\n\");\n}\n```\n\n```text\ncompre o ingresso\n```\n\nA indentação mostra o desenho: o `else` de dentro fica alinhado com o `if` de dentro, e o de fora com o de fora."
+    },
+    {
+      "id": "o-else-gruda-no-if-mais-proximo",
+      "title": "O `else` gruda no `if` mais próximo",
+      "markdown": "Mas a indentação é só para os seus olhos — o compilador não a lê. **O `else` pertence sempre ao `if` mais próximo.** Sem chaves, isto engana:\n\n```c\nint idade = 15;\nif (idade >= 18)\n    if (idade >= 65)\n        printf(\"meia entrada\\n\");\nelse\n    printf(\"menor de idade\\n\");\n```\n\nA tela fica VAZIA. O `else` parece do `if` de fora, mas gruda no de DENTRO — e o de fora deu falso, então nenhum dos dois rodou. Com chaves em todo `if`, como nesta trilha, o engano não tem por onde entrar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-else-gruda-no-if-mais-proximo",
+      "statement": "O `else` gruda no `if` mais interno quando faltam chaves — por aqui, as chaves sempre.",
+      "question": "No código sem chaves `if (idade >= 18) if (idade >= 65) printf(\"meia entrada\\n\"); else printf(\"menor de idade\\n\");` com `idade = 15`, o que aparece na tela?",
+      "options": [
+        "`menor de idade`: o `else` é do `if` de fora, como a indentação sugere.",
+        "`meia entrada`: sem chaves o C roda a primeira linha de qualquer jeito.",
+        "Erro de compilação: um `if` sem chaves não aceita `else`.",
+        "Nada: o `else` é do `if` de dentro, e o de fora deu falso."
+      ],
+      "answerIndex": 3,
+      "feedback": "O `else` pertence ao `if` mais próximo — o de DENTRO. Com `idade = 15` o `if` de fora deu falso, e tudo o que está dentro dele (incluindo esse `else`) foi pulado. Escrever chaves em todo `if` remove a dúvida.",
+      "sectionId": "o-else-gruda-no-if-mais-proximo",
+      "optionRationales": [
+        "É exatamente o que a indentação SUGERE e o compilador NÃO faz — ele liga o `else` ao `if` mais próximo.",
+        "Sem chaves, o `if` governa a ordem seguinte; com a condição falsa, ela não roda.",
+        "`if` sem chaves aceita `else` — o problema não é compilar, é a quem o `else` pertence.",
+        "O `else` está dentro do `if` de fora, que deu falso: nada dele roda."
+      ]
+    },
+    {
+      "id": "o-de-dentro-so-roda-se-o-de-fora-abriu",
+      "statement": "O `if` de dentro só é testado quando a condição do `if` de fora deu verdadeiro.",
+      "question": "Com `idade = 15` e `ingresso = 1`, quantas vezes a pergunta `ingresso == 1` é feita no `if` dentro do `if` da primeira seção?",
+      "options": [
+        "Nenhuma: a condição de fora deu falso e o bloco inteiro foi pulado.",
+        "Uma: toda condição escrita no arquivo é avaliada uma vez, na ordem em que aparece.",
+        "Duas: uma pelo `if` e outra pelo `else`.",
+        "Uma, mas o resultado é descartado porque a de fora falhou."
+      ],
+      "answerIndex": 0,
+      "feedback": "Condição de dentro é ordem de dentro: ela só existe para o programa quando o bloco de fora roda. Naquela seção não há `else` nenhum — com a idade abaixo de 18 o programa pula o bloco inteiro, e a pergunta do ingresso não acontece.",
+      "sectionId": "dentro-do-bloco-cabe-outro-if",
+      "optionRationales": [
+        "O bloco do `if` de fora não rodou, e a pergunta de dentro mora nele.",
+        "Estar escrita no arquivo não avalia nada: só roda o que o caminho alcança.",
+        "O `else` não repete a pergunta — ele é o caminho de quando ela deu falso.",
+        "Nada foi avaliado e descartado: a pergunta não chegou a ser feita."
+      ]
+    },
+    {
+      "id": "tres-saidas-de-dois-ifs",
+      "statement": "Dois `if` aninhados com `else` em cada nível dão três saídas possíveis, não quatro.",
+      "question": "No código da segunda seção (idade por fora, ingresso por dentro), quantas mensagens diferentes podem sair?",
+      "options": [
+        "Uma: só um `printf` roda por execução, então só existe uma mensagem.",
+        "Três: `pode entrar`, `compre o ingresso` e `menor de idade`.",
+        "Quatro: cada `if` tem dois caminhos, e 2 × 2 dá 4.",
+        "Duas: só o `if` de fora decide o que é impresso."
+      ],
+      "answerIndex": 1,
+      "feedback": "O caminho do menor de idade termina ali: o ingresso não é perguntado, então ele não se divide em dois. Três caminhos, três mensagens — e por execução roda exatamente uma.",
+      "sectionId": "cada-else-no-seu-nivel",
+      "optionRationales": [
+        "Por execução roda um `printf` só, mas o código tem três mensagens possíveis.",
+        "Dois caminhos abaixo do `if` de fora verdadeiro, mais um no `else` de fora: três.",
+        "O 2 × 2 valeria se as duas perguntas fossem sempre feitas; a de dentro só acontece num dos lados.",
+        "O de fora decide se a pergunta do ingresso acontece — e ela muda a mensagem."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`/`else` em C, com a regra do `else` pendente: ele se liga ao `if` mais próximo que ainda não tem um."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens de C: um bloco de chaves é UMA ordem composta, e é por isso que ele cabe dentro de outro `if`."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 (C11) — o rascunho público N1570",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C que esta trilha compila: a seção 6.8.4.1 diz que o `else` se associa ao `if` mais próximo antes dele que ainda não tem `else`."
+    }
+  ],
+  "challenges": [
+    "entrada-do-show"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

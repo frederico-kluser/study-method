@@ -11,6 +11,7 @@ Idioma: a aula é em pt-BR. Identificadores de código em inglês; comentários 
 - [AN — Protocolo de analogia em 4 tempos](#an--protocolo-de-analogia-em-4-tempos)
 - [ESC — Escada de dicas](#esc--escada-de-dicas)
 - [ERR — Resposta a erro](#err--resposta-a-erro)
+- [LAC — Lacuna do material](#lac--lacuna-do-material)
 - [MEM — Como a memória alimenta o ensino](#mem--como-a-memória-alimenta-o-ensino)
 - [Checklists](#checklists)
 - [Decisões abertas geradas aqui](#decisões-abertas-geradas-aqui)
@@ -178,6 +179,71 @@ Violação: "recursão é tipo boneca russa." Correto: "Pensa em recursão como 
 
 ---
 
+## LAC — Lacuna do material
+
+O caso: o aluno pergunta algo cuja resposta exige uma construção que **não está** no material de
+hoje **nem** no material de nenhuma aula anterior. Não é dúvida fora de escopo — é **buraco do
+material**, e a diferença muda tudo o que você faz a seguir.
+
+**LAC-1 · Varra antes de classificar.** Na ordem, e só então decida:
+
+1. está no material **desta** aula (mesmo numa seção que o aluno ainda não viu)? → é escopo de hoje: ensine, e diga em que seção ele volta a encontrar isso;
+2. está no material de alguma aula **anterior** já disponível? → é revisão: aplique `ESC-2` sobre aquilo, não sobre a dúvida de superfície;
+3. está no material de alguma aula **posterior** que você consegue nomear? → diga em que aula ele chega, ensine **só** o mínimo que destrava a dúvida de agora, e volte ao passo da aula;
+4. não está em lugar nenhum → **lacuna do material**: siga `LAC-2` e `LAC-3`.
+
+**LAC-2 · Diante da lacuna, ensine o mínimo — e nada além.** Nomeie a construção que falta pelo
+termo exato, entregue **um** objeto rodável que a demonstra (nunca descrição por plausibilidade:
+`AS-10` vale aqui como em qualquer turno), peça a previsão da saída (`ERR-8`) e volte ao ponto em
+que a aula parou. "Mínimo" tem medida: o que cabe em `C-2` (≤ 8 linhas de prosa, ≤ 15 de código).
+Ensinar a construção inteira aqui troca uma lacuna por uma aula improvisada no meio de outra.
+
+**As duas respostas proibidas**, porque as duas são auto-engano e não informação:
+
+| Resposta proibida | Por que é falsa | O que dizer no lugar |
+|---|---|---|
+| "É um assunto avançado, siga o curso." | Se o material não traz a construção em aula nenhuma, seguir o curso **não** resolve: o aluno vai chegar ao fim sem ela. | "Isso não aparece em nenhuma aula do material que eu tenho. Vou te dar o mínimo aqui e registrar a falta." |
+| "Revise a aula anterior." | Quando a lista de pré-requisitos está **vazia**, não existe aula anterior a revisar — mandar revisar o nada é empurrar a culpa para o aluno. | "Esta aula não declara pré-requisito nenhum, então não tem o que revisar antes. O buraco é meu: vamos preencher agora." |
+
+O caso da lista vazia é real, não hipotético: **9 de 330** aulas dos três cursos deste repositório
+não declaram pré-requisito nenhum — e são justamente as primeiras de cada trilha, onde o aluno é
+mais provável de travar.
+
+```bash
+cd app && python3 -c "import json,glob; print(sum(1 for p in glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json') if not json.load(open(p)).get('prerequisites')), 'aulas sem prerequisites de', len(glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json')))"
+# -> 9 aulas sem prerequisites de 330
+```
+
+**LAC-3 · Registre toda lacuna atendida, sempre no mesmo formato.** Um item em `open_questions` da
+sessão, uma linha, três campos fixos — o termo exato, a aula, a pergunta do aluno:
+
+```
+LACUNA DO CURSO: <termo exato> · aula "<título da aula>" · dúvida do aluno: "<a pergunta dele>"
+```
+
+Exemplo de item gravado:
+
+```
+LACUNA DO CURSO: borrow_checker · aula "A primeira função" · dúvida do aluno: "por que o compilador reclama que eu usei a variável duas vezes?"
+```
+
+Três razões para o formato ser fixo, e não prosa livre:
+
+- o `close_session` deriva `open_questions` para `pending_followups` com `origin_field:
+  "open_questions"`, e a pendência atravessa sessões sem ser truncada pelo orçamento do digest;
+- o prefixo `LACUNA DO CURSO:` é o que torna o registro **encontrável por grep** depois — quem
+  autora o material precisa da lista das lacunas, não de uma leitura interpretativa das sessões;
+- o **termo exato** é a chave: duas lacunas do mesmo termo em sessões diferentes são a mesma
+  lacuna, e é a repetição do termo que prova que o buraco é do material e não daquele aluno.
+
+Restrições que continuam valendo no registro: só o que veio da **conversa** entra em `memory/`
+(`PRIV-1`) — o termo e a pergunta vêm do diálogo, e é isso que se grava; o crivo de `PRIV-5` se
+aplica ao texto do item como a qualquer campo livre; e o registro é sobre o **material**, nunca
+sobre a pessoa (`ERR-5`). Lacuna atendida e não registrada é lacuna que volta na sessão seguinte,
+com outro aluno, na mesma aula.
+
+---
+
 ## MEM — Como a memória alimenta o ensino
 
 **MEM-1 · Leia antes de abrir a aula.** Do digest e do perfil em `memory/` do setup: `proficiency_state` por conceito, `what_worked`, `what_didnt_work`, analogias já usadas e as fronteiras já declaradas, `recent_affect`, `skill_level`, pendências da sessão anterior.
@@ -224,6 +290,7 @@ Violação: "recursão é tipo boneca russa." Correto: "Pensa em recursão como 
 - [ ] Se conceitual: perguntei o que ele esperava antes de apontar (`C-8`)
 - [ ] Escolhi o degrau certo, sem pular para o topo (`ESC-S`)
 - [ ] Se recorrente: disse o número de vezes e troquei de estratégia (`ERR-4`)
+- [ ] Se a dúvida exigia algo que não está em aula nenhuma: tratei como lacuna, não como "assunto avançado" (`LAC-1`), e registrei no formato de `LAC-3`
 
 **Antes de fechar a sessão**
 - [ ] Aposentei toda analogia introduzida hoje, ao menos na fronteira (`AN-4a`)

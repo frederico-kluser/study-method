@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "quantos-bytes",
   "title": "Quantos bytes o molde ocupa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O operador sizeof mede quantos bytes um tipo ou um nome ocupa — e sizeof v / sizeof v[0] é como a lista finalmente diz quantas gavetas ela tem.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:unary:sizeof",
+  "concepts": [
+    "quantos_bytes"
+  ],
   "prerequisites": [
     "a-caixa-com-gavetas"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:sizeof",
+      "node:UnaryExprOrTypeTraitExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryExprOrTypeTraitExpr",
+        "de": "op:unary:sizeof"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o tipo deixa de ser só uma etiqueta: ele passa a ter tamanho medido em bytes, e a lista — que não sabia o próprio comprimento — passa a poder ser medida pelo programa",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "todo-tipo-tem-tamanho",
+      "title": "Todo tipo tem um tamanho",
+      "markdown": "Um `int` não é uma ideia solta: ele ocupa um pedaço da memória, e esse pedaço se mede em **bytes**. Quem mede é o `sizeof`:\n\n```c\nint bytes = sizeof(int);\nprintf(\"%d\\n\", bytes);\n```\n\n```text\n4\n```\n\n`sizeof` não é função: é **operador** da linguagem, e o compilador resolve a conta antes de o programa rodar.\n\nCada tipo tem o seu tamanho — medido nesta máquina:\n\n```c\nint grande = sizeof(double);\nint miudo = sizeof(char);\nprintf(\"%d %d\\n\", grande, miudo);\n```\n\n```text\n8 1\n```"
+    },
+    {
+      "id": "a-lista-e-o-molde-repetido",
+      "title": "A lista é o molde repetido",
+      "markdown": "Um array de cinco `int` não tem tamanho novo: ele é o molde repetido cinco vezes.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint total = sizeof notas;\nint gaveta = sizeof notas[0];\nprintf(\"%d %d\\n\", total, gaveta);\n```\n\n```text\n20 4\n```\n\n20 = 5 × 4. Cada gaveta guarda um molde inteiro, e a caixa é a soma delas.\n\nRepare na forma: com um TIPO o `sizeof` exige parênteses — `sizeof(int)`. Com um NOME eles são opcionais: `sizeof notas` mede o mesmo que `sizeof(notas)`."
+    },
+    {
+      "id": "quantas-gavetas",
+      "title": "Quantas gavetas a lista tem",
+      "markdown": "A caixa não sabe quantas gavetas tem — mas o tamanho dela dividido pelo tamanho de UMA gaveta sabe:\n\n```c\nint v[] = {3, 1, 4, 1, 5};\nint n = sizeof v / sizeof v[0];\nfor (int i = 0; i < n; i++) {\n    printf(\"%d\\n\", v[i]);\n}\n```\n\nSem número entre os colchetes, quem conta as gavetas é o inicializador — e `sizeof v / sizeof v[0]` devolve 5 sem que você escreva o 5 em lugar nenhum.\n\nOnde a conta quebra: ela só vale onde a lista foi DECLARADA. Dentro de uma função que RECEBE a lista, o `sizeof` mede outra coisa — e isso é aula própria, mais à frente."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-int-ocupa-quatro-bytes",
+      "statement": "`sizeof(int)` é 4 nesta máquina (medido).",
+      "question": "O que `sizeof(int)` devolve?",
+      "options": [
+        "4 — os bytes que um `int` ocupa aqui.",
+        "1 — em C todo tipo ocupa um byte só.",
+        "O maior valor que cabe num `int`, 2147483647.",
+        "O valor guardado na variável que foi medida."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sizeof` responde em bytes, nunca em valores: um `int` ocupa 4 bytes nesta máquina. O teto do `int` é outro assunto — e ele cabe justamente nesses 4 bytes.",
+      "sectionId": "todo-tipo-tem-tamanho",
+      "optionRationales": [
+        "É o tamanho do molde: 4 bytes por `int`, medido com o compilador desta trilha.",
+        "Um byte é o tamanho do `char`; o `int` ocupa quatro deles.",
+        "Esse é o maior valor que cabe num `int` — o `sizeof` fala de espaço, não de valor.",
+        "Em `sizeof(int)` não há variável nenhuma: o operador mede o TIPO."
+      ]
+    },
+    {
+      "id": "quantas-gavetas-a-divisao-devolve",
+      "statement": "`sizeof v / sizeof v[0]` devolve QUANTOS elementos a lista tem.",
+      "question": "Para `int v[] = {3, 1, 4, 1, 5};`, quanto vale `sizeof v / sizeof v[0]`?",
+      "options": [
+        "5 — a divisão devolve quantas gavetas há.",
+        "20 — é o tamanho da lista inteira, em bytes.",
+        "4 — é o tamanho de uma gaveta, em bytes.",
+        "1 — dividir algo pelo tamanho dele mesmo dá 1."
+      ],
+      "answerIndex": 0,
+      "feedback": "São 20 bytes de lista divididos por 4 bytes de gaveta: 5 gavetas. É assim que a lista, que não guarda o próprio comprimento, informa quantas posições tem.",
+      "sectionId": "quantas-gavetas",
+      "optionRationales": [
+        "20 ÷ 4 = 5: a divisão troca bytes por quantidade de gavetas.",
+        "20 é o numerador da conta (`sizeof v`), antes da divisão.",
+        "4 é o denominador (`sizeof v[0]`), o tamanho de uma gaveta.",
+        "`v` e `v[0]` não têm o mesmo tamanho: um é a caixa, o outro é uma gaveta."
+      ]
+    },
+    {
+      "id": "sizeof-e-operador",
+      "statement": "`sizeof` é operador da linguagem, resolvido pelo compilador — não é função.",
+      "question": "Quando a conta de um `sizeof(int)` é resolvida?",
+      "options": [
+        "Na compilação, antes de o programa rodar.",
+        "A cada chamada, como qualquer função da biblioteca.",
+        "Só quando o `printf` mostra o resultado na tela.",
+        "Depois do programa, ao medir a memória usada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador já sabe o tamanho de cada tipo: ele troca o `sizeof` pelo número antes de gerar o programa. Por isso não há `#include` nenhum para usá-lo.",
+      "sectionId": "todo-tipo-tem-tamanho",
+      "optionRationales": [
+        "O tamanho do tipo é conhecido na compilação, e o compilador já põe o número ali.",
+        "`sizeof` não é função: não vem de biblioteca e não custa chamada.",
+        "O `printf` só mostra um número que já estava pronto.",
+        "Nada é medido depois: a conta acontece antes de o programa existir."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "sizeof operator — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/sizeof",
+      "description": "A página oficial do `sizeof`: as duas formas (com tipo entre parênteses e com expressão), e o tipo do resultado."
+    },
+    {
+      "title": "Arrays — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C, inclusive o array declarado sem tamanho cujo comprimento vem do inicializador."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.3.4 define o `sizeof` e o tipo `size_t` do resultado."
+    }
+  ],
+  "challenges": [
+    "o-tamanho-real"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

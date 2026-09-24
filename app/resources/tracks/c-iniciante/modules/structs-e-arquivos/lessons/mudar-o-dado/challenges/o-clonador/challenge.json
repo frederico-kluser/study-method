@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-clonador",
+  "title": "O clonador",
+  "concept": "copiar_a_ficha",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O clonador\n\nUma ficha copiada é uma ficha NOVA — e é isso que este desafio prova na tela.\n\nEscreva a função `oClonador`, que recebe os dois números da ficha original:\n\n```text\nvoid oClonador(int x, int y)\n```\n\nDentro dela, nesta ordem:\n\n1. declare o molde `struct Ponto` com os campos `int x` e `int y`;\n2. crie a ficha original e guarde nela os dois números que entraram;\n3. crie a segunda ficha e copie a original para ela com **um** `=`;\n4. some 100 ao campo `x` da ORIGINAL;\n5. imprima duas linhas:\n\n```text\noriginal 103 4\ncopia 3 4\n```\n\nO exemplo é com 3 e 4; o teste também chama a sua função com outro par. A linha da cópia mostra os valores de ANTES do passo 4 — se ela mudar junto com a original, o desafio reprova.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* 1. declare AQUI o molde: struct Ponto, com int x e int y.\n   2. no corpo: crie a ficha original com os valores que entraram,\n      copie a ficha inteira para uma segunda com um = so,\n      some 100 ao x da ORIGINAL e imprima as duas linhas. */\nvoid oClonador(int x, int y) {\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-clonador — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: captura do stdout DENTRO de cada cenario (freopen -> chamada\n   -> fflush -> fopen de leitura). Dois pares de numeros: a linha da copia\n   tem de mostrar os valores de antes da mudanca na original. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oClonador(int x, int y);\n\nSM_TEST(a_copia_de_3_e_4) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oClonador(3, 4);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da original\", linha, \"original 103 4\\n\",\n              \"a original recebeu 100 no campo x depois da copia\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha da copia\", linha, \"copia 3 4\\n\",\n              \"a copia guardou a foto: mudar a original nao muda ela\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_copia_de_10_e_20) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oClonador(10, 20);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a original de 10 e 20\", linha, \"original 110 20\\n\",\n              \"os valores impressos vem do que entrou, nunca de texto fixo\");\n    fgets(linha, 80, f);\n    checa_str(\"a copia de 10 e 20\", linha, \"copia 10 20\\n\",\n              \"a copia continua com os dois valores originais\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nstruct Ponto {\n    int x;\n    int y;\n};\n\nvoid oClonador(int x, int y) {\n    struct Ponto original;\n    original.x = x;\n    original.y = y;\n    struct Ponto copia;\n    copia = original;\n    original.x = original.x + 100;\n    printf(\"original %d %d\\n\", original.x, original.y);\n    printf(\"copia %d %d\\n\", copia.x, copia.y);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_copia_de_3_e_4",
+      "teste": "a_copia_de_3_e_4",
+      "descricao": "com 3 e 4, a saida mostra a original ja somada (original 103 4) e a copia intacta (copia 3 4), e acaba na segunda linha"
+    },
+    {
+      "id": "a_copia_de_10_e_20",
+      "teste": "a_copia_de_10_e_20",
+      "descricao": "com 10 e 20, a original sai 110 20 e a copia sai 10 20 — os valores vem do par que entrou, e a copia nao acompanha a mudanca"
+    }
+  ]
+}

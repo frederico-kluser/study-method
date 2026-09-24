@@ -71,6 +71,11 @@
       "title": "Uma introdução informal ao Python",
       "url": "https://docs.python.org/3/tutorial/introduction.html",
       "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    },
+    {
+      "title": "Literais de inteiro na Análise léxica da referência",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#integer-literals",
+      "description": "A forma oficial de escrever um número inteiro: algarismos e mais nada, sem aspas em volta."
     }
   ],
   "challenges": [

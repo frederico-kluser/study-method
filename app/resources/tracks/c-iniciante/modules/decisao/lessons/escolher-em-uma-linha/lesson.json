@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "escolher-em-uma-linha",
   "title": "A condição que devolve",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A construção `? :` pergunta e devolve um dos dois valores na mesma linha — o `if` manda rodar um bloco, ela entrega um número.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:ConditionalOperator",
+  "concepts": [
+    "a_condicao_que_devolve"
+  ],
   "prerequisites": [
     "se-senao",
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:ConditionalOperator"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a decisão deixa de ser só desvio de caminho e passa a ser também um VALOR: uma condição pode ocupar o lugar de um número dentro de uma expressão",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-pergunta-que-devolve",
+      "title": "A pergunta que devolve um valor",
+      "markdown": "Você já sabe escolher um CAMINHO com `if` e `else`. Às vezes o que você quer não é um caminho: é um VALOR. Entre dois números, qual deles guardar?\n\nO C tem uma construção que pergunta e **devolve** um dos dois:\n\n```c\nint a = 3;\nint b = 9;\nint maior = a > b ? a : b;\n```\n\nA linha de baixo pergunta `a > b`. Deu 0 — falso — então ela devolveu `b`, e `maior` ficou com 9."
+    },
+    {
+      "id": "as-tres-partes",
+      "title": "As três partes: pergunta, sim e não",
+      "markdown": "O `?` e o `:` cortam a linha em três pedaços:\n\n- antes do `?` vem a **pergunta** — uma comparação, como as do `if`;\n- entre o `?` e o `:`, o valor de quando a resposta é **sim**;\n- depois do `:`, o valor de quando a resposta é **não**.\n\n```c\nint nota = 7;\nint bonus = nota >= 6 ? 10 : 0;\nprintf(\"%d\\n\", bonus);\n```\n\n```text\n10\n```\n\n`nota >= 6` deu 1, então o `?` entregou o 10 e o `0` foi descartado: um dos lados é escolhido, nunca os dois."
+    },
+    {
+      "id": "cabe-onde-um-valor-cabe",
+      "title": "Cabe onde um valor cabe",
+      "markdown": "Como a construção DEVOLVE um valor, ela cabe onde um valor caberia — inclusive dentro do `printf`, sem passar por nome nenhum:\n\n```c\nint idade = 16;\nprintf(\"%d\\n\", idade >= 18 ? 1 : 0);\n```\n\n```text\n0\n```\n\nAqui está a diferença que importa. O `if` MANDA rodar um bloco; o `? :` DEVOLVE um valor para o lugar onde está escrito. Um decide o caminho, o outro entrega o número."
+    },
+    {
+      "id": "o-mesmo-com-if-e-o-limite",
+      "title": "O mesmo com `if` — e o limite do atalho",
+      "markdown": "As duas formas abaixo deixam o mesmo valor em `maior`:\n\n```c\nint a = 3;\nint b = 9;\nint maior = a >= b ? a : b;\n```\n\n```c\nint a = 3;\nint b = 9;\nint maior;\nif (a >= b) {\n    maior = a;\n} else {\n    maior = b;\n}\n```\n\nO atalho encurta, mas tem limite: o `? :` só serve quando os dois lados são VALORES. Se cada caminho precisa imprimir uma frase, ou fazer várias coisas, é `if`/`else`."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "atribui-um-dos-dois-numa-linha",
+      "statement": "`max = a > b ? a : b;` atribui um dos dois valores numa linha.",
+      "question": "Com `int a = 4;` e `int b = 4;`, o que a linha `int max = a > b ? a : b;` deixa em `max`?",
+      "options": [
+        "1 — quando os dois valores são iguais a comparação devolve 1, e é ele que chega a `max`.",
+        "8 — os dois lados são devolvidos e somados.",
+        "4 — a pergunta deu 0, então o valor depois do `:` foi devolvido.",
+        "0 — a pergunta `a > b` deu 0, e é esse 0 que vai para `max`."
+      ],
+      "answerIndex": 2,
+      "feedback": "`4 > 4` é 0, então a construção devolveu o lado do `:`, que é `b`: 4. O que vai para `max` é sempre UM dos dois valores dos lados — nunca o 0 ou 1 da pergunta.",
+      "sectionId": "a-pergunta-que-devolve",
+      "optionRationales": [
+        "`>` pergunta *maior que*, e 4 não é maior que 4: a comparação dá 0. Quem dá 1 com valores iguais é o `>=`.",
+        "Só um dos lados é escolhido; o outro é descartado, e nada é somado.",
+        "`4 > 4` é falso, então o lado depois do `:` (o `b`) é o devolvido: 4.",
+        "O 0 é o resultado da PERGUNTA; ele escolhe o lado, não vai para `max`."
+      ]
+    },
+    {
+      "id": "cabe-dentro-do-printf",
+      "statement": "Como devolve um valor, a construção `? :` cabe em qualquer lugar onde um valor caberia.",
+      "question": "Com `int idade = 16;`, o que `printf(\"%d\\n\", idade >= 18 ? 1 : 0);` imprime?",
+      "options": [
+        "Nada: o `? :` é uma decisão, e decisão não cabe dentro do `printf`.",
+        "`0`: a pergunta deu falso, então o lado do `:` foi devolvido.",
+        "`1`: o `%d` imprime o 1 que a comparação devolveu.",
+        "`16`: o `%d` imprime o valor guardado em `idade`."
+      ],
+      "answerIndex": 1,
+      "feedback": "`16 >= 18` é falso, então a construção devolveu o lado do `:` — o 0 — e o `%d` imprimiu esse 0. O `printf` recebe um valor pronto e nem sabe de onde ele veio.",
+      "sectionId": "cabe-onde-um-valor-cabe",
+      "optionRationales": [
+        "Cabe: a construção devolve um valor, e argumento de `printf` é lugar de valor.",
+        "A pergunta deu falso, o lado do `:` foi devolvido, e o `%d` mostrou esse 0.",
+        "O 1 sairia se `idade >= 18` fosse verdadeiro — com 16 não é.",
+        "O `%d` recebe o valor DEVOLVIDO pela construção, não o valor de `idade`."
+      ]
+    },
+    {
+      "id": "quando-nao-serve",
+      "statement": "O `? :` só serve quando os dois lados são valores; caminhos com várias ordens continuam sendo `if`/`else`.",
+      "question": "Você precisa que um caminho imprima duas linhas e o outro imprima uma. Qual forma cabe?",
+      "options": [
+        "`if`/`else`: cada bloco pode ter quantas ordens você quiser.",
+        "`? :`: basta separar as ordens de cada lado por vírgula.",
+        "`? :`: cada lado aceita um `printf` por vez.",
+        "Nenhuma das duas: imprimir não pode ficar dentro de decisão."
+      ],
+      "answerIndex": 0,
+      "feedback": "Bloco é lugar de ORDENS; os lados do `? :` são lugares de VALOR. Quando o caminho tem várias ordens, a forma é `if`/`else` com chaves.",
+      "sectionId": "o-mesmo-com-if-e-o-limite",
+      "optionRationales": [
+        "Cada bloco de chaves aceita quantas ordens forem necessárias — é o que o caso pede.",
+        "Os lados do `? :` são valores, não listas de ordens; essa forma não existe nesta trilha.",
+        "Um `printf` de cada lado devolveria valor, mas o caso pede DUAS linhas de um lado.",
+        "Imprimir dentro de um `if` é o normal desde a primeira aula do módulo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Other operators — o operador condicional `? :` na referência da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_other",
+      "description": "A página oficial do operador condicional em C: as três partes, o valor devolvido e o lado que não é avaliado."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial das comparações de C: cada uma devolve 0 ou 1, e é esse número que a pergunta do `? :` usa."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 (C11) — o rascunho público N1570",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C que esta trilha compila: a seção 6.5.15 define o operador condicional e diz que só um dos dois lados é avaliado."
+    }
+  ],
+  "challenges": [
+    "maior-de-dois"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

@@ -2,22 +2,134 @@
   "schemaVersion": 1,
   "slug": "devolver-em-vez-de-mostrar",
   "title": "Devolver em vez de mostrar",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A caixa passa a escrever `return`: o valor é entregue a quem chamou, no lugar da chamada — e o `return` encerra a caixa no ato.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ReturnStmt",
+  "concepts": [
+    "devolver_um_valor"
+  ],
   "prerequisites": [
     "a-janela-de-entrada"
   ],
+  "introduces": {
+    "productive": [
+      "node:ReturnStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a chamada deixa de ser só uma ordem e passa a ter VALOR: a caixa entrega um resultado no ponto onde foi chamada, e o return corta a execução dela naquele instante",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-que-devolve",
+      "title": "A caixa que devolve",
+      "markdown": "Até agora as suas caixas MOSTRAVAM: imprimiam e não entregavam nada a ninguém — é isso que o `void` da frente diz. Uma caixa também pode **devolver** um valor para quem a chamou, e aí o `void` dá lugar ao tipo do valor devolvido:\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n```\n\n`int` na frente: devolve um inteiro. `return n * 2;` faz a conta e ENTREGA o resultado. Nada aparece na tela — devolver não é mostrar."
+    },
+    {
+      "id": "o-valor-chega-na-linha-da-chamada",
+      "title": "O valor chega na linha da chamada",
+      "markdown": "O valor entregue aparece **no lugar da chamada**: onde antes havia um número, agora pode haver uma chamada.\n\n```c\nint dobro(int n) {\n    return n * 2;\n}\n\nvoid tela(void) {\n    printf(\"%d\\n\", dobro(5));\n}\n```\n\n```text\n10\n```\n\n`dobro(5)` VALE 10 na linha em que foi escrita, e quem imprime é quem chamou. A caixa fez a conta; a decisão de mostrar ficou fora dela."
+    },
+    {
+      "id": "duas-janelas-na-mesma-caixa",
+      "title": "Duas janelas na mesma caixa",
+      "markdown": "Uma caixa pode ter mais de uma janela de entrada: os parâmetros vão **separados por vírgula**, cada um com o seu tipo e o seu nome.\n\n```c\nvoid mostraOsDois(int a, int b) {\n    printf(\"primeiro %d, segundo %d\\n\", a, b);\n}\n\nvoid tela(void) {\n    mostraOsDois(4, 9);\n    mostraOsDois(9, 4);\n}\n```\n\n```text\nprimeiro 4, segundo 9\nprimeiro 9, segundo 4\n```\n\nA ordem é que manda: o primeiro valor da chamada entra na primeira janela, o segundo na segunda. Trocar a ordem na chamada troca o que cada nome vale lá dentro."
+    },
+    {
+      "id": "dois-returns-um-caminho",
+      "title": "O return encerra no ato",
+      "markdown": "O `return` encerra a caixa **no ato**: nada dela roda depois dele. Por isso uma caixa pode ter mais de um `return`: vale o primeiro que a execução alcançar.\n\n```c\nint maior(int a, int b) {\n    if (a >= b) {\n        return a;\n    }\n    return b;\n}\n\nvoid tela(void) {\n    printf(\"%d\\n\", maior(9, 3));\n    printf(\"%d\\n\", maior(3, 9));\n}\n```\n\n```text\n9\n9\n```\n\nCom 9 e 3 o `if` entra e o `return a;` entrega 9 — se o `return b;` ainda rodasse, a resposta seria 3. Com 3 e 9 o `if` não entra, e quem entrega o 9 é o `return b;`."
+    },
+    {
+      "id": "devolver-nao-e-mostrar",
+      "title": "Devolver não é mostrar",
+      "markdown": "Duas caixas para a mesma conta: a de cima mostra e não entrega; a de baixo entrega e não mostra.\n\n```c\nvoid mostraDobro(int n) {\n    printf(\"%d\\n\", n * 2);\n}\n\nint dobro(int n) {\n    return n * 2;\n}\n```\n\nA `mostraDobro` termina em `printf`: o resultado vai para a tela e ninguém recebe valor nenhum. A `dobro` termina em `return`: o valor vai para quem chamou, e a tela não muda. Neste desafio, o teste confere o VALOR devolvido — não a tela."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-return-encerra-e-entrega",
+      "statement": "O `return` ENCERRA a caixa no ato e entrega o valor na linha da chamada.",
+      "question": "Na caixa `maior`, com `a` valendo 9 e `b` valendo 3, o `if (a >= b)` entra e roda `return a;`. O que acontece com o `return b;` da última linha?",
+      "options": [
+        "Não roda: o `return` encerrou a caixa e entregou 9.",
+        "Roda logo depois, e a caixa entrega 3 no fim.",
+        "Roda e soma: a caixa entrega 12.",
+        "Dá erro de compilação: uma caixa só pode ter um `return`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `return` entrega o valor e encerra a caixa naquele instante. O que vem depois dele, naquela execução, não roda — e quem chamou recebe 9.",
+      "sectionId": "dois-returns-um-caminho",
+      "optionRationales": [
+        "O primeiro `return` alcançado entrega o valor e acaba a caixa: o resto não roda.",
+        "Depois do `return` a caixa já acabou — nenhuma linha dela roda mais.",
+        "Um `return` entrega UM valor; não existe soma de returns.",
+        "Vários `return` são permitidos e comuns: vale o primeiro que a execução alcançar."
+      ]
+    },
+    {
+      "id": "a-chamada-vale-o-valor-devolvido",
+      "statement": "O tipo na frente do nome é o tipo do valor devolvido, e a chamada VALE esse valor na linha onde está escrita.",
+      "question": "Com `int dobro(int n) { return n * 2; }`, o que a linha `printf(\"%d\\n\", dobro(5));` imprime?",
+      "options": [
+        "`10`: a chamada vale o valor devolvido.",
+        "`5`: o `%d` mostra o argumento que entrou.",
+        "Nada: a caixa devolve em vez de imprimir.",
+        "`dobro(5)`, do jeito que está escrito."
+      ],
+      "answerIndex": 0,
+      "feedback": "`dobro(5)` é substituído pelo valor entregue — 10 — e o `printf` de quem chamou imprime esse 10. A caixa calcula; quem chama decide o que fazer com o resultado.",
+      "sectionId": "o-valor-chega-na-linha-da-chamada",
+      "optionRationales": [
+        "O valor devolvido toma o lugar da chamada na linha: o `%d` recebe 10.",
+        "O `%d` recebe o que está escrito no argumento do `printf`, e ali está a chamada — que vale 10.",
+        "A caixa não imprime, mas quem chamou imprime o valor que recebeu.",
+        "Texto entre aspas sai como está; fora das aspas, a chamada é calculada antes."
+      ]
+    },
+    {
+      "id": "quem-mostra-e-quem-devolve",
+      "statement": "A caixa que mostra escreve na tela e não entrega nada; a que devolve entrega o valor a quem chamou.",
+      "question": "Das duas caixas da última seção, qual delas faz algo aparecer na tela?",
+      "options": [
+        "A `mostraDobro`, que tem `printf` dentro.",
+        "A `dobro`, porque o `return` entrega o valor na tela.",
+        "As duas: toda caixa que calcula algo mostra o resultado.",
+        "Nenhuma das duas: caixa nenhuma escreve na tela sozinha."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem escreve na tela é o `printf`, e ele só existe na `mostraDobro`. A `dobro` entrega o valor a quem chamou — e imprimir ou não passa a ser decisão de quem recebe.",
+      "sectionId": "devolver-nao-e-mostrar",
+      "optionRationales": [
+        "É o `printf` que escreve na tela, e ele está no corpo da `mostraDobro`.",
+        "O `return` entrega o valor a quem chamou; ele não escreve nada na tela.",
+        "Calcular não é mostrar: a `dobro` calcula e entrega, sem tocar na tela.",
+        "A `mostraDobro` escreve, sim — basta alguém chamá-la."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "return statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/return",
+      "description": "A página oficial do `return` em C: ele encerra a função e entrega o valor da expressão a quem chamou."
+    },
+    {
+      "title": "Function definitions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A página oficial da definição de função: o tipo escrito antes do nome é o tipo do valor que a função devolve."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.8.6.4 (The return statement) diz que o `return` termina a função e devolve o valor a quem a chamou."
+    }
+  ],
+  "challenges": [
+    "maior-caixa"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

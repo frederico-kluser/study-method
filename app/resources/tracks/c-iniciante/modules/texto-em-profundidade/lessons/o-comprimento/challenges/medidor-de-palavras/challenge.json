@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "medidor-de-palavras",
+  "title": "O medidor de palavras",
+  "concept": "o_comprimento",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O medidor de palavras\n\nA função `medidorDePalavras` mede três palavras e conta quantas letras cada uma tem. As três caixas de letras **já vêm prontas** no arquivo — o que falta é medir.\n\nA saída tem de ser exatamente esta:\n\n```text\nsol tem 3 letras\ncomputador tem 10 letras\nparalelepipedo tem 14 letras\n```\n\nPassos:\n\n1. acrescente o `#include <string.h>` no topo — é ele que traz o `strlen`;\n2. meça cada palavra com `strlen` e guarde o resultado num `int`;\n3. imprima uma linha por palavra, com `%s` para a palavra e `%d` para o número.\n\nNão conte as letras na mão: quem conta é o `strlen`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n/* falta aqui a caixa de ferramentas do texto */\n\n/* medidorDePalavras imprime, para cada palavra, quantas letras ela tem.\n   As tres caixas de letras ja estao prontas. */\nvoid medidorDePalavras(void) {\n    char primeira[] = \"sol\";\n    char segunda[] = \"computador\";\n    char terceira[] = \"paralelepipedo\";\n    /* 1) acrescente o #include <string.h> na linha de cima do arquivo */\n\n    /* 2) meca cada palavra com strlen e guarde cada medida num int */\n\n    /* 3) imprima uma linha por palavra: \"<palavra> tem <n> letras\" */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio medidor-de-palavras — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le o\n   arquivo de volta (fflush, nunca fclose no stdout). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid medidorDePalavras(void);\n\nSM_TEST(as_tres_medidas_na_ordem) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    medidorDePalavras();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a medida de sol\", linha, \"sol tem 3 letras\\n\",\n              \"sol tem tres letras, e o terminador nao entra na conta\");\n    fgets(linha, 80, f);\n    checa_str(\"a medida de computador\", linha, \"computador tem 10 letras\\n\",\n              \"computador tem dez letras: o strlen para na placa do fim\");\n    fgets(linha, 80, f);\n    checa_str(\"a medida de paralelepipedo\", linha, \"paralelepipedo tem 14 letras\\n\",\n              \"paralelepipedo tem quatorze letras, contadas pelo strlen\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira medida: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid medidorDePalavras(void) {\n    char primeira[] = \"sol\";\n    char segunda[] = \"computador\";\n    char terceira[] = \"paralelepipedo\";\n    int a = strlen(primeira);\n    int b = strlen(segunda);\n    int c = strlen(terceira);\n    printf(\"%s tem %d letras\\n\", primeira, a);\n    printf(\"%s tem %d letras\\n\", segunda, b);\n    printf(\"%s tem %d letras\\n\", terceira, c);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_tres_medidas_na_ordem",
+      "teste": "as_tres_medidas_na_ordem",
+      "descricao": "a funcao medidorDePalavras mede sol, computador e paralelepipedo com strlen e imprime as tres linhas na ordem (3, 10 e 14 letras), sem nada depois delas"
+    }
+  ]
+}

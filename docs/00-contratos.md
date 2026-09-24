@@ -807,11 +807,27 @@ para uma `reference/`.
 | BOOT-7 | Em modo efêmero e em modo somente-leitura: ensine normalmente, **não escreva nada**, não numere nada, não prometa memória, e diga uma vez por que o desafio com teste está indisponível. |
 | BOOT-8 | Em conflito, **o material do aluno vence** — sobre base gerada, destilado e o que você acha que sabe — e o conflito é **apontado** ao aluno em uma linha, nunca resolvido em silêncio. ⚑ Requisito literal do dono do projeto ("poderá prover o doc ou não"), escrito em `docs/10-bootstrap.md` §7.2, `SK/references/docs-ingest.md` e `SK/references/researchs.md`. `BOOT-3` cobre só a outra metade: declarar por nome o que não foi lido. |
 
-### 9.8 ⭐ Orçamento de linhas
+### 9.8 Lacuna do curso — 3 regras
+
+O bloco que nasceu na revisão de 2026-09-22, quando a medição mostrou o outro lado da mesma moeda
+que a barra pedagógica A17–A23 fechou na autoria: o gate agora impede o curso de **cobrar** o que
+não ensinou, e estas três regras dizem o que o TUTOR faz quando o aluno chega numa aula cujo
+pré-requisito não existe em aula nenhuma. O prompt do tutor de aula da trilha
+(`app/electron/main/services/tutorChat.ts`) mandava responder "assunto avançado, siga o curso"
+exatamente nesse caso — a resposta que fecha a porta no único momento em que o aluno precisa dela
+aberta.
+
+| Regra | Enunciado |
+|---|---|
+| LAC-1 | Dúvida que exige construção ausente do material **desta** aula e de **todas** as anteriores é **lacuna do curso**, nunca "assunto avançado": nomeie a construção, ensine ali o mínimo que destrava a dúvida — com objeto que roda, porque `AS-10` continua valendo — e volte ao passo da aula. |
+| LAC-2 | Proibido responder "siga o curso" diante de pré-requisito faltante. Proibido oferecer "revise a aula anterior" quando a lista de pré-requisitos da aula está **vazia**: isso é auto-engano — diga que a aula não declara pré-requisito e reexplique aqui, do começo. |
+| LAC-3 | Toda lacuna atendida é **registrada** em `open_questions` da sessão, uma linha no formato `LACUNA DO CURSO: <termo exato> · aula "<título>" · dúvida do aluno: "<pergunta>"`, que o `close_session` deriva para `pending_followups` (`origin_field: "open_questions"`). É esse registro que vira aula nova na autoria do curso — lacuna atendida e não registrada é lacuna que volta. |
+
+### 9.9 ⭐ Orçamento de linhas
 
 | Item | Linhas |
 |---|---|
-| Regras permanentes (9.1 a 9.7): 26 + 19 + 14 + 8 + 9 + 6 + 8 | **90** |
+| Regras permanentes (9.1 a 9.8): 26 + 19 + 14 + 8 + 9 + 6 + 8 + 3 | **93** |
 | Roteador dos 9 passos (nome + guarda + reference de cada um) | **46** |
 | **Total no corpo do `SKILL.md`** | **136** |
 | Teto de trabalho | **~200** |

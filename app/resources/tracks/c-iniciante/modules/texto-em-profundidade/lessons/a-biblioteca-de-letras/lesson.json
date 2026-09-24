@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-biblioteca-de-letras",
   "title": "A biblioteca das letras",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O `toupper` do `<ctype.h>` faz a conta da aula anterior sem você fazer conta: devolve a maiúscula de uma minúscula e devolve intacto tudo o que não é letra.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:toupper",
+  "concepts": [
+    "a_biblioteca_de_letras"
+  ],
   "prerequisites": [
     "gritar-a-mao"
   ],
+  "introduces": {
+    "productive": [
+      "api:toupper",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:toupper"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a conversão de letra deixa de ser uma conta do aluno e passa a ser uma função da biblioteca: o programa ganha uma caixa de ferramentas nova (o <ctype.h>) que decide, letra por letra, se há o que converter",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-de-ferramentas-das-letras",
+      "title": "A caixa de ferramentas das letras",
+      "markdown": "Subtrair 32 funciona, mas é uma conta para lembrar — e ela só vale para as 26 letras minúsculas. A biblioteca do C já tem quem faça esse trabalho: a função `toupper`.\n\nEla mora numa caixa de ferramentas própria, e por isso o seu arquivo ganha uma linha nova no topo:\n\n```c\n#include <ctype.h>\n```\n\nO `<stdio.h>` trouxe o `printf`; o `<string.h>` trouxe o `strlen`; o `<ctype.h>` traz as funções que examinam e convertem UMA letra. Sem essa linha, o compilador não sabe o que `toupper` é."
+    },
+    {
+      "id": "a-mesma-conta-sem-a-conta",
+      "title": "A mesma conta, sem a conta",
+      "markdown": "Você entrega uma letra e recebe a maiúscula dela:\n\n```c\nchar letra = 'a';\nletra = toupper(letra);\nprintf(\"%c\\n\", letra);\n```\n\n```text\nA\n```\n\nOlhe o `letra =` da frente: o `toupper` **devolve** a letra convertida, ele não mexe na caixa que você passou. Valor devolvido que não é guardado se perde.\n\nA letra também pode ir direto, sem caixa nenhuma:\n\n```c\nprintf(\"%c\\n\", toupper('b'));\n```\n\n```text\nB\n```"
+    },
+    {
+      "id": "gritar-com-a-biblioteca",
+      "title": "Gritar com a biblioteca",
+      "markdown": "No laço, o `toupper` entra no lugar do menos 32:\n\n```c\nchar nome[] = \"ana7\";\nfor (int i = 0; nome[i] != '\\0'; i++) {\n    nome[i] = toupper(nome[i]);\n}\nprintf(\"%s\\n\", nome);\n```\n\n```text\nANA7\n```\n\nE aqui está o que a sua conta não fazia: o `7` saiu intacto. O `toupper` devolve a maiúscula quando recebe uma minúscula, e devolve **o mesmo caractere** quando recebe qualquer outra coisa — dígito, espaço, ponto. Menos 32 estragaria os três."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "toupper-faz-a-mesma-conta",
+      "statement": "`toupper(c)` faz a mesma conta sem mágica — e funciona para qualquer letra.",
+      "question": "Qual é o valor de `toupper('m')`?",
+      "options": [
+        "A letra `M`.",
+        "A letra `m`, sem mudança.",
+        "O número 32.",
+        "O número 13."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `toupper` devolve a maiúscula da letra que recebeu: de `m` vem `M`. A conta por dentro é a mesma da aula anterior — quem a faz agora é a biblioteca.",
+      "sectionId": "a-mesma-conta-sem-a-conta",
+      "optionRationales": [
+        "O `toupper` devolve a maiúscula da letra recebida, e a maiúscula de `m` é `M`.",
+        "Sem mudança seria o resultado de `toupper('M')`, que já está em maiúscula.",
+        "32 é a distância entre as tabelas, não o valor devolvido pela função.",
+        "13 é a posição de `m` no alfabeto; a função devolve uma letra, não uma posição."
+      ]
+    },
+    {
+      "id": "toupper-devolve-nao-muda",
+      "statement": "O `toupper` DEVOLVE a letra convertida: o resultado precisa ser guardado.",
+      "question": "Depois de `char c = 'x';` e da linha `toupper(c);`, quanto vale `c`?",
+      "options": [
+        "Continua `'x'`: o valor devolvido foi jogado fora.",
+        "Passa a valer `'X'`: a função troca a letra na caixa dela.",
+        "Fica vazio, porque a conversão consumiu a letra.",
+        "Vale 88, o número da maiúscula, e não a letra."
+      ],
+      "answerIndex": 0,
+      "feedback": "A função recebe uma cópia do valor e devolve outro valor. Sem `c = toupper(c);` o resultado não tem onde ficar — e a caixa segue com a minúscula.",
+      "sectionId": "a-mesma-conta-sem-a-conta",
+      "optionRationales": [
+        "Chamada sem atribuição: o valor devolvido não é guardado em lugar nenhum.",
+        "A função só lê a cópia que recebeu; ela nunca alcança a caixa de quem chamou.",
+        "Nada é consumido: a caixa continua com exatamente a letra que tinha.",
+        "88 é o número de `X`, e ele seria o valor devolvido — não o valor de `c`."
+      ]
+    },
+    {
+      "id": "sem-ctype-nao-compila",
+      "statement": "O `<ctype.h>` é a caixa de ferramentas de UMA letra.",
+      "question": "O que acontece se o arquivo usar `toupper` sem a linha `#include <ctype.h>`?",
+      "options": [
+        "O compilador não sabe o que `toupper` é e avisa.",
+        "Roda igual: o `<stdio.h>` já traz o `toupper` junto.",
+        "A letra volta minúscula, sem nenhum aviso.",
+        "O programa compila e para no meio da execução."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada `#include` apresenta um grupo de funções ao compilador. Sem o `<ctype.h>`, o nome `toupper` chega sem apresentação e a compilação reclama.",
+      "sectionId": "a-caixa-de-ferramentas-das-letras",
+      "optionRationales": [
+        "O `#include` é a apresentação da função ao compilador; sem ela vem o aviso.",
+        "O `<stdio.h>` traz as funções de entrada e saída — `toupper` não está nele.",
+        "O problema aparece na compilação, antes de qualquer letra ser convertida.",
+        "Não é uma falha de execução: o tropeço acontece antes, ao compilar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "toupper — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/toupper",
+      "description": "A página oficial do `toupper`: devolve a maiúscula correspondente, ou o próprio argumento quando não há maiúscula."
+    },
+    {
+      "title": "toupper(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/toupper.3.html",
+      "description": "A man-page da mesma função que o seu programa chama, com a nota sobre o conjunto de caracteres em uso."
+    },
+    {
+      "title": "Null-terminated byte strings — classificação e conversão de caracteres",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "O índice oficial do `<ctype.h>`: as funções que examinam e convertem uma letra, `toupper` entre elas."
+    }
+  ],
+  "challenges": [
+    "o-gritador-biblioteca"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

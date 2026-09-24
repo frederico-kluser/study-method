@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "gritar-a-mao",
   "title": "Gritar à mão",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A gaveta do texto também recebe: escrevendo em `nome[i]` dentro do laço, e sabendo que a maiúscula é a minúscula menos 32, a palavra vira maiúscula no próprio lugar.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "gritar_a_mao"
+  ],
   "prerequisites": [
     "percorrer-a-string",
     "uma-letra-e-um-numero"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto deixa de ser só leitura: a mesma gaveta que entregava a letra agora recebe outra, e o texto que o aluno declarou muda sem que nenhuma caixa nova apareça",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-gaveta-tambem-recebe",
+      "title": "A gaveta também recebe",
+      "markdown": "Você já leu uma letra pela gaveta. A mesma porta serve para **escrever**: `nome[i]` do lado esquerdo do `=` troca a letra daquela gaveta, no próprio lugar.\n\n```c\nchar nome[] = \"ana\";\nnome[0] = 'A';\nprintf(\"%s\\n\", nome);\n```\n\n```text\nAna\n```\n\nNenhuma caixa nova nasceu: o texto que já estava ali mudou. É isso que \"no próprio lugar\" quer dizer — a caixa é a mesma, e a gaveta 0 passou a guardar outra letra."
+    },
+    {
+      "id": "a-distancia-da-tabela",
+      "title": "A distância entre as duas tabelas",
+      "markdown": "Letra é número, e a tabela põe as maiúsculas antes das minúsculas, na mesma ordem. A distância entre uma letra e a maiúscula dela é sempre a mesma:\n\n```c\nprintf(\"%d\\n\", 'a' - 'A');\nprintf(\"%c\\n\", 'a' - 32);\n```\n\n```text\n32\nA\n```\n\nTrinta e dois passos separam `'a'` de `'A'`, `'b'` de `'B'`, e assim por diante. Gritar uma minúscula é, então, subtrair 32 dela.\n\nOnde a analogia quebra: os 32 passos só valem para as 26 letras de `a` a `z`."
+    },
+    {
+      "id": "gritar-a-palavra-inteira",
+      "title": "Gritar a palavra inteira",
+      "markdown": "Junte o percurso com a escrita pela gaveta e a palavra inteira vira maiúscula sem nenhuma caixa nova:\n\n```c\nchar nome[] = \"ana\";\nfor (int i = 0; nome[i] != '\\0'; i++) {\n    nome[i] = nome[i] - 32;\n}\nprintf(\"%s\\n\", nome);\n```\n\n```text\nANA\n```\n\nA cada volta o lado direito LÊ a gaveta e o lado esquerdo ESCREVE nela. O laço para na placa `\\0`, que fica onde estava: quem grita são as letras, nunca o fim do texto."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "maiuscula-e-minuscula-menos-32",
+      "statement": "Maiúscula é minúscula menos a distância da tabela: letras SÃO números.",
+      "question": "Com `char c = 'e';`, o que `printf(\"%c\\n\", c - 32);` mostra?",
+      "options": [
+        "A letra `E`.",
+        "O número 32.",
+        "O número 69.",
+        "A letra `e`, sem mudança."
+      ],
+      "answerIndex": 0,
+      "feedback": "A tabela põe `E` 32 passos antes de `e`. A conta devolve o número da maiúscula, e o `%c` mostra esse número como letra.",
+      "sectionId": "a-distancia-da-tabela",
+      "optionRationales": [
+        "Subtrair 32 de uma minúscula cai exatamente na maiúscula dela: `e` menos 32 é `E`.",
+        "32 é a distância entre as duas tabelas, não o resultado da conta.",
+        "69 é o número de `E`; com `%c` ele é mostrado como letra, não como número.",
+        "A conta muda o valor: sem ela a letra ficaria `e`, com ela vira `E`."
+      ]
+    },
+    {
+      "id": "escrever-pela-gaveta",
+      "statement": "`nome[i]` do lado esquerdo do `=` troca a letra no próprio lugar.",
+      "question": "Depois de `char p[] = \"oi\";` e `p[1] = 'X';`, o que `printf(\"%s\\n\", p);` mostra?",
+      "options": [
+        "`oX`: a gaveta 1 passou a guardar o `X`.",
+        "`oi`: escrever na gaveta não muda o texto.",
+        "`X`: a atribuição apaga o resto do texto.",
+        "`oiX`: o `X` entra no fim, depois do `i`."
+      ],
+      "answerIndex": 0,
+      "feedback": "A gaveta 1 é a segunda: ela guardava `i` e passou a guardar `X`. As outras gavetas e a placa `\\0` ficam como estavam.",
+      "sectionId": "a-gaveta-tambem-recebe",
+      "optionRationales": [
+        "A gaveta 1 guardava o `i`; a atribuição troca só ela, e o texto fica `oX`.",
+        "A mesma porta que lê também escreve — o texto muda de verdade.",
+        "Atribuir a uma gaveta troca uma letra; nenhuma outra gaveta é tocada.",
+        "Escrever na gaveta 1 não acrescenta letra: o texto continua com duas."
+      ]
+    },
+    {
+      "id": "a-placa-nao-e-gritada",
+      "statement": "O laço para na placa `\\0`, e a placa não entra na conta.",
+      "question": "No laço `for (int i = 0; nome[i] != '\\0'; i++)` que grita cada gaveta, o que acontece com o `\\0`?",
+      "options": [
+        "Ele fica intacto: o laço para antes dele.",
+        "Ele também recebe menos 32 e vira outro valor.",
+        "Ele é apagado, e o texto fica sem fim marcado.",
+        "Ele vira o `\\n` que quebra a linha no fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição é testada antes de cada volta: na gaveta da placa ela já é falsa, e o corpo não roda. A placa sobrevive — sem ela o texto não teria fim.",
+      "sectionId": "gritar-a-palavra-inteira",
+      "optionRationales": [
+        "A condição fica falsa na gaveta da placa, então o corpo nunca escreve nela.",
+        "O corpo não roda para a gaveta da placa: nada é subtraído dela.",
+        "A placa continua onde estava; apagá-la é que faria o texto perder o fim.",
+        "Quebrar linha é trabalho do `\\n` do `printf`, e a placa não se transforma nele."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array subscript — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A regra oficial do acesso por índice: `nome[i]` designa a gaveta, e por isso serve dos dois lados do `=`."
+    },
+    {
+      "title": "Character constants — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/character_constant",
+      "description": "A página oficial de `'a'` e `'\\0'`: a letra entre apóstrofos é um valor inteiro do conjunto de caracteres."
+    },
+    {
+      "title": "ASCII chart — a tabela oficial de referência",
+      "url": "https://en.cppreference.com/w/c/language/ascii",
+      "description": "A tabela que mostra as maiúsculas 32 posições antes das minúsculas — de onde a subtração desta aula vem."
+    }
+  ],
+  "challenges": [
+    "o-gritador"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

@@ -2,22 +2,136 @@
   "schemaVersion": 1,
   "slug": "perguntar-ao-usuario",
   "title": "Perguntar ao usuário",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "A `scanf` lê o que a pessoa digita e guarda na variável — e o `&` na frente do nome é o que entrega a ela o endereço da casa onde escrever.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:scanf",
+  "concepts": [
+    "ler_do_teclado"
+  ],
   "prerequisites": [
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "api:scanf",
+      "op:unary:&",
+      "node:UnaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryOperator",
+        "de": "op:unary:&"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de ser fechado: um valor pode entrar de fora enquanto ele roda, e a variável passa a ter um ENDEREÇO que outra função usa para escrever nela",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "perguntar-e-esperar",
+      "title": "Perguntar e esperar",
+      "markdown": "Até agora todo valor vinha escrito no código. A `scanf` traz o valor de FORA: ela para o programa, espera a pessoa digitar e guarda o que veio na variável.\n\n```c\nint idade = 0;\nprintf(\"digite a sua idade: \");\nscanf(\"%d\", &idade);\nprintf(\"%d\\n\", idade);\n```\n\nNa tela, com `20` digitado e Enter (o que você digita fica na linha da pergunta):\n\n```text\ndigite a sua idade: 20\n20\n```\n\nO `%d` da `scanf` significa *o que vem é um número inteiro* — no `printf` ele MOSTRA um inteiro, na `scanf` ele LÊ um inteiro."
+    },
+    {
+      "id": "o-endereco-da-casa",
+      "title": "O & é o endereço da casa",
+      "markdown": "Repare no `&` antes do nome: `&idade`. É ele que deixa a `scanf` escrever na variável.\n\nPense na variável como uma casa com número na porta. Escrever `idade` entrega o que está DENTRO da casa (o valor de agora). Escrever `&idade` entrega o ENDEREÇO da casa — e endereço é o que o carteiro precisa para deixar a encomenda lá.\n\n```c\nint nota = 0;\nscanf(\"%d\", &nota);\nprintf(\"%d\\n\", nota);\n```\n\nQuem preenche a casa é a `scanf`. Você só passa a ela o endereço."
+    },
+    {
+      "id": "quem-pergunta-e-o-printf",
+      "title": "Quem pergunta é o printf",
+      "markdown": "A `scanf` não escreve pergunta nenhuma na tela: quem pergunta é um `printf` antes dela. E ela não devolve o número para o lado esquerdo de um `=` — ela escreve direto na casa cujo endereço recebeu.\n\n```c\nint quantidade = 0;\nprintf(\"quantas caixas? \");\nscanf(\"%d\", &quantidade);\nprintf(\"%d\\n\", quantidade);\n```\n\nCom `4` digitado, a tela fica assim:\n\n```text\nquantas caixas? 4\n4\n```\n\nO `printf` pede, a `scanf` espera e preenche, o último `printf` mostra."
+    },
+    {
+      "id": "onde-a-analogia-quebra",
+      "title": "Onde a analogia quebra",
+      "markdown": "Onde a analogia quebra: o endereço não é um lugar na cidade — é uma posição na memória do programa, um número que só faz sentido enquanto ele roda e que você nunca precisa ver.\n\nE se o `&` faltar? A `scanf` recebe o VALOR no lugar do endereço e tenta escrever num lugar que não é o da variável. O programa costuma morrer ali, e o compilador em geral avisa antes.\n\nA regra fica curta: inteiro lido com `%d`, e `&` na frente do nome."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-e-comercial-entrega-o-endereco",
+      "statement": "O `&` entrega à `scanf` o ENDEREÇO da variável — é ela quem preenche a casa.",
+      "question": "Por que se escreve `scanf(\"%d\", &idade);` e não `scanf(\"%d\", idade);`?",
+      "options": [
+        "Porque a `scanf` precisa do endereço da variável para escrever nela.",
+        "Porque o `&` transforma o que foi digitado em número inteiro.",
+        "Porque em C toda chamada de função leva `&` antes de cada argumento.",
+        "Porque sem o `&` a `scanf` mostraria o valor na tela em vez de lê-lo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem escreve na variável é a `scanf`, e para isso ela precisa saber ONDE a variável mora. `idade` entrega o valor de dentro; `&idade` entrega o endereço.",
+      "sectionId": "o-endereco-da-casa",
+      "optionRationales": [
+        "Sem o endereço a `scanf` não tem onde escrever: é o `&` que diz qual é a casa.",
+        "Quem diz que o valor lido é inteiro é o `%d`, não o `&`.",
+        "A maioria das chamadas não leva `&` nenhum — `printf(\"%d\\n\", idade);` é uma delas.",
+        "Mostrar na tela é trabalho do `printf`; a `scanf` lê, com `&` ou sem ele."
+      ]
+    },
+    {
+      "id": "a-scanf-nao-pergunta",
+      "statement": "A `scanf` não escreve pergunta nenhuma na tela: quem pergunta é um `printf` antes dela.",
+      "question": "O programa precisa pedir a idade e ler o número. Qual é o papel da `scanf` nessa dupla?",
+      "options": [
+        "Esperar a digitação e guardar o número na variável.",
+        "Mostrar a pergunta na tela e devolver o número digitado para um `=`.",
+        "Mostrar a pergunta; ler é trabalho do `printf` que vem depois.",
+        "Não fazer nada até o programa terminar: ela só lê no fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "São dois trabalhos separados: o `printf` escreve a pergunta, a `scanf` espera a resposta e a guarda na variável cujo endereço recebeu.",
+      "sectionId": "quem-pergunta-e-o-printf",
+      "optionRationales": [
+        "A `scanf` só lê e preenche; o texto da pergunta sai de um `printf` escrito antes dela.",
+        "Ela não escreve nada na tela — e não devolve o número para um `=`: escreve direto na casa.",
+        "É o contrário: `printf` mostra, `scanf` lê.",
+        "A `scanf` para o programa na hora em que é chamada e espera ali mesmo."
+      ]
+    },
+    {
+      "id": "o-mesmo-por-cento-d-dos-dois-lados",
+      "statement": "O `%d` da `scanf` diz que o que vem é um inteiro — o mesmo especificador do `printf`, do outro lado do balcão.",
+      "question": "O que o `%d` significa dentro de `scanf(\"%d\", &nota);`?",
+      "options": [
+        "Que o valor a ser LIDO é um número inteiro.",
+        "Que o valor lido vai aparecer na tela em seguida.",
+        "Que a variável precisa estar vazia antes da leitura.",
+        "Que a `scanf` vai ler exatamente um dígito, e não mais."
+      ],
+      "answerIndex": 0,
+      "feedback": "O especificador descreve o FORMATO do valor nas duas funções: no `printf` ele mostra um inteiro; na `scanf` ele lê um inteiro.",
+      "sectionId": "perguntar-e-esperar",
+      "optionRationales": [
+        "O `%d` é o formato do inteiro: na leitura, ele diz que o que vem do teclado é um número inteiro.",
+        "Imprimir depois é outra linha, com um `printf` próprio.",
+        "A `scanf` sobrescreve o valor que estiver lá; não existe exigência de estar vazia.",
+        "O `%d` lê o número inteiro que a pessoa digitou, com um dígito ou com vários."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da família `scanf` em C: o texto de formato, os especificadores e os argumentos que recebem o valor lido."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da `scanf`: a mesma função que o seu programa chama, descrita pelo sistema, com o aviso sobre os argumentos serem ponteiros."
+    },
+    {
+      "title": "Address-of and indirection — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do operador `&`: ele devolve o endereço do objeto que está à sua direita."
+    }
+  ],
+  "challenges": [
+    "dobro-do-digitado"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

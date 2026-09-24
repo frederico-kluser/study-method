@@ -103,6 +103,7 @@ import { conceptId, type Concept, type ConceptGraph, type ConceptId } from '../e
 import { fechoTransitivoRedundante, toposort } from '../electron/main/engine/graph/dag';
 import { checkInvariants, type VisaoDeEnsino } from '../electron/main/engine/graph/invariants';
 import { auditTrack } from '../electron/main/engine/audit';
+import { REGRAS_DA_BARRA } from '../electron/main/engine/quality/barra';
 import { deriveTrackBudget } from '../electron/main/engine/budget';
 import type { LoadedLesson, LoadedModule, LoadedTrack } from '../electron/main/content/trackLoader';
 import type { TrackChallengeSource, TrackTheorySection } from '../electron/main/content/trackTypes';
@@ -1006,10 +1007,26 @@ describe('onda 1: audit (onda 0) × introduces declarado com formas da seed', ()
     // CONTRATO ORIGINAL (onda 0): a seed com as formas NÃO gera violações
     // ESPÚRIAS no orçamento + estruturais (A1–A6/DEC/I*) — a seed é política
     // receptiva, não contento.
+    //
+    // (2026-09-22) A BARRA A17–A23 entrou no `auditTrack` e está no MESMO escopo
+    // por um motivo medido: o `meta` desta fixture é montado com
+    // `lesson('a1', [theory('s', 'x')], []).meta` — uma seção de teoria SEM
+    // bloco de código. Toda chave declarada fica sem demonstração, e A18 (aula
+    // 1) + A21 (carga/seções) reprovam de verdade. O pin continua afirmando o
+    // que afirmava (a seed com formas não gera violação ESPÚRIA de orçamento) e
+    // o que a barra acha fica DECLARADO logo abaixo.
     const foraDaBateriaNova = report.violations.filter(
-      (v) => !['A13', 'A13d', 'A14a', 'A14b', 'A15a', 'A15b', 'A16'].includes(v.regra),
+      (v) => ![
+        'A13', 'A13d', 'A14a', 'A14b', 'A15a', 'A15b', 'A16',
+        ...REGRAS_DA_BARRA,
+      ].includes(v.regra as never),
     );
     assert.deepEqual(foraDaBateriaNova, []);
+    assert.deepEqual(
+      [...new Set(report.violations.filter((v) => (REGRAS_DA_BARRA as readonly string[]).includes(v.regra)).map((v) => v.regra))].sort(),
+      ['A18', 'A21'],
+      'a fixture tem teoria SEM bloco de código: a barra acha isso, e está certa',
+    );
     // BATERIA A13–A16 (rodada 12): esta fixture DEIXA de ser "zero violações"
     // por dois sinais HONESTOS — (a) A13d: a aula DECLARA `node:ReturnStatement`
     // em introduces.productive mas a teoria (só `const dobra = (n) => n * 2;`)

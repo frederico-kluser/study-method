@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "andar-de-ponteiro",
   "title": "Andar de ponteiro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Somar 1 a um ponteiro anda um ELEMENTO, não um byte — e `*(p + i)` é exatamente a mesma gaveta que `v[i]`.",
+  "difficulty": 4,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:unary:*",
+  "concepts": [
+    "o_ponteiro_que_anda"
+  ],
   "prerequisites": [
     "ir-ate-a-casa",
     "a-lista-como-parametro"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:*"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o degrau desta consolidação: a ida até a casa deixa de ser um destino fixo e passa a ser um destino CALCULADO — `*(p + i)` anda i gavetas antes de entrar, e revela que `v[i]` sempre foi isso",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-nome-da-lista-ja-e-um-endereco",
+      "title": "O nome da lista já é um endereço",
+      "markdown": "Você já viu o nome da lista virar endereço quando ela entra numa função. Fora dela é igual: `notas`, sozinho, vale o endereço da gaveta 0.\n\n```c\nint notas[4] = {5, 8, 6, 9};\nconst int *p = notas;\nprintf(\"%d\\n\", *p);\n```\n\n```text\n5\n```\n\nNão há `&` nenhum na segunda linha — o nome da lista JÁ é endereço. E `*p` é a mesma ida de sempre: vá até a casa e traga o valor."
+    },
+    {
+      "id": "somar-um-anda-um-elemento",
+      "title": "Somar 1 anda um elemento",
+      "markdown": "`p + 1` não é o byte seguinte: é a GAVETA seguinte. O compilador sabe o tamanho do molde e faz a conta por você.\n\n```c\nint notas[4] = {5, 8, 6, 9};\nconst int *p = notas;\nprintf(\"%d\\n\", *(p + 1));\nprintf(\"%d\\n\", *(p + 3));\n```\n\n```text\n8\n9\n```\n\nOs parênteses de `*(p + 1)` não são enfeite: primeiro soma o 1 ao endereço, depois vai até a casa. Sem eles, `*p + 1` iria à casa 0 e somaria 1 ao VALOR — daria 6."
+    },
+    {
+      "id": "p-mais-i-e-v-i",
+      "title": "`*(p + i)` é `v[i]`",
+      "markdown": "Troque o número pelo `i` do laço e sai o passeio pela lista inteira — com o valor de sempre em cada volta:\n\n```c\nint notas[4] = {5, 8, 6, 9};\nconst int *p = notas;\nfor (int i = 0; i < 4; i++) {\n    printf(\"%d %d\\n\", *(p + i), notas[i]);\n}\n```\n\n```text\n5 5\n8 8\n6 6\n9 9\n```\n\nAs duas colunas saem iguais, linha por linha: `notas[i]` é a forma curta, e `*(p + i)` é o que ela quer dizer por dentro."
+    },
+    {
+      "id": "onde-a-analogia-quebra",
+      "title": "Onde a analogia quebra",
+      "markdown": "A rua de casas iguais explica bem o `p + 1` — e quebra aqui: o número que o papel guarda NÃO cresce de 1.\n\n```text\np      -> 140732920700432\np + 1  -> 140732920700436\n```\n\nQuatro de diferença, porque `sizeof(int)` é 4 nesta máquina. Numa lista de `double`, a mesma soma de 1 andaria 8. O `+ 1` conta ELEMENTOS; os bytes são consequência do molde."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "p-mais-um-anda-um-elemento",
+      "statement": "`p + 1` avança UM ELEMENTO (4 bytes num `int`) — não um byte.",
+      "question": "`p` guarda o endereço da gaveta 0 de um `int notas[4]`. O que `*(p + 1)` traz?",
+      "options": [
+        "O valor guardado na gaveta 1 da lista.",
+        "O byte seguinte ao primeiro byte da gaveta 0.",
+        "O valor da gaveta 0 somado com 1.",
+        "O endereço da gaveta 1, e não o valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "Somar 1 a um ponteiro anda um elemento inteiro, porque o compilador multiplica pelo tamanho do molde. Depois o `*` entra na casa e traz o valor.",
+      "sectionId": "somar-um-anda-um-elemento",
+      "optionRationales": [
+        "A soma anda uma gaveta e o `*` traz o que está guardada nela.",
+        "Andar de byte em byte pegaria um pedaço do mesmo número — não é isso que o `+ 1` faz num ponteiro.",
+        "Somar ao VALOR seria `*p + 1`: os parênteses mudam quem recebe o 1.",
+        "O `*` da frente é justamente o que troca endereço por valor."
+      ]
+    },
+    {
+      "id": "p-mais-i-e-o-mesmo-que-v-i",
+      "statement": "`*(p + i)` e `v[i]` são a mesma gaveta, escritas de duas formas.",
+      "question": "No laço que imprime `*(p + i)` e `notas[i]` lado a lado, o que aparece na tela?",
+      "options": [
+        "As duas colunas iguais em todas as linhas.",
+        "A primeira coluna deslocada de uma gaveta.",
+        "A segunda coluna com os endereços das gavetas.",
+        "Só a primeira coluna: `notas[i]` não compila ali."
+      ],
+      "answerIndex": 0,
+      "feedback": "O colchete é atalho de escrita: `notas[i]` é traduzido para a mesma conta de endereço que você escreveu à mão.",
+      "sectionId": "p-mais-i-e-v-i",
+      "optionRationales": [
+        "As duas formas calculam o mesmo endereço e entram na mesma casa.",
+        "Nada desloca: `p` começa na gaveta 0, igual ao índice 0 de `notas`.",
+        "O `%d` mostra o valor da gaveta; endereço precisa de outro formato.",
+        "`notas[i]` continua valendo — a lista não some por existir um ponteiro para ela."
+      ]
+    },
+    {
+      "id": "os-parenteses-mandam",
+      "statement": "Em `*(p + i)` os parênteses mandam: primeiro a soma, depois a ida até a casa.",
+      "question": "Qual é a diferença entre `*(p + 1)` e `*p + 1`?",
+      "options": [
+        "O primeiro traz a gaveta 1; o segundo soma 1 ao valor.",
+        "Nenhuma: em C o `*` e o `+` valem em qualquer ordem aqui.",
+        "O primeiro soma 1 ao valor; o segundo anda uma gaveta.",
+        "O segundo não compila: falta o par de parênteses."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem os parênteses, o `*` age primeiro: ele entra na casa 0, traz o 5, e só então o `+ 1` soma — dando 6, não 8.",
+      "sectionId": "somar-um-anda-um-elemento",
+      "optionRationales": [
+        "Os parênteses obrigam a soma de endereço a acontecer antes da ida até a casa.",
+        "A ordem muda tudo: uma soma é de endereço, a outra é de valor.",
+        "É o contrário: o que tem parênteses é o que anda a gaveta.",
+        "`*p + 1` compila sem problema — só não significa a mesma coisa."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial da aritmética de C, inclusive a de ponteiro: somar um inteiro a um ponteiro anda ELEMENTOS, não bytes."
+    },
+    {
+      "title": "Member access operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `*` de desreferência e do `[]` de índice — e a equivalência `v[i]` ≡ `*(v + i)` escrita pelo padrão."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.5.2.1 define o índice como açúcar de `*(E1 + E2)`, e §6.5.6 define a soma de ponteiro com inteiro."
+    }
+  ],
+  "challenges": [
+    "o-passeio"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

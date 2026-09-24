@@ -2,22 +2,135 @@
   "schemaVersion": 1,
   "slug": "escolher-por-valor",
   "title": "O painel de botões",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O `switch` olha um valor uma vez e desvia para o `case` daquele valor exato — e o `break` é a porta de saída que impede a execução de cair no `case` de baixo.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:SwitchStmt",
+  "concepts": [
+    "o_painel_de_botoes"
+  ],
   "prerequisites": [
     "em-cascata"
   ],
+  "introduces": {
+    "productive": [
+      "node:SwitchStmt",
+      "node:BreakStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a decisão ganha uma segunda forma: em vez de descer perguntas uma a uma, o programa olha o valor UMA vez, salta direto para o rótulo daquele valor e segue de cima para baixo até encontrar um `break`",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-painel-de-botoes",
+      "title": "Um valor, vários botões",
+      "markdown": "Quando a decisão é sobre UM valor comparado com valores exatos, o `switch` diz isso em uma linha só:\n\n```c\nint dia = 6;\nswitch (dia) {\n    case 1:\n        printf(\"sopa\\n\");\n        break;\n    case 6:\n        printf(\"pizza\\n\");\n        break;\n}\n```\n\n```text\npizza\n```\n\nO valor entra nos parênteses uma vez. Cada `case` é um valor exato dele, e o `break` fecha o trecho daquele caso.\n\nÉ um painel de botões: o valor aperta o botão com o número dele."
+    },
+    {
+      "id": "o-break-e-a-porta-de-saida",
+      "title": "O break é a porta de saída",
+      "markdown": "`case` não é uma caixa fechada: é uma PORTA DE ENTRADA. Depois de entrar, o C segue de cima para baixo — e sem `break` ele cai no caso seguinte:\n\n```c\nint dia = 1;\nswitch (dia) {\n    case 1:\n        printf(\"sopa\\n\");\n    case 2:\n        printf(\"arroz\\n\");\n        break;\n}\n```\n\n```text\nsopa\narroz\n```\n\nO 1 entrou pelo `case 1`, imprimiu e — sem porta de saída — atravessou para o `case 2`. Isso se chama *fallthrough*, e é o erro nº 1 de quem copia `switch` de tutorial.\n\nRegra desta trilha: todo caso termina em `break;`."
+    },
+    {
+      "id": "o-default-pega-o-resto",
+      "title": "O default pega o resto",
+      "markdown": "O `default` é o `else` do painel: não tem valor, e por isso atende quem não casou com nenhum `case`.\n\n```c\nint dia = 9;\nswitch (dia) {\n    case 1:\n        printf(\"sopa\\n\");\n        break;\n    default:\n        printf(\"dia invalido\\n\");\n        break;\n}\n```\n\n```text\ndia invalido\n```\n\nO 9 não tem botão no painel, então o `default` responde. Ele também leva `break;` — é o último caso, mas a regra vale para todos, e assim a ordem dos casos pode mudar sem quebrar nada."
+    },
+    {
+      "id": "o-valor-e-uma-conta-resolvida",
+      "title": "O valor pode ser uma conta",
+      "markdown": "Nos parênteses cabe uma CONTA, não só um nome — e ela é resolvida UMA vez, antes de o painel procurar botão:\n\n```c\nint nota = 17;\nswitch (nota % 2) {\n    case 0:\n        printf(\"par\\n\");\n        break;\n    case 1:\n        printf(\"impar\\n\");\n        break;\n}\n```\n\n```text\nimpar\n```\n\n`17 % 2` dá 1, e é esse 1 — não o 17 — que aperta o botão. A conta acontece uma vez só; os `case` comparam o resultado dela."
+    },
+    {
+      "id": "painel-ou-cascata",
+      "title": "Painel ou cascata?",
+      "markdown": "No painel cada `case` é um valor EXATO. Não existe `case nota >= 9:` — faixa é trabalho da cascata `else if`.\n\n```c\nint opcao = 2;\nswitch (opcao) {\n    case 1:\n        printf(\"entrar\\n\");\n        break;\n    case 2:\n        printf(\"sair\\n\");\n        break;\n}\n```\n\n```text\nsair\n```\n\nA escolha é essa: valores soltos e exatos (dia, opção de menu) pedem `switch`; limites e intervalos (nota, peso, idade) pedem a cascata.\n\nOnde o painel engana: ele só sabe perguntar \"é igual a este valor?\" — nenhuma outra pergunta cabe num `case`."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sem-break-cai-no-de-baixo",
+      "statement": "Sem o `break`, a execução CAI para o `case` de baixo (fallthrough).",
+      "question": "Com `dia` valendo 1, no `switch` em que o `case 1:` imprime `sopa` SEM `break` e o `case 2:` imprime `arroz` com `break`, o que aparece na tela?",
+      "options": [
+        "Só `sopa`: cada `case` é fechado e termina sozinho no fim.",
+        "Só `arroz`: sem `break` o caso de cima é ignorado e pulado.",
+        "`sopa` e `arroz`: a execução atravessa para o caso de baixo.",
+        "Nada: um `case` sem `break` é erro de compilação e nada roda."
+      ],
+      "answerIndex": 2,
+      "feedback": "O `case` é porta de entrada, não caixa fechada. Sem `break` o programa continua executando o que está embaixo, inclusive o caso seguinte.",
+      "sectionId": "o-break-e-a-porta-de-saida",
+      "optionRationales": [
+        "Só `sopa` sairia SE houvesse `break` no `case 1:` — é justamente ele que falta.",
+        "O caso de cima roda normalmente: o 1 entrou por ele.",
+        "É o fallthrough: entrou pelo `case 1`, imprimiu e atravessou para o `case 2`.",
+        "Fallthrough é legal em C — o compilador aceita, e é por isso que ele surpreende."
+      ]
+    },
+    {
+      "id": "o-default-atende-quem-sobrou",
+      "statement": "O `default` é o caminho de quem não casou com nenhum `case`.",
+      "question": "No painel com `case 1:` e `default:`, o que sai com `dia` valendo 9?",
+      "options": [
+        "`sopa`, do `case 1:`, porque é o único caso escrito no painel.",
+        "`dia invalido`, do `default:` — o 9 não tem botão no painel.",
+        "Nada, porque o 9 não casa com nenhum dos rótulos escritos.",
+        "Os dois, porque o `default` roda sempre, no fim de todo painel."
+      ],
+      "answerIndex": 1,
+      "feedback": "O `default` não tem valor: ele atende exatamente quem não casou com nenhum `case`. Sem ele, o 9 sairia sem resposta nenhuma.",
+      "sectionId": "o-default-pega-o-resto",
+      "optionRationales": [
+        "O `case 1:` só atende o valor 1; o 9 não entra por ele.",
+        "O `default` é o `else` do painel e atende todo valor sem botão próprio.",
+        "Nada sairia se o painel não tivesse `default` — mas ele está lá.",
+        "O `default` não roda sempre: ele roda quando nenhum `case` casou."
+      ]
+    },
+    {
+      "id": "case-e-valor-exato",
+      "statement": "Cada `case` é um valor EXATO — faixa continua sendo trabalho da cascata `else if`.",
+      "question": "Você precisa dar conceito A para toda nota de 9 para cima. O `switch` resolve isso com um `case`?",
+      "options": [
+        "Não: `case` aceita valor exato; faixa é da cascata `else if`.",
+        "Sim: basta escrever `case nota >= 9:` no painel de botões.",
+        "Sim: o `default` cobre a faixa que vai de 9 para cima.",
+        "Sim, desde que a nota seja lida com `scanf` antes do `switch`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O painel casa por IGUALDADE com um valor exato — nenhuma outra pergunta cabe num `case`. Limites e intervalos são o terreno da cascata `else if`.",
+      "sectionId": "painel-ou-cascata",
+      "optionRationales": [
+        "O `case` casa por igualdade com um valor exato; a faixa fica com a cascata.",
+        "`case nota >= 9:` não existe: o rótulo é um valor, não uma comparação.",
+        "O `default` pega o que sobrou de todos os casos, e não uma faixa escolhida.",
+        "Ler com `scanf` não muda o que um `case` aceita como rótulo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "switch statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/switch",
+      "description": "A página oficial do `switch`: os rótulos `case`/`default`, o salto para o rótulo igual e o fallthrough quando falta o `break`."
+    },
+    {
+      "title": "break statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/break",
+      "description": "A página oficial do `break`: ele encerra o `switch` (e, mais adiante na trilha, também o laço) que o contém."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 (C11) — o rascunho público N1570",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C que esta trilha usa: a seção 6.8.4.2 define o `switch` e diz que os rótulos `case` são comparados por igualdade."
+    }
+  ],
+  "challenges": [
+    "menu-do-dia"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-passeio",
+  "title": "O passeio",
+  "concept": "o_ponteiro_que_anda",
+  "difficulty": 4,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O passeio\n\nEscreva a função `oPasseio`, que soma `n` notas **a partir da gaveta que o papel aponta** — andando com o ponteiro, sem usar colchetes nenhuma vez:\n\n```c\nint oPasseio(const int *p, int n)\n```\n\nDentro dela, cada volta do laço pega `*(p + i)` e junta no total.\n\nO teste faz três passeios na MESMA lista, entregando papéis diferentes: o passeio inteiro, um que começa no meio e um de uma gaveta só. Quem ignorar o papel recebido e começar sempre na gaveta 0 falha em pelo menos um deles.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a funcao oPasseio inteira, com esta assinatura:\n\n       int oPasseio(const int *p, int n)\n\n   Dentro dela: um total que comeca em 0, um for de i = 0 ate n - 1,\n   e a soma de *(p + i) no total a cada volta. Sem colchetes: o\n   passeio anda com o ponteiro. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-passeio — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: sem captura de stdout. Os tres cenarios usam a MESMA lista\n   e entregam papeis DIFERENTES (o inicio, o meio e a ultima gaveta):\n   quem somar sempre a partir da gaveta 0, ou quem somar a lista inteira\n   ignorando o n, falha em pelo menos um cenario. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oPasseio(const int *p, int n);\n\nSM_TEST(o_passeio_inteiro) {\n    int notas[5] = {3, 1, 4, 1, 5};\n    checa_int(\"a soma das cinco notas\", oPasseio(notas, 5), 14,\n              \"o nome da lista ja e o endereco da gaveta 0: o passeio anda as cinco\");\n}\n\nSM_TEST(o_passeio_que_comeca_no_meio) {\n    int notas[5] = {3, 1, 4, 1, 5};\n    checa_int(\"a soma das tres ultimas\", oPasseio(&notas[2], 3), 10,\n              \"o papel entregue aponta para a gaveta 2: o passeio comeca ali, em 4 + 1 + 5\");\n}\n\nSM_TEST(o_passeio_de_uma_gaveta_so) {\n    int notas[5] = {3, 1, 4, 1, 5};\n    checa_int(\"a soma de uma nota so\", oPasseio(&notas[4], 1), 5,\n              \"com n = 1 o passeio le a gaveta apontada e para\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint oPasseio(const int *p, int n) {\n    int total = 0;\n    for (int i = 0; i < n; i++) {\n        total += *(p + i);\n    }\n    return total;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_passeio_inteiro",
+      "teste": "o_passeio_inteiro",
+      "descricao": "oPasseio(notas, 5) devolve 14 — o nome da lista ja e o endereco da gaveta 0, e o passeio soma as cinco notas"
+    },
+    {
+      "id": "o_passeio_que_comeca_no_meio",
+      "teste": "o_passeio_que_comeca_no_meio",
+      "descricao": "oPasseio(&notas[2], 3) devolve 10 — o passeio comeca na gaveta que o papel aponta, somando 4 + 1 + 5"
+    },
+    {
+      "id": "o_passeio_de_uma_gaveta_so",
+      "teste": "o_passeio_de_uma_gaveta_so",
+      "descricao": "oPasseio(&notas[4], 1) devolve 5 — com n = 1 o passeio le so a gaveta apontada e para"
+    }
+  ]
+}

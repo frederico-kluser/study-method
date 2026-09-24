@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobra-as-notas",
+  "title": "Dobra as notas",
+  "concept": "pegar_pela_gaveta",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Dobra as notas\n\nO professor recalculou a prova, e agora toda nota da turma vale o **dobro**.\n\nEscreva a função `dobraAsNotas`, com as duas janelas de entrada:\n\n```text\nvoid dobraAsNotas(int primeira, int ultima)\n```\n\nDentro dela, monte a mesma caixa de cinco gavetas da aula passada:\n\n```c\nint notas[5] = {primeira, 8, 6, 9, ultima};\n```\n\nDepois **escreva o dobro em cada gaveta** — gaveta por gaveta, usando o número dela dos dois lados do `=` — e só então imprima as cinco notas, uma por linha.\n\nCom `primeira` valendo 10 e `ultima` valendo 2, a tela fica assim:\n\n```text\n20\n16\n12\n18\n4\n```\n\nNenhuma linha a mais: a saída acaba na quinta nota.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a funcao dobraAsNotas inteira, com as duas janelas:\n\n       void dobraAsNotas(int primeira, int ultima)\n\n   Dentro dela: monte a caixa\n   int notas[5] = {primeira, 8, 6, 9, ultima};\n   escreva o DOBRO em cada gaveta (o indice vale nos dois lados do =)\n   e depois imprima as cinco notas, uma por linha. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio dobra-as-notas — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: o teste chama a funcao do aluno e captura o stdout no\n   proprio cenario (freopen, fflush, leitura de volta), cada cenario com\n   o SEU arquivo. As duas turmas tem notas de pontas diferentes: nenhuma\n   saida fixa serve para as duas. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid dobraAsNotas(int primeira, int ultima);\n\nSM_TEST(o_dobro_das_notas_da_turma_a) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    dobraAsNotas(10, 2);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 0\", linha, \"20\\n\",\n              \"a nota 10 da primeira gaveta dobra para 20\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 1\", linha, \"16\\n\",\n              \"a nota 8 dobra para 16\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 2\", linha, \"12\\n\",\n              \"a nota 6 dobra para 12\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 3\", linha, \"18\\n\",\n              \"a nota 9 dobra para 18\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 4\", linha, \"4\\n\",\n              \"a nota 2 da ultima gaveta dobra para 4\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"sao cinco gavetas: a saida acaba na quinta linha\");\n    fclose(f);\n}\n\nSM_TEST(o_dobro_das_notas_da_turma_b) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    dobraAsNotas(3, 7);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 0 na turma B\", linha, \"6\\n\",\n              \"com outra turma a primeira gaveta muda: 3 dobra para 6\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 1 na turma B\", linha, \"16\\n\",\n              \"as gavetas do meio sao as mesmas nas duas turmas\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 2 na turma B\", linha, \"12\\n\",\n              \"as gavetas do meio sao as mesmas nas duas turmas\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 3 na turma B\", linha, \"18\\n\",\n              \"as gavetas do meio sao as mesmas nas duas turmas\");\n    fgets(linha, 80, f);\n    checa_str(\"o dobro da gaveta 4 na turma B\", linha, \"14\\n\",\n              \"a ultima gaveta muda junto com a nota entregue: 7 dobra para 14\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais na turma B\", fim, \"(nada impresso)\",\n              \"a saida acaba na quinta nota tambem aqui\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid dobraAsNotas(int primeira, int ultima) {\n    int notas[5] = {primeira, 8, 6, 9, ultima};\n    notas[0] = notas[0] * 2;\n    notas[1] = notas[1] * 2;\n    notas[2] = notas[2] * 2;\n    notas[3] = notas[3] * 2;\n    notas[4] = notas[4] * 2;\n    printf(\"%d\\n\", notas[0]);\n    printf(\"%d\\n\", notas[1]);\n    printf(\"%d\\n\", notas[2]);\n    printf(\"%d\\n\", notas[3]);\n    printf(\"%d\\n\", notas[4]);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_dobro_das_notas_da_turma_a",
+      "teste": "o_dobro_das_notas_da_turma_a",
+      "descricao": "com (10, 2), cada gaveta recebe o proprio valor dobrado e a saida e 20, 16, 12, 18 e 4 — uma linha por gaveta, sem linha a mais"
+    },
+    {
+      "id": "o_dobro_das_notas_da_turma_b",
+      "teste": "o_dobro_das_notas_da_turma_b",
+      "descricao": "com (3, 7), as gavetas das pontas dobram para 6 e 14 e as tres do meio para 16, 12 e 18: a escrita pelo indice vale para qualquer turma"
+    }
+  ]
+}

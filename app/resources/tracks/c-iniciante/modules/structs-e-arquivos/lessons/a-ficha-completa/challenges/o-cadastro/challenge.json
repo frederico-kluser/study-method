@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-cadastro",
+  "title": "O cadastro",
+  "concept": "a_ficha_completa",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O cadastro\n\nO molde `Pessoa` já vem pronto no arquivo, com três campos: `nome` (uma caixa de 40 letras), `idade` e `altura`.\n\nEscreva a caixa que faz o cadastro de **duas pessoas** e mostra a mais alta:\n\n```text\nvoid oCadastro(void)\n```\n\nEla lê do teclado, nesta ordem, o nome, a idade e a altura da primeira pessoa e depois os três da segunda. É assim que o cadastro chega:\n\n```text\nAna 17 1.62\nBruno 18 1.75\n```\n\nE esta é a única linha que ela imprime — a ficha de quem for mais alta:\n\n```text\nBruno tem 18 anos e 1.75 m\n```\n\nA altura sai com duas casas (`%.2f`) e o `m` no fim. Não imprima pergunta nenhuma: a saída é essa linha e nada mais.\n\nTrês lembretes de leitura: o campo de texto entra sem `&` e com o freio `%39s`; a idade e a altura entram com `&`; e o buraco de ler um `double` é `%lf`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdio.h>\n\n/* o molde da ficha, ja pronto */\ntypedef struct {\n    char nome[40];\n    int idade;\n    double altura;\n} Pessoa;\n\n/* escreva AQUI a caixa oCadastro, sem janela de entrada e sem devolver nada:\n\n       void oCadastro(void)\n\n   Dentro dela: declare duas fichas Pessoa (ja preenchidas com \"\", 0 e 0.0),\n   leia de cada uma o nome (%39s, sem &), a idade (%d, com &) e a altura\n   (%lf, com &) — nesta ordem — e imprima UMA linha, a da mais alta:\n\n       Bruno tem 18 anos e 1.75 m\n\n   O formato da linha e: %s tem %d anos e %.2f m */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-cadastro — counter_protocol (03-tdd 3.9.3).\n   Cada cenario escreve num arquivo o cadastro que a pessoa \"digitaria\",\n   aponta o stdin para esse arquivo (freopen), captura o stdout no proprio\n   teste e le a linha de volta. Os nomes dos arquivos temporarios sao POR\n   CENARIO. Nunca ha fclose de stdin/stdout — so fflush —, para o segundo\n   freopen ficar legal (C11 7.21.4). Num cenario a mais alta e a segunda\n   pessoa, no outro e a primeira: nenhuma linha fixa passa nos dois. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oCadastro(void);\n\nSM_TEST(a_mais_alta_e_a_segunda) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"Ana 17 1.62\\nBruno 18 1.75\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oCadastro();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ficha da mais alta\", linha, \"Bruno tem 18 anos e 1.75 m\\n\",\n              \"1.75 e maior que 1.62: a ficha impressa e a da segunda pessoa, inteira\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"o cadastro imprime uma linha so: nenhuma pergunta, nenhuma despedida\");\n    fclose(f);\n}\n\nSM_TEST(a_mais_alta_e_a_primeira) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"Carla 20 1.80\\nDavi 19 1.70\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oCadastro();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ficha da mais alta\", linha, \"Carla tem 20 anos e 1.80 m\\n\",\n              \"quando a primeira pessoa e a mais alta, e a ficha dela que sai\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    char nome[40];\n    int idade;\n    double altura;\n} Pessoa;\n\nvoid oCadastro(void) {\n    Pessoa a = {\"\", 0, 0.0};\n    Pessoa b = {\"\", 0, 0.0};\n\n    scanf(\"%39s\", a.nome);\n    scanf(\"%d\", &a.idade);\n    scanf(\"%lf\", &a.altura);\n\n    scanf(\"%39s\", b.nome);\n    scanf(\"%d\", &b.idade);\n    scanf(\"%lf\", &b.altura);\n\n    if (a.altura <= b.altura) {\n        printf(\"%s tem %d anos e %.2f m\\n\", b.nome, b.idade, b.altura);\n    } else {\n        printf(\"%s tem %d anos e %.2f m\\n\", a.nome, a.idade, a.altura);\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_mais_alta_e_a_segunda",
+      "teste": "a_mais_alta_e_a_segunda",
+      "descricao": "com \"Ana 17 1.62\" e \"Bruno 18 1.75\" digitados, sai a linha \"Bruno tem 18 anos e 1.75 m\" — e so ela: o teste confere que nao ha linha a mais"
+    },
+    {
+      "id": "a_mais_alta_e_a_primeira",
+      "teste": "a_mais_alta_e_a_primeira",
+      "descricao": "com \"Carla 20 1.80\" e \"Davi 19 1.70\", a ficha impressa e a da PRIMEIRA pessoa: a comparacao olha a altura, nao a ordem da digitacao"
+    }
+  ]
+}

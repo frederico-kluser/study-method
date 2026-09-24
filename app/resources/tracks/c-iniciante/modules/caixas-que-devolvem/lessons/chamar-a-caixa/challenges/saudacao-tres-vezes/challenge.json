@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "saudacao-tres-vezes",
+  "title": "Saudação três vezes",
+  "concept": "a_chamada",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Saudação três vezes\n\nA caixa `saudacao` **já vem pronta** no seu arquivo: ela imprime uma linha e você não precisa mexer nela.\n\n```text\nbom dia, mundo\n```\n\nSua parte é a caixa que o programa de fora chama: `saudacaoTresVezes`. Escreva-a — `void saudacaoTresVezes(void)` — para que ela CHAME a `saudacao` três vezes. Na tela:\n\n```text\nbom dia, mundo\nbom dia, mundo\nbom dia, mundo\n```\n\nNenhum `printf` dentro da `saudacaoTresVezes`: as três linhas vêm das três chamadas. E não mude a `saudacao` — o teste também a chama sozinha, e ela tem de continuar imprimindo UMA linha.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* esta caixa ja vem pronta: leia, nao mude */\nvoid saudacao(void) {\n    printf(\"bom dia, mundo\\n\");\n}\n\n/* escreva AQUI a caixa saudacaoTresVezes: void saudacaoTresVezes(void),\n   que CHAMA saudacao tres vezes — sem nenhum printf aqui dentro */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio saudacao-tres-vezes — counter_protocol (03-tdd 3.9.3).\n   Dois cenarios, duas capturas: cada um manda o stdout para o SEU arquivo\n   temporario com freopen, chama a funcao do aluno e le o arquivo de volta.\n   O fflush descarrega sem fechar — e por isso o segundo freopen e legal. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nvoid saudacao(void);\nvoid saudacaoTresVezes(void);\n\nSM_TEST(tres_chamadas_tres_linhas) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    saudacaoTresVezes();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha\", linha, \"bom dia, mundo\\n\",\n              \"a primeira chamada roda o corpo da caixa saudacao\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha\", linha, \"bom dia, mundo\\n\",\n              \"a segunda chamada roda o MESMO corpo outra vez\");\n    fgets(linha, 80, f);\n    checa_str(\"a terceira linha\", linha, \"bom dia, mundo\\n\",\n              \"a terceira chamada fecha as tres execucoes\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha quarta linha\", fim, \"(nada impresso)\",\n              \"sao tres chamadas: a saida acaba na terceira linha\");\n    fclose(f);\n}\n\nSM_TEST(a_caixa_pronta_segue_com_uma_linha) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    saudacao();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da caixa saudacao\", linha, \"bom dia, mundo\\n\",\n              \"a caixa pronta continua imprimindo a sua linha\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"a caixa pronta nao ganhou linha\", fim, \"(nada impresso)\",\n              \"quem repete e quem chama: a caixa imprime uma linha so\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid saudacao(void) {\n    printf(\"bom dia, mundo\\n\");\n}\n\nvoid saudacaoTresVezes(void) {\n    saudacao();\n    saudacao();\n    saudacao();\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "tres_chamadas_tres_linhas",
+      "teste": "tres_chamadas_tres_linhas",
+      "descricao": "a caixa saudacaoTresVezes chama a saudacao tres vezes: a saida tem tres linhas iguais, nesta ordem, e acaba na terceira"
+    },
+    {
+      "id": "a_caixa_pronta_segue_com_uma_linha",
+      "teste": "a_caixa_pronta_segue_com_uma_linha",
+      "descricao": "a caixa saudacao continua como veio: chamada sozinha, imprime uma unica linha — a repeticao vem das chamadas, nao de printf a mais dentro dela"
+    }
+  ]
+}

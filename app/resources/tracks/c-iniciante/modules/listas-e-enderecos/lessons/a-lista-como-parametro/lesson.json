@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-lista-como-parametro",
   "title": "A lista como parâmetro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Uma função recebe a lista inteira com `int v[]` — e, como a lista não é copiada, o tamanho tem de viajar junto num segundo parâmetro.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "a_lista_como_parametro"
+  ],
   "prerequisites": [
     "a-troca-que-funciona",
     "varrer-a-lista"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a lista atravessa a fronteira da função sem ser copiada: o que chega no parâmetro é o endereço da primeira gaveta, então a função escreve na caixa original — e o tamanho, que o endereço não carrega, vira um parâmetro próprio",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-lista-inteira-no-parametro",
+      "title": "A lista inteira no parâmetro",
+      "markdown": "Um parâmetro também pode ser uma lista: os colchetes vazios dizem \"aqui entra uma caixa de `int`\".\n\n```c\nvoid mostraLista(int v[], int n) {\n    for (int i = 0; i < n; i++) {\n        printf(\"%d\\n\", v[i]);\n    }\n}\n```\n\nDentro da função, `v[i]` abre a gaveta `i` da caixa de quem chamou. O segundo parâmetro, `n`, diz quantas gavetas o laço pode abrir — e não é enfeite, como a próxima seção mostra."
+    },
+    {
+      "id": "por-que-o-tamanho-viaja-junto",
+      "title": "Por que o tamanho viaja junto",
+      "markdown": "A caixa nunca soube quantas gavetas tem, e dentro da função ela sabe menos ainda: o que chegou no parâmetro foi o endereço da primeira gaveta, não a caixa. A conta `sizeof v / sizeof v[0]` só acerta onde a caixa foi declarada; aqui ela mediria um endereço.\n\nPor isso a assinatura tem duas partes: a lista e o `n`. Abrir a gaveta `n`, ou qualquer uma depois dela, é comportamento indefinido — o compilador não avisa e o programa pode até parecer certo."
+    },
+    {
+      "id": "a-lista-nao-copia",
+      "title": "A lista não copia",
+      "markdown": "Com um número, a função mexe na cópia. Com uma lista, não:\n\n```c\nvoid dobrarTudo(int v[], int n) {\n    for (int i = 0; i < n; i++) {\n        v[i] = v[i] * 2;\n    }\n}\n```\n\n```c\nint notas[3] = {7, 8, 9};\ndobrarTudo(notas, 3);\nprintf(\"%d\\n\", notas[0]);\n```\n\n```text\n14\n```\n\nSem `&` nenhum na chamada: o nome da caixa já vale como endereço da primeira gaveta — é o `&` da aula da troca, embutido na própria lista."
+    },
+    {
+      "id": "chamar-passando-a-caixa",
+      "title": "Chamar passando a caixa",
+      "markdown": "Na chamada vai o nome da caixa, sem colchetes, e o tamanho ao lado:\n\n```c\nint notas[3] = {7, 8, 9};\nmostraLista(notas, 3);\n```\n\n```text\n7\n8\n9\n```\n\nOnde a analogia quebra: dentro da função `v` não é a caixa — é o papel com o endereço da primeira gaveta. Por isso `int v[]` e `int *v` significam a mesma coisa num parâmetro, e por isso a função alcança a caixa de quem chamou."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-tamanho-viaja-junto",
+      "statement": "O array vira o endereço do primeiro elemento; por isso o parâmetro `n` acompanha.",
+      "question": "Por que uma função como `mostraLista(int v[], int n)` precisa do `n`?",
+      "options": [
+        "Porque dentro dela `v` é só um endereço.",
+        "Porque o `for` exige sempre dois parâmetros.",
+        "Porque o `n` é a primeira gaveta da caixa.",
+        "Porque a caixa precisa de nome e tamanho iguais."
+      ],
+      "answerIndex": 0,
+      "feedback": "O que atravessou a fronteira foi o endereço da primeira gaveta, e endereço não carrega quantidade. O tamanho só existe dentro da função se alguém o entregar.",
+      "sectionId": "por-que-o-tamanho-viaja-junto",
+      "optionRationales": [
+        "Endereço não carrega quantidade: sem o `n` a função não sabe onde parar.",
+        "O `for` funciona com qualquer condição; o problema aqui é não saber o limite.",
+        "A primeira gaveta é `v[0]`; o `n` é a quantidade de gavetas.",
+        "Nome e tamanho são coisas diferentes, e o nome não guarda a quantidade."
+      ]
+    },
+    {
+      "id": "a-lista-nao-e-copiada",
+      "statement": "A função que recebe `int v[]` escreve na lista de quem chamou.",
+      "question": "Depois de `int notas[3] = {7, 8, 9};` e `dobrarTudo(notas, 3);`, quanto vale `notas[0]`?",
+      "options": [
+        "14: a função dobrou a caixa original.",
+        "7: a função dobrou só a cópia dela.",
+        "14, mas só dentro de `dobrarTudo`.",
+        "Erro de compilação: faltou o `&` na chamada."
+      ],
+      "answerIndex": 0,
+      "feedback": "A lista não é copiada na chamada: o que viaja é o endereço da primeira gaveta. A função escreveu nas gavetas originais, e `notas[0]` vale 14.",
+      "sectionId": "a-lista-nao-copia",
+      "optionRationales": [
+        "O que chegou na função foi o endereço da caixa: as gavetas escritas são as originais.",
+        "Cópia é o que acontece com um `int` solto; com a lista, não.",
+        "A escrita é na memória da caixa e continua valendo depois da chamada.",
+        "O nome da caixa já vale como endereço: o `&` seria redundante ali."
+      ]
+    },
+    {
+      "id": "o-nome-da-caixa-na-chamada",
+      "statement": "Na chamada vai o nome da caixa, sem colchetes — ele já vale como endereço.",
+      "question": "Como se passa a caixa `notas` para `mostraLista`, com 3 gavetas?",
+      "options": [
+        "`mostraLista(notas, 3);`",
+        "`mostraLista(notas[3], 3);`",
+        "`mostraLista(&notas[], 3);`",
+        "`mostraLista(notas[], 3);`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome sozinho é a caixa inteira (na prática, o endereço da primeira gaveta). Com colchetes você estaria passando UMA gaveta, não a lista.",
+      "sectionId": "chamar-passando-a-caixa",
+      "optionRationales": [
+        "O nome sem colchetes é o que a função espera: o endereço da primeira gaveta.",
+        "`notas[3]` seria uma gaveta — e a de número 3 nem existe numa caixa de 3.",
+        "Os colchetes vazios só existem na assinatura, nunca na chamada.",
+        "Colchetes vazios na chamada não compilam: ali vai um valor, não uma forma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C, incluindo o que acontece com um array declarado como parâmetro de função."
+    },
+    {
+      "title": "Implicit conversions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/conversion",
+      "description": "A regra oficial da conversão array-para-ponteiro: o nome da caixa vira o endereço do primeiro elemento quase sempre que é usado."
+    },
+    {
+      "title": "Function declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/functions",
+      "description": "A página oficial dos parâmetros de função em C: como se declara um parâmetro e por que o de array não copia a caixa."
+    }
+  ],
+  "challenges": [
+    "soma-em-funcao"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

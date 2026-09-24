@@ -2,22 +2,135 @@
   "schemaVersion": 1,
   "slug": "um-nome-para-um-valor",
   "title": "Um nome para um valor",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Um número pode ganhar um nome: int idade = 20; guarda o 20 dentro de idade, e daí em diante o nome vale o valor.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "a_variavel"
+  ],
   "prerequisites": [
     "buraco-na-frase"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var",
+      "node:IntegerLiteral",
+      "node:DeclStmt"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:IntegerLiteral",
+        "de": "decl:var"
+      },
+      {
+        "chave": "node:DeclStmt",
+        "de": "decl:var"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a memória do programa deixa de ser invisível: existe uma casa com nome guardando um valor, e o nome pode ser usado em qualquer lugar onde o número apareceria",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-nome-para-o-numero",
+      "title": "Um nome para o número",
+      "markdown": "Até agora o número ia escrito dentro da frase. Ele também pode ganhar um **nome** — e aí você escreve o nome no lugar do número:\n\n```c\nint idade = 20;\nprintf(\"idade: %d\\n\", idade);\n```\n\n```text\nidade: 20\n```\n\nEsse nome com valor guardado é uma **variável**; a primeira linha é a **declaração** dela. Leia-a da esquerda para a direita: `int` avisa que o nome guarda um número inteiro, `idade` é o nome que você escolheu, o `=` põe o 20 dentro dele e o `;` fecha a ordem.\n\nA segunda linha usa o nome: o `%d` recebe o valor que `idade` guarda."
+    },
+    {
+      "id": "o-valor-fica-guardado",
+      "title": "O valor fica guardado",
+      "markdown": "Guardar não é gastar. O valor entra no nome uma vez e **fica lá** — cada vez que você usa o nome, o mesmo valor chega:\n\n```c\nint ano = 2026;\nprintf(\"estamos em %d\\n\", ano);\nprintf(\"e ainda e %d\\n\", ano);\n```\n\n```text\nestamos em 2026\ne ainda e 2026\n```\n\nImprimir o nome não esvazia o nome: `ano` continua valendo 2026 depois dos dois `printf`. Enquanto ninguém mandar mudar, o valor guardado é aquele — e mandar mudar é a aula seguinte."
+    },
+    {
+      "id": "dois-nomes-dois-valores",
+      "title": "Dois nomes, dois valores",
+      "markdown": "Cada variável guarda o SEU valor. Declare quantas precisar, uma por linha:\n\n```c\nint gols = 3;\nint faltas = 11;\nprintf(\"gols: %d faltas: %d\\n\", gols, faltas);\n```\n\n```text\ngols: 3 faltas: 11\n```\n\nA ordem manda: o primeiro `%d` recebe `gols`, o segundo recebe `faltas`.\n\nA analogia é a caixa com etiqueta: a etiqueta é o nome, o que está dentro é o valor. Ela quebra num ponto — a caixa do C só aceita o que o tipo diz, e em `int` não entra frase."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-valor-fica-ate-alguem-mudar",
+      "statement": "Após `int idade = 20;`, `idade` vale 20 até alguém mudar.",
+      "question": "Depois de `int idade = 20;`, o programa imprime `idade` duas vezes seguidas. O que aparece nas duas linhas?",
+      "options": [
+        "20 nas duas vezes: usar o nome guardado não gasta o valor.",
+        "20 na primeira e 0 na segunda: o valor sai ao ser impresso.",
+        "20 na primeira e nada na segunda: o nome esvazia no uso.",
+        "A palavra `idade` nas duas vezes: sai o nome, não o valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor entra no nome uma vez e fica. Cada uso entrega o mesmo 20 — quem troca o valor é uma ordem nova, assunto da próxima aula.",
+      "sectionId": "o-valor-fica-guardado",
+      "optionRationales": [
+        "O valor guardado não se gasta ao ser usado: os dois `printf` recebem 20.",
+        "Imprimir não mexe no que está guardado; nada zera a variável.",
+        "A variável não fica vazia: ela guarda o valor até alguém mandar mudar.",
+        "O `%d` mostra o VALOR que a variável guarda; a palavra `idade` só existe no seu código."
+      ]
+    },
+    {
+      "id": "o-int-o-nome-e-o-valor",
+      "statement": "Na declaração, o `int` diz o que cabe no nome e o `=` põe o primeiro valor dentro dele.",
+      "question": "Na linha `int gols = 3;`, qual é o nome e qual é o valor guardado?",
+      "options": [
+        "O nome é `int` e o valor é `gols`.",
+        "Não há nome: a linha só anuncia o número 3.",
+        "O nome é `gols` e o valor é 3.",
+        "O nome é 3 e o valor é `gols`."
+      ],
+      "answerIndex": 2,
+      "feedback": "`int` é o tipo (o que cabe), `gols` é o nome que você escolheu, 3 é o valor que o `=` guardou — e o `;` só fecha a ordem.",
+      "sectionId": "dois-nomes-dois-valores",
+      "optionRationales": [
+        "`int` não é nome: é o tipo, a etiqueta que diz o que cabe na caixa.",
+        "A linha declara sim um nome: `gols`, já com valor dentro.",
+        "O tipo vem na frente (`int`), o nome no meio (`gols`) e o valor depois do `=` (3).",
+        "Nome é palavra que você escolhe; 3 é o número guardado, nunca o nome."
+      ]
+    },
+    {
+      "id": "a-ordem-dos-buracos",
+      "statement": "Com dois `%d`, a ordem dos nomes na chamada decide qual valor vai em cada buraco.",
+      "question": "Com `gols` valendo 3 e `faltas` valendo 11, o que `printf(\"gols: %d faltas: %d\\n\", faltas, gols);` mostra?",
+      "options": [
+        "gols: 3 faltas: 11",
+        "gols: 11 faltas: 3",
+        "faltas: 11 gols: 3",
+        "gols: %d faltas: %d"
+      ],
+      "answerIndex": 1,
+      "feedback": "Cada `%d` pega o próximo valor da lista, na ordem escrita. Com os nomes trocados, os números trocam de buraco — a frase continua igual.",
+      "sectionId": "dois-nomes-dois-valores",
+      "optionRationales": [
+        "Esse seria o resultado com `gols, faltas`; aqui a lista vem invertida.",
+        "O primeiro `%d` recebe `faltas` (11) e o segundo recebe `gols` (3).",
+        "O texto fixo da frase não se move: só os valores dos buracos mudam.",
+        "O `%d` nunca aparece na tela: ele é o buraco que o valor preenche."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/declarations",
+      "description": "A página oficial da declaração em C: o tipo na frente, o nome depois — a forma exata de int idade = 20;."
+    },
+    {
+      "title": "Initialization — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/initialization",
+      "description": "A página oficial do valor inicial: o = que faz o nome nascer já com o valor dentro."
+    },
+    {
+      "title": "Arithmetic types — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/arithmetic_types",
+      "description": "A página oficial dos tipos numéricos de C, entre eles o int que guarda números inteiros."
+    }
+  ],
+  "challenges": [
+    "idade-na-tela"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

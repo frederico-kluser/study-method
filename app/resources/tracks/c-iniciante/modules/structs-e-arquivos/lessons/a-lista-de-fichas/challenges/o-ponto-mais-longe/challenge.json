@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-ponto-mais-longe",
+  "title": "O ponto mais longe",
+  "concept": "a_lista_de_fichas",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O ponto mais longe\n\nUma caixa de fichas `Ponto` chega à sua caixa, junto com `n` — quantas gavetas ela tem de olhar. Devolva o **índice** da ficha mais distante da origem.\n\n```text\nint oPontoMaisLonge(Ponto pontos[], int n)\n```\n\nA distância da ficha `pontos[i]` até a origem é a raiz de `x*x + y*y`:\n\n```text\n{3, 4}  -> 5.0        {5, 12} -> 13.0        {1, 1} -> 1.41...\n```\n\nO molde `Ponto` e o `#include <math.h>` já vêm no arquivo. Use o padrão da ficha campeã: comece pela gaveta 0 como campeã provisória e, a cada volta, troque de campeã quando a distância da gaveta `i` for maior.\n\nDevolva o **índice** (0, 1, 2...), não a distância — e não imprima nada: quem chama decide o que fazer com o número.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <math.h>\n\n/* o molde da ficha, ja pronto */\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* escreva AQUI a caixa oPontoMaisLonge, com as duas janelas:\n\n       int oPontoMaisLonge(Ponto pontos[], int n)\n\n   Dentro dela: varra as gavetas de 0 a n-1, calcule a distancia de cada\n   ficha ate a origem com sqrt(pontos[i].x * pontos[i].x + ...) e DEVOLVA\n   o indice da ficha mais distante. Nenhum printf: a caixa entrega o numero. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-ponto-mais-longe — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O molde da ficha e declarado no\n   proprio teste, com os MESMOS campos do molde do aluno; cada cenario monta a\n   sua caixa de fichas e confere o INDICE devolvido. A ficha campea esta no\n   fim, no comeco e no meio — nenhum indice fixo passa nos tres. */\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oPontoMaisLonge(Ponto pontos[], int n);\n\nSM_TEST(a_campea_esta_no_fim) {\n    Ponto pontos[3] = {{1, 1}, {2, 2}, {9, 9}};\n    checa_int(\"a campea da primeira caixa\", oPontoMaisLonge(pontos, 3), 2,\n              \"a ficha {9, 9} esta mais longe da origem que {1, 1} e {2, 2}\");\n}\n\nSM_TEST(a_campea_esta_no_comeco) {\n    Ponto pontos[3] = {{8, 6}, {1, 2}, {3, 3}};\n    checa_int(\"a campea da segunda caixa\", oPontoMaisLonge(pontos, 3), 0,\n              \"a ficha {8, 6} esta a 10 da origem: mais que {1, 2} e que {3, 3}\");\n}\n\nSM_TEST(a_campea_esta_no_meio) {\n    Ponto pontos[4] = {{1, 0}, {5, 12}, {3, 4}, {0, 6}};\n    checa_int(\"a campea da terceira caixa\", oPontoMaisLonge(pontos, 4), 1,\n              \"a ficha {5, 12} esta a 13 da origem, a maior distancia das quatro\");\n}\n",
+  "solutionCode": "#include <math.h>\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nint oPontoMaisLonge(Ponto pontos[], int n) {\n    int melhor = 0;\n    double maior = 0.0;\n\n    for (int i = 0; i < n; i++) {\n        double d = sqrt(pontos[i].x * pontos[i].x + pontos[i].y * pontos[i].y);\n        if (maior < d) {\n            maior = d;\n            melhor = i;\n        }\n    }\n\n    return melhor;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_campea_esta_no_fim",
+      "teste": "a_campea_esta_no_fim",
+      "descricao": "com as fichas {1,1}, {2,2} e {9,9}, a caixa devolve 2 — a campea esta na ultima gaveta, e so um laco ate n-1 chega nela"
+    },
+    {
+      "id": "a_campea_esta_no_comeco",
+      "teste": "a_campea_esta_no_comeco",
+      "descricao": "com {8,6}, {1,2} e {3,3}, a caixa devolve 0: a campea provisoria da gaveta 0 resiste as duas voltas seguintes"
+    },
+    {
+      "id": "a_campea_esta_no_meio",
+      "teste": "a_campea_esta_no_meio",
+      "descricao": "com quatro fichas e a mais distante ({5,12}, a 13 da origem) na gaveta 1, a caixa devolve 1 — o indice guardado e o do melhor ate ali"
+    }
+  ]
+}

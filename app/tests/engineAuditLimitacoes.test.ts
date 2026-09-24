@@ -12,8 +12,14 @@
  * lê-se como "está tudo certo" quando significa "não rodou".
  *
  * O que se prova aqui:
- *   1. a MUTAÇÃO: apagar a teoria da aula não muda `violacoes`/`avisos` — o
- *      sintoma que motivou tudo, travado como fato, não como suspeita;
+ *   1. a MUTAÇÃO, QUE SE INVERTEU EM 2026-09-22: apagar a teoria da aula MUDA o
+ *      placar, porque o `auditTrack` passou a rodar a BARRA A17–A23
+ *      (`engine/quality/barra.ts`, agnóstica de linguagem) e A18/A19 reprovam
+ *      exatamente essa mutação. O sintoma histórico continua travado — como
+ *      HISTÓRIA: o que a bateria A13–A16 não media segue não medido (A14b,
+ *      A15a/A15b, A16b, os spans S13), e é a barra que responde pelo passo
+ *      nesta trilha. Medido nesta fixture: 13 violações com a teoria, 19 sem
+ *      ela (`npx tsx --test tests/engineAuditLimitacoes.test.ts`);
  *   2. numa trilha de Python o relatório DECLARA a checagem não executada, com
  *      id, motivo e consequência (`docs/16` §9.2, `CONTRIBUTING.md`);
  *   3. numa trilha de JavaScript `limitacoes` é VAZIA — a lista vazia é a
@@ -198,11 +204,23 @@ function trilhaJs(): LoadedTrack {
 describe('audit — a prova por mutação que motivou a declaração', {
   skip: !TEM_PYTHON ? 'python3 ausente' : false,
 }, () => {
-  it('apagar TODOS os blocos de código da teoria NÃO muda violacoes/avisos', () => {
+  it('apagar TODOS os blocos de código da teoria MUDA violacoes (a mutação se inverteu)', () => {
+    // ESTA EXPECTATIVA MUDOU DE SINAL, e a mudança é o conserto, não a
+    // regressão. Até 2026-09-22 este caso afirmava `semTeoria.violacoes ===
+    // comTeoria.violacoes`: era VERDADE, e era o defeito — a única régua que
+    // exigia demonstração (A13, da bateria A13–A16) é javascript-only e não
+    // rodava nesta trilha de Python. Com a BARRA A17–A23 fiada no `auditTrack`,
+    // apagar os blocos de código da teoria deixa toda chave declarada sem
+    // demonstração: A18 (aula 1) e A19 reprovam.
     const comTeoria = auditTrack(trilhaPython(true), { mode: 'declared' });
     const semTeoria = auditTrack(trilhaPython(false), { mode: 'declared' });
-    assert.equal(semTeoria.totals.violacoes, comTeoria.totals.violacoes);
-    assert.equal(semTeoria.totals.avisos ?? 0, comTeoria.totals.avisos ?? 0);
+    assert.ok(
+      semTeoria.totals.violacoes > comTeoria.totals.violacoes,
+      `a mutação tem de mover o placar: ${comTeoria.totals.violacoes} -> ${semTeoria.totals.violacoes}`,
+    );
+    assert.ok((semTeoria.totals.errosDaBarra ?? 0) > (comTeoria.totals.errosDaBarra ?? 0));
+    const regras = new Set(semTeoria.violations.map((v) => v.regra));
+    assert.ok(regras.has('A18') || regras.has('A19'), 'a chave declarada sem demonstração é A18 (aula 1) / A19');
   });
 
   it('…e agora o relatório DECLARA por quê, em vez de deixar o zero falar', () => {
@@ -232,6 +250,14 @@ describe('audit — limitações declaradas (docs/16 §9.2, CONTRIBUTING.md)', {
     assert.match(lim.motivo, /python/);
     assert.match(lim.consequencia, /avisos/);
     assert.match(lim.consequencia, /novosVerdadeiros/);
+    // e o texto conta a verdade NOVA: a barra cobre parte do buraco, a prova
+    // por mutação que esta entrada citava já não vale, e o que continua sem
+    // medida está NOMEADO (A14b, A15a/A15b, A16b, S13).
+    assert.match(lim.consequencia, /A17–A23/);
+    assert.match(lim.consequencia, /JÁ NÃO VALE/);
+    for (const naoCoberta of ['A14b', 'A15a/A15b', 'A16b', 'S13']) {
+      assert.ok(lim.consequencia.includes(naoCoberta), naoCoberta);
+    }
   });
 
   it('`novosVerdadeiros` fica AUSENTE quando a bateria não rodou (o fallback saiu)', () => {

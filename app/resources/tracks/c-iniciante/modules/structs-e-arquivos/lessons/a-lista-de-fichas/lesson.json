@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "a-lista-de-fichas",
   "title": "A lista de fichas",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa de gavetas passa a guardar fichas: `Ponto pontos[3]` cria três fichas, e `pontos[i].x` alcança um campo — primeiro a gaveta, depois o campo.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "a_lista_de_fichas"
+  ],
   "prerequisites": [
     "o-apelido-do-molde",
     "varrer-a-lista"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var",
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a gaveta deixa de guardar um número e passa a guardar uma ficha inteira: o laço que varria valores agora varre fichas, e o índice do campeão é o caminho de volta para todos os campos dele",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "uma-gaveta-por-ficha",
+      "title": "Uma gaveta por ficha",
+      "markdown": "A caixa de gavetas do módulo 5 guardava um número por gaveta. Trocando o molde da gaveta, cada uma passa a guardar uma ficha INTEIRA:\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nPonto pontos[3];\npontos[0].x = 1;\npontos[0].y = 2;\nprintf(\"%d,%d\\n\", pontos[0].x, pontos[0].y);\n```\n\n```text\n1,2\n```\n\n`Ponto pontos[3]` cria três gavetas numeradas 0, 1 e 2 — e em cada uma cabe um `x` e um `y`. `pontos[0]` é a primeira ficha; o `.x` depois dela entra no campo daquela ficha."
+    },
+    {
+      "id": "primeiro-a-gaveta-depois-o-campo",
+      "title": "Primeiro a gaveta, depois o campo",
+      "markdown": "O inicializador também fica em dois níveis: chaves de fora para a caixa, um par de chaves por ficha.\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nPonto pontos[3] = {{1, 2}, {3, 4}, {5, 6}};\nfor (int i = 0; i < 3; i++) {\n    printf(\"%d,%d\\n\", pontos[i].x, pontos[i].y);\n}\n```\n\n```text\n1,2\n3,4\n5,6\n```\n\nLeia `pontos[i].x` da esquerda para a direita: **primeiro a gaveta, depois o campo**. O `[i]` escolhe a ficha da vez; só então o `.x` entra nela."
+    },
+    {
+      "id": "a-distancia-de-uma-ficha",
+      "title": "A distância de uma ficha",
+      "markdown": "A distância de uma ficha até a origem é a raiz de `x*x + y*y` — o `sqrt` do módulo 4, agora alimentado por campos:\n\n```c\n#include <math.h>\n\ntypedef struct { int x; int y; } Ponto;\n\ndouble distancia(Ponto p) {\n    return sqrt(p.x * p.x + p.y * p.y);\n}\n```\n\nOnde cabia um `int`, cabe um campo: `p.x * p.x` é uma conta como qualquer outra. Para a ficha `{3, 4}` a caixa devolve 5.0, e para `{8, 6}` devolve 10.0."
+    },
+    {
+      "id": "a-ficha-campea",
+      "title": "A ficha campeã",
+      "markdown": "Achar a ficha campeã é o padrão do máximo, agora guardando o ÍNDICE do melhor em vez do valor:\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nPonto pontos[3] = {{1, 2}, {8, 6}, {5, 6}};\nint melhor = 0;\nfor (int i = 1; i < 3; i++) {\n    if (pontos[melhor].y < pontos[i].y) {\n        melhor = i;\n    }\n}\nprintf(\"a ficha mais alta: %d\\n\", melhor);\n```\n\n```text\na ficha mais alta: 1\n```\n\nO laço começa em 1 porque a gaveta 0 já é a campeã provisória. Com `<`, empate mantém a primeira: a ficha 2 também tem `y` igual a 6 e não desbanca a 1."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "primeiro-a-gaveta-depois-o-campo",
+      "statement": "`pontos[i].x`: primeiro a gaveta, depois o campo.",
+      "question": "Numa caixa `Ponto pontos[3]`, o que `pontos[2].y` nomeia?",
+      "options": [
+        "O campo `y` da ficha que está na gaveta 2.",
+        "A gaveta `y` da ficha número 2 da caixa.",
+        "A ficha inteira da gaveta 2, com os dois campos.",
+        "O segundo campo de cada uma das três fichas."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `[2]` escolhe a ficha; só depois o `.y` entra num campo dela. Sem o `[2]` não há ficha escolhida, e sem o `.y` você tem a ficha inteira em vez de um número.",
+      "sectionId": "primeiro-a-gaveta-depois-o-campo",
+      "optionRationales": [
+        "O `[2]` escolhe a gaveta e o `.y` entra no campo daquela ficha.",
+        "Gaveta é o que o `[ ]` escolhe; `y` é campo da ficha, não gaveta da caixa.",
+        "A ficha inteira é `pontos[2]`, sem o `.y` no fim.",
+        "Cada gesto alcança UMA ficha: para percorrer as três é preciso um laço."
+      ]
+    },
+    {
+      "id": "o-inicializador-em-dois-niveis",
+      "statement": "O inicializador da caixa de fichas tem dois níveis: um par de chaves por ficha.",
+      "question": "O que `Ponto pontos[3] = {{1, 2}, {3, 4}, {5, 6}};` cria?",
+      "options": [
+        "Três fichas: a da gaveta 1 com `x` igual a 3 e `y` igual a 4.",
+        "Seis fichas, uma para cada número escrito entre as chaves de dentro.",
+        "Uma ficha só, com seis campos numerados de 0 a 5.",
+        "Três fichas, todas com os mesmos valores `1` e `2`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada par de chaves de dentro preenche uma ficha, na ordem das gavetas: a gaveta 0 fica com `{1, 2}`, a gaveta 1 com `{3, 4}` e a gaveta 2 com `{5, 6}`.",
+      "sectionId": "primeiro-a-gaveta-depois-o-campo",
+      "optionRationales": [
+        "São três pares de chaves para três gavetas, e o segundo par é a ficha da gaveta 1.",
+        "Os seis números preenchem dois campos de cada uma das três fichas.",
+        "O molde da gaveta é `Ponto`, que tem dois campos com nome — não seis numerados.",
+        "Cada par de chaves vale para a sua gaveta; só a gaveta 0 recebe `{1, 2}`."
+      ]
+    },
+    {
+      "id": "o-indice-do-campeao",
+      "statement": "No padrão do máximo com fichas, o que se guarda é o ÍNDICE do melhor.",
+      "question": "No laço da ficha campeã, por que `melhor` guarda o índice e não o campo comparado?",
+      "options": [
+        "Porque com o índice na mão dá para voltar à ficha inteira depois.",
+        "Porque o campo comparado é um `double` e não caberia dentro de um `int`.",
+        "Porque o índice é sempre maior que o campo em qualquer ficha.",
+        "Porque guardar o campo faria o laço parar na primeira gaveta."
+      ],
+      "answerIndex": 0,
+      "feedback": "Guardando só o campo você perde de vista QUEM ganhou. Com o índice, `pontos[melhor]` devolve a ficha inteira — e de lá sai qualquer campo dela.",
+      "sectionId": "a-ficha-campea",
+      "optionRationales": [
+        "O índice é o caminho de volta: `pontos[melhor]` recupera a ficha e todos os campos dela.",
+        "O tipo do campo não é o problema: um `double` cabe numa variável `double`.",
+        "Índice e campo são números sem relação de tamanho — o índice 0 pode ser o campeão.",
+        "O laço não para por causa do que se guarda: ele vai até a condição do `for` falhar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C: o tipo do elemento pode ser qualquer tipo completo, inclusive um `struct`."
+    },
+    {
+      "title": "Initialization — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/initialization",
+      "description": "A página oficial do inicializador entre chaves, com as chaves aninhadas de um array de fichas."
+    },
+    {
+      "title": "sqrt, sqrtf, sqrtl — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/numeric/math/sqrt",
+      "description": "A página oficial do `sqrt`: a raiz quadrada que a distância até a origem usa, declarada em `<math.h>`."
+    }
+  ],
+  "challenges": [
+    "o-ponto-mais-longe"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

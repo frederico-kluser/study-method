@@ -103,6 +103,11 @@
       "title": "zip() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#zip",
       "description": "A função que emparelha item a item duas ou mais sequências."
+    },
+    {
+      "title": "Técnicas de laço — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#looping-techniques",
+      "description": "A seção do tutorial que mostra o `zip` dentro do `for`, emparelhando duas sequências item a item."
     }
   ],
   "challenges": [

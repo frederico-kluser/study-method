@@ -2,23 +2,132 @@
   "schemaVersion": 1,
   "slug": "copias-no-vestibulo",
   "title": "Cópias no vestíbulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa troca os dois valores e, do lado de fora, nada mudou: o que entra pela janela é uma cópia — passagem por valor é o padrão do C.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "passagem_por_valor"
+  ],
   "prerequisites": [
     "a-janela-de-entrada",
     "mudar-o-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "passagem por valor"
+  ],
+  "notionalMachineDelta": "a janela deixa de ser um cano de duas vias: o argumento é copiado na entrada, e o nome de quem chamou fica fora do alcance da caixa — o único caminho de volta é o return",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-vestibulo-da-caixa",
+      "title": "O vestíbulo da caixa",
+      "markdown": "Quando você chama uma caixa, o valor do argumento não VIAJA para dentro dela: ele é **copiado** na entrada. O parâmetro é um nome novo, criado na hora da chamada, já com a cópia.\n\nPense num vestíbulo: você mostra o seu papel na portaria, o porteiro tira uma fotocópia e leva a cópia para dentro. O seu papel continua na sua mão.\n\n```c\nint dobrado(int n) {\n    n = n * 2;\n    return n;\n}\n```\n\n`n` virou o dobro DENTRO da caixa, e quem chamou não perdeu nada — o valor dele nunca esteve ali.\n\nIsso tem nome: **passagem por valor**, o padrão do C."
+    },
+    {
+      "id": "a-troca-funciona-por-dentro",
+      "title": "A troca funciona por dentro",
+      "markdown": "Trocar dois valores são três passos: guardar o primeiro, sobrescrevê-lo com o segundo, e passar o guardado para o segundo.\n\n```c\nvoid tentarTrocar(int a, int b) {\n    int guardado = a;\n    a = b;\n    b = guardado;\n    printf(\"dentro: %d e %d\\n\", a, b);\n}\n```\n\nCom a chamada `tentarTrocar(2, 9)`:\n\n```text\ndentro: 9 e 2\n```\n\nDentro da caixa a troca ACONTECEU: `a` ficou 9 e `b` ficou 2. O código está certo."
+    },
+    {
+      "id": "e-nao-vale-nada-por-fora",
+      "title": "E não vale nada por fora",
+      "markdown": "Agora a mesma caixa, vista de fora — o cartaz na porta basta para chamá-la:\n\n```c\nvoid tentarTrocar(int a, int b);\n\nvoid usar(void) {\n    int x = 2;\n    int y = 9;\n    tentarTrocar(x, y);\n    printf(\"fora: %d e %d\\n\", x, y);\n}\n```\n\n```text\ndentro: 9 e 2\nfora: 2 e 9\n```\n\nA caixa trocou as CÓPIAS dela, e elas morreram no `}`. O `x` e o `y` de quem chamou nunca foram tocados — e o compilador não reclama, porque não há nada de errado ali."
+    },
+    {
+      "id": "por-que-isto-nao-e-erro-seu",
+      "title": "Por que isto não é erro seu",
+      "markdown": "O desafio desta aula \"não funciona\" de propósito. A caixa não alcança os nomes de quem a chamou: essa é a regra, não um descuido seu.\n\nO caminho de volta que você já tem é o `return` — um valor por chamada:\n\n```c\nint dobrado(int n) {\n    return n * 2;\n}\n```\n\nQuem chama guarda o valor devolvido no seu próprio nome, e aí sim ele muda.\n\nOnde o vestíbulo quebra: no módulo das listas e endereços você vai entregar o ENDEREÇO do papel em vez da fotocópia — e a mesma troca vai valer lá fora."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-troca-nao-sai-da-caixa",
+      "statement": "A função tenta trocar e falha: os parâmetros são cópias — é assim que o C funciona por padrão.",
+      "question": "Com `x` valendo 2 e `y` valendo 9, o programa chama `tentarTrocar(x, y)` e depois imprime os dois. O que sai na linha de fora?",
+      "options": [
+        "`fora: 2 e 9` — os originais seguem como estavam.",
+        "`fora: 9 e 2`, porque a caixa trocou os dois valores.",
+        "`fora: 9 e 9`, porque só o primeiro nome recebeu o outro valor.",
+        "Nada: a caixa é `void` e um `void` não deixa nada impresso."
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa trocou as cópias dela, que acabaram no fim do corpo. Os nomes de quem chamou seguem com os valores de sempre — e o compilador não avisa, porque não há erro nenhum ali.",
+      "sectionId": "e-nao-vale-nada-por-fora",
+      "optionRationales": [
+        "A troca valeu para as cópias; os nomes de fora nunca entraram na caixa.",
+        "Essa é a linha de DENTRO da caixa: lá a troca acontece mesmo.",
+        "Nem isso: nenhum dos dois nomes de fora é alterado pela chamada.",
+        "O `printf` de fora imprime igual; o `void` fala do valor devolvido, não da tela."
+      ]
+    },
+    {
+      "id": "o-parametro-nasce-na-chamada",
+      "statement": "O parâmetro é um nome novo, criado na chamada, com uma cópia do valor do argumento.",
+      "question": "Na caixa `int dobrado(int n)`, a primeira linha do corpo é `n = n * 2;`. O que acontece com o valor de quem chamou?",
+      "options": [
+        "Continua o mesmo: o dobro ficou na cópia, dentro da caixa.",
+        "Dobra também, porque `n` e o nome de fora são o mesmo lugar.",
+        "Fica pela metade, já que a caixa levou o valor embora com ela.",
+        "Dobra se o nome de fora também se chamar `n`; se não, não dobra."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `n` nasce na chamada com uma cópia do valor e morre no fim do corpo. Dobrar a cópia não encosta em quem chamou — quem quiser o dobro precisa receber o valor DEVOLVIDO.",
+      "sectionId": "o-vestibulo-da-caixa",
+      "optionRationales": [
+        "O parâmetro é outro lugar na memória, com uma cópia do valor.",
+        "Não são o mesmo lugar: o mesmo valor, em dois lugares diferentes.",
+        "A caixa não tira nada de ninguém: ela recebe uma cópia.",
+        "O nome não muda nada: mesmo nome de fora e de dentro seguem sendo cópias."
+      ]
+    },
+    {
+      "id": "o-return-e-a-porta-de-volta",
+      "statement": "Hoje, o único caminho de volta de uma caixa é o `return`.",
+      "question": "Você quer que a caixa entregue o dobro para quem a chamou, de verdade. O que funciona hoje?",
+      "options": [
+        "Devolver o dobro com `return` e guardá-lo na linha da chamada.",
+        "Mudar o parâmetro dentro da caixa: quem chamou vê a mudança.",
+        "Dar ao parâmetro o mesmo nome da variável de quem chama a caixa.",
+        "Chamar a caixa duas vezes: na segunda o valor já chega dobrado."
+      ],
+      "answerIndex": 0,
+      "feedback": "Mexer no parâmetro muda só a cópia. Para entregar algo a quem chamou existe hoje um caminho só: devolver com `return` e deixar que quem chamou guarde o valor.",
+      "sectionId": "por-que-isto-nao-e-erro-seu",
+      "optionRationales": [
+        "É o caminho de volta que a linguagem oferece: um valor por chamada.",
+        "Isso muda a cópia e nada mais — foi o que a troca desta aula mostrou.",
+        "O nome é assunto interno da caixa; repetir o nome não junta os dois lugares.",
+        "Cada chamada recebe cópias novas dos mesmos valores: nada se acumula."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function definitions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A página oficial da definição de função: a lista de parâmetros declara nomes que valem dentro do corpo."
+    },
+    {
+      "title": "Lifetime — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/lifetime",
+      "description": "O tempo de vida dos objetos automáticos: o parâmetro nasce na chamada e morre no fim do corpo da função."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "A cópia nas palavras do padrão: a subcláusula 6.9.1 diz que o valor de cada argumento é convertido ao tipo do parâmetro *como por atribuição*."
+    }
+  ],
+  "challenges": [
+    "a-troca-que-nao-troca"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

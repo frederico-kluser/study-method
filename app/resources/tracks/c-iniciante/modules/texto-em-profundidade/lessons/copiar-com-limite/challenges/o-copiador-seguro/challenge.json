@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-copiador-seguro",
+  "title": "O copiador seguro",
+  "concept": "copiar_com_limite",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O copiador seguro\n\nA função `oCopiadorSeguro` lê **uma palavra** (letras sem acento, até 49) e copia essa palavra para uma **etiqueta de oito gavetas** — uma caixa pequena de propósito. Quem copia agora é a `strncpy`, e a placa do fim é responsabilidade sua.\n\nDigitando `computador`:\n\n```text\ncomputador\ncomputa\n```\n\nDigitando `ana`:\n\n```text\nana\nana\n```\n\nPassos:\n\n1. copie `palavra` para `etiqueta` com `strncpy`, usando `sizeof etiqueta` como limite;\n2. grave a placa `\\0` na última gaveta da etiqueta — o índice é `sizeof etiqueta - 1`;\n3. imprima a palavra digitada e, na linha seguinte, a etiqueta.\n\nDez letras não cabem em oito gavetas: sete entram e a oitava fica para a placa. Cortar é o preço do freio de mão — e é bem melhor que escrever fora da caixa.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* oCopiadorSeguro le uma palavra digitada e copia essa palavra para a\n   etiqueta de OITO gavetas, com strncpy e a placa \\0 no fim. A palavra que\n   nao cabe e cortada pelo limite — e isso e o esperado. */\nvoid oCopiadorSeguro(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char etiqueta[8] = \"\";\n    /* 1) copie palavra para etiqueta com strncpy, limite sizeof etiqueta */\n\n    /* 2) grave a placa \\0 na ultima gaveta: o indice sizeof etiqueta - 1 */\n\n    /* 3) imprima a palavra e, na linha de baixo, a etiqueta */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-copiador-seguro — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do stdout\n   acontece dentro do proprio cenario (freopen + fflush, sem fclose no stdout).\n   O cenario 1 usa uma palavra de dez letras: a segunda linha so pode sair\n   certa se o limite da copia tiver cortado o texto em sete letras — imprimir\n   a palavra lida duas vezes reprova. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oCopiadorSeguro(void);\n\nSM_TEST(a_etiqueta_cortada) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"computador\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    oCopiadorSeguro();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a palavra digitada\", linha, \"computador\\n\",\n              \"a palavra lida sai inteira: a caixa dela tem cinquenta gavetas\");\n    fgets(linha, 80, f);\n    checa_str(\"a etiqueta de oito gavetas\", linha, \"computa\\n\",\n              \"sete letras entraram na etiqueta e a oitava gaveta ficou para a placa\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_etiqueta_que_cabe) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"ana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    oCopiadorSeguro();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a palavra curta digitada\", linha, \"ana\\n\",\n              \"tres letras cabem com folga na caixa da leitura\");\n    fgets(linha, 80, f);\n    checa_str(\"a etiqueta inteira\", linha, \"ana\\n\",\n              \"quando o texto cabe no limite, nada e cortado: a etiqueta fica igual a palavra\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid oCopiadorSeguro(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char etiqueta[8] = \"\";\n    strncpy(etiqueta, palavra, sizeof etiqueta);\n    etiqueta[sizeof etiqueta - 1] = '\\0';\n    printf(\"%s\\n\", palavra);\n    printf(\"%s\\n\", etiqueta);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_etiqueta_cortada",
+      "teste": "a_etiqueta_cortada",
+      "descricao": "com computador digitado no stdin, a funcao oCopiadorSeguro imprime a palavra inteira e, na linha de baixo, a etiqueta de oito gavetas cortada em computa — sete letras mais a placa \\0 — sem linha extra"
+    },
+    {
+      "id": "a_etiqueta_que_cabe",
+      "teste": "a_etiqueta_que_cabe",
+      "descricao": "com ana digitado no stdin, a mesma funcao imprime ana nas duas linhas: quando o texto cabe no limite a strncpy copia tudo e nada e cortado"
+    }
+  ]
+}

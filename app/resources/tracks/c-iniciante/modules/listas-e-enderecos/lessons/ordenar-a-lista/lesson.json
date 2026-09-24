@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "ordenar-a-lista",
   "title": "Ordenar a lista",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um laço de passadas por fora, um laço de pares por dentro e a troca de vizinhos: o primeiro algoritmo completo da sua vida põe a lista em ordem crescente.",
+  "difficulty": 4,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "a_ordenacao"
+  ],
   "prerequisites": [
     "inverter-a-lista",
     "laco-dentro-de-laco"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o degrau desta consolidação: o `for` deixa de ser uma varredura e passa a ser PASSADA — um laço de fora que repete a varredura até a lista inteira ficar em ordem",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-troca-dos-vizinhos",
+      "title": "A troca dos vizinhos",
+      "markdown": "Ordenar é pôr em ordem crescente: a menor nota na gaveta 0, a maior na última.\n\nO gesto que faz isso é pequeno: olhar DOIS vizinhos e, se estiverem na ordem errada, trocá-los de lugar.\n\n```c\nint notas[4] = {7, 3, 9, 1};\nif (notas[1] < notas[0]) {\n    int guardado = notas[0];\n    notas[0] = notas[1];\n    notas[1] = guardado;\n}\n```\n\nA troca precisa da terceira mão: `guardado` segura o 7 enquanto o 3 ocupa a gaveta 0. Sem ela, o 7 seria apagado antes de ter para onde ir."
+    },
+    {
+      "id": "uma-passada-inteira",
+      "title": "Uma passada inteira",
+      "markdown": "Agora repita o gesto para cada par vizinho, da esquerda para a direita. Isso é uma PASSADA:\n\n```c\nint notas[4] = {7, 3, 9, 1};\nfor (int j = 0; j < 3; j++) {\n    if (notas[j + 1] < notas[j]) {\n        int guardado = notas[j];\n        notas[j] = notas[j + 1];\n        notas[j + 1] = guardado;\n    }\n}\n```\n\nO `j` para em 2, porque o último par é `notas[2]` com `notas[3]`. A lista sai da passada assim: `3 7 1 9` — o maior de todos chegou ao fim."
+    },
+    {
+      "id": "a-passada-de-novo",
+      "title": "A passada, de novo",
+      "markdown": "Uma passada não basta: em `3 7 1 9` o 1 ainda está fora de lugar. Então a passada inteira entra DENTRO de outro laço:\n\n```c\nint notas[4] = {7, 3, 9, 1};\nfor (int passada = 0; passada < 3; passada++) {\n    for (int j = 0; j < 3 - passada; j++) {\n        if (notas[j + 1] < notas[j]) {\n            int guardado = notas[j];\n            notas[j] = notas[j + 1];\n            notas[j + 1] = guardado;\n        }\n    }\n}\n```\n\nO laço de fora conta passadas; o de dentro anda pelos pares."
+    },
+    {
+      "id": "quantas-passadas-bastam",
+      "title": "Quantas passadas bastam",
+      "markdown": "Cada passada empurra o maior que ainda sobrou para o fim da parte não arrumada:\n\n```text\n7 3 9 1  ->  3 7 1 9  ->  3 1 7 9  ->  1 3 7 9\n```\n\nCom 4 notas, 3 passadas bastam: depois de acertar as três últimas gavetas, a primeira só pode ter a menor. Em geral, `n - 1` passadas.\n\nE é por isso que o laço de dentro vai só até `3 - passada`: o fim da lista já está pronto, e comparar ali é trabalho perdido."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "n-1-passadas-bastam",
+      "statement": "Cada passada empurra o maior para o fim; `n - 1` passadas bastam.",
+      "question": "A lista tem 4 notas. Quantas passadas o laço de fora precisa dar?",
+      "options": [
+        "Três: com 4 notas, `n - 1` passadas bastam.",
+        "Quatro: uma passada para cada nota da lista.",
+        "Uma: a passada já compara todos os pares vizinhos.",
+        "Seis: cada nota é comparada com todas as outras."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada passada leva o maior que sobrou para o fim. Depois de 3 passadas as 3 últimas gavetas já estão certas — e a gaveta 0 só pode ter a menor.",
+      "sectionId": "quantas-passadas-bastam",
+      "optionRationales": [
+        "Três passadas fixam as três últimas gavetas, e a menor sobra sozinha na gaveta 0.",
+        "A quarta passada não tem o que fazer: a gaveta 0 já é a única que restou.",
+        "Uma passada só garante o maior no fim; o resto da lista pode continuar fora de ordem.",
+        "Comparar cada nota com todas as outras é outro algoritmo — aqui só vizinhos se comparam."
+      ]
+    },
+    {
+      "id": "a-troca-precisa-de-guardado",
+      "statement": "A troca de dois vizinhos precisa de uma variável extra para não perder um valor.",
+      "question": "Por que a troca começa com `int guardado = notas[j];`?",
+      "options": [
+        "Porque `notas[j]` seria apagado antes de ser copiado.",
+        "Porque o `for` pede uma variável nova a cada passada.",
+        "Porque o `if` só compara variáveis, nunca gavetas.",
+        "Porque trocar gavetas muda o tamanho da lista."
+      ],
+      "answerIndex": 0,
+      "feedback": "A linha `notas[j] = notas[j + 1];` sobrescreve a gaveta `j`. Sem o `guardado`, o valor antigo desaparece e as duas gavetas ficam iguais.",
+      "sectionId": "a-troca-dos-vizinhos",
+      "optionRationales": [
+        "A primeira atribuição da troca já apaga a gaveta `j`: o valor antigo tem de estar guardado antes.",
+        "O `for` não exige variável nenhuma; o `guardado` existe por causa da troca, não do laço.",
+        "O `if` compara gavetas sem problema — `notas[j + 1] < notas[j]` é exatamente isso.",
+        "Trocar valores de lugar não cria nem apaga gavetas: a lista continua do mesmo tamanho."
+      ]
+    },
+    {
+      "id": "o-laco-de-dentro-encurta",
+      "statement": "O laço de dentro encurta a cada passada, porque o fim da lista já está pronto.",
+      "question": "No laço `for (int j = 0; j < 3 - passada; j++)`, o que o `- passada` evita?",
+      "options": [
+        "Comparar pares no fim, que já está em ordem.",
+        "Comparar a gaveta 0 com ela mesma na primeira volta.",
+        "Trocar de lugar duas notas que já são iguais.",
+        "Sair do laço antes de olhar o primeiro par."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada passada fixa uma gaveta no fim da lista. Olhar de novo para ela é trabalho perdido — e é isso que o `- passada` corta.",
+      "sectionId": "quantas-passadas-bastam",
+      "optionRationales": [
+        "O fim da lista já ficou em ordem nas passadas anteriores: comparar ali não muda nada.",
+        "A gaveta 0 nunca é comparada com ela mesma: o par é sempre `j` com `j + 1`.",
+        "Notas iguais não entram no `if`, porque `<` é falso — não é disso que o `- passada` trata.",
+        "O laço olha o primeiro par em toda passada; o que encurta é o FIM, não o começo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for` em C: inicialização, condição e incremento — e o que vale aninhar um dentro do outro."
+    },
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C: as gavetas numeradas de 0 a n-1 que a ordenação embaralha no próprio lugar."
+    },
+    {
+      "title": "qsort(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/qsort.3.html",
+      "description": "A ordenação que a biblioteca padrão já traz — a mesma tarefa que você faz à mão nesta aula, para entender o que ela faz."
+    }
+  ],
+  "challenges": [
+    "o-ordenador"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

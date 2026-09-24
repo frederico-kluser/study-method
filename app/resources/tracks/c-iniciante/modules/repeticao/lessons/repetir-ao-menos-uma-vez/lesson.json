@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "repetir-ao-menos-uma-vez",
   "title": "Repetir ao menos uma vez",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O do..while roda o corpo PRIMEIRO e pergunta depois — é a forma certa de pedir algo e repetir enquanto a resposta não servir.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:DoStmt",
+  "concepts": [
+    "o_laco_que_pergunta_depois"
+  ],
   "prerequisites": [
     "enquanto"
   ],
+  "introduces": {
+    "productive": [
+      "node:DoStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ordem entre o teste e o corpo deixa de ser fixa: o aluno passa a escolher se a pergunta vem antes (while) ou depois (do..while) da primeira execução do corpo",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "testar-depois-em-vez-de-antes",
+      "title": "Testar depois, em vez de antes",
+      "markdown": "O `while` pergunta ANTES da primeira volta. Se a condição já nasce falsa, o corpo nunca roda:\n\n```c\nint restam = 0;\nwhile (restam >= 1) {\n    printf(\"uma volta\\n\");\n    restam -= 1;\n}\n```\n\nNada é impresso. O `do..while` inverte a ordem: roda o corpo primeiro e só então pergunta.\n\n```c\nint restam = 0;\ndo {\n    printf(\"uma volta\\n\");\n    restam -= 1;\n} while (restam >= 1);\n```\n\n```text\numa volta\n```\n\nMesma condição falsa, e ainda assim uma volta aconteceu. O corpo do `do` roda ao menos uma vez, sempre."
+    },
+    {
+      "id": "a-condicao-no-fim-e-o-ponto-e-virgula",
+      "title": "A condição no fim, e o ponto e vírgula",
+      "markdown": "Na escrita, duas coisas mudam de lugar. A condição vem no FIM, depois da palavra `while` — e essa linha termina com **ponto e vírgula**:\n\n```c\nint i = 1;\ndo {   /* o corpo vem antes da pergunta */\n    printf(\"%d\\n\", i);\n    i++;\n} while (i <= 3);\n```\n\n```text\n1\n2\n3\n```\n\nÉ o único `while` de C que leva `;`, e esquecê-lo é erro de compilação. Fora essa troca de lugar, o laço conta igual: começa em 1, imprime, soma 1 e pergunta de novo."
+    },
+    {
+      "id": "perguntar-de-novo-ate-servir",
+      "title": "Perguntar de novo até servir",
+      "markdown": "O `do..while` é a forma certa de \"pergunte, e repita enquanto a resposta não servir\": a pergunta tem de acontecer ao menos uma vez.\n\n```c\nint op = 1;\ndo {\n    printf(\"escolha 1, 2 ou 3\\n\");\n    scanf(\"%d\", &op);\n} while (op <= 0 || op >= 4);\nprintf(\"opcao %d aceita\\n\", op);\n```\n\nO `||` reprova a opção por qualquer um dos dois lados: `op <= 0` pega o zero e os negativos, `op >= 4` pega o 4 para cima. Só um valor de 1 a 3 escapa dos dois — e aí o laço encerra."
+    },
+    {
+      "id": "a-condicao-e-um-numero",
+      "title": "A condição é um número",
+      "markdown": "A condição do `do..while` é uma expressão comum: dá para guardá-la num nome antes e olhar o número que ela vale.\n\n```c\nint dia = 9;\nint invalido = dia <= 0 || dia >= 8;\nprintf(\"%d\\n\", invalido);\n```\n\n```text\n1\n```\n\n`invalido` vale 1 porque o segundo lado do `||` é verdadeiro — basta UM lado para o `||` valer 1. Dentro do `do..while`, é esse mesmo número que decide se vem outra volta: 1 repete, 0 encerra."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-corpo-roda-ao-menos-uma-vez",
+      "statement": "O do-while executa o corpo PRIMEIRO e testa depois — ao menos uma vez.",
+      "question": "Com `int restam = 0;`, quantas linhas `do { printf(\"uma volta\\n\"); restam -= 1; } while (restam >= 1);` imprime?",
+      "options": [
+        "Uma: o corpo roda antes de qualquer teste; a condição só encerra.",
+        "Nenhuma: `0 >= 1` é falso, e laço com condição falsa não roda.",
+        "Infinitas: `restam` só diminui e a condição nunca vira verdadeira.",
+        "Duas: o `do` roda o corpo uma vez e o `while` do fim roda outra."
+      ],
+      "answerIndex": 0,
+      "feedback": "No `do..while` a pergunta vem depois do corpo. A primeira volta acontece sem teste nenhum; só então `restam >= 1` é conferido — e, valendo -1, encerra o laço.",
+      "sectionId": "testar-depois-em-vez-de-antes",
+      "optionRationales": [
+        "O corpo roda uma vez sem teste; depois `-1 >= 1` é falso e o laço acaba.",
+        "Esse seria o resultado com `while` na frente: lá a condição é testada ANTES da primeira volta.",
+        "A condição `restam >= 1` fica cada vez mais falsa: ela reprova já na primeira conferência.",
+        "`do` e `while` não são dois laços: são as duas pontas do MESMO laço."
+      ]
+    },
+    {
+      "id": "o-ponto-e-virgula-do-fim",
+      "statement": "No do-while a condição vem no fim, e essa linha termina com ponto e vírgula.",
+      "question": "Qual destas linhas fecha corretamente um `do..while`?",
+      "options": [
+        "`} while (i <= 3)`",
+        "`while (i <= 3) { }`",
+        "`} while (i <= 3);`",
+        "`} do (i <= 3);`"
+      ],
+      "answerIndex": 2,
+      "feedback": "O fecha-chaves do corpo, a palavra `while`, a condição entre parênteses e o `;`. É o único `while` de C que leva ponto e vírgula, porque ali a ordem acabou.",
+      "sectionId": "a-condicao-no-fim-e-o-ponto-e-virgula",
+      "optionRationales": [
+        "Falta o `;`: sem ele o compilador reclama, porque a ordem do laço não terminou.",
+        "Esse é um `while` comum, com a condição na frente e o corpo depois — o outro laço.",
+        "É a forma exata: corpo fechado, `while`, condição e o ponto e vírgula obrigatório.",
+        "A palavra `do` abre o laço, antes do corpo; ela não aparece no fecho."
+      ]
+    },
+    {
+      "id": "o-ou-reprova-pelos-dois-lados",
+      "statement": "No `||`, basta um lado verdadeiro para a condição inteira valer 1.",
+      "question": "Com `op` valendo 4, o que `op <= 0 || op >= 4` responde?",
+      "options": [
+        "0 — o `||` exige que os dois lados sejam verdadeiros.",
+        "0 — o 4 não é menor ou igual a 0, e o `||` para no lado falso.",
+        "4 — o `||` devolve o valor de `op` quando um dos dois lados casa.",
+        "1 — o segundo lado é verdadeiro, e ao `||` basta um lado valer."
+      ],
+      "answerIndex": 3,
+      "feedback": "O `||` responde 1 quando ao menos um lado é verdadeiro. Num `do..while` de menu é isso que mantém a pergunta de pé: qualquer um dos dois jeitos de estar errado repete a volta.",
+      "sectionId": "a-condicao-e-um-numero",
+      "optionRationales": [
+        "Exigir os dois é o `&&`; o `||` se contenta com um.",
+        "O `||` não para no lado falso: ele só para quando encontra um lado VERDADEIRO, e aqui o segundo é.",
+        "Toda comparação e todo `||` em C respondem 0 ou 1 — nunca o valor comparado.",
+        "`4 <= 0` é falso e `4 >= 4` é verdadeiro: um lado verdadeiro já faz o `||` valer 1."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "do-while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/do",
+      "description": "A página oficial do `do..while`: o corpo é executado e SÓ DEPOIS a expressão é avaliada — e a sintaxe termina com ponto e vírgula."
+    },
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial de `&&` e `||`: o resultado é 1 ou 0, e o `||` avalia o lado direito só quando o esquerdo é falso."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.5.2 define o `do` e diz que a avaliação da expressão de controle acontece DEPOIS de cada execução do corpo."
+    }
+  ],
+  "challenges": [
+    "menu-valido"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

@@ -20,7 +20,17 @@
       "node:UseDeclaration",
       "node:ScopedIdentifier"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "api:std::collections",
+        "de": "api:std::collections::HashMap"
+      },
+      {
+        "chave": "global:std",
+        "de": "api:std::collections::HashMap"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [

@@ -41,17 +41,17 @@
       "question": "O que `*r` faz numa linha `*r = *r + valor;`?",
       "options": [
         "Abre a caixa apontada para ler e escrever o número",
-        "Multiplica r por 2",
-        "Cria uma referência nova",
-        "Apaga o valor antigo"
+        "Multiplica o número apontado, porque o * sempre multiplica",
+        "Cria uma ponta nova para o número, como faz o &",
+        "Apaga o valor antigo da caixa antes de somar"
       ],
       "answerIndex": 0,
       "feedback": "O * é o deref: abre a ponta até o conteúdo.",
       "optionRationales": [
         "*r lê o conteúdo da caixa e a atribuição escreve nele.",
-        "O * aqui não é multiplicação: é o deref unário.",
-        "Criar referência é o & — o * é o contrário.",
-        "Nada se apaga: o valor é substituído pela soma."
+        "Aqui o * é unário e vem antes do nome: ele abre a ponta, não multiplica.",
+        "Criar ponta é o &; o * anda no sentido contrário, até o valor.",
+        "Nada se apaga: a atribuição troca o valor pela soma."
       ]
     },
     {
@@ -61,17 +61,17 @@
       "question": "Após `soma_no_lugar(&mut placar, 5)` com `placar` em `10`, quanto vale o `placar`?",
       "options": [
         "15 — a escrita atravessou a ponta",
-        "10 — ficou intacto",
-        "5 — só o valor somado",
-        "0 — foi apagado"
+        "10 — a função mudou só a cópia dela",
+        "5 — o placar recebeu o argumento",
+        "0 — o empréstimo levou o número embora"
       ],
       "answerIndex": 0,
       "feedback": "O *r = escreveu na caixa do chamador.",
       "optionRationales": [
         "A ponta apontava para o placar: a escrita ficou nele.",
-        "Intacto seria leitura sem escrita.",
-        "5 é o valor do argumento, não o placar.",
-        "O placar não se apaga — ele soma."
+        "Não há cópia: o &mut entrega a ponta do número de fora.",
+        "5 é quanto entrou de argumento, e ele soma ao que havia.",
+        "Emprestar não leva o número: o dono segue com ele, somado."
       ]
     }
   ],

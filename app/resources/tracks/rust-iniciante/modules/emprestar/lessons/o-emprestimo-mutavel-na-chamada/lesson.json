@@ -39,18 +39,18 @@
       "statement": "Na chamada, &mut pilha empresta a pilha para MUDAR.",
       "question": "Em `empurra(&mut pilha, letra)`, o que o `&mut pilha` entrega?",
       "options": [
-        "O empréstimo mutável: a ajudante pode escrever na pilha",
-        "A pilha copiada",
-        "A pilha, mudando de dono",
-        "A letra a empurrar"
+        "O empréstimo mutável: a ajudante escreve na pilha",
+        "A pilha copiada, e é a cópia que recebe o pedaço novo",
+        "A pilha, mudando de dono para a ajudante",
+        "A letra a empurrar, que o mut deixa mudável"
       ],
       "answerIndex": 0,
       "feedback": "O &mut na chamada é o gesto: empresta com caneta.",
       "optionRationales": [
         "A ponta &mut atravessa a chamada com direito de escrita.",
-        "Não há cópia: a ajudante escreve na pilha original.",
-        "A pilha segue com quem a trouxe — o empréstimo volta ao fim.",
-        "A letra é o segundo argumento, sem mut."
+        "Cópia não acontece: o &mut aponta para a pilha original, e é nela que o push_str escreve.",
+        "Mudar de dono seria passar pilha sem &mut; com o empréstimo, ela segue com quem a trouxe.",
+        "A letra é o segundo argumento, um &str só de leitura; o &mut está no primeiro."
       ]
     },
     {
@@ -60,17 +60,17 @@
       "question": "Depois de `empurra(&mut pilha, letra);`, o que acontece com `pilha`?",
       "options": [
         "Ganha o pedaço: a escrita ficou na caixa dele",
-        "Continua igual",
-        "Vira uma cópia",
-        "Perde o conteúdo"
+        "Continua igual: a ajudante só mudou a ponta",
+        "Vira uma cópia com o pedaço, ao lado da original",
+        "Perde o conteúdo: a ajudante levou tudo com ela"
       ],
       "answerIndex": 0,
       "feedback": "A ponta apontava para a pilha — o que foi escrito, ficou.",
       "optionRationales": [
-        "A ajuda escreveu NA caixa apontada: a pilha cresce.",
-        "Igual seria leitura; aqui a promessa era mudar.",
-        "Cópia não acontece no empréstimo.",
-        "Perder seria mover — o &mut não move nada."
+        "A ajudante escreveu NA caixa apontada: a pilha cresce.",
+        "A ponta não é uma caixa própria: o push_str escreveu ATRAVÉS dela, na pilha do chamador.",
+        "Cópia não acontece no empréstimo: existe UMA pilha, e ela mudou.",
+        "Levar embora seria mover, e o &mut não move: no fim da chamada o empréstimo acaba e a pilha fica."
       ]
     }
   ],

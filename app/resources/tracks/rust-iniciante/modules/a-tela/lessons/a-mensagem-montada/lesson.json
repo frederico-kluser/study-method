@@ -19,7 +19,13 @@
       "node:TypeIdentifier",
       "node:StringLiteral"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:StringLiteral",
+        "de": "api:format!"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [
@@ -31,7 +37,7 @@
     {
       "id": "o-que-a-funcao-devolve-agora",
       "title": "O que a função devolve agora",
-      "markdown": "Olhe a assinatura: `-> String`. O `format!` devolve um `String` — o texto PRONTO, já com os valores encaixados.\n\n```rust\npub fn rotulo(pontos: i32) -> String {\n    format!(\"voce tem {pontos} pontos\")\n}\n```\n\nÉ por isso que a aula existe: a mensagem montada é um VALOR — ela pode ser devolvida, guardada e conferida por teste."
+      "markdown": "Olhe a assinatura: `-> String`. O `format!` devolve um `String` — o texto PRONTO, já com os valores encaixados.\n\n```rust\npub fn rotulo(pontos: i32) -> String {\n    format!(\"voce tem {pontos} pontos\")\n}\n```\n\nA mesma função, na forma curta de uma linha só:\n\n```rust\npub fn rotulo(pontos: i32) -> String { format!(\"voce tem {pontos} pontos\") }\n```\n\nÉ por isso que a aula existe: a mensagem montada é um VALOR — ela pode ser devolvida, guardada e conferida por teste."
     },
     {
       "id": "mais-de-um-buraco",
@@ -59,13 +65,13 @@
       "statement": "O `format!` devolve um `String` pronto — ele não mostra nada na tela.",
       "question": "O que o `format!` faz com o texto que monta?",
       "options": [
-        "Devolve ele como valor, para a função entregar.",
-        "Mostra ele na tela e some.",
-        "Guarda ele em um arquivo.",
-        "Nada: o texto se perde."
+        "Devolve ele como valor.",
+        "Mostra ele na tela e depois o descarta.",
+        "Guarda ele num arquivo do disco.",
+        "Nada: o texto montado se perde."
       ],
       "answerIndex": 0,
-      "feedback": "Montar e devolver: por isso a assinatura da função vira `-> String`.",
+      "feedback": "Montar e DEVOLVER, para a função entregar: por isso a assinatura vira `-> String`.",
       "sectionId": "o-que-a-funcao-devolve-agora"
     }
   ],

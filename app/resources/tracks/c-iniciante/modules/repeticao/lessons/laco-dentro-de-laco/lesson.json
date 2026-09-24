@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "laco-dentro-de-laco",
   "title": "Laço dentro de laço",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Um for dentro do outro: para cada volta do laço de fora, o de dentro roda inteiro — e é assim que se desenha linha por linha.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "laco_dentro_de_laco"
+  ],
   "prerequisites": [
     "para"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o laço deixa de ser uma fila de voltas e passa a ser uma grade: o contador de fora conta as linhas, o de dentro conta as posições dentro de cada linha, e o de dentro recomeça do zero a cada volta do de fora",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-de-dentro-roda-inteiro",
+      "title": "O de dentro roda inteiro",
+      "markdown": "No corpo de um laço cabe qualquer ordem — inclusive outro laço:\n\n```c\nfor (int linha = 1; linha <= 3; linha++) {\n    for (int coluna = 1; coluna <= 4; coluna++) {\n        printf(\"#\");\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\n####\n####\n####\n```\n\nO de fora dá 3 voltas. Em CADA uma delas, o de dentro dá as 4 voltas dele, do começo ao fim. São 3 × 4 = 12 execuções do `printf(\"#\")` — e 3 do `printf(\"\\n\")`."
+    },
+    {
+      "id": "dois-contadores",
+      "title": "Cada laço com o seu contador",
+      "markdown": "Os dois laços têm contadores separados, e o de dentro RECOMEÇA a cada volta do de fora:\n\n```c\nfor (int linha = 1; linha <= 2; linha++) {\n    printf(\"linha %d:\", linha);\n    for (int coluna = 1; coluna <= 3; coluna++) {\n        printf(\" %d\", coluna);\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\nlinha 1: 1 2 3\nlinha 2: 1 2 3\n```\n\n`linha` anda uma casa por volta de fora. `coluna` vai de 1 a 3 e volta ao 1: entrar no laço de dentro executa o `int coluna = 1` do cabeçalho outra vez."
+    },
+    {
+      "id": "onde-fica-a-quebra",
+      "title": "Onde fica a quebra de linha",
+      "markdown": "A posição do `printf(\"\\n\")` decide o desenho. FORA do laço de dentro, ela fecha uma linha por volta:\n\n```c\nfor (int linha = 1; linha <= 2; linha++) {\n    for (int coluna = 1; coluna <= 3; coluna++) {\n        printf(\"#\");\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\n###\n###\n```\n\nMovida para DENTRO, cada `#` ganha a própria linha:\n\n```c\nfor (int linha = 1; linha <= 2; linha++) {\n    for (int coluna = 1; coluna <= 3; coluna++) {\n        printf(\"#\");\n        printf(\"\\n\");\n    }\n}\n```\n\n```text\n#\n#\n#\n#\n#\n#\n```\n\nO de dentro desenha a LINHA; o de fora empilha linhas."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "doze-iteracoes",
+      "statement": "3×4 são 12 iterações: para cada volta de fora, o de dentro roda inteiro.",
+      "question": "No laço de fora `linha` vai de 1 a 3; no de dentro `coluna` vai de 1 a 4. Quantas vezes o `printf(\"#\")` do miolo roda?",
+      "options": [
+        "12 vezes: 4 voltas de dentro para cada uma das 3 de fora.",
+        "7 vezes: as 3 voltas do laço de fora mais as 4 do de dentro.",
+        "4 vezes: o laço de dentro roda uma única vez.",
+        "3 vezes: uma por volta do laço de fora."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço de dentro roda INTEIRO a cada volta do de fora: 4 voltas por linha, 3 linhas, 12 execuções do miolo.",
+      "sectionId": "o-de-dentro-roda-inteiro",
+      "optionRationales": [
+        "Cada volta de fora abre o laço de dentro do começo ao fim: 3 × 4 = 12.",
+        "Os laços não se somam: o de dentro roda uma vez por volta do de fora, então eles se multiplicam.",
+        "O laço de dentro é reaberto em cada volta do de fora — não roda só uma vez.",
+        "3 é quantas linhas saem; o miolo roda 4 vezes em cada uma delas."
+      ]
+    },
+    {
+      "id": "o-contador-de-dentro-recomeca",
+      "statement": "O contador do laço de dentro recomeça a cada volta do laço de fora.",
+      "question": "O cabeçalho de dentro é `for (int coluna = 1; coluna <= 3; coluna++)`. Na segunda volta do laço de fora, com que valor `coluna` começa?",
+      "options": [
+        "Com 1: o `int coluna = 1` do cabeçalho roda de novo.",
+        "Com 4: ele guarda o valor com que saiu da última vez.",
+        "Com 3: ele continua do último valor que imprimiu.",
+        "Com 2: a cada volta de fora ele soma 1 ao começo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Entrar no laço de dentro executa a parte de início do cabeçalho outra vez — por isso cada linha do desenho sai igual à anterior.",
+      "sectionId": "dois-contadores",
+      "optionRationales": [
+        "A parte de início do `for` roda toda vez que o laço começa, e o laço de dentro começa uma vez por volta de fora.",
+        "O contador de dentro morre quando o laço de dentro acaba; nada é guardado de uma volta para a outra.",
+        "O último valor impresso foi 3, mas ele não sobrevive ao fim do laço de dentro.",
+        "Nenhum laço soma nada ao valor inicial: quem escreve o início do contador é o cabeçalho."
+      ]
+    },
+    {
+      "id": "a-quebra-fecha-a-linha",
+      "statement": "O `printf(\"\\n\")` fora do laço de dentro fecha uma linha por volta do laço de fora.",
+      "question": "Num desenho de 2 linhas com 3 `#`, o `printf(\"\\n\")` é movido para DENTRO do laço de dentro. O que sai na tela?",
+      "options": [
+        "6 linhas, cada uma com um único `#`.",
+        "2 linhas, cada uma com 3 `#` — nada muda.",
+        "1 linha só, com os 6 `#` seguidos.",
+        "2 linhas com 3 `#` e uma linha vazia no fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "Dentro do laço de dentro, cada `#` passa a ser seguido de uma quebra: o miolo roda 6 vezes e sai uma linha por `#`.",
+      "sectionId": "onde-fica-a-quebra",
+      "optionRationales": [
+        "O miolo roda 6 vezes (2 × 3) e cada volta passa a imprimir `#` e a quebra: 6 linhas de um caractere.",
+        "A posição da quebra é exatamente o que decide o desenho — mudá-la muda a saída.",
+        "Uma linha só com 6 `#` é o que sairia SEM nenhum `printf(\"\\n\")`.",
+        "Nenhuma linha vazia sobra no fim: as quebras são 6, uma por volta do miolo, e a sexta fecha a sexta linha."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do for em C: início, condição, corpo e passo — e o corpo aceita qualquer ordem, inclusive outro for."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens de C: o bloco de chaves é uma ordem composta, e é por isso que um laço cabe dentro de outro."
+    },
+    {
+      "title": "printf, fprintf, sprintf, snprintf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/printf",
+      "description": "A página oficial do printf: o texto de formato e os especificadores usados para desenhar cada linha do retângulo."
+    }
+  ],
+  "challenges": [
+    "retangulo-de-hashtags"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

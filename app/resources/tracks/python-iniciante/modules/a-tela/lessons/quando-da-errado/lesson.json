@@ -96,6 +96,11 @@
       "title": "Erros e exceções",
       "url": "https://docs.python.org/3/tutorial/errors.html",
       "description": "O capítulo do tutorial oficial sobre erro de sintaxe e erro de execução."
+    },
+    {
+      "title": "Exceções embutidas — a referência oficial",
+      "url": "https://docs.python.org/3/library/exceptions.html",
+      "description": "Onde `SyntaxError` e `NameError` estão definidos um por um: o nome que aparece na última linha do traceback e o que ele significa."
     }
   ],
   "challenges": [

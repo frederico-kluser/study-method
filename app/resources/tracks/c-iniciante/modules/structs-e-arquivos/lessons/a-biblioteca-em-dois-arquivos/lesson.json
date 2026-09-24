@@ -2,23 +2,133 @@
   "schemaVersion": 1,
   "slug": "a-biblioteca-em-dois-arquivos",
   "title": "A biblioteca em dois arquivos",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A biblioteca se parte em dois: o .h com os cartazes (tipo e protótipos) e o .c com as caixas — e o .c abre incluindo, entre aspas, o próprio header.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IncludeDirective",
+  "concepts": [
+    "a_biblioteca_em_dois_arquivos"
+  ],
   "prerequisites": [
     "declarar-antes-de-usar",
     "o-apelido-do-molde"
   ],
+  "introduces": {
+    "productive": [
+      "node:IncludeDirective"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "header",
+    "biblioteca"
+  ],
+  "notionalMachineDelta": "o programa deixa de ser um arquivo so: o aluno passa a ver o .h como o cartaz que viaja entre arquivos e o .c como o lugar das caixas, com o include ligando os dois",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-cartaz-do-ponto-h",
+      "title": "O cartaz: o ponto.h",
+      "markdown": "Uma biblioteca de C mora em DOIS arquivos. O `ponto.h` guarda os **cartazes**: o tipo e os protótipos — o que existe e como se chama.\n\n```c\ntypedef struct {\n    double x;\n    double y;\n} Ponto;\n\ndouble distancia(double ax, double ay, double bx, double by);\ndouble areaRetangulo(double largura, double altura);\n```\n\nNenhum corpo mora aqui. Se um corpo entrasse no `.h` e dois `.c` incluíssem esse `.h`, o mesmo corpo entraria duas vezes no programa e o link reprovaria por símbolo duplicado."
+    },
+    {
+      "id": "aspas-ou-sinais-de-menor",
+      "title": "Aspas ou sinais de menor",
+      "markdown": "O `ponto.c` guarda as **caixas** — e a primeira coisa que ele faz é incluir o header DELE MESMO:\n\n```text\n#include \"ponto.h\"\n#include <math.h>\n```\n\nDuas formas, duas buscas. `<math.h>` entre sinais de menor e maior procura onde moram os headers do sistema; `\"ponto.h\"` entre ASPAS procura primeiro na SUA pasta, ao lado do arquivo que está sendo compilado. O seu header não mora com os do compilador — por isso ele vai entre aspas."
+    },
+    {
+      "id": "a-caixa-do-ponto-c",
+      "title": "A caixa: o ponto.c",
+      "markdown": "Depois dessas duas linhas vêm os corpos. Abaixo, o mesmo `ponto.c` do `<math.h>` para baixo:\n\n```c\n#include <math.h>\n\ndouble distancia(double ax, double ay, double bx, double by) {\n    double dx = bx - ax;\n    double dy = by - ay;\n    return sqrt(dx * dx + dy * dy);\n}\n```\n\nO `#include \"ponto.h\"` da linha de cima é o que traz o tipo `Ponto` e os protótipos para dentro deste arquivo: o `.c` confere os próprios cartazes enquanto escreve as caixas."
+    },
+    {
+      "id": "quem-usa-a-biblioteca",
+      "title": "Quem usa a biblioteca",
+      "markdown": "Quem usa a biblioteca também precisa dos cartazes. Este `main.c` você só LÊ — e ele repete o cartaz à mão:\n\n```c\n#include <stdio.h>\n\ndouble distancia(double ax, double ay, double bx, double by);\n\nint main(void) {\n    printf(\"%.1f\\n\", distancia(0, 0, 3, 4));\n    return 0;\n}\n```\n\n```text\n5.0\n```\n\nNo programa de verdade essa linha de protótipo não existe: no lugar dela vai `#include \"ponto.h\"`, e os cartazes chegam prontos. Repetir cartaz à mão é exatamente o que o include evita."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-h-guarda-os-cartazes",
+      "statement": "O `.h` guarda os cartazes (os tipos e os protótipos); o `.c` guarda as caixas.",
+      "question": "O que entra no `ponto.h`?",
+      "options": [
+        "O `typedef` da ficha e os protótipos das funções.",
+        "Os corpos das funções, prontos para quem incluir o arquivo.",
+        "O `main`, que é a porta de entrada do programa inteiro.",
+        "A linha de compilação que junta os arquivos do programa."
+      ],
+      "answerIndex": 0,
+      "feedback": "O header é o cartaz: diz o que existe e como se chama. Corpo de função no `.h` incluído por dois `.c` vira símbolo duplicado no link.",
+      "sectionId": "o-cartaz-do-ponto-h",
+      "optionRationales": [
+        "Tipo e protótipos: é disso que quem usa a biblioteca precisa.",
+        "Corpo no header entra uma vez em cada `.c` que o inclui, e o link reprova.",
+        "O `main` é de quem USA a biblioteca — e, nos seus desafios, do harness.",
+        "O comando de compilação é digitado no terminal, não guardado no header."
+      ]
+    },
+    {
+      "id": "aspas-procuram-na-sua-pasta",
+      "statement": "O include com aspas procura o header na sua pasta; com `<>`, entre os do sistema.",
+      "question": "Por que o `ponto.c` abre com `#include \"ponto.h\"` e não com `#include <ponto.h>`?",
+      "options": [
+        "Porque `ponto.h` é seu e mora na sua pasta, não entre os do sistema.",
+        "Porque as aspas incluem o arquivo só uma vez por programa compilado.",
+        "Porque a forma com `<>` só funciona em headers de nome curto.",
+        "Porque as aspas copiam o header, e o `<>` só o consulta de longe."
+      ],
+      "answerIndex": 0,
+      "feedback": "As duas formas incluem o arquivo; o que muda é ONDE o compilador procura. A forma com aspas começa a busca na pasta do arquivo que está sendo compilado.",
+      "sectionId": "aspas-ou-sinais-de-menor",
+      "optionRationales": [
+        "A busca com aspas começa na sua pasta — é onde o seu header está.",
+        "Incluir uma vez só é outro assunto (a guarda do header), não a forma da busca.",
+        "O tamanho do nome não muda nada: o que muda é o lugar da busca.",
+        "As duas formas colam o texto do header no arquivo: nenhuma consulta de longe."
+      ]
+    },
+    {
+      "id": "o-c-inclui-o-proprio-header",
+      "statement": "Quem inclui o `.h` é o `.c` que o usa — o teste do desafio nunca inclui header do desafio.",
+      "question": "No programa de três arquivos, quem escreve a linha `#include \"ponto.h\"`?",
+      "options": [
+        "O `ponto.c` e o `main.c`: os dois usam os cartazes.",
+        "Só o `ponto.h`, que inclui a si mesmo para ficar completo.",
+        "O compilador, que descobre sozinho quais headers faltam.",
+        "Ninguém: o `.h` e o `.c` de mesmo nome se acham sozinhos."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada arquivo que precisa dos cartazes os inclui: o `ponto.c` para conferir as próprias caixas, o `main.c` para poder chamar. O compilador não adivinha nada.",
+      "sectionId": "quem-usa-a-biblioteca",
+      "optionRationales": [
+        "Os dois precisam dos cartazes, e cada um os pede com o seu include.",
+        "Um header que se inclui não acrescenta nada — os cartazes já estão nele.",
+        "O compilador só inclui o que a diretiva mandar incluir.",
+        "Nome igual não liga arquivo nenhum: quem liga é o include e o comando de compilação."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Source file inclusion — a referência oficial do pré-processador",
+      "url": "https://en.cppreference.com/w/c/preprocessor/include",
+      "description": "A página oficial do #include: a forma com aspas, a forma com sinais de menor e maior e onde cada uma procura o arquivo."
+    },
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial do protótipo: o cartaz que declara a função sem o corpo — o conteúdo de um header."
+    },
+    {
+      "title": "ISO/IEC 9899:201x — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.10.2 define a inclusão de arquivo-fonte e a diferença entre as duas formas do #include."
+    }
+  ],
+  "challenges": [
+    "a-biblioteca-geometria"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

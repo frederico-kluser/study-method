@@ -2,20 +2,154 @@
   "schemaVersion": 1,
   "slug": "consolidacao-structs-arquivos",
   "title": "O projeto final do curso",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O projeto final: uma biblioteca própria em .h/.c que guarda um inventário de itens num arquivo e o relê para somar o total e achar o mais caro.",
+  "difficulty": 5,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "decl:func",
+  "concepts": [
+    "o_projeto_final"
+  ],
+  "prerequisites": [
+    "o-molde-e-o-dado",
+    "mudar-o-dado",
+    "o-apelido-do-molde",
+    "o-dado-na-caixa",
+    "mudar-o-original",
+    "a-lista-de-fichas",
+    "ficha-dentro-de-ficha",
+    "a-ficha-completa",
+    "o-caderno",
+    "escrever-no-caderno",
+    "ler-o-caderno",
+    "acrescentar-no-fim",
+    "ler-numeros-do-caderno",
+    "o-caderno-de-fichas",
+    "a-biblioteca-em-dois-arquivos",
+    "compilar-sozinho"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de ser um arquivo só: a biblioteca do aluno tem cartaz (.h) e caixas (.c), e o estado do cadastro passa a viver no disco entre uma execução e outra",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-projeto-final",
+      "title": "O projeto final: um caderno que sobra",
+      "markdown": "Este é o projeto final do curso: um **inventário** que sobrevive ao fim do programa. Cada item é uma ficha (nome e preço), e o cadastro inteiro mora num arquivo de texto, uma linha por item:\n\n```text\nmartelo 25.50\nserra 40.00\nlixa 4.25\n```\n\nNada aqui é novo: a ficha veio do `struct`, o caderno veio do `fopen` e o laço de leitura veio do `fscanf`. O que muda é o TAMANHO da peça — quatro operações sobre o mesmo caderno: zerar, acrescentar, somar o total e achar o mais caro."
+    },
+    {
+      "id": "o-que-vai-no-h",
+      "title": "O que vai no .h — e o que nunca vai",
+      "markdown": "A sua biblioteca são dois arquivos. O `.h` é o **cartaz**: quem lê o cartaz sabe usar a biblioteca sem abrir o `.c`. No cartaz vão o molde da ficha e os protótipos:\n\n```c\ntypedef struct {\n    char nome[40];\n    double preco;\n} Item;\n\nvoid adicionarItem(char nome[], double preco);\ndouble totalDoInventario(void);\n```\n\nE o que NUNCA vai no `.h`: o corpo das funções, que vive no `.c`, e o `main`, que nem é seu — é do programa de fora."
+    },
+    {
+      "id": "o-que-vai-no-c",
+      "title": "O que vai no .c",
+      "markdown": "O `.c` guarda as caixas: cada cartaz do `.h` ganha aqui um corpo. O arquivo abre com `#include \"inventario.h\"` — com aspas, não com `<>`: aspas dizem \"este header é meu, está aqui do lado\".\n\n```c\n#include <stdio.h>\n\nvoid adicionarItem(char nome[], double preco) {\n    FILE *f = fopen(\"inventario.txt\", \"a\");\n    fprintf(f, \"%s %.2f\\n\", nome, preco);\n    fclose(f);\n}\n```\n\nO modo `\"a\"` acrescenta no fim; `\"w\"` apagaria o cadastro inteiro a cada item novo."
+    },
+    {
+      "id": "reler-o-caderno",
+      "title": "Somar exige reler",
+      "markdown": "Para somar, a função relê o caderno. O `fscanf` devolve QUANTOS campos leu: enquanto devolver 2, havia um item na linha; quando devolver menos, o caderno acabou.\n\n```c\n#include <stdio.h>\n\ndouble totalDoInventario(void) {\n    FILE *f = fopen(\"inventario.txt\", \"r\");\n    char nome[40];\n    double preco, soma = 0;\n    while (fscanf(f, \"%39s %lf\", nome, &preco) == 2) {\n        soma += preco;\n    }\n    fclose(f);\n    return soma;\n}\n```\n\nO `%lf` é o buraco de `double` na leitura e o `&preco` entrega o endereço; o `nome` é array, já é endereço."
+    },
+    {
+      "id": "o-mais-caro",
+      "title": "Guardar o maior enquanto lê",
+      "markdown": "Achar o mais caro é o mesmo laço com uma memória: uma variável guarda o maior preço já visto, e o `if` a atualiza.\n\n```c\n#include <stdio.h>\n\ndouble precoMaisAlto(void) {\n    FILE *f = fopen(\"inventario.txt\", \"r\");\n    char nome[40];\n    double preco, maior = 0;\n    while (fscanf(f, \"%39s %lf\", nome, &preco) == 2) {\n        if (preco > maior) {\n            maior = preco;\n        }\n    }\n    fclose(f);\n    return maior;\n}\n```\n\nNo desafio você guarda também o NOME do campeão, com `strncpy` dentro do mesmo `if`."
+    },
+    {
+      "id": "o-roteiro",
+      "title": "O roteiro do projeto",
+      "markdown": "No desafio o `zerarInventario` já vem pronto — é o seu modelo de `fopen`/`fclose`. Você escreve as outras três funções, nesta ordem:\n\n1. `adicionarItem` — abre no modo `\"a\"` e grava `nome preco` numa linha.\n2. `totalDoInventario` — relê tudo e devolve a soma.\n3. `itemMaisCaro` — relê tudo e copia para `destino` o nome do campeão.\n\nToda função que abre o caderno confere o `NULL` antes de usar o que o `fopen` devolveu."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-que-vai-no-header",
+      "statement": "O `.h` guarda o molde da ficha e os protótipos; o corpo das funções e o `main` nunca vão nele.",
+      "question": "Você está escrevendo o `inventario.h` da sua biblioteca. O que entra nesse arquivo?",
+      "options": [
+        "O `typedef struct` da ficha e os protótipos das funções.",
+        "Os protótipos e também o corpo de cada função da biblioteca.",
+        "O `main` do programa, que é quem chama a biblioteca.",
+        "Apenas o `#include <stdio.h>`, porque o resto pertence ao `.c`."
+      ],
+      "answerIndex": 0,
+      "feedback": "No `.h` vão os cartazes: o molde da ficha e os protótipos. Os corpos ficam no `.c`, e o `main` é do programa de fora — nunca do header.",
+      "sectionId": "o-que-vai-no-h",
+      "optionRationales": [
+        "O cartaz diz o que existe: o molde da ficha e a assinatura de cada função.",
+        "O corpo no `.h` seria copiado em cada `.c` que o incluísse, e o link acusaria a função definida duas vezes.",
+        "O `main` é a porta do programa, não da biblioteca — e neste desafio ele é do harness.",
+        "O `.h` da sua biblioteca pode até incluir outro header, mas o que ele existe para guardar é o cartaz: molde e protótipos."
+      ]
+    },
+    {
+      "id": "o-fscanf-diz-quantos-leu",
+      "statement": "`fscanf` devolve quantos campos leu — o laço de leitura termina quando ele não devolve mais 2.",
+      "question": "O caderno tem 3 linhas com nome e preço. Quantas vezes roda o corpo de `while (fscanf(f, \"%39s %lf\", nome, &preco) == 2)`?",
+      "options": [
+        "Três vezes: na quarta tentativa o `fscanf` não lê os 2 campos e o laço para.",
+        "Quatro vezes, sendo a última já no fim do caderno.",
+        "Uma vez só: o `fscanf` lê o arquivo inteiro de uma vez.",
+        "Nenhuma volta: o `fscanf` devolve o valor que ele leu, e não a contagem de campos preenchidos."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada volta lê uma linha e o `fscanf` devolve 2. No fim do caderno ele não consegue mais preencher os dois campos, devolve menos que 2 e o laço termina.",
+      "sectionId": "reler-o-caderno",
+      "optionRationales": [
+        "São 3 linhas, 3 voltas com `fscanf` devolvendo 2; a quarta tentativa não lê nada e encerra o laço.",
+        "A tentativa do fim do caderno não devolve 2, então o corpo não roda nessa volta.",
+        "O `fscanf` lê por FORMATO, uma leitura por chamada — é o laço que percorre o caderno.",
+        "O valor que o `fscanf` devolve é a contagem de campos preenchidos: é exatamente por isso que o laço compara com 2."
+      ]
+    },
+    {
+      "id": "o-modo-a-nao-apaga",
+      "statement": "O cadastro mora no arquivo: o modo `\"a\"` acrescenta no fim e o modo `\"w\"` apaga o que havia.",
+      "question": "Você já gravou dois itens. Ao acrescentar o terceiro, `adicionarItem` abre o caderno com `fopen(\"inventario.txt\", \"w\")`. O que o arquivo tem depois?",
+      "options": [
+        "Só o terceiro item: o modo `\"w\"` apagou os dois que havia.",
+        "Os três itens, na ordem em que foram gravados, um por linha do caderno.",
+        "Os dois primeiros itens; o terceiro não é gravado.",
+        "Os três itens, com o terceiro no começo do arquivo."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `\"w\"` começa o arquivo do zero a cada abertura — é o que o `zerarInventario` usa de propósito. Para acrescentar sem apagar, o modo é `\"a\"`.",
+      "sectionId": "o-que-vai-no-c",
+      "optionRationales": [
+        "O `\"w\"` trunca o arquivo na abertura: o que havia se perde e sobra o item novo.",
+        "Os três só ficariam com o modo `\"a\"`, que escreve no fim sem truncar.",
+        "O terceiro item é gravado sim — o que se perde são os anteriores.",
+        "Nenhum modo de `fopen` escreve no começo empurrando o resto para baixo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fscanf, scanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial do fscanf: o valor devolvido é o número de campos atribuídos — é ele que termina o laço de leitura."
+    },
+    {
+      "title": "fopen(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fopen.3.html",
+      "description": "A man-page do fopen: a tabela dos modos, com a diferença entre \"w\" (trunca) e \"a\" (acrescenta no fim)."
+    },
+    {
+      "title": "Struct declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do struct em C: o molde que agrupa campos de tipos diferentes numa ficha só."
+    }
+  ],
+  "challenges": [
+    "o-inventario-final"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

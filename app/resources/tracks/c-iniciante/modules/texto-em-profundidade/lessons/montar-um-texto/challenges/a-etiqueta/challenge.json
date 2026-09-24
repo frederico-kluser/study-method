@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta",
+  "title": "A etiqueta",
+  "concept": "montar_um_texto",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A etiqueta\n\nA função `aEtiqueta` lê **um nome** (uma palavra, sem acento) e **uma idade** (um número inteiro) e monta, numa caixa de letras, a etiqueta do cadastro — no formato exato `Nome: <nome> | Idade: <idade>`.\n\nDepois de montar, ela imprime duas linhas: a etiqueta e **quantos caracteres** a etiqueta tem. É a segunda linha que prova que a frase existe guardada dentro da caixa.\n\nDigitando `Ana` e `20`:\n\n```text\nNome: Ana | Idade: 20\n21\n```\n\nDigitando `Bernardo` e `7`:\n\n```text\nNome: Bernardo | Idade: 7\n25\n```\n\nPassos:\n\n1. monte a frase com `snprintf` na caixa `etiqueta`, usando `sizeof etiqueta` como limite e o formato `\"Nome: %s | Idade: %d\"`;\n2. imprima a etiqueta com `%s`;\n3. imprima o tamanho dela com `%d` — o `strlen` da aula do comprimento conta os caracteres.\n\nA leitura do nome, a da idade e a caixa da etiqueta já vêm prontas no arquivo. Repare nos espaços do formato: eles fazem parte do texto.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* aEtiqueta le um nome e uma idade e monta a etiqueta do cadastro numa caixa\n   de letras, no formato \"Nome: <nome> | Idade: <idade>\". Depois imprime a\n   etiqueta e quantos caracteres ela tem. */\nvoid aEtiqueta(void) {\n    char nome[50] = \"\";\n    int idade = 0;\n    scanf(\"%49s\", nome);\n    scanf(\"%d\", &idade);\n    char etiqueta[60] = \"\";\n    /* 1) monte a frase na caixa etiqueta com snprintf, limite sizeof etiqueta,\n          formato \"Nome: %s | Idade: %d\" */\n\n    /* 2) imprima a etiqueta com %s e \\n no fim */\n\n    /* 3) imprima quantos caracteres a etiqueta tem, com %d e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-etiqueta — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do stdout\n   acontece dentro do proprio cenario (freopen + fflush, sem fclose no stdout).\n   A segunda linha de cada cenario e o tamanho da etiqueta MONTADA: dois\n   cadastros de tamanhos diferentes, para o numero nao poder ser fixo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid aEtiqueta(void);\n\nSM_TEST(a_etiqueta_de_ana) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"Ana 20\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    aEtiqueta();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a etiqueta de Ana\", linha, \"Nome: Ana | Idade: 20\\n\",\n              \"o formato monta o nome no %s e a idade no %d, com os espacos do meio\");\n    fgets(linha, 80, f);\n    checa_str(\"o tamanho da etiqueta de Ana\", linha, \"21\\n\",\n              \"a frase montada tem vinte e um caracteres, contados na caixa\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_etiqueta_de_bernardo) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"Bernardo 7\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    aEtiqueta();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a etiqueta de Bernardo\", linha, \"Nome: Bernardo | Idade: 7\\n\",\n              \"nome mais comprido e idade de um algarismo entram nos mesmos buracos\");\n    fgets(linha, 80, f);\n    checa_str(\"o tamanho da etiqueta de Bernardo\", linha, \"25\\n\",\n              \"vinte e cinco caracteres: o numero vem da frase montada, nao de um valor fixo\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid aEtiqueta(void) {\n    char nome[50] = \"\";\n    int idade = 0;\n    scanf(\"%49s\", nome);\n    scanf(\"%d\", &idade);\n    char etiqueta[60] = \"\";\n    snprintf(etiqueta, sizeof etiqueta, \"Nome: %s | Idade: %d\", nome, idade);\n    int tamanho = strlen(etiqueta);\n    printf(\"%s\\n\", etiqueta);\n    printf(\"%d\\n\", tamanho);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_etiqueta_de_ana",
+      "teste": "a_etiqueta_de_ana",
+      "descricao": "com Ana e 20 digitados no stdin, a funcao aEtiqueta monta Nome: Ana | Idade: 20 na caixa com snprintf e imprime a etiqueta e o tamanho dela, 21, sem linha extra"
+    },
+    {
+      "id": "a_etiqueta_de_bernardo",
+      "teste": "a_etiqueta_de_bernardo",
+      "descricao": "com Bernardo e 7 digitados no stdin, a mesma funcao imprime Nome: Bernardo | Idade: 7 e 25 — o tamanho medido na frase montada, e nao um numero fixo no codigo"
+    }
+  ]
+}

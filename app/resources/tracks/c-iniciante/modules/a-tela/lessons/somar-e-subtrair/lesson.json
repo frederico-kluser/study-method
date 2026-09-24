@@ -2,22 +2,125 @@
   "schemaVersion": 1,
   "slug": "somar-e-subtrair",
   "title": "As contas de inteiro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "À direita do = pode entrar uma conta: o C soma ou subtrai primeiro e guarda no nome só o resultado.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:binary:+",
+  "concepts": [
+    "somar_e_subtrair"
+  ],
   "prerequisites": [
     "mudar-o-valor"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:+",
+      "op:binary:-"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o valor deixa de ser sempre um número escrito: ele pode ser o resultado de uma conta que o programa calcula antes de guardar",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-conta-vira-valor",
+      "title": "A conta vira valor",
+      "markdown": "À direita do `=` pode entrar uma **conta**. O C faz a conta primeiro e guarda na variável só o resultado:\n\n```c\nint gols = 2 + 3;\nint faltas = 9 - 2;\nprintf(\"gols: %d faltas: %d\\n\", gols, faltas);\n```\n\n```text\ngols: 5 faltas: 7\n```\n\nEm `gols` não fica guardado o texto `2 + 3`: fica o número 5. A ordem é sempre essa — o C calcula a direita e só então **atribui** o resultado à esquerda, seja numa declaração como esta, seja numa atribuição. O `+` e o `-` são os **operadores** de somar e subtrair, como no caderno."
+    },
+    {
+      "id": "contas-com-nomes",
+      "title": "Contas com nomes",
+      "markdown": "Na conta pode entrar **nome** no lugar de número. O C lê o valor que cada nome guarda e faz a conta com esses valores:\n\n```c\nint preco = 50;\nint frete = 12;\nint total = preco + frete;\nprintf(\"total: %d\\n\", total);\n```\n\n```text\ntotal: 62\n```\n\n`preco` e `frete` saem da conta do mesmo jeito que entraram: continuam 50 e 12. Quem recebe o resultado é só o nome da esquerda, `total`."
+    },
+    {
+      "id": "a-conta-no-buraco",
+      "title": "O nome nos dois lados",
+      "markdown": "O nome pode aparecer nos DOIS lados. Como a direita é calculada antes, o valor antigo é lido, a conta é feita e o resultado volta para o mesmo nome:\n\n```c\nint saldo = 100;\nsaldo = saldo - 30;\nprintf(\"sobra: %d\\n\", saldo - 20);\n```\n\n```text\nsobra: 50\n```\n\nA segunda linha lê 100, tira 30 e guarda 70 em `saldo`. A terceira faz a conta `saldo - 20` dentro da chamada: o `%d` recebe 50 — e `saldo` continua 70, porque ninguém o mandou mudar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "calcula-e-depois-atribui",
+      "statement": "O C calcula a conta e então atribui: `x = 2 + 3;` deixa 5 em `x`.",
+      "question": "Depois de `int x = 2 + 3;`, o que está guardado em `x`?",
+      "options": [
+        "O valor 5: a conta é feita antes de guardar o resultado.",
+        "O texto `2 + 3`, que só vira 5 quando alguém imprimir.",
+        "O valor 2, e o `+ 3` fica esperando a próxima linha.",
+        "Nada: não se pode escrever conta dentro de uma declaração."
+      ],
+      "answerIndex": 0,
+      "feedback": "A direita é resolvida primeiro e o que entra no nome é o resultado. O nome nunca guarda a conta: guarda o número que ela deu.",
+      "sectionId": "a-conta-vira-valor",
+      "optionRationales": [
+        "A conta acontece antes da atribuição, e o 5 é o que fica guardado.",
+        "Nome de `int` não guarda texto nenhum: guarda um número inteiro.",
+        "A conta não fica pela metade: ela é resolvida inteira antes do `=`.",
+        "Conta à direita do `=` é justamente o normal — na declaração e na atribuição."
+      ]
+    },
+    {
+      "id": "a-conta-le-o-valor-dos-nomes",
+      "statement": "Na conta com nomes, o C usa o valor que cada nome guarda — e os nomes da direita não mudam.",
+      "question": "Com `preco` valendo 50 e `frete` valendo 12, o que `int total = preco + frete;` faz?",
+      "options": [
+        "Guarda 62 em `total` e zera `preco` e `frete`.",
+        "Guarda 62 em `total`; `preco` e `frete` continuam 50 e 12.",
+        "Guarda em `total` a conta `preco + frete`, para calcular depois.",
+        "Soma o 50 dentro de `frete` e guarda 12 em `total`."
+      ],
+      "answerIndex": 1,
+      "feedback": "A conta só LÊ os valores da direita. Quem muda é o nome da esquerda; os outros dois seguem intactos.",
+      "sectionId": "contas-com-nomes",
+      "optionRationales": [
+        "Ler o valor de um nome não o esvazia: `preco` e `frete` seguem iguais.",
+        "O resultado 62 vai para `total`, e os nomes lidos não mudam.",
+        "O que fica guardado é o resultado, não a conta.",
+        "A conta não mexe em nome nenhum da direita: só a esquerda recebe."
+      ]
+    },
+    {
+      "id": "o-nome-nos-dois-lados",
+      "statement": "`saldo = saldo - 30;` lê o valor antigo, faz a conta e guarda o resultado no mesmo nome.",
+      "question": "`saldo` vale 100. Depois de `saldo = saldo - 30;`, quanto vale `saldo`?",
+      "options": [
+        "100: o mesmo nome não pode aparecer nos dois lados do `=`.",
+        "30: o que fica guardado é o número escrito à direita.",
+        "70: o C lê o 100, tira 30 e guarda o resultado ali.",
+        "-30: com o nome repetido a conta sai ao contrário."
+      ],
+      "answerIndex": 2,
+      "feedback": "A direita é calculada com o valor ANTIGO (100 − 30 = 70) e só então o 70 é guardado. É assim que um nome acumula o próprio resultado.",
+      "sectionId": "a-conta-no-buraco",
+      "optionRationales": [
+        "Pode aparecer nos dois lados: à direita ele é lido, à esquerda ele recebe.",
+        "O que fica é o RESULTADO da conta, não um dos números dela.",
+        "A conta usa o valor antigo e o resultado volta para o mesmo nome.",
+        "Nada inverte a conta: `saldo - 30` é o valor de `saldo` menos 30."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial dos operadores de conta em C, entre eles a soma e a subtração de inteiros."
+    },
+    {
+      "title": "Assignment operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "A página oficial do =: o lado direito é avaliado e o resultado é guardado no nome da esquerda."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.6 define os operadores aditivos + e - sobre números."
+    }
+  ],
+  "challenges": [
+    "total-da-compra"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

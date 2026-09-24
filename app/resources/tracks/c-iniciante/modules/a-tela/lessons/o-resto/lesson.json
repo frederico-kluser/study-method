@@ -2,22 +2,125 @@
   "schemaVersion": 1,
   "slug": "o-resto",
   "title": "O resto que sobra",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O % devolve o que a divisão inteira jogou fora: 17 % 5 é 2 — e, ao lado da /, ele decompõe um número em grupos e sobra.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:binary:%",
+  "concepts": [
+    "o_resto"
+  ],
   "prerequisites": [
     "multiplicar-e-dividir"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:%",
+      "node:BinaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:binary:%"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a divisão inteira deixa de ser uma conta que perde informação: o pedaço cortado passa a ter nome (resto) e endereço (o operador %), e o par / + % decompõe um número em grupos e sobra",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-resto-da-divisao",
+      "title": "O que sobra da divisão",
+      "markdown": "A divisão entre inteiros corta o que sobra: `17 / 5` dá 3, e as 2 unidades que ficaram de fora desaparecem da conta.\n\nO `%` devolve justamente esse pedaço perdido — o **resto**. Reparta 17 figurinhas entre 5 amigos: cada um leva 3, e ficam 2 na sua mão.\n\n```c\nprintf(\"cada um leva %d\\n\", 17 / 5);\nprintf(\"sobram %d\\n\", 17 % 5);\n```\n\n```text\ncada um leva 3\nsobram 2\n```\n\nCuidado com o nome: entre dois inteiros o `%` não é porcentagem — é o resto."
+    },
+    {
+      "id": "o-par-quociente-e-resto",
+      "title": "Quantos couberam, quanto ficou",
+      "markdown": "As duas contas andam em par: a `/` diz **quantos grupos inteiros** couberam, e a `%` diz **quanto ficou de fora**. Juntas, elas decompõem um número.\n\n200 segundos são 3 minutos e 20 segundos, porque 3 × 60 dá 180 e sobram 20:\n\n```c\nint total = 200;\nprintf(\"%d min e %d s\\n\", total / 60, total % 60);\n```\n\n```text\n3 min e 20 s\n```\n\nOs dois buracos do mesmo `printf` recebem as duas contas, na ordem. O `%` aceita um nome de um lado e um número do outro, como qualquer conta."
+    },
+    {
+      "id": "quando-o-resto-e-zero",
+      "title": "Quando o resto é zero",
+      "markdown": "Resto 0 quer dizer divisão exata: o número da direita cabe no da esquerda um número inteiro de vezes, sem sobra.\n\n```c\nprintf(\"%d\\n\", 20 % 4);\nprintf(\"%d\\n\", 21 % 4);\n```\n\n```text\n0\n1\n```\n\n`20 % 4` é 0 porque 4 cabe 5 vezes em 20; `21 % 4` deixa 1 para trás.\n\nOnde a repartição deixa de valer: 0 amigos não repartem nada. `17 % 0` não dá 0 e não é erro de compilação — é uma conta que o programa não pode fazer. À direita do `%` nunca vai 0."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-resto-de-17-por-5",
+      "statement": "`17 % 5` é 2 — o resto da divisão inteira.",
+      "question": "O que a ordem `printf(\"%d\\n\", 17 % 5);` imprime?",
+      "options": [
+        "3 — o mesmo resultado de `17 / 5`.",
+        "3.4 — a divisão com casas decimais.",
+        "2 — o que sobra depois de tirar 3 grupos de 5.",
+        "5 — o número que está à direita do `%`."
+      ],
+      "answerIndex": 2,
+      "feedback": "O `%` não conta os grupos (isso é trabalho da `/`): ele dá o que ficou de fora. Três grupos de 5 usam 15 dos 17 — sobram 2.",
+      "sectionId": "o-resto-da-divisao",
+      "optionRationales": [
+        "3 é o resultado da `/`: quantos grupos de 5 couberam. A `%` responde outra pergunta.",
+        "Entre inteiros não aparece casa decimal nenhuma: a `/` corta e a `%` guarda o pedaço cortado.",
+        "Três grupos de 5 usam 15 dos 17; as 2 unidades que ficaram de fora são o resto.",
+        "O número da direita é o tamanho do grupo, não o resultado da conta."
+      ]
+    },
+    {
+      "id": "a-decomposicao-em-par",
+      "statement": "A `/` diz quantos grupos couberam e a `%` diz quanto ficou de fora: as duas decompõem o número.",
+      "question": "Com `total` valendo 200, quanto vale `total % 60`?",
+      "options": [
+        "3, os minutos inteiros.",
+        "20, os segundos que sobraram.",
+        "200, porque a `%` não muda o valor.",
+        "60, o número que está do lado direito."
+      ],
+      "answerIndex": 1,
+      "feedback": "`total / 60` dá os 3 minutos inteiros; `total % 60` dá os 20 segundos que não completaram outro minuto. O par decompõe o número.",
+      "sectionId": "o-par-quociente-e-resto",
+      "optionRationales": [
+        "Os 3 minutos vêm de `total / 60`; a `%` fica com a sobra.",
+        "Três minutos consomem 180 dos 200 segundos: sobram 20, e é isso que a `%` devolve.",
+        "A `%` calcula um valor novo a partir de `total`; ela não devolve o valor inteiro.",
+        "O 60 é o tamanho do grupo (segundos por minuto), não o resultado."
+      ]
+    },
+    {
+      "id": "o-resto-zero-e-divisao-exata",
+      "statement": "Resto 0 quer dizer que a divisão foi exata — não sobrou nada.",
+      "question": "`20 % 4` vale 0. O que isso conta sobre 20 e 4?",
+      "options": [
+        "Que 4 cabe em 20 um número exato de vezes, sem sobra.",
+        "Que a conta deu erro e o programa parou ali.",
+        "Que 20 dividido por 4 é 0.",
+        "Que 4 é maior que 20 e por isso não cabe."
+      ],
+      "answerIndex": 0,
+      "feedback": "Resto 0 é o sinal da divisão exata: 4 cabe 5 vezes em 20 e nada fica para trás. Quem diz o 5 é a `/`; a `%` só fala da sobra.",
+      "sectionId": "quando-o-resto-e-zero",
+      "optionRationales": [
+        "Sem sobra é exatamente o que resto 0 significa: 4 × 5 dá 20 na mosca.",
+        "A conta rodou normalmente; 0 é o resultado dela, não um aviso de erro.",
+        "`20 / 4` é 5. O 0 é o resto, não o resultado da divisão.",
+        "4 é menor que 20 e cabe cinco vezes — se fosse maior, o resto seria o próprio 20."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial dos operadores de conta em C: a divisão que corta entre inteiros e o operador de resto %."
+    },
+    {
+      "title": "ISO/IEC 9899:201x — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão por dentro: §6.5.5 define / e % entre inteiros e diz que dividir por zero não tem resultado definido."
+    }
+  ],
+  "challenges": [
+    "minutos-e-segundos"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

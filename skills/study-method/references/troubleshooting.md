@@ -8,7 +8,8 @@ de máquina ou de ambiente, nunca dele.
 ## Sumário
 Toolchain ausente · `pip install` e PEP 668 · Setup movido ou apagado · Sessão órfã · Sessão
 concorrente · Schema inválido (exit 5) · Desafio rejeitado 3× · `docs/` do setup acima do
-orçamento · PDF sem extrator · Sandbox degradada · Registry corrompido · Gráfico que não renderiza.
+orçamento · PDF sem extrator · Sandbox degradada · Registry corrompido · Gráfico que não renderiza ·
+Pré-requisito que não existe em aula nenhuma.
 
 ---
 
@@ -268,3 +269,35 @@ narrar qualquer coisa — você não vê a imagem gerada.
 explicação. Se a spec em si falhou (exit `1`/`2`): "Não consegui montar o gráfico com esses dados
 — [motivo curto, ex.: 'a série veio vazia']. Deixa eu te descrever o resultado em texto enquanto eu
 ajusto." e siga com a versão ASCII/texto, nunca trave a aula esperando a figura perfeita.
+
+---
+
+## Pré-requisito que não existe em aula nenhuma
+
+**Sintoma**: o aluno faz uma pergunta legítima sobre a aula de hoje e a resposta exige uma
+construção que não está no material desta aula, nem no de nenhuma aula anterior — e você percebe
+que só teria o que dizer se inventasse. Variante mais comum: a lista de pré-requisitos da aula está
+**vazia**, então não existe nem aula anterior para mandar revisar.
+
+**Causa**: é falha do **material**, não do aluno e não da pergunta. Alguém autorou uma aula que
+supõe uma construção que o material nunca ensinou. A lista vazia de pré-requisitos é a assinatura
+do caso — nos três cursos deste repositório, **9 de 330** aulas não declaram pré-requisito nenhum:
+
+```bash
+cd app && python3 -c "import json,glob; print(sum(1 for p in glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json') if not json.load(open(p)).get('prerequisites')), 'aulas sem prerequisites de', len(glob.glob('resources/tracks/*-iniciante/modules/*/lessons/*/lesson.json')))"
+# -> 9 aulas sem prerequisites de 330
+```
+
+**O que você faz**: aplique `LAC-1`, `LAC-2` e `LAC-3` das regras permanentes — varra o material
+antes de classificar, ensine o **mínimo** que destrava a dúvida de agora com um objeto que roda,
+volte ao ponto em que a aula parou, e registre a lacuna em `open_questions` da sessão na linha
+`LACUNA DO CURSO: <termo exato> · aula "<título>" · dúvida do aluno: "<pergunta>"`. Duas coisas que
+você **não** faz: responder "é assunto avançado, siga o curso" (se a construção não está em aula
+nenhuma, seguir o curso não a entrega) e mandar "revisar a aula anterior" quando não há nenhuma
+declarada. Também não reescreva a aula no meio da conversa: o mínimo é o mínimo; o material é
+consertado por quem autora, com o registro que você deixou.
+
+**O que dizer ao aluno**: "Isso que você perguntou não aparece em nenhuma aula do material que eu
+tenho — o buraco é meu, não seu. Vou te dar aqui o pedaço que destrava a sua dúvida agora, anotar a
+falta para o material ser corrigido, e a gente volta de onde parou." E, quando não há pré-requisito
+declarado: "Esta aula não lista nenhuma aula anterior, então não tem o que revisar antes dela."

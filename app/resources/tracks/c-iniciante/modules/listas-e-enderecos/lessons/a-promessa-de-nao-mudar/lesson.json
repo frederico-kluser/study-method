@@ -2,22 +2,131 @@
   "schemaVersion": 1,
   "slug": "a-promessa-de-nao-mudar",
   "title": "A promessa de não mudar",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
-  "role": "regular",
-  "concepts": [],
+  "summary": "Um `const` na assinatura promete que a função só LÊ a lista — e o compilador cobra a promessa: tentar escrever numa gaveta vira erro antes de o programa rodar.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "decl:func",
+  "concepts": [
+    "a_promessa_de_so_ler"
+  ],
   "prerequisites": [
     "a-lista-como-parametro"
   ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "term:const"
+  ],
+  "notionalMachineDelta": "o degrau desta consolidação: a assinatura deixa de dizer só NOME, RETORNO e PARÂMETROS e passa a dizer também PERMISSÃO — o `const` do parâmetro é um contrato de leitura que o compilador faz valer",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-assinatura-e-um-contrato",
+      "title": "A assinatura é um contrato",
+      "markdown": "A lista não é copiada quando entra numa função: a função recebe o endereço da primeira gaveta e mexe nas gavetas de verdade. Só pela assinatura, quem chama não sabe se ela vai ler ou escrever.\n\nUma palavra conta: `const`.\n\n```c\nint somaComPromessa(const int v[], int n) {\n    int total = 0;\n    for (int i = 0; i < n; i++) {\n        total += v[i];\n    }\n    return total;\n}\n```\n\n`const int v[]` diz, já na primeira linha: **esta função só lê**."
+    },
+    {
+      "id": "o-compilador-cobra-a-promessa",
+      "title": "O compilador cobra a promessa",
+      "markdown": "A promessa não é comentário — é regra. Se o corpo tentar escrever numa gaveta de `v`, o programa nem chega a rodar: o compilador reprova a linha `v[0] = 0;` com esta mensagem:\n\n```text\nerror: read-only variable is not assignable\n```\n\nE isso é bom: o erro aparece na SUA tela, hoje, e não na conta de quem for usar a função depois. A promessa que o compilador cobra vale mais do que a promessa que você lembra de cumprir."
+    },
+    {
+      "id": "a-mesma-promessa-em-outra-funcao",
+      "title": "A mesma promessa, outra função",
+      "markdown": "A mesma palavra entra em qualquer assinatura que receba a lista para ler. Aqui ela aparece numa função que devolve a maior nota:\n\n```c\nint maiorComPromessa(const int notas[], int quantas) {\n    int maior = notas[0];\n    for (int i = 1; i < quantas; i++) {\n        if (maior < notas[i]) {\n            maior = notas[i];\n        }\n    }\n    return maior;\n}\n```\n\nDuas funções, duas assinaturas, a mesma promessa: a lista sai delas igual a como entrou."
+    },
+    {
+      "id": "onde-a-promessa-quebra",
+      "title": "Onde a promessa quebra",
+      "markdown": "A promessa vale para DENTRO da função, não para o mundo. Quem chamou continua dono da lista e pode mudá-la na linha seguinte — o `const` do parâmetro não congela o array, só proíbe a função de escrever por ali.\n\nE ela é declarada, nunca deduzida: uma função que só lê mas esquece o `const` compila igual e não avisa nada. O `const` é o aviso que VOCÊ escolhe dar a quem for chamar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "const-na-assinatura-so-le",
+      "statement": "`const int v[]` diz \"esta função só lê\" — tentar mudar vira ERRO de compilação.",
+      "question": "O corpo de `int soma(const int v[], int n)` tem a linha `v[0] = 0;`. O que acontece?",
+      "options": [
+        "O programa nem compila: `v` entrou como só de leitura.",
+        "Compila, e a gaveta 0 da lista de quem chamou vira zero.",
+        "Compila, e muda apenas a cópia que a função recebeu.",
+        "Compila com aviso, e a linha é ignorada ao rodar."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `const` do parâmetro é regra, não recado: escrever em `v` é erro de compilação (`read-only variable is not assignable`), e o programa não chega a rodar.",
+      "sectionId": "o-compilador-cobra-a-promessa",
+      "optionRationales": [
+        "O compilador reprova a escrita numa gaveta declarada `const` — o erro aparece antes de qualquer execução.",
+        "Sem o `const` seria isso mesmo; com ele, o programa não compila para chegar a mudar nada.",
+        "Não existe cópia da lista: ela entra por endereço, e é justamente por isso que o `const` importa.",
+        "Não é aviso e a linha não é ignorada: é erro, e nenhum binário é gerado."
+      ]
+    },
+    {
+      "id": "a-lista-nao-e-copiada",
+      "statement": "A lista não é copiada ao entrar na função: a função alcança as gavetas de verdade.",
+      "question": "Por que o `const` muda algo num parâmetro de lista e quase nada num `int n`?",
+      "options": [
+        "Porque a lista chega por endereço: a função alcança as gavetas originais.",
+        "Porque o `n` já chega dentro de uma gaveta que o compilador protege sozinho.",
+        "Porque `const` só existe para listas: em `int n` a palavra nem compila.",
+        "Porque o `n` é copiado e a lista também, mas a lista é maior."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `n` é uma cópia: mexer nele não afeta quem chamou. A lista chega como endereço da primeira gaveta — escrever em `v[0]` muda a lista de fora, e é esse poder que o `const` recusa.",
+      "sectionId": "a-assinatura-e-um-contrato",
+      "optionRationales": [
+        "A lista entra por endereço, então a função pode estragar a lista de quem chamou — o `const` é quem tira esse poder.",
+        "O compilador não protege o `n`: ele é uma cópia, e mudar uma cópia não afeta quem chamou.",
+        "`const int n` compila perfeitamente; só não faz diferença para fora, porque o `n` já é cópia.",
+        "A lista NÃO é copiada, e o tamanho dela não é o ponto: o ponto é o endereço."
+      ]
+    },
+    {
+      "id": "o-const-nao-congela-a-lista",
+      "statement": "O `const` do parâmetro proíbe a FUNÇÃO de escrever — não congela a lista de quem chamou.",
+      "question": "Depois de chamar `somaComPromessa(notas, 5)`, quem chamou ainda pode mudar `notas`?",
+      "options": [
+        "Sim: o `const` só vale dentro da função que o declarou.",
+        "Não: depois dessa chamada a lista fica só de leitura para sempre.",
+        "Não: o `const` do parâmetro também tranca a lista de fora.",
+        "Só se a lista tiver nascido sem `const` na declaração dela."
+      ],
+      "answerIndex": 0,
+      "feedback": "A promessa é da função, não do array. Passada a chamada, quem chamou continua dono da lista e escreve nela quando quiser.",
+      "sectionId": "onde-a-promessa-quebra",
+      "optionRationales": [
+        "O qualificador vive no parâmetro: fora da função, a lista é da mesma dona de antes.",
+        "Nenhuma chamada muda o que a lista de fora permite — o `const` não viaja de volta.",
+        "O parâmetro é uma porta de entrada, não uma tranca no array de quem chamou.",
+        "A declaração de `notas` não depende da chamada; e uma lista sem `const` continua gravável."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "const type qualifier — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/const",
+      "description": "A página oficial do `const` em C: o qualificador de tipo que torna o objeto só de leitura e o que o compilador recusa por causa dele."
+    },
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial da assinatura em C, inclusive o ajuste de parâmetro que transforma `const int v[]` em ponteiro para `const int`."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.7.3 define os qualificadores de tipo e §6.3.2.1 diz por que escrever num objeto `const` é comportamento proibido."
+    }
+  ],
+  "challenges": [
+    "soma-com-promessa"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

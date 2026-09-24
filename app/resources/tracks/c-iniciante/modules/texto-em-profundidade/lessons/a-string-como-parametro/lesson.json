@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "a-string-como-parametro",
   "title": "A string como parâmetro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Uma função recebe um texto com `char s[]`: não chega cópia nenhuma, chega o endereço da primeira gaveta — por isso a função lê, conta e muda o texto de quem chamou.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "a_string_como_parametro"
+  ],
   "prerequisites": [
     "percorrer-a-string",
     "a-lista-como-parametro"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto passa a atravessar a fronteira da função: o que entra no parâmetro é o endereço da primeira gaveta, e por isso a função alcança e altera o texto que vive fora dela",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-string-cabe-no-parametro",
+      "title": "A string no parâmetro",
+      "markdown": "O parâmetro que recebe uma lista de inteiros é `int v[]`. Para receber um texto muda só o tipo:\n\n```c\nint contaLetras(char s[]) {\n    int n = 0;\n    for (int i = 0; s[i] != '\\0'; i++) {\n        n++;\n    }\n    return n;\n}\n```\n\nDentro da função, `s` é um texto como qualquer outro: dá para percorrer, ler pela gaveta, comparar. Quem chama passa o nome da caixa — sem `&` e sem colchetes:\n\n```c\nchar nome[] = \"Ana\";\nprintf(\"%d\\n\", contaLetras(nome));\n```\n\n```text\n3\n```"
+    },
+    {
+      "id": "a-funcao-enxerga-o-original",
+      "title": "A função enxerga o original",
+      "markdown": "A lista não copia — e o texto também não. O que viaja no parâmetro é o endereço da primeira gaveta, então mudar dentro da função muda o original:\n\n```c\nvoid gritar(char s[]) {\n    for (int i = 0; s[i] != '\\0'; i++) {\n        s[i] = s[i] - 32;\n    }\n}\n```\n\n```c\nchar nome[] = \"ana\";\ngritar(nome);\nprintf(\"%s\\n\", nome);\n```\n\n```text\nANA\n```\n\nA função não devolveu nada e o `nome` mudou de valor. É a mesma regra da caixa de notas, agora com letras."
+    },
+    {
+      "id": "o-tamanho-viaja-por-dentro",
+      "title": "O tamanho viaja por dentro",
+      "markdown": "Na lista de inteiros o tamanho tinha de viajar junto (`int v[], int n`), porque a caixa não sabe quantas gavetas são suas. No texto ele não precisa: a placa `\\0` mora DENTRO do próprio texto.\n\n```c\nint ehVazio(char s[]) {\n    return s[0] == '\\0';\n}\n```\n\nSe a primeira gaveta já é a placa, não há texto nenhum — e a função descobre isso sem receber tamanho nenhum.\n\nOnde a comodidade quebra: sem a placa, laço nenhum saberia onde parar. Todo texto desta trilha tem a sua."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "mudar-dentro-muda-o-original",
+      "statement": "A string em função é como a lista: o endereço do primeiro caractere — mudar muda o original.",
+      "question": "Uma função recebe `char s[]` e executa `s[0] = 'X';`. O que acontece com a caixa de quem chamou?",
+      "options": [
+        "Muda também: a função trabalha no original.",
+        "Não muda: a função recebeu uma cópia do texto.",
+        "Não muda, porque a função não devolveu nada.",
+        "Muda só se quem chamou passar o `&` da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "No parâmetro não chegou o texto: chegou o endereço da primeira gaveta. Escrever em `s[0]` é escrever na gaveta 0 da caixa de fora.",
+      "sectionId": "a-funcao-enxerga-o-original",
+      "optionRationales": [
+        "O parâmetro guarda o endereço da caixa de fora, então a escrita chega nela.",
+        "Cópia é o que acontece com um `int`; com texto viaja o endereço, não o conteúdo.",
+        "Devolver é outro assunto: a mudança acontece pela gaveta, não pelo `return`.",
+        "O nome da caixa já vale como endereço — o `&` seria a mais e nem compila aqui."
+      ]
+    },
+    {
+      "id": "o-texto-dispensa-o-tamanho",
+      "statement": "O parâmetro de texto dispensa o tamanho: a placa `\\0` viaja dentro do texto.",
+      "question": "Por que `int contaLetras(char s[])` dispensa o parâmetro `n` que `somaLista(int v[], int n)` exigia?",
+      "options": [
+        "Porque o `\\0` marca o fim dentro do próprio texto.",
+        "Porque texto é sempre menor do que lista de inteiros.",
+        "Porque o `sizeof` funciona dentro da função com texto.",
+        "Porque `char` ocupa 1 byte e o laço conta bytes."
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa de `int` não carrega marca de fim, e por isso o `n` tinha de viajar junto. O texto carrega a sua: o laço para quando encontra o `\\0`.",
+      "sectionId": "o-tamanho-viaja-por-dentro",
+      "optionRationales": [
+        "O fim vai dentro do dado: o laço reconhece a placa e para nela.",
+        "Tamanho não tem nada a ver: um texto pode ser bem maior que uma lista.",
+        "Dentro da função o `sizeof` mediria um endereço — vale para texto também.",
+        "O tamanho de cada gaveta não diz quantas gavetas o texto ocupa."
+      ]
+    },
+    {
+      "id": "na-chamada-vai-o-nome",
+      "statement": "Quem chama passa o nome da caixa: sem `&` e sem colchetes.",
+      "question": "Com `char nome[] = \"Ana\";` declarado, qual chamada de `contaLetras` está certa?",
+      "options": [
+        "`contaLetras(nome)` — só o nome da caixa.",
+        "`contaLetras(&nome)` — com o `&` do endereço.",
+        "`contaLetras(nome[])` — com os colchetes vazios.",
+        "`contaLetras(nome, 3)` — com o tamanho junto."
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome da caixa já é o endereço da primeira gaveta. Os colchetes existem na declaração do parâmetro, nunca na chamada.",
+      "sectionId": "a-string-cabe-no-parametro",
+      "optionRationales": [
+        "O nome da caixa, solto, já entrega o endereço da primeira gaveta.",
+        "O `&` é para pegar o endereço de uma variável comum, não de uma caixa.",
+        "Colchetes vazios são da declaração do parâmetro, não da chamada.",
+        "O tamanho é exigência da lista de `int`; o texto traz a placa `\\0`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — o parâmetro de função e o ajuste do array",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A regra oficial que explica por que `char s[]` num parâmetro recebe o endereço do primeiro elemento, e não uma cópia."
+    },
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial dos parâmetros: o que a assinatura declara e o que a chamada precisa entregar."
+    },
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A definição do texto que termina em `\\0` — a marca de fim que viaja dentro do parâmetro."
+    }
+  ],
+  "challenges": [
+    "conta-espacos"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

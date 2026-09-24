@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-flag-da-busca",
   "title": "A flag da busca",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Uma variável declarada ANTES do laço sobrevive a ele e guarda o resultado da busca — porque o break só sai, não deixa recado.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "a_flag_da_busca"
+  ],
   "prerequisites": [
     "parar-no-meio",
     "verdadeiro-e-falso-com-nome"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a variável deixa de ser só um valor com nome e passa a ser memória que atravessa o laço: o que acontece dentro de uma volta fica registrado para ser lido depois do fim do laço",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-break-so-sai",
+      "title": "O break sai, mas não deixa recado",
+      "markdown": "O `break` interrompe o laço no instante do achado. O problema aparece DEPOIS dele: ninguém mais sabe por que o laço acabou.\n\n```c\nfor (int d = 2; d <= 11; d++) {\n    if (12 % d == 0) {\n        break;\n    }\n}\n```\n\nEste laço tem duas maneiras de terminar — saindo pelo `break` (achou um divisor) ou pela condição (varreu até o 11 sem achar nada) — e as duas desembocam na mesma linha seguinte. O contador `d`, que poderia contar a história, nasce no cabeçalho e morre com o laço."
+    },
+    {
+      "id": "a-flag-guarda-a-resposta",
+      "title": "A flag guarda a resposta",
+      "markdown": "A saída é uma variável declarada ANTES do laço: ela sobrevive a ele. Um `bool` serve bem, porque a resposta é sim ou não:\n\n```c\n#include <stdbool.h>\n\nbool achei = false;\nfor (int d = 2; d <= 11; d++) {\n    if (12 % d == 0) {\n        achei = true;\n        break;\n    }\n}\nprintf(\"%d\\n\", achei);\n```\n\n```text\n1\n```\n\nEla nasce `false` (*ainda não achei*), vira `true` no instante do achado e continua `true` depois do `}`. A isso se dá o nome de **flag**: uma marca que fica levantada."
+    },
+    {
+      "id": "nasce-fora-e-nasce-falsa",
+      "title": "Onde ela nasce, e com que valor",
+      "markdown": "Dois detalhes decidem se a flag funciona: onde ela é declarada e com que valor.\n\n```c\n#include <stdbool.h>\n\nbool achei = false;\nfor (int d = 2; d <= 6; d++) {\n    if (7 % d == 0) {\n        achei = true;\n    }\n}\nprintf(\"%d\\n\", achei);\n```\n\n```text\n0\n```\n\nAqui nenhum divisor casou, ninguém tocou na flag, e o `false` do começo é a resposta final. Se a declaração estivesse DENTRO do corpo, a variável nasceria de novo a cada volta e esqueceria o achado."
+    },
+    {
+      "id": "a-flag-ao-contrario",
+      "title": "A flag ao contrário",
+      "markdown": "Quando a pergunta é \"TODOS passam?\", a flag nasce LEVANTADA e cai no primeiro contraexemplo:\n\n```c\n#include <stdbool.h>\n\nbool primo = true;\nfor (int d = 2; d <= 8; d++) {\n    if (9 % d == 0) {\n        primo = false;\n        break;\n    }\n}\nprintf(\"%d\\n\", primo);\n```\n\n```text\n0\n```\n\nO 3 divide o 9: a flag cai e o `break` sai. Quem escolhe o valor inicial é a PERGUNTA — *achei algum* nasce `false`, *todos passam* nasce `true` — e, se o laço não der nenhuma volta, ninguém toca nela: a resposta é o valor com que ela nasceu."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-flag-sobrevive-ao-laco",
+      "statement": "Se você precisa saber DEPOIS do laço se achou, a flag guarda o resultado — o `break` só sai.",
+      "question": "Depois do laço você precisa imprimir se algum divisor foi encontrado. O que resolve?",
+      "options": [
+        "Uma variável declarada antes do laço, marcada no achado.",
+        "O próprio `break`: quem sai por ele já diz que achou algo.",
+        "O contador do laço, que sobrevive com o último valor.",
+        "Um `continue` nas voltas em que não houve nenhum achado."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `break` só muda por onde o laço acaba; ele não deixa recado. Quem leva a informação para fora é a variável declarada fora.",
+      "sectionId": "o-break-so-sai",
+      "optionRationales": [
+        "Declarada fora, ela sobrevive ao laço; marcada no achado, ela chega ao fim com a resposta.",
+        "O `break` é um salto, não um valor: depois dele nada distingue as duas maneiras de o laço acabar.",
+        "O contador declarado no cabeçalho do `for` morre com o laço — fora dele o nome não existe.",
+        "O `continue` também não guarda nada: ele só abandona o resto da volta."
+      ]
+    },
+    {
+      "id": "a-flag-nasce-falsa",
+      "statement": "A flag nasce FORA do laço — e com o valor que responde ao caso \"nada aconteceu\".",
+      "question": "O que acontece se `bool achei = false;` for escrito DENTRO do corpo do laço?",
+      "options": [
+        "Ela volta a `false` em cada volta e esquece o achado.",
+        "Nada muda: o valor guardado na flag continua o mesmo.",
+        "Ela passa a valer `true` já na primeira volta do laço.",
+        "O programa deixa de compilar por causa da palavra `bool`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Declarar é criar: dentro do corpo, a variável nasce de novo a cada volta, sempre com o valor inicial. Fora, ela é criada uma vez só.",
+      "sectionId": "nasce-fora-e-nasce-falsa",
+      "optionRationales": [
+        "A linha de declaração roda a cada volta, e cada volta recria a variável com o valor inicial `false`.",
+        "O lugar da declaração muda o tempo de vida da variável — e é justamente isso que a flag precisa.",
+        "O valor inicial escrito é `false`; nada a levanta antes de um achado.",
+        "Declarar dentro de um bloco é legal em C; o defeito aqui é de lógica, não de compilação."
+      ]
+    },
+    {
+      "id": "o-valor-inicial-responde-a-pergunta",
+      "statement": "O valor inicial da flag é a resposta do caso em que o laço não acha nada.",
+      "question": "Você quer saber se NENHUM número de 2 a `n - 1` divide `n`. Com que valor a flag nasce?",
+      "options": [
+        "Com `true`: ela só cai se aparecer um divisor.",
+        "Com `false`, e o achado de um divisor a levanta.",
+        "Com `false`, porque toda flag começa baixada.",
+        "Tanto faz: o laço escreve nela antes do fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "A pergunta é \"todos os candidatos falharam?\". A resposta enquanto ninguém contradiz é sim — então a flag nasce `true` e um divisor a derruba. Nascer `false` responderia à pergunta contrária: \"achei algum?\".",
+      "sectionId": "a-flag-ao-contrario",
+      "optionRationales": [
+        "Nascer levantada é dizer \"até agora nada contradisse\"; o primeiro divisor derruba.",
+        "Levantar no achado responde \"achei algum divisor?\" — o contrário do que se pergunta aqui.",
+        "Não existe valor obrigatório: quem decide é a pergunta que a flag responde.",
+        "Com `n` primo o laço não derruba nada, e o valor inicial é a única resposta que sobra."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Boolean type — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/types/boolean",
+      "description": "A página oficial do bool em C: o tipo que guarda 0 ou 1 e os nomes true e false que o stdbool.h traz."
+    },
+    {
+      "title": "Scope — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/scope",
+      "description": "A página oficial do escopo em C: onde uma variável declarada vale — e por que a flag precisa nascer fora do laço."
+    },
+    {
+      "title": "break statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/break",
+      "description": "A página oficial do break: ele encerra o laço mais interno e nada mais — nenhum valor volta com ele."
+    }
+  ],
+  "challenges": [
+    "e-primo"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

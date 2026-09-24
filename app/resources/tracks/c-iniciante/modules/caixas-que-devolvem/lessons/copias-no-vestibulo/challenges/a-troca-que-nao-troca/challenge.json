@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-troca-que-nao-troca",
+  "title": "A troca que não troca",
+  "concept": "passagem_por_valor",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A troca que não troca\n\nEste desafio prova, com teste verde, que a troca **não sai da caixa**. São duas caixas:\n\n```text\nint tentarTrocar(int a, int b)\nint aTrocaQueNaoTroca(int x, int y)\n```\n\n**`tentarTrocar`** troca os valores em três passos (guarda `a` num terceiro nome, põe `b` em `a`, põe o guardado em `b`) e devolve o par já trocado como um número de dois dígitos: `a * 10 + b`. Com (2, 9) ela devolve **92**.\n\n**`aTrocaQueNaoTroca`** chama `tentarTrocar(x, y)`, ignora o valor devolvido e depois devolve o estado dos SEUS nomes, no mesmo formato: `x * 10 + y`. Com (2, 9) ela devolve **29** — e é esse 29 que mostra que a troca não atravessou a porta.\n\nUse sempre números de um dígito, de 1 a 9.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* 1) tentarTrocar: troque os valores de a e b em tres passos, usando um\n      terceiro nome para guardar a antes de sobrescrever.\n      Com (2, 9) o valor devolvido tem de ser 92. */\nint tentarTrocar(int a, int b) {\n    return a * 10 + b;\n}\n\n/* 2) aTrocaQueNaoTroca: chame tentarTrocar(x, y), ignore o valor devolvido\n      e depois devolva o estado de x e y no mesmo formato. */\nint aTrocaQueNaoTroca(int x, int y) {\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-troca-que-nao-troca — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: sem captura de stdout. Os dois lados da mesma historia, no\n   mesmo desafio: DENTRO da caixa a troca vale (92), FORA dela nada mudou\n   (29). Cada cenario usa um par novo para que valor fixo devolvido nao passe. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint tentarTrocar(int a, int b);\nint aTrocaQueNaoTroca(int x, int y);\n\nSM_TEST(dentro_da_caixa_a_troca_acontece) {\n    checa_int(\"dentro da caixa, 2 e 9 viram 9 e 2\", tentarTrocar(2, 9), 92,\n              \"nas copias a troca vale: a ficou 9 e b ficou 2\");\n}\n\nSM_TEST(fora_da_caixa_nada_mudou) {\n    checa_int(\"fora da caixa, x e y seguem 2 e 9\", aTrocaQueNaoTroca(2, 9), 29,\n              \"a chamada mexeu nas copias; x e y de quem chamou nao mudaram\");\n}\n\nSM_TEST(outro_par_a_mesma_historia) {\n    checa_int(\"dentro da caixa, 4 e 7 viram 7 e 4\", tentarTrocar(4, 7), 74,\n              \"a troca das copias acontece com qualquer par\");\n    checa_int(\"fora da caixa, x e y seguem 4 e 7\", aTrocaQueNaoTroca(4, 7), 47,\n              \"de fora, a ordem continua a mesma depois da chamada\");\n}\n",
+  "solutionCode": "int tentarTrocar(int a, int b) {\n    int guardado = a;\n    a = b;\n    b = guardado;\n    return a * 10 + b;\n}\n\nint aTrocaQueNaoTroca(int x, int y) {\n    tentarTrocar(x, y);\n    return x * 10 + y;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "dentro_da_caixa_a_troca_acontece",
+      "teste": "dentro_da_caixa_a_troca_acontece",
+      "descricao": "tentarTrocar(2, 9) devolve 92: dentro da caixa os tres passos trocam as copias de verdade"
+    },
+    {
+      "id": "fora_da_caixa_nada_mudou",
+      "teste": "fora_da_caixa_nada_mudou",
+      "descricao": "aTrocaQueNaoTroca(2, 9) devolve 29 — depois da chamada os nomes de quem chamou seguem na ordem original"
+    },
+    {
+      "id": "outro_par_a_mesma_historia",
+      "teste": "outro_par_a_mesma_historia",
+      "descricao": "com o par (4, 7) a historia se repete: 74 dentro da caixa e 47 fora dela, o que impede que um valor fixo devolvido passe no teste"
+    }
+  ]
+}

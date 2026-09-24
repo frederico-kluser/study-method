@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "comparar-textos",
   "title": "Comparar textos",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O strcmp compara dois textos letra por letra e devolve zero quando eles são iguais — o == compararia endereços, nunca o texto.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:strcmp",
+  "concepts": [
+    "comparar_textos"
+  ],
   "prerequisites": [
     "o-comprimento"
   ],
+  "introduces": {
+    "productive": [
+      "api:strcmp",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:strcmp"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a igualdade de texto deixa de ser uma comparação de caixas e passa a ser uma função com resultado numérico: a decisão do programa agora depende de um número devolvido, em que o zero é o caso especial",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-igual-compara-enderecos",
+      "title": "O `==` não compara texto",
+      "markdown": "Duas caixas com o mesmo texto não são a mesma caixa. Escrever `senha == \"abrir\"` compara os ENDEREÇOS dos dois textos — e endereços diferentes dão falso mesmo quando as letras são iguais.\n\nComparar texto é comparar letra por letra, e a `<string.h>` já tem quem faça:\n\n```c\nchar senha[] = \"abrir\";\nprintf(\"%d\\n\", strcmp(senha, \"abrir\"));\n```\n\n```text\n0\n```\n\nEstranho? É: **zero quer dizer IGUAL**. A `strcmp` não responde sim ou não — ela responde a distância entre os dois textos, e distância zero é o mesmo texto."
+    },
+    {
+      "id": "zero-quer-dizer-igual",
+      "title": "Zero quer dizer igual",
+      "markdown": "Como zero é igual, a condição da decisão é `== 0`:\n\n```c\nchar senha[] = \"fechar\";\nif (strcmp(senha, \"abrir\") == 0) {\n    printf(\"porta aberta\\n\");\n} else {\n    printf(\"porta trancada\\n\");\n}\n```\n\n```text\nporta trancada\n```\n\n`fechar` e `abrir` são textos diferentes: a `strcmp` devolveu um número diferente de zero e o `else` rodou.\n\nA comparação também não se contenta com o começo: `abrirtudo` não é `abrir`, porque num dos textos a placa `\\0` chega antes da letra seguinte."
+    },
+    {
+      "id": "o-sinal-diz-a-ordem",
+      "title": "O sinal diz a ordem",
+      "markdown": "Quando os textos diferem, o que vale é o SINAL: negativo quer dizer que o primeiro vem antes na ordem das letras; positivo, que vem depois.\n\n```c\nchar nome[] = \"ana\";\nif (strcmp(nome, \"bia\") < 0) {\n    printf(\"ana vem antes\\n\");\n}\n```\n\n```text\nana vem antes\n```\n\nÉ assim que se coloca uma lista de nomes em ordem sem olhar letra por letra na mão.\n\nOnde a analogia da distância quebra: o TAMANHO do número não é promessa. Dois compiladores podem devolver `-5` e `-1` na mesma comparação — só o sinal é garantido."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "zero-e-igual-e-o-igual-igual-e-endereco",
+      "statement": "`strcmp` devolve 0 quando IGUAL — `==` compara ENDEREÇOS, nunca textos.",
+      "question": "As caixas `a` e `b` guardam as mesmas cinco letras. O que a comparação `a == b` responde?",
+      "options": [
+        "Falso: os endereços das duas caixas são diferentes.",
+        "Verdadeiro, porque as letras guardadas são as mesmas.",
+        "Zero, que é o valor de igual na comparação de textos.",
+        "O número de letras iguais que as duas caixas têm."
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome de uma caixa é o endereço da gaveta 0 dela. Duas caixas moram em endereços diferentes, então `a == b` é falso ainda que as letras coincidam — quem olha as letras é o `strcmp`.",
+      "sectionId": "o-igual-compara-enderecos",
+      "optionRationales": [
+        "São duas caixas, dois endereços: a comparação de endereços dá falso.",
+        "O `==` nunca chega às letras: ele para no endereço de cada caixa.",
+        "Quem devolve zero para igual é o `strcmp`; o `==` devolve verdadeiro ou falso.",
+        "Nenhuma comparação de C conta letras iguais — isso é trabalho de um laço seu."
+      ]
+    },
+    {
+      "id": "a-condicao-de-igualdade-de-texto",
+      "statement": "A condição que pergunta \"os dois textos são iguais?\" é `strcmp(a, b) == 0`.",
+      "question": "Qual condição pergunta \"a senha digitada é `abrir`?\"",
+      "options": [
+        "`strcmp(senha, \"abrir\") == 0`",
+        "`strcmp(senha, \"abrir\") == 1`",
+        "`strlen(senha) == strlen(\"abrir\")`",
+        "`senha == \"abrir\"`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Zero é o resultado de \"nenhuma diferença\". Por isso a condição de igualdade de texto compara o resultado do `strcmp` com zero.",
+      "sectionId": "zero-quer-dizer-igual",
+      "optionRationales": [
+        "Zero quer dizer \"nenhuma diferença\": é a condição de igualdade de texto.",
+        "1 seria uma diferença; e o valor exato das diferenças nem é garantido.",
+        "Tamanho igual não é texto igual: `abrir` e `fecha` têm cinco letras cada.",
+        "Esse `==` compara endereços de caixas, e eles são sempre diferentes."
+      ]
+    },
+    {
+      "id": "so-o-sinal-e-garantido",
+      "statement": "Nos textos diferentes o que vale é o SINAL do resultado, não o tamanho do número.",
+      "question": "`strcmp(\"ana\", \"bia\")` devolveu um número negativo. O que isso diz?",
+      "options": [
+        "Que `ana` vem antes de `bia` na ordem das letras.",
+        "Que `ana` tem menos letras guardadas do que `bia`.",
+        "Que a comparação deu errado e precisa ser refeita.",
+        "Que faltam letras para os dois textos ficarem iguais."
+      ],
+      "answerIndex": 0,
+      "feedback": "O sinal responde a ordem: negativo é \"o primeiro vem antes\". O tamanho do número muda de compilador para compilador e não serve para nada.",
+      "sectionId": "o-sinal-diz-a-ordem",
+      "optionRationales": [
+        "Negativo é a promessa do padrão: o primeiro texto vem antes na ordem.",
+        "As duas palavras têm três letras — o tamanho não foi o que decidiu.",
+        "Um número diferente de zero é resposta boa: quer dizer \"textos diferentes\".",
+        "A `strcmp` não conta o que falta; ela só informa igual, antes ou depois."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "strcmp — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/strcmp",
+      "description": "A página oficial da strcmp: zero para textos iguais, e sinal negativo ou positivo para a ordem."
+    },
+    {
+      "title": "strcmp(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/strcmp.3.html",
+      "description": "A man-page do sistema: o valor de retorno é menor, igual ou maior que zero — nunca um número prometido."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 7.24.4.2 define o sinal do resultado da strcmp, e só o sinal."
+    }
+  ],
+  "challenges": [
+    "a-porta-secreta"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

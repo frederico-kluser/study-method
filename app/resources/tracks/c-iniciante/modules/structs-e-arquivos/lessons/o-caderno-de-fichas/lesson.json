@@ -2,23 +2,129 @@
   "schemaVersion": 1,
   "slug": "o-caderno-de-fichas",
   "title": "O caderno de fichas",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Uma ficha vira uma linha do arquivo quando o fprintf escreve campo a campo — e volta a ser ficha quando o fscanf lê os mesmos campos na mesma ordem.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:fscanf",
+  "concepts": [
+    "o_caderno_de_fichas"
+  ],
   "prerequisites": [
     "a-ficha-completa",
     "ler-numeros-do-caderno"
   ],
+  "introduces": {
+    "productive": [
+      "api:fprintf",
+      "api:fscanf",
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "registro"
+  ],
+  "notionalMachineDelta": "a ficha passa a sobreviver ao fim do programa: o caderno guarda uma linha por registro, e a ordem dos campos e o contrato que permite remontar a ficha depois",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "uma-linha-uma-ficha",
+      "title": "Uma linha, uma ficha",
+      "markdown": "A ficha tem campos de tipos diferentes; o arquivo guarda só texto. A ponte é o `fprintf` campo a campo: um `%` para cada campo, espaço entre eles, e o `\\n` fechando a linha.\n\n```c\ntypedef struct {\n    char nome[40];\n    int idade;\n} Pessoa;\n\nPessoa ana = {\"ana\", 30};\nPessoa bruno = {\"bruno\", 31};\nFILE *f = fopen(\"agenda.txt\", \"w\");\nfprintf(f, \"%s %d\\n\", ana.nome, ana.idade);\nfprintf(f, \"%s %d\\n\", bruno.nome, bruno.idade);\nfclose(f);\n```\n\n```text\nana 30\nbruno 31\n```\n\nUma linha do caderno, uma ficha inteira."
+    },
+    {
+      "id": "ler-na-mesma-ordem",
+      "title": "Ler de volta na mesma ordem",
+      "markdown": "Para trazer a ficha de volta, o `fscanf` pede os campos na MESMA ordem em que o `fprintf` os escreveu (a mesma ficha da seção anterior, escrita aqui em uma linha só):\n\n```c\ntypedef struct { char nome[40]; int idade; } Pessoa;\n\nPessoa p = {\"\", 0};\nFILE *f = fopen(\"agenda.txt\", \"r\");\nfscanf(f, \"%s %d\", p.nome, &p.idade);\nfclose(f);\n```\n\nRepare no `&`: `p.idade` é um número e precisa do endereço para ser preenchido; `p.nome` é um array, e o nome de um array já É endereço — por isso vai sem `&`, igual na ficha lida do teclado."
+    },
+    {
+      "id": "a-ordem-e-o-contrato",
+      "title": "A ordem é o contrato",
+      "markdown": "O arquivo não guarda nome de campo nenhum: guarda texto na ordem em que você escreveu. Ler na ordem trocada faz o `%d` topar com letras, e a leitura falha:\n\n```c\ntypedef struct { char nome[40]; int idade; } Pessoa;\n\nPessoa p = {\"\", 0};\nFILE *f = fopen(\"agenda.txt\", \"r\");\nwhile (fscanf(f, \"%s %d\", p.nome, &p.idade) == 2) {\n    printf(\"%s tem %d anos\\n\", p.nome, p.idade);\n}\nfclose(f);\n```\n\nUma volta do laço, uma ficha: o `== 2` é o par de campos de cada linha."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "um-campo-por-vez-na-mesma-ordem",
+      "statement": "Um campo por vez, na MESMA ordem para escrever e para ler.",
+      "question": "O programa escreveu com `fprintf(f, \"%s %d\\n\", p.nome, p.idade);`. Qual leitura remonta a ficha?",
+      "options": [
+        "`fscanf(f, \"%s %d\", p.nome, &p.idade);`",
+        "`fscanf(f, \"%d %s\", &p.idade, p.nome);`",
+        "`fscanf(f, \"%s %d\", &p.nome, p.idade);`",
+        "`fscanf(f, \"%s\", p.nome);` e mais nada, porque a linha é uma só."
+      ],
+      "answerIndex": 0,
+      "feedback": "O arquivo guarda os campos na ordem em que foram escritos: nome e depois idade. A leitura repete essa ordem, com o mesmo par de conversões.",
+      "sectionId": "a-ordem-e-o-contrato",
+      "optionRationales": [
+        "Mesma ordem, mesmas conversões: a ficha volta inteira.",
+        "Trocar a ordem faz o `%d` topar com as letras do nome, e a leitura falha ali.",
+        "O `p.nome` é array e já é endereço: um `&` a mais nele desencontra os tipos.",
+        "Ler só o nome deixa a idade na linha, e a leitura seguinte começa no lugar errado."
+      ]
+    },
+    {
+      "id": "o-array-ja-e-endereco",
+      "statement": "O campo de texto vai sem `&`; o campo numérico vai com `&`.",
+      "question": "Por que `p.nome` entra no `fscanf` sem `&` e `p.idade` entra com `&`?",
+      "options": [
+        "Porque o nome de um array já é o endereço do primeiro elemento.",
+        "Porque o `%s` do formato dispensa o endereço de qualquer campo lido.",
+        "Porque texto é sempre maior que número e não caberia no endereço.",
+        "Porque o `&` só funciona em campo declarado depois do outro na ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "`p.nome` é um array de `char`: o nome dele já vale como endereço do primeiro caractere. `p.idade` é um `int` comum, e o `&` é o que entrega o endereço dele.",
+      "sectionId": "ler-na-mesma-ordem",
+      "optionRationales": [
+        "O nome do array já é endereço — é por isso que ele dispensa o `&`.",
+        "O `%s` diz o TIPO do campo; quem resolve o endereço é o argumento.",
+        "Tamanho não tem nada a ver: o que muda é array (já é endereço) contra variável.",
+        "A ordem de declaração dos campos não muda o papel do `&`."
+      ]
+    },
+    {
+      "id": "o-laco-le-ficha-por-ficha",
+      "statement": "O laço lê uma ficha por volta: o `== 2` é o par de campos da linha.",
+      "question": "O caderno tem 3 linhas, cada uma com nome e idade. Quantas voltas o laço `while (fscanf(f, \"%s %d\", p.nome, &p.idade) == 2)` dá?",
+      "options": [
+        "Três: uma volta por linha, e a quarta tentativa encerra.",
+        "Seis: uma volta para cada campo lido do caderno inteiro.",
+        "Duas: o `== 2` limita o laço a duas voltas em cada caderno.",
+        "Uma: o `fscanf` lê o arquivo inteiro numa chamada só."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada volta consome uma linha inteira — os dois campos de uma ficha. Com 3 fichas são 3 voltas; na quarta o caderno acabou, o `fscanf` não devolve 2 e o laço termina.",
+      "sectionId": "a-ordem-e-o-contrato",
+      "optionRationales": [
+        "Uma volta por ficha, e a tentativa que não completa o par encerra o laço.",
+        "Os dois campos são lidos na MESMA volta: o formato pede os dois juntos.",
+        "O `2` é a contagem de campos de uma leitura, não um limite de voltas.",
+        "O `fscanf` lê só o que o formato pede: um par de campos por chamada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fprintf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fprintf",
+      "description": "A página oficial do fprintf: o mesmo texto de formato do printf, escrevendo no arquivo que você escolher."
+    },
+    {
+      "title": "fscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial do fscanf: cada conversão do formato consome um campo e preenche um argumento, na ordem."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do struct em C: os campos, os tipos de cada um e o acesso por ponto."
+    }
+  ],
+  "challenges": [
+    "a-agenda"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

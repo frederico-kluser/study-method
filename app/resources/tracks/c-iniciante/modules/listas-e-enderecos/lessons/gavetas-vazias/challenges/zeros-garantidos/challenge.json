@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "zeros-garantidos",
+  "title": "Zeros garantidos",
+  "concept": "gavetas_vazias",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Zeros garantidos\n\nA função `zerosGarantidos` recebe **dois** números e imprime **cinco** linhas: as cinco gavetas de uma lista de cinco posições, uma por linha.\n\nA lista nasce com o inicializador **parcial** — só os dois números recebidos entram entre as chaves. As outras três gavetas você não escreve: o C as zera.\n\nCom `a = 7` e `b = 3`, a saída é exatamente:\n\n```text\n7\n3\n0\n0\n0\n```\n\nDeclare a lista com `{a, b}` e imprima as cinco gavetas pelo índice (um `for` de 0 a 4 resolve). Não imprima nada além das cinco linhas.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdio.h>\n\n/* zerosGarantidos recebe os dois primeiros valores e imprime as CINCO\n   gavetas da lista, uma por linha.\n   Declare a lista de 5 gavetas com o inicializador PARCIAL — so {a, b}\n   entre as chaves — e deixe as outras tres para o C zerar.\n   Depois imprima as cinco gavetas, uma por linha. */\nvoid zerosGarantidos(int a, int b) {\n    /* declare aqui a lista de 5 gavetas com {a, b} */\n\n    /* imprima aqui as cinco gavetas, uma por linha */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio zeros-garantidos — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario captura o stdout no proprio teste: o freopen manda o stdout\n   para um arquivo temporario POR CENARIO, o teste chama a funcao do aluno e\n   le o arquivo de volta. Nunca ha fclose de stdout — so fflush — para o\n   segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid zerosGarantidos(int a, int b);\n\nSM_TEST(sete_tres_e_tres_zeros) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    zerosGarantidos(7, 3);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 0\", linha, \"7\\n\",\n              \"o primeiro valor entre as chaves foi para a gaveta 0\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 1\", linha, \"3\\n\",\n              \"o segundo valor entre as chaves foi para a gaveta 1\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 2\", linha, \"0\\n\",\n              \"a gaveta 2 ficou fora do inicializador: nasceu em zero\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 3\", linha, \"0\\n\",\n              \"a gaveta 3 tambem ficou de fora, e tambem nasceu em zero\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 4\", linha, \"0\\n\",\n              \"a gaveta 4 fecha as cinco: zero, como as outras de tras\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na quinta gaveta: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(outros_dois_valores) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    zerosGarantidos(40, 5);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 0 com outro valor\", linha, \"40\\n\",\n              \"as duas primeiras gavetas vem dos valores recebidos, nao do codigo\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 1 com outro valor\", linha, \"5\\n\",\n              \"o segundo valor recebido entra na gaveta 1\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 2 continua zero\", linha, \"0\\n\",\n              \"trocar os valores nao muda o resto: as gavetas de tras nascem em zero\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid zerosGarantidos(int a, int b) {\n    int v[5] = {a, b};\n\n    for (int i = 0; i < 5; i++) {\n        printf(\"%d\\n\", v[i]);\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "sete_tres_e_tres_zeros",
+      "teste": "sete_tres_e_tres_zeros",
+      "descricao": "com (7, 3) a funcao imprime cinco linhas — 7, 3, 0, 0, 0 — e nada mais: os dois valores recebidos entram nas gavetas 0 e 1 pelo inicializador parcial e as tres de tras nascem em zero"
+    },
+    {
+      "id": "outros_dois_valores",
+      "teste": "outros_dois_valores",
+      "descricao": "com (40, 5) as duas primeiras linhas mudam para 40 e 5 e a terceira continua 0 — a saida acompanha os valores recebidos, o que prova que as gavetas da frente vieram das chaves e nao de texto fixo"
+    }
+  ]
+}

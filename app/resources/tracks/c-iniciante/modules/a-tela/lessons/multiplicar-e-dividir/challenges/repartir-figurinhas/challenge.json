@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "repartir-figurinhas",
+  "title": "Repartir as figurinhas",
+  "concept": "multiplicar_e_dividir",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Repartir as figurinhas\n\nA função `repartirFigurinhas` já começa com duas variáveis declaradas: `figurinhas` guardando **47** e `amigos` guardando **5**. Reparta as figurinhas em partes iguais e imprima duas linhas:\n\n1. quantas figurinhas cada amigo leva (divisão entre inteiros);\n2. quantas foram distribuídas no total, ou seja, o que cada um levou vezes o número de amigos.\n\nA tela deve ficar exatamente assim:\n\n```text\ncada um leva 9\ndistribuidas: 45\n```\n\nRepare que 45 não é 47: a divisão entre inteiros corta, e é isso que a aula cobra. Os dois números têm de sair das contas com as variáveis.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* o programa de fora chama repartirFigurinhas() pelo nome */\nvoid repartirFigurinhas(void) {\n    int figurinhas = 47;\n    int amigos = 5;\n\n    /* 1. divida figurinhas por amigos e guarde numa variavel cada\n       2. imprima \"cada um leva %d\" com esse valor\n       3. imprima \"distribuidas: %d\" com cada vezes amigos */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio repartir-figurinhas — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario faz a SUA captura: freopen para um arquivo proprio, chamada\n   da funcao do aluno, fflush (nunca fclose no stdout) e leitura de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid repartirFigurinhas(void);\n\nSM_TEST(quanto_cada_um_leva) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    repartirFigurinhas();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a parte de cada amigo\", linha, \"cada um leva 9\\n\",\n              \"47 dividido por 5 entre inteiros da 9: o C corta a parte quebrada\");\n    fclose(f);\n}\n\nSM_TEST(quantas_foram_distribuidas) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    repartirFigurinhas();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    checa_str(\"o total distribuido\", linha, \"distribuidas: 45\\n\",\n              \"9 para cada um dos 5 amigos da 45, e nao os 47 do comeco\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid repartirFigurinhas(void) {\n    int figurinhas = 47;\n    int amigos = 5;\n\n    int cada = figurinhas / amigos;\n    printf(\"cada um leva %d\\n\", cada);\n    printf(\"distribuidas: %d\\n\", cada * amigos);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "quanto_cada_um_leva",
+      "teste": "quanto_cada_um_leva",
+      "descricao": "a funcao repartirFigurinhas divide 47 por 5 entre inteiros e imprime \"cada um leva 9\" na primeira linha, provando o corte da divisao"
+    },
+    {
+      "id": "quantas_foram_distribuidas",
+      "teste": "quantas_foram_distribuidas",
+      "descricao": "a segunda linha multiplica a parte de cada amigo pelo numero de amigos e imprime \"distribuidas: 45\"; o ultimo checa_str prova que a saida termina ali"
+    }
+  ]
+}

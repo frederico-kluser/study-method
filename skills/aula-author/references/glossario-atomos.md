@@ -1,12 +1,32 @@
 # Glossário de átomos — referência rápida das chaves
 
-O vocabulário fechado da trilha vive em `app/electron/main/engine/vocab/atoms.python.json`
+## 0. Qual inventário é o seu — o vocabulário é POR LÍNGUA
+
+**Este arquivo é o capítulo PYTHON** (§1 em diante). O inventário do adaptador é outro em cada
+língua, e usar a tabela da língua errada produz aula cujo orçamento nunca casa. Medido em
+2026-09-22:
+
+| Língua | Onde está o inventário | Tamanho medido | Comando |
+|---|---|---|---|
+| `python` | `app/electron/main/engine/vocab/atoms.python.json` | **632** chaves (node 118 · op 42 · decl 11 · global 164 · api 297) | `python3 -c "import json; d=json.load(open('app/electron/main/engine/vocab/atoms.python.json')); print(d['total'], {k: len(v) for k, v in d['axes'].items()})"` |
+| `rust` | `app/electron/main/engine/vocab/atoms.rust.json` (gerado; toolchain 1.98.1, tree-sitter-rust 0.24.0) | **191** chaves (node 77 · op 14 · decl 4 · global 77 · api 19) | idem, com `atoms.rust.json` |
+| `c` | **não há arquivo**: o enum fechado é `cInventory()` em `engine/lang/c.ts` | **34** kinds de nó · 3 globais (`stdin`/`stdout`/`stderr`) · eixo `decl:` com 2 formas (`decl:func`, `decl:var`) | `cd app && npx tsx -e 'import {getAdapter} from "./electron/main/engine/lang/registry"; const a = getAdapter("c"); console.log(a.inventory().length, [...a.globals()].join(" "))'` |
+
+Em qualquer língua, a forma agnóstica de descobrir a chave EXATA de um trecho (e a linha de cada
+ocorrência, que é o que a regra do par exige) está em `receita-da-aula.md` §5.1 — e em C e Rust ela
+**precisa** de `surface: 'theory'` (o envelope de fragmento, §5.2). Axioma de entrada, semente do
+harness, proibições globais e armadilhas de cada adaptador: `receita-da-aula-python.md`,
+`receita-da-aula-rust.md`, `receita-da-aula-c.md`.
+
+## 1. O capítulo Python — o vocabulário desta trilha
+
+O vocabulário fechado da trilha Python vive em `app/electron/main/engine/vocab/atoms.python.json`
 (**632 chaves** medidas: node 118 · op 42 · decl 11 · global 164 · api 297). Eixos
 `node:`/`op:`/`decl:`/`global:` são **FECHADOS** (pertença estrita); `api:` é aberto só no formato;
 `term:` é não-vocabulário (prosa). Toda chave abaixo foi conferida no código, no contrato ou no
 **extrator real** (`printf '...' | python3 -I -S app/electron/main/engine/vocab/py/extract_ast.py`).
 
-## 1. Os seis eixos
+### 1.1 Os seis eixos (Python)
 
 | Eixo | Forma | Exemplo | Aberto? |
 |---|---|---|---|
@@ -17,7 +37,7 @@ O vocabulário fechado da trilha vive em `app/electron/main/engine/vocab/atoms.p
 | API | `api:<módulo>.<nome>` (raiz importada/builtin) · `api:.<método>` (receptor local) | `api:math.sqrt`, `api:.append` | só formato |
 | termos da prosa | `term:<termo pt-BR>` | `term:recuo`, `term:traceback` | não-vocabulário |
 
-## 2. Código → chave emitida (medido no extrator real)
+### 1.2 Código → chave emitida (Python, medido no extrator real)
 
 | Código | Chaves não-estruturais emitidas |
 |---|---|
@@ -38,7 +58,7 @@ O vocabulário fechado da trilha vive em `app/electron/main/engine/vocab/atoms.p
 | `print({1, 2})` | `node:Set` · `global:set` (quando o nome `set` aparece) · literais |
 | `x = 1 if cond else 0` | `node:IfExp` |
 
-## 3. As chaves sintéticas do adaptador (as ÚNICAS que existem)
+### 1.3 As chaves sintéticas do adaptador Python (as ÚNICAS que existem)
 
 Fonte: `vocab/py/extract_ast.py` (`_sinteticos` + `_LITERAL_NODE`); docs/17.
 
@@ -61,14 +81,14 @@ produz aula cujo orçamento nunca casa): `node:ChainedCompare` · `node:ClassBas
 `node:ArgAnnotation` · `node:Returns` · `node:GenericAnnotation` · `node:ComprehensionIf` ·
 `node:DunderEnter` · `node:DunderExit`.
 
-## 4. Estruturais sempre permitidos (não carregam didática)
+### 1.4 Estruturais sempre permitidos em Python (não carregam didática)
 
 `node:Module` · `node:Name` · `node:Load` · `node:Store` · `node:Del` · `node:arguments` ·
 `node:Expr` · `node:alias` · `node:keyword` — fonte: `PYTHON_STRUCTURAL_ALWAYS_ALLOWED`
 (`atomKeys.ts:545`). Consequência de currículo: **argumento nomeado (`f(a=1)`) não introduz átomo
 nenhum** (é consolidação), e `node:keyword` não pode ser declarado como aula.
 
-## 5. Axioma e semente
+### 1.5 Axioma e semente (Python)
 
 - **Axioma PRODUTIVO (duas chaves, e só duas):** `node:Call` + `node:StrLiteral` — alargar é
   proibido. No disco a aula 1 as declara em `introduces.productive` junto de `global:print`
@@ -82,7 +102,7 @@ nenhum** (é consolidação), e `node:keyword` não pode ser declarado como aula
   api:.assertIsNone api:.assertRaises`) + fase VALOR consertada (`api:.assertFalse
   api:.assertNotEqual`). O `from solucao import X` não emite `api:` — o módulo do aluno não é API.
 
-## 6. Proibições globais — em qualquer superfície
+### 1.6 Proibições globais de Python — em qualquer superfície
 
 `PY_FORBIDDEN_INVARIANTS` (`lang/python.ts:617`): `global:eval` · `global:exec` ·
 `global:compile` · `global:__import__` · `global:globals` · `global:locals` · `global:vars` ·
@@ -92,10 +112,13 @@ São a condição de existência do gate: análise estática fica indecidível c
 ensinar `getattr`/`setattr` com nome montado ou definir `__getattr__`/`__getattribute__`. Elas
 aparecem **só em prosa com crase**, nunca em bloco cercado.
 
-## 7. Contagem para a regra do par (A7/I2: ≤2 itens em `introduces.productive`)
+### 1.7 Contagem para a regra do par (A7/I2/A17: ≤2 itens depois do colapso)
 
 `Ensina` lista a chave que DISTINGUE; as derivadas da mesma construção contam como UM item e não
-são origem (I3). Mapa fechado: `decl:assign`/`decl:unpack` → `node:Assign` · `decl:ann` →
+são origem (I3) — e o colapso agora se **DECLARA** em `introduces.derived`, conferido pelo gate A23
+por co-ocorrência de LINHA (`receita-da-aula.md` §4). O mapa abaixo é o atalho para saber QUAL chave
+sobe como produtiva e quais descem como derivadas; quem decide se a derivada vale é a medição do
+disco, não este mapa. Mapa fechado: `decl:assign`/`decl:unpack` → `node:Assign` · `decl:ann` →
 `node:AnnAssign` · `decl:aug`/`op:aug:*` → `node:AugAssign` · `decl:walrus` → `node:NamedExpr` ·
 `decl:global` → `node:Global` · `decl:nonlocal` → `node:Nonlocal` · `decl:except-as` →
 `node:ExceptHandler` · `op:binary:*` → `node:BinOp` · `op:bool:*` → `node:BoolOp` · `op:unary:*` →
@@ -104,7 +127,7 @@ compreensões/gerador → `node:comprehension` · `node:Match` → `node:match_c
 `node:FunctionDef` → `node:arg` só na aula de parâmetro. (Tabela completa em
 `receita-da-aula.md` §4; a fonte normativa é o docs/17 e o verificador Ensina × Presume.)
 
-## 8. Dica de uso rápido
+### 1.8 Dica de uso rápido
 
 - Chave duvidosa? Rode o extrator real — ele roda **sem node_modules**:
   `printf 'SEU TRECHO\n' | python3 -I -S app/electron/main/engine/vocab/py/extract_ast.py`.
@@ -112,4 +135,6 @@ compreensões/gerador → `node:comprehension` · `node:Match` → `node:match_c
   `phases/f0Brief.ts:578`). Comando de conferência: `python3 -c "import json; d=json.load(open(
   'app/electron/main/engine/vocab/atoms.python.json')); print(d['total'])"` → 632.
 - A aula cujo `Ensina` não gera chave nenhuma (ex.: argumento nomeado) é **consolidação** com o
-  degrau nomeado — não invente chave para ela.
+  degrau nomeado — não invente chave para ela (e consolidação também precisa de desafio: A20).
+- Precisa da LINHA de cada ocorrência (a prova da derivada) ou está em Rust/C? Use
+  `extractAllOccurrences` com `surface: 'theory'` — `receita-da-aula.md` §5.1.

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-virada",
+  "title": "A virada",
+  "concept": "os_dois_canais",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "ambos",
+  "statement": "# A virada\n\nDuas caixas, o mesmo cálculo, **canais diferentes**. Escreva as duas no seu arquivo:\n\n- `int dobro(int n)` — **devolve** o dobro de `n` para quem chamou. Ela não imprime nada.\n- `void mostrarDobro(int n)` — **imprime** uma linha e não devolve nada:\n\n```text\no dobro de 2 e 4\n```\n\nPara `n = 2` a linha é exatamente essa; para outro `n`, os dois números mudam junto (o valor recebido e o dobro dele) — o teste chama a `mostrarDobro` com dois valores diferentes. Use um `printf` com dois `%d` e termine o texto com `\\n`.\n\nO teste confere os três fatos da aula: a primeira caixa **devolve** o valor certo, a segunda **imprime** a linha certa, e chamar `dobro` sozinha **não** deixa nada na tela.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO as DUAS caixas:\n\n   int dobro(int n)          -> DEVOLVE o dobro de n (e nao imprime nada)\n   void mostrarDobro(int n)  -> IMPRIME \"o dobro de N e D\" (e nao devolve nada)\n\n   o teste chama as duas pelo nome: o nome e o contrato. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-virada — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Este e o desafio da VIRADA: os tres fatos no MESMO arquivo — uma caixa\n   devolve, a outra imprime, e chamar a que devolve sozinha nao imprime.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout para\n   um arquivo temporario e fflush descarrega SEM fechar — o stdout precisa\n   ficar aberto para o segundo freopen do cenario 3. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint dobro(int n);\nvoid mostrarDobro(int n);\n\n/* cenario 1 — DEVOLVE: so o retorno, sem captura nenhuma */\nSM_TEST(o_dobro_devolve_o_valor) {\n    checa_int(\"o dobro de 2 e 4\", dobro(2), 4,\n              \"o dobro de n e n vezes 2\");\n    checa_int(\"o dobro de 7 e 14\", dobro(7), 14,\n              \"a caixa calcula com o valor recebido: nao devolve um numero fixo\");\n}\n\n/* cenario 2 — IMPRIME: captura 1, com DOIS valores (um texto fixo na tela\n   passaria com um valor so) e a prova do FIM da saida */\nSM_TEST(mostrar_dobro_imprime_a_linha) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    mostrarDobro(2);\n    mostrarDobro(7);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do dobro de 2\", linha, \"o dobro de 2 e 4\\n\",\n              \"mostrarDobro escreve a frase com o valor recebido e o dobro dele\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do dobro de 7\", linha, \"o dobro de 7 e 14\\n\",\n              \"a MESMA caixa com 7: os dois numeros mudam junto, nada e fixo\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"cada chamada imprime UMA linha: a saida acaba na segunda\");\n    fclose(f);\n}\n\n/* cenario 3 — CHAMAR SOZINHA NAO IMPRIME: captura 2 no MESMO desafio */\nSM_TEST(chamar_o_dobro_sozinho_nao_imprime) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    dobro(2);            /* chama e descarta o valor: nenhum printf roda */\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"chamar sozinha nao imprime\", linha, \"(nada impresso)\",\n              \"dobro devolve um valor; imprimir e o outro canal\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint dobro(int n) {\n    return n * 2;\n}\n\nvoid mostrarDobro(int n) {\n    printf(\"o dobro de %d e %d\\n\", n, n * 2);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_dobro_devolve_o_valor",
+      "teste": "o_dobro_devolve_o_valor",
+      "descricao": "a caixa dobro DEVOLVE o dobro do valor recebido — checa_int confere dobro(2) == 4 e dobro(7) == 14, dois valores para que um numero fixo nao passe"
+    },
+    {
+      "id": "mostrar_dobro_imprime_a_linha",
+      "teste": "mostrar_dobro_imprime_a_linha",
+      "descricao": "a caixa mostrarDobro IMPRIME a linha do valor recebido e do dobro dele para DOIS valores diferentes (2 e 7) no stdout capturado, e a saida termina ali — uma frase fixa na tela nao passa"
+    },
+    {
+      "id": "chamar_o_dobro_sozinho_nao_imprime",
+      "teste": "chamar_o_dobro_sozinho_nao_imprime",
+      "descricao": "chamar dobro(2) e descartar o valor nao deixa nada na tela — a captura fica vazia e o buffer continua com o sentinel"
+    }
+  ]
+}

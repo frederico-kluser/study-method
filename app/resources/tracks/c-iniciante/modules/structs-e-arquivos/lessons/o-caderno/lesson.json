@@ -2,22 +2,110 @@
   "schemaVersion": 1,
   "slug": "o-caderno",
   "title": "O caderno do disco",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Abrir e fechar um arquivo no disco: o fopen entrega o caderno — ou NULL, quando ele não abre — e o fclose o devolve ao sistema.",
+  "difficulty": 3,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:fopen",
+  "concepts": [
+    "o_caderno_do_disco"
+  ],
   "prerequisites": [
     "o-ponteiro-que-nao-aponta"
   ],
+  "introduces": {
+    "productive": [
+      "api:fopen",
+      "api:fclose"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de escrever só na tela que se apaga: existe agora um caderno no disco, que se abre com um nome e um modo, pode se recusar a abrir (NULL) e tem de ser devolvido no fim",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-caderno-que-fica",
+      "title": "O caderno que fica depois do programa",
+      "markdown": "Tudo o que você imprimiu até aqui apareceu na tela e foi esquecido: fechar o programa apaga.\n\nUm **arquivo** é diferente. Ele fica no disco depois que o programa termina — como um caderno que continua na estante.\n\nEm C o caderno se abre com `fopen` e se devolve com `fclose`:\n\n```c\nFILE *f = fopen(\"diario.txt\", \"w\");\nfclose(f);\n```\n\nO `FILE *f` é o papel com o caderno: não é o caderno, é por onde você fala com ele."
+    },
+    {
+      "id": "o-nome-e-o-modo",
+      "title": "O nome e o modo",
+      "markdown": "O `fopen` recebe duas coisas: o **nome** do arquivo e o **modo** — o que você vai fazer com ele.\n\n- `\"w\"` é escrever: cria o arquivo e **zera** o que havia nele.\n- `\"r\"` é ler: abre um arquivo que já existe, sem mudar nada.\n\nO nome não precisa ser texto fixo — pode vir de uma variável:\n\n```c\nchar nome[40] = \"notas.txt\";\nFILE *caderno = fopen(nome, \"r\");\nfclose(caderno);\n```"
+    },
+    {
+      "id": "o-caderno-pode-nao-abrir",
+      "title": "O caderno pode não abrir",
+      "markdown": "O `fopen` devolve um ponteiro — ou devolve `NULL`, quando não conseguiu abrir: arquivo inexistente em `\"r\"`, pasta sem permissão, disco cheio.\n\n`NULL` é o papel em branco. Usá-lo como caderno derruba o programa, por isso se testa antes:\n\n```c\nFILE *f = fopen(\"sumido.txt\", \"r\");\nif (f == NULL) {\n    printf(\"nao deu para abrir o caderno\\n\");\n}\n```\n\nQuando veio `NULL` não há caderno aberto — e não há nada para fechar."
+    },
+    {
+      "id": "cada-fopen-pede-um-fclose",
+      "title": "Cada fopen pede um fclose",
+      "markdown": "Cada `fopen` que deu certo pede um `fclose`. Fechar faz duas coisas: descarrega no disco o que ainda estava no caminho e devolve o caderno ao sistema — cada programa pode ter só alguns abertos ao mesmo tempo.\n\nE o `fclose` também responde: `0` quando deu certo.\n\n```c\nFILE *f = fopen(\"diario.txt\", \"w\");\nif (fclose(f) == 0) {\n    printf(\"caderno devolvido\\n\");\n}\n```"
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "fopen-devolve-ponteiro-ou-nulo",
+      "statement": "O `fopen` devolve um ponteiro para o caderno — ou `NULL`, quando o caderno não abre.",
+      "question": "Você chamou `fopen(\"sumido.txt\", \"r\")` e esse arquivo não existe. O que volta?",
+      "options": [
+        "`NULL`: o fopen não abriu caderno nenhum.",
+        "Um caderno vazio, criado na hora por você.",
+        "O número `0`, que não é ponteiro nenhum.",
+        "Nada: o programa para ali mesmo, com erro."
+      ],
+      "answerIndex": 0,
+      "feedback": "Em `\"r\"` o `fopen` não cria nada: se o arquivo não está lá, ele devolve `NULL` e o seu programa continua rodando — por isso o teste do `NULL` é sempre a linha seguinte.",
+      "sectionId": "o-caderno-pode-nao-abrir",
+      "optionRationales": [
+        "`NULL` é o papel em branco: o `fopen` avisa assim que não conseguiu abrir.",
+        "Criar o arquivo é trabalho do modo `\"w\"`; o modo `\"r\"` só abre o que já existe.",
+        "O `0` e o `NULL` se parecem na conversa, mas o que volta é o ponteiro nenhum — e é com `NULL` que se compara.",
+        "O `fopen` não derruba o programa: ele devolve `NULL` e deixa a decisão para você."
+      ]
+    },
+    {
+      "id": "cada-fopen-pede-um-fclose",
+      "statement": "Cada `fopen` que deu certo pede um `fclose`, e o `fclose` responde `0` quando deu certo.",
+      "question": "O programa vai terminar em seguida. Por que fechar o caderno?",
+      "options": [
+        "Porque o `fclose` descarrega o que faltava e devolve o caderno.",
+        "Porque é o `fclose` que cria o arquivo no disco, e sem ele nada aparece.",
+        "Porque sem o `fclose` o arquivo fica gravado com o nome errado.",
+        "Não é preciso: o próprio `fopen` fecha o caderno quando a linha acaba."
+      ],
+      "answerIndex": 0,
+      "feedback": "O que você escreve passa primeiro por uma área de espera; o `fclose` a descarrega e libera o caderno. O nome do arquivo já foi decidido no `fopen` — fechar não muda nome nenhum.",
+      "sectionId": "cada-fopen-pede-um-fclose",
+      "optionRationales": [
+        "São os dois trabalhos do `fclose`: descarregar o que ficou na área de espera e liberar o caderno.",
+        "Quem cria o arquivo é o `fopen` em modo `\"w\"` — o `fclose` só fecha o que já existe.",
+        "O nome é o primeiro argumento do `fopen`; o `fclose` não recebe nome nenhum.",
+        "Um `fopen` sem `fclose` deixa o caderno aberto: a linha acabar não fecha coisa alguma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fopen — a referência oficial da biblioteca de C",
+      "url": "https://en.cppreference.com/w/c/io/fopen",
+      "description": "A página oficial do fopen: a tabela dos modos (\"r\", \"w\", \"a\") e o NULL de quando o arquivo não abre."
+    },
+    {
+      "title": "fopen(3) — a man-page do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fopen.3.html",
+      "description": "A man-page do sistema: o que cada modo faz com um arquivo que já existe e o que acontece quando ele não existe."
+    },
+    {
+      "title": "fclose(3) — a man-page do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fclose.3.html",
+      "description": "A man-page do fclose: ele descarrega o que estava pendente, libera o caderno e devolve 0 quando deu certo."
+    }
+  ],
+  "challenges": [
+    "o-abridor"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

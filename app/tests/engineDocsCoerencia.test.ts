@@ -234,8 +234,24 @@ const ALIASES_DE_CAMINHO: Record<string, string> = {
 };
 
 /** Basename citado sem pasta resolve na raiz OU em app/ (ex.: `package.json`). */
+/**
+ * A ÂNCORA DE LINHA não é parte do caminho: `arquivo.ts:184`, `arquivo.ts:27-30`
+ * e `arquivo.ts:12:5` citam o MESMO arquivo, e a referência `arquivo:linha` é a
+ * convenção que o `CONTRIBUTING.md` pede (ela é clicável no editor).
+ *
+ * Isto era um DEFEITO DESTE TESTE, medido em 2026-09-22: a citação
+ * `app/electron/main/engine/lang/c.ts:27-30`, que o commit 7494dec escreveu no
+ * docs/16, reprovava com "não existe no disco" — e o arquivo existe. A âncora
+ * saía do sufixo antes da resolução em NENHUM lugar. O caso estava vermelho
+ * desde aquele commit.
+ */
+function semAncoraDeLinha(alvo: string): string {
+  return alvo.replace(/:\d+(?:[-:]\d+)?$/, '');
+}
+
 function caminhoCitadoExiste(alvo: string): boolean {
   if (Object.prototype.hasOwnProperty.call(ALIASES_DE_CAMINHO, alvo)) alvo = ALIASES_DE_CAMINHO[alvo];
+  alvo = semAncoraDeLinha(alvo);
   if (alvo.includes('/')) return fs.existsSync(path.resolve(ROOT, alvo));
   return fs.existsSync(path.resolve(ROOT, alvo)) || fs.existsSync(path.resolve(APP, alvo));
 }

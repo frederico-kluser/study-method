@@ -10,5 +10,12 @@
   "starterCode": "# primeira linha: quantas vezes 4 cabe em 4321\n# segunda linha: quanto sobra de 4321 dividido por 4\n",
   "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDivisaoInteiraEResto(unittest.TestCase):\n    def test_imprime_quantas_vezes_cabe_e_o_resto(self):\n        \"\"\"o programa imprime a divisao inteira e depois o resto\"\"\"\n        self.assertEqual(rodar(), \"1080\\n1\\n\")\n",
   "solutionCode": "print(4321 // 4)\nprint(4321 % 4)\n",
-  "expectedTestCount": 1
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_quantas_vezes_cabe_e_o_resto",
+      "descricao": "O programa deve imprimir exatamente \"1080\\n1\\n\"."
+    }
+  ]
 }

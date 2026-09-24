@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-troca-que-funciona",
   "title": "A troca que funciona",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A troca que funciona: passando `&a` e `&b`, a função chega nas casas originais — a cópia agora é do endereço, não do valor, e a variável de guarda é o que impede um dos números de se perder.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:unary:*",
+  "concepts": [
+    "a_troca_que_funciona"
+  ],
   "prerequisites": [
     "ir-ate-a-casa",
     "copias-no-vestibulo"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:*"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a fronteira da função deixa de ser parede: com parâmetros-ponteiro, o que a função escreve aparece nas variáveis de quem chamou — e a troca de dois valores, impossível por cópia, passa a ser possível",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-troca-que-nao-troca",
+      "title": "A troca que não troca",
+      "markdown": "Com valores, a troca não sai do lugar:\n\n```c\nvoid trocaDeMentira(int a, int b) {\n    int guarda = a;\n    a = b;\n    b = guarda;\n}\n```\n\n```c\nint x = 3;\nint y = 8;\ntrocaDeMentira(x, y);\nprintf(\"%d %d\\n\", x, y);\n```\n\n```text\n3 8\n```\n\nA função trocou as CÓPIAS dela, que morreram no fim da chamada. `x` e `y` nunca souberam de nada."
+    },
+    {
+      "id": "passar-o-endereco",
+      "title": "Passar o endereço",
+      "markdown": "Se a função receber os PAPÉIS, ela chega nas casas originais:\n\n```c\nvoid trocar(int *a, int *b) {\n    int guarda = *a;\n    *a = *b;\n    *b = guarda;\n}\n```\n\nSão três passos: `guarda` copia o valor da primeira casa; a primeira casa recebe o valor da segunda; a segunda recebe o que estava guardado. A assinatura avisa o que a função quer: dois endereços de `int`, não dois números."
+    },
+    {
+      "id": "quem-chama-passa-o-papel",
+      "title": "Quem chama passa o papel",
+      "markdown": "Na chamada, cada variável vira endereço com o `&`:\n\n```c\nint x = 3;\nint y = 8;\ntrocar(&x, &y);\nprintf(\"%d %d\\n\", x, y);\n```\n\n```text\n8 3\n```\n\nA cópia continua acontecendo — o que é copiado agora é o endereço. Dois papéis com o mesmo endereço levam à mesma casa, e é isso que faz a troca valer de verdade lá fora."
+    },
+    {
+      "id": "por-que-a-guarda-existe",
+      "title": "Por que a guarda existe",
+      "markdown": "Tire a variável `guarda` e a troca vira cópia:\n\n```c\nvoid trocaQuebrada(int *a, int *b) {\n    *a = *b;\n    *b = *a;\n}\n```\n\nCom `x = 3` e `y = 8`, sai isto:\n\n```text\n8 8\n```\n\nO primeiro passo escreveu 8 em cima do 3 — o 3 deixou de existir —, e o segundo devolveu o 8 que já estava lá. A `guarda` existe para segurar o valor que vai ser sobrescrito."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-endereco-troca-de-verdade",
+      "statement": "Passando `&a` e `&b`, a função troca DE VERDADE: a cópia é do endereço, não do valor.",
+      "question": "Por que `trocar(&x, &y)` muda `x` e `y`, e `trocaDeMentira(x, y)` não muda nada?",
+      "options": [
+        "Porque o endereço copiado leva à mesma casa.",
+        "Porque o `&` manda a função devolver dois valores.",
+        "Porque a função com `*` roda por último.",
+        "Porque `trocar` recebe os nomes `x` e `y` em vez de cópias."
+      ],
+      "answerIndex": 0,
+      "feedback": "Nos dois casos a função recebe cópias. A diferença é o que foi copiado: com `&x` a cópia é do endereço, e escrever por ele alcança a casa original.",
+      "sectionId": "quem-chama-passa-o-papel",
+      "optionRationales": [
+        "Copiar o endereço não protege a casa: os dois papéis levam ao mesmo lugar.",
+        "`trocar` devolve `void`; o efeito dela é a escrita pelos dois endereços.",
+        "A ordem de execução é a mesma nos dois casos; o que muda é o que a função recebe.",
+        "Nomes não viajam em C: o que viaja é valor — aqui, o valor de um endereço."
+      ]
+    },
+    {
+      "id": "a-guarda-e-obrigatoria",
+      "statement": "Sem a variável de guarda, o primeiro passo apaga o valor de que o segundo precisava.",
+      "question": "Com 3 e 8 nas casas, o que `*a = *b; *b = *a;` deixa nas duas?",
+      "options": [
+        "8 nas duas: o 3 se perdeu no primeiro passo.",
+        "8 e 3: a troca funciona, só está em duas linhas.",
+        "3 nas duas: o segundo passo desfaz o primeiro.",
+        "Erro: falta a variável de guarda."
+      ],
+      "answerIndex": 0,
+      "feedback": "A primeira linha sobrescreve o 3 com o 8. Quando a segunda linha lê `*a`, o 3 já não existe — e é por isso que a troca precisa de um lugar para guardá-lo.",
+      "sectionId": "por-que-a-guarda-existe",
+      "optionRationales": [
+        "O 3 foi sobrescrito antes de ser copiado para algum lugar.",
+        "Duas linhas não bastam: falta onde segurar o valor que será sobrescrito.",
+        "O valor que sobra é o que veio da segunda casa, o 8 — nada desfaz nada.",
+        "As duas linhas compilam sem reclamação: o defeito é de lógica, não de sintaxe."
+      ]
+    },
+    {
+      "id": "o-parametro-ponteiro-na-assinatura",
+      "statement": "`void trocar(int *a, int *b)` diz na assinatura que a função recebe dois endereços.",
+      "question": "O que a função precisa receber para mudar as variáveis de quem chamou?",
+      "options": [
+        "Os endereços delas: `int *a` e `int *b`.",
+        "Os valores delas: `int a` e `int b`.",
+        "Os nomes delas, escritos entre aspas.",
+        "Nada: basta a função devolver os dois valores."
+      ],
+      "answerIndex": 0,
+      "feedback": "Parâmetro é sempre cópia. Para alcançar a variável de fora, o que se copia tem de ser o endereço dela — e é isso que `int *a` declara.",
+      "sectionId": "passar-o-endereco",
+      "optionRationales": [
+        "Com o endereço na mão, a função escreve na casa original pela estrela.",
+        "Cópia de valor é exatamente o caso em que a troca não sai do lugar.",
+        "Texto entre aspas é uma frase, não a variável — a função não a alcançaria.",
+        "`return` devolve UM valor, e quem chama teria de atribuí-lo: não troca nada sozinho."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/functions",
+      "description": "A página oficial das funções em C: os parâmetros recebem CÓPIA dos argumentos, e é isso que obriga o ponteiro quando a função tem de mudar o original."
+    },
+    {
+      "title": "Member access operators — a referência oficial dos operadores",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `*` de desreferência e do `&` de endereço: os dois operadores que a troca usa nas duas pontas."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.2.2 diz que os argumentos são passados por valor, o que explica por que a troca por cópia não funciona."
+    }
+  ],
+  "challenges": [
+    "o-swap"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

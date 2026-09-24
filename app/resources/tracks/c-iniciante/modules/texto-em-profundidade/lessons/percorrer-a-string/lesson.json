@@ -2,23 +2,127 @@
   "schemaVersion": 1,
   "slug": "percorrer-a-string",
   "title": "Percorrer a string",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Percorrer um texto é andar gaveta por gaveta com um for — e o fim se reconhece de duas maneiras: contando com strlen ou olhando a placa \\0.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "percorrer_a_string"
+  ],
   "prerequisites": [
     "o-comprimento",
     "varrer-a-lista"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [
+      "op:binary:!="
+    ],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto deixa de ser um bloco só: o laço passa a visitar uma gaveta por volta, e o fim da visita pode vir de uma contagem feita antes (strlen) ou da própria placa \\0 encontrada no caminho",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "gaveta-por-gaveta",
+      "title": "Uma gaveta por volta",
+      "markdown": "Você já varreu uma lista de notas com `for`. Um texto se varre igual — cada gaveta guarda uma letra, e quantas gavetas visitar vem do `strlen`:\n\n```c\nchar nome[] = \"Ana\";\nint n = strlen(nome);\nfor (int i = 0; i < n; i++) {\n    printf(\"%c\\n\", nome[i]);\n}\n```\n\n```text\nA\nn\na\n```\n\nO `i` é o número da gaveta. Começa em 0 e a última volta é com `i` valendo `n - 1` — a placa `\\0` fica de fora."
+    },
+    {
+      "id": "a-placa-do-fim",
+      "title": "A outra condição: olhar a placa",
+      "markdown": "Dá no mesmo perguntar, a cada volta, se a gaveta de agora **ainda não é** a placa do fim:\n\n```c\nchar nome[] = \"Ana\";\nfor (int i = 0; nome[i] != '\\0'; i++) {\n    printf(\"%c\\n\", nome[i]);\n}\n```\n\nA saída é a mesma de antes. O que muda é quem descobre o fim: na forma de cima o `strlen` contou antes de o laço começar; aqui o próprio laço percebe a placa quando chega nela.\n\nAs duas param no mesmo lugar, porque o `strlen` conta exatamente até a placa."
+    },
+    {
+      "id": "uma-conta-por-volta",
+      "title": "Uma conta a cada volta",
+      "markdown": "Percorrer serve para mais que mostrar: a cada volta você pode somar algo.\n\n```c\nchar nome[] = \"Ana\";\nint contaA = 0;\nfor (int i = 0; nome[i] != '\\0'; i++) {\n    if (nome[i] == 'a') {\n        contaA++;\n    }\n}\nprintf(\"%d\\n\", contaA);\n```\n\n```text\n1\n```\n\nSó um `a`: o `A` do começo é outro número, e a comparação é entre números. O contador nasce **fora** do laço — declarado dentro do corpo, ele morreria no fim de cada volta e a conta sempre voltaria a zero."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "as-duas-condicoes-param-junto",
+      "statement": "Perceber o fim é VER o `\\0`: as duas condições ensinam a mesma coisa.",
+      "question": "Com `char nome[] = \"Ana\";`, quantas voltas o laço `for (int i = 0; nome[i] != '\\0'; i++)` dá?",
+      "options": [
+        "Três, uma por letra do texto.",
+        "Quatro: as letras e a placa.",
+        "Duas: o laço para uma gaveta antes.",
+        "Depende do tamanho declarado da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Na gaveta 3 está o `\\0`, e ali a condição fica falsa: o corpo roda para as gavetas 0, 1 e 2 — as três letras.",
+      "sectionId": "a-placa-do-fim",
+      "optionRationales": [
+        "O corpo roda nas gavetas 0, 1 e 2 e para quando `i` chega na gaveta da placa.",
+        "A placa faz a condição ficar falsa ANTES de o corpo rodar para ela.",
+        "O laço visita todas as letras: parar uma antes deixaria o `a` final de fora.",
+        "O tamanho da caixa não entra na condição — quem manda é onde está a placa."
+      ]
+    },
+    {
+      "id": "a-ultima-gaveta-visitada",
+      "statement": "O `i` do laço é o número da gaveta, e ele começa em 0.",
+      "question": "No laço `for (int i = 0; i < n; i++)` sobre um texto de `n` letras, qual é a última gaveta visitada?",
+      "options": [
+        "A gaveta `n - 1`, a última letra.",
+        "A gaveta `n`, onde mora a placa.",
+        "A gaveta 1, porque a contagem começa em 1.",
+        "A gaveta `n + 1`, uma depois do fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição é `i < n`: quando o `i` chega em `n` o laço para sem entrar no corpo. A última volta acontece com `i` valendo `n - 1`.",
+      "sectionId": "gaveta-por-gaveta",
+      "optionRationales": [
+        "Com `i < n`, o maior valor que entra no corpo é `n - 1` — a última letra.",
+        "A gaveta `n` é a da placa, e a condição `i < n` já é falsa lá.",
+        "A primeira gaveta é a 0: começar em 1 pularia a primeira letra.",
+        "Passar do fim do texto é ler gaveta que não é sua — o laço nunca vai lá."
+      ]
+    },
+    {
+      "id": "o-contador-nasce-fora",
+      "statement": "O contador nasce FORA do laço, senão cada volta esquece a anterior.",
+      "question": "Onde declarar o contador de letras para que ele sobreviva às voltas?",
+      "options": [
+        "Antes do `for` começar.",
+        "Dentro do corpo do `for`, a cada volta.",
+        "Na condição do `for`, junto com o `i`.",
+        "Depois do `for`, quando a conta terminou."
+      ],
+      "answerIndex": 0,
+      "feedback": "Um nome declarado dentro do corpo nasce e morre em cada volta. Para acumular, ele precisa existir antes de o laço começar.",
+      "sectionId": "uma-conta-por-volta",
+      "optionRationales": [
+        "Declarado antes, o contador atravessa todas as voltas e guarda o total.",
+        "Declarado dentro, ele volta ao valor inicial em cada volta — a conta se perde.",
+        "O nome declarado na condição some quando o laço acaba, e não serve de total.",
+        "Depois do laço é tarde: não haveria onde somar durante as voltas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do for: as três partes (início, condição e passo) e a ordem em que rodam."
+    },
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A página que define o caractere nulo como o fim do texto — a placa que a condição do laço procura."
+    },
+    {
+      "title": "Array subscript — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A regra oficial do acesso por índice: o que `nome[i]` significa dentro do laço."
+    }
+  ],
+  "challenges": [
+    "contador-de-vogais"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

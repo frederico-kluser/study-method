@@ -5,20 +5,36 @@ intermediário → avançado → especialista) ou quando um curso novo se apoia 
 mecanismo inteiro da engine é **por trilha** — cada curso é uma trilha AUTOCONTIDA — e a ligação
 entre elas é um **contrato declarado**, nunca um pressuposto invisível.
 
-## 1. O estado do produto, para não inventar
+## 1. O estado do produto, medido (para não inventar)
 
-Hoje o produto tem **uma** trilha publicada — `app/resources/tracks/python/` — e docs/17 declara
-"uma trilha só": não existe trilha introdutória separada nem trilha "avançada"; o aluno entra sem
-nunca ter programado e sai capaz de trabalhar como sênior em Python. Esta skill existe para o
-momento em que o desenho do produto ganhar **N cursos encadeados**: o mecanismo que a engine já
-tem para isso é (a) o campo `entryCriteria?: string[]` do `track.json` (presente no schema e hoje
-vazio na trilha publicada — `trackTypes.ts` o valida como array opcional), e (b) o fato de o
-orçamento ser **derivado por trilha** (docs/16 §3.5): a entrada de toda trilha é axioma estrutural
-+ semente do harness (docs/17), e todo o resto vem do currículo da própria trilha. Consequência
-dura: **a trilha B não herda nada da trilha A** — se uma construção de A precisa aparecer em B
-(no enunciado, na teoria, no starter, nos testes ou na solução), B precisa **ensinar** essa
-construção no próprio currículo, ou o gate reprova em A4/A13 (teoria), A1/A2 (starter/solução) ou
-A3 (testes de entrada).
+Três trilhas no disco, todas o **primeiro** curso da sua cadeia (medido em 2026-09-22):
+
+```bash
+cd app && ls resources/tracks/
+# c-iniciante  python-iniciante  rust-iniciante
+cd app && for t in python-iniciante rust-iniciante c-iniciante; do \
+  jq -c '{cadeia,nivel,cursoAnterior,programmingLanguage}' resources/tracks/$t/track.json; done
+# {"cadeia":"python","nivel":1,"cursoAnterior":null,"programmingLanguage":"python"}
+# {"cadeia":"rust","nivel":1,"cursoAnterior":null,"programmingLanguage":"rust"}
+# {"cadeia":null,"nivel":null,"cursoAnterior":null,"programmingLanguage":"c"}   (em autoria)
+```
+
+A cadeia passou a existir **em código** em 2026-09-22 (`engine/graph/cadeia.ts`:
+`cadeiaAnteriorDe`, `ensinadoAntesNaCadeia`, consultada pelo passo `converger`). Antes disso
+`entryCriteria` era prosa livre que **nenhum gate lia** — o único leitor que usa o SENTIDO dele segue
+sendo um prompt de LLM (`services/challengeRegenerator.ts`), e a descoberta de trilhas continua sendo
+`readdir` + `sort()` alfabético (`content/trackLoader.ts:310`, `listTrackSlugs`), que põe `c-iniciante`
+antes de `python-iniciante` por acidente de alfabeto. `deriveTrackBudget` (`budget.ts:216`) **não tem**
+parâmetro de predecessor, e continua sem.
+
+Consequência dura, e ela não mudou: **a trilha B não herda orçamento nenhum da trilha A.** A entrada de
+toda trilha é axioma estrutural + semente do harness (docs/16 §3.5) — se uma construção de A precisa
+aparecer em B (no enunciado, na teoria, no starter, nos testes ou na solução), B precisa **ensinar** essa
+construção no próprio currículo, ou o gate reprova em A4/A19 (teoria), A1/A2 (starter/solução) ou A3
+(testes de entrada). O que `cadeia.ts` acrescenta não é herança: é a **distinção** entre "ninguém ensina"
+(LACUNA → quebrar/criar aula) e "o curso anterior ensina" (CADEIA → porta-de-entrada), que antes caíam no
+mesmo balde. Para as três trilhas de hoje, `ensinadoAntesNaCadeia` devolve mapa **vazio** — ou seja, a
+resposta hoje é sempre o ramo (c), quebrar a aula (`recursao.md` §6).
 
 ## 2. Fronteiras por competência, nunca por rótulo
 
@@ -56,6 +72,18 @@ A porta-de-entrada não é "revisão rápida" nem aula de nivelamento opcional: 
 atômicas, com teoria + quiz + desafio, como qualquer outra — e o `entryCriteria` declara as
 competências, a porta-de-entrada declara as construções.
 
+**A primeira aula do módulo porta-de-entrada tem o teto da aula 1** (P-ZERO/A18): 1 construção produtiva
+nova, e nada em `introduces.receptive` sem seção que a ensine. Reintroduzir é **ensinar de novo**, não
+"presumir": o orçamento não se herda, então a aula da porta é uma aula inteira, com o mesmo teto de passo
+de qualquer outra (`npm run engine -- barra <slug>` conta, e o excedente é aula própria).
+
+**Como o gate chega a este ramo.** No passo `converger`, a construção sem origem nesta trilha é
+classificada em **CADEIA** quando `ensinadoAntesNaCadeia` devolve o endereço da aula do curso anterior que
+a ensina primeiro; a ação do catálogo fechado é `MOVE_CONCEPT_TO_ENTRY_BUDGET` — ela vira aula da
+porta-de-entrada, nunca "presumida". Sem curso anterior declarado (`cursoAnterior: null`), o mesmo achado
+cai em **LACUNA** e a ação é criar a aula que falta ou quebrar a aula problemática. Conferir qual é o seu
+caso é um comando: `npm run engine -- convergir <slug>` imprime `RAMOS … CADEIA n · LACUNA n`.
+
 ## 4. O que NÃO fazer
 
 - **Curso que presume o orçamento de outro sem re-introduzir.** É o defeito que a engine existe
@@ -74,12 +102,16 @@ competências, a porta-de-entrada declara as construções.
 
 ## 5. Checklist do `mapear_curso` em cadeia
 
-1. `entryCriteria[]` do curso = saída do curso anterior (competências, em pt-BR, no `track.json`).
+1. `entryCriteria[]` do curso = saída do curso anterior (competências, em pt-BR, no `track.json`), **e**
+   os três campos que o código lê: `cadeia`, `nivel`, `cursoAnterior` (`jq -c '{cadeia,nivel,cursoAnterior}'
+   resources/tracks/<slug>/track.json`). Sem `cursoAnterior` o ramo CADEIA nunca dispara e toda construção
+   de fronteira cai em LACUNA.
 2. Primeiro módulo é a porta-de-entrada: uma aula por construção de fronteira de que o curso
-   depende, cada uma com Ensina/Presume completos e gates verdes.
+   depende, cada uma com Ensina/Presume completos e gates verdes — a primeira delas no teto da aula 1
+   (P-ZERO/A18).
 3. Tabela Ensina/Presume de cada módulo seguinte só presume construção com aula de origem **nesta**
    trilha.
 4. Cadeia documentada no doc da trilha: anterior → fronteira → porta-de-entrada.
-5. `validar_modulo` roda nos quatro gates **antes** de `publicar` — em cadeia, o curso B é auditado
-   como trilha independente, e é isso que prova (não promete) que B não cobra nada que B não
-   ensina.
+5. `validar_modulo` roda nos **seis** gates e `converger` fecha em **PONTO-FIXO** **antes** de `publicar`
+   — em cadeia, o curso B é auditado como trilha independente, e é isso que prova (não promete) que B não
+   cobra nada que B não ensina.

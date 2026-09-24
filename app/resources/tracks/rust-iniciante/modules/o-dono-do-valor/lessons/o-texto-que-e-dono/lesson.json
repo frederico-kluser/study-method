@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "o-texto-que-e-dono",
   "title": "O texto que é dono",
-  "summary": "O String::from cria um texto que TEM dono — a caixa que o compilador vigia.",
+  "summary": "O String::from cria um texto que TEM dono — a caixa e o nome que responde por ela.",
   "difficulty": 1,
   "role": "regular",
   "targetAtom": "api:String::from",
@@ -18,7 +18,17 @@
       "global:String",
       "node:ScopedIdentifier"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "global:String",
+        "de": "api:String::from"
+      },
+      {
+        "chave": "node:ScopedIdentifier",
+        "de": "api:String::from"
+      }
+    ]
   },
   "introducesTerms": [
     "term:dono"
@@ -27,12 +37,17 @@
     {
       "id": "o-tipo-com-dono",
       "title": "O tipo com dono",
-      "markdown": "O `String` que o `format!` devolve é um texto com DONO: a caixa guarda os caracteres e o compilador vigia quem é o dono dela.\n\n```rust\npub fn tema(escuro: bool) -> String {\n    String::from(\"tema escuro\")\n}\n```\n\nO `String::from` MONTA um `String` dono a partir do texto entre aspas — e a assinatura promete esse dono no `-> String`."
+      "markdown": "O `String` que o `format!` devolve é um texto com DONO: a caixa guarda os caracteres, e o dono é o nome que responde por ela.\n\n```rust\npub fn tema_escuro() -> String {\n    String::from(\"tema escuro\")\n}\n```\n\nO `String::from` MONTA um `String` dono a partir do texto entre aspas — e a assinatura promete esse dono no `-> String`."
     },
     {
       "id": "duas-caixas-dois-donos",
       "title": "Duas caixas, dois donos",
       "markdown": "Cada `String::from` cria a própria caixa:\n\n```rust\nlet claro = String::from(\"tema claro\");\nlet escuro = String::from(\"tema escuro\");\n```\n\n`claro` e `escuro` são donos independentes — mexer em um não afeta o outro. Esse dono é o centro do módulo: a partir de agora, toda `String` tem um nome que responde por ela."
+    },
+    {
+      "id": "os-dois-pontos-do-caminho",
+      "title": "Os dois pontos do caminho",
+      "markdown": "O `format!` se chama sozinho. O `from` NÃO: ele mora DENTRO do `String`, e os dois pontos são o caminho até ele.\n\n```rust\npub fn pelo_format() -> String {\n    format!(\"tema escuro\")\n}\n\npub fn pelo_from() -> String {\n    String::from(\"tema escuro\")\n}\n```\n\nAs duas devolvem o mesmo `String` dono. Leia `String::from` como \"o `from` que mora no `String`\": o nome antes dos dois pontos diz ONDE a função está."
     }
   ],
   "assertions": [
@@ -43,9 +58,9 @@
       "question": "O que `String::from(\"tema escuro\")` devolve?",
       "options": [
         "Um String dono com o texto entre aspas",
-        "O texto entre aspas, sem dono",
-        "Nada: só mostra na tela",
-        "Um número"
+        "O texto entre aspas, emprestado e sem dono",
+        "Nada: ele só mostra o texto na tela",
+        "O tipo String, ainda vazio: o texto entra depois"
       ],
       "answerIndex": 0,
       "feedback": "O String::from monta a caixa dona com o texto entre aspas.",
@@ -53,7 +68,7 @@
         "O resultado é um String dono: a caixa existe e tem um nome que responde por ela.",
         "O texto entre aspas é a matéria-prima; o String::from é que monta o dono.",
         "Quem mostra na tela é o println! — o String::from devolve o valor.",
-        "O String::from monta texto; número dono é o i32, que não precisa de caixa."
+        "O que volta é um valor, não um tipo: a caixa já vem com o texto dentro."
       ]
     },
     {
@@ -63,17 +78,37 @@
       "question": "Depois de `let a = String::from(\"x\"); let b = String::from(\"x\");`, o que acontece se você usar `a`?",
       "options": [
         "Nada muda: a e b são donos independentes",
-        "b some",
-        "a fica vazia",
-        "O compilador recusa"
+        "O b some, porque as duas caixas guardam o mesmo texto",
+        "O a fica vazia depois de b nascer",
+        "O compilador recusa: o texto x já tem dono"
       ],
       "answerIndex": 0,
       "feedback": "Cada String::from criou a própria caixa: são dois donos do mesmo texto.",
       "optionRationales": [
         "São duas caixas iguais, cada uma com o seu dono — usar a não mexe em b.",
-        "Nada morre aqui: as duas caixas nasceram independentes.",
+        "Texto igual não é caixa igual: cada String::from montou a sua, independente.",
         "a segue com o texto dele; nenhuma ligação esvaziou a caixa.",
         "O compilador só recusa quando o dono deixa de existir — aqui existem dois."
+      ]
+    },
+    {
+      "id": "os-dois-pontos-dizem-onde-a-funcao-mora",
+      "sectionId": "os-dois-pontos-do-caminho",
+      "statement": "Os dois pontos em String::from são o caminho até a função from, que mora dentro do String.",
+      "question": "Por que se escreve `String::from` e não só `from`?",
+      "options": [
+        "Porque o from mora no String, e os dois pontos levam até lá",
+        "Porque o String é o texto que a função vai montar com as aspas",
+        "Porque todo nome de função em Rust leva dois pontos antes",
+        "Porque os dois pontos convertem o texto em String na saída"
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome antes dos dois pontos diz ONDE a função está: o `from` mora no `String`.",
+      "optionRationales": [
+        "Os dois pontos ligam o `String` à função `from` que mora nele.",
+        "O texto montado é o que está entre aspas; o `String` aqui diz onde o `from` mora.",
+        "A maioria não leva: `format!(\"oi\")` e `dobro(3)` se chamam sozinhos.",
+        "Quem monta o `String` é o `from`; os dois pontos só dizem ONDE ele mora."
       ]
     }
   ],

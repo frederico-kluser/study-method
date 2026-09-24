@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-de-vogais",
+  "title": "O contador de vogais",
+  "concept": "percorrer_a_string",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O contador de vogais\n\nA função `contadorDeVogais` lê **uma palavra** digitada e imprime quantas vogais ela tem. As vogais são `a`, `e`, `i`, `o` e `u`, minúsculas e sem acento — palavra com acento é assunto de outro curso.\n\nDigitando `banana`:\n\n```text\n3\n```\n\nDigitando `computador`:\n\n```text\n4\n```\n\nPassos:\n\n1. percorra a palavra gaveta por gaveta com um `for` (até `strlen(palavra)`, ou até a gaveta guardar o `\\0` — as duas condições param no mesmo lugar);\n2. a cada volta, some 1 no contador quando a letra da gaveta for uma das cinco vogais;\n3. imprima o total com `%d` e `\\n` no fim — só o número, mais nada.\n\nA leitura da palavra e o contador em zero já vêm prontos no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* contadorDeVogais le uma palavra digitada (letras de a a z, sem acento)\n   e imprime quantas vogais ela tem. */\nvoid contadorDeVogais(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    int vogais = 0;\n    /* 1) percorra a palavra gaveta por gaveta com um for\n          (ate strlen(palavra), ou ate a gaveta guardar o \\0) */\n\n    /* 2) some 1 em vogais quando a letra for a, e, i, o ou u */\n\n    /* 3) imprima o total: um printf com %d e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio contador-de-vogais — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do\n   stdout acontece dentro do proprio cenario (freopen + fflush, sem\n   fclose no stdout). Duas palavras de contagens diferentes: o numero tem\n   de vir do percurso, nunca de um literal fixo no codigo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid contadorDeVogais(void);\n\nSM_TEST(as_vogais_de_banana) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"banana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    contadorDeVogais();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"as vogais de banana\", linha, \"3\\n\",\n              \"banana tem tres letras a, e nenhuma outra vogal\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e so o numero: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(as_vogais_de_computador) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"computador\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    contadorDeVogais();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"as vogais de computador\", linha, \"4\\n\",\n              \"computador tem o, u, a e o: quatro vogais no percurso\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid contadorDeVogais(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    int vogais = 0;\n    int n = strlen(palavra);\n    for (int i = 0; i < n; i++) {\n        char letra = palavra[i];\n        if (letra == 'a' || letra == 'e' || letra == 'i' || letra == 'o' || letra == 'u') {\n            vogais++;\n        }\n    }\n    printf(\"%d\\n\", vogais);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_vogais_de_banana",
+      "teste": "as_vogais_de_banana",
+      "descricao": "com banana digitado no stdin, a funcao contadorDeVogais percorre a palavra gaveta por gaveta e imprime 3 — as tres letras a — e nada depois disso"
+    },
+    {
+      "id": "as_vogais_de_computador",
+      "teste": "as_vogais_de_computador",
+      "descricao": "com computador digitado no stdin, a mesma funcao imprime 4 (o, u, a, o) — a prova de que a contagem vem do percurso e nao de um numero fixo no codigo"
+    }
+  ]
+}

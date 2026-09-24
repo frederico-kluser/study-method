@@ -2,22 +2,125 @@
   "schemaVersion": 1,
   "slug": "multiplicar-e-dividir",
   "title": "Multiplicar, e o corte da divisão",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O * multiplica e o / divide — e entre inteiros a divisão corta a parte quebrada em vez de arredondar.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:binary:/",
+  "concepts": [
+    "multiplicar_e_dividir"
+  ],
   "prerequisites": [
     "somar-e-subtrair"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:*",
+      "op:binary:/"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a conta deixa de ser exata: entre inteiros a divisão devolve só a parte inteira do resultado, e o aluno passa a prever o corte",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "multiplicar-com-asterisco",
+      "title": "Multiplicar com o asterisco",
+      "markdown": "Multiplicar em C se escreve com `*`, o **operador** de vezes — no teclado não existe o sinal do caderno. A conta funciona como a soma: calcula e o resultado é o valor.\n\n```c\nint caixas = 4;\nint porCaixa = 6;\nint total = caixas * porCaixa;\nprintf(\"total: %d dobro de 7: %d\\n\", total, 7 * 2);\n```\n\n```text\ntotal: 24 dobro de 7: 14\n```\n\nA conta aceita variável (`caixas * porCaixa`) e número escrito (`7 * 2`), dentro da declaração ou direto no buraco `%d` da frase."
+    },
+    {
+      "id": "a-divisao-corta",
+      "title": "A divisão corta",
+      "markdown": "Dividir se escreve com `/`. E aqui vem a surpresa do C: **entre inteiros o resultado também é inteiro**.\n\n```c\nint pedacos = 7 / 2;\nprintf(\"pedacos: %d\\n\", pedacos);\n```\n\n```text\npedacos: 3\n```\n\nNo caderno 7 ÷ 2 é 3,5. Num `int` não há lugar para a metade, e o C **corta** a parte quebrada: sobra 3. Repare que ele não arredonda — se arredondasse, 3,5 viraria 4. O pedaço que sobrou não some do mundo: pegá-lo é a aula seguinte."
+    },
+    {
+      "id": "repartir-entre-amigos",
+      "title": "Repartir entre amigos",
+      "markdown": "É assim que se reparte alguma coisa inteira, que não se corta em pedaços:\n\n```c\nint figurinhas = 20;\nint amigos = 6;\nprintf(\"cada um leva %d\\n\", figurinhas / amigos);\n```\n\n```text\ncada um leva 3\n```\n\nCada amigo leva 3 (são 18 figurinhas), e 2 ficam na mesa. A analogia é repartir bala entre crianças: ninguém parte a bala ao meio. Ela quebra quando o valor é dinheiro ou medida — aí a metade importa, e é para isso que existe o número com vírgula, mais à frente."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sete-dividido-por-dois",
+      "statement": "Entre inteiros, `7 / 2` é 3 — o C corta, sem arredondar.",
+      "question": "O programa guarda `7 / 2` num `int` e imprime com `%d`. O que aparece na tela?",
+      "options": [
+        "3,5 — o resultado sai com a metade.",
+        "4, arredondado para o mais perto.",
+        "3, porque entre inteiros o C corta.",
+        "Erro: 7 não é divisível por 2 por igual."
+      ],
+      "answerIndex": 2,
+      "feedback": "A divisão entre inteiros devolve só a parte inteira, e o corte é para baixo: 3, não 4. Arredondar é outra coisa, e o C não faz isso aqui.",
+      "sectionId": "a-divisao-corta",
+      "optionRationales": [
+        "A vírgula não caberia num `int`, e é justamente por isso que ela é descartada.",
+        "Cortar não é arredondar: se arredondasse, 3,5 viraria 4 — mas o C corta.",
+        "O resultado é a parte inteira da divisão: 3.",
+        "Dividir inteiros que não se dividem por igual é normal e compila sem reclamação."
+      ]
+    },
+    {
+      "id": "o-asterisco-multiplica",
+      "statement": "O `*` é o sinal de multiplicar em C, e a conta aceita nomes ou números escritos.",
+      "question": "Com `caixas` valendo 4 e `porCaixa` valendo 6, quanto vale `caixas * porCaixa`?",
+      "options": [
+        "10, a soma dos dois valores.",
+        "24, o resultado de 4 vezes 6.",
+        "46, os dois números emendados.",
+        "Nada: em C se multiplica com o sinal `x`."
+      ],
+      "answerIndex": 1,
+      "feedback": "O `*` lê o valor de cada variável e multiplica: 4 × 6 = 24. O `x` do caderno não é operador em C — ele serviria como nome de variável.",
+      "sectionId": "multiplicar-com-asterisco",
+      "optionRationales": [
+        "Somar é o `+`; aqui o operador é o `*`.",
+        "O `*` lê o valor guardado em cada nome e multiplica: 4 × 6 = 24.",
+        "Emendar números é coisa de texto; a conta de `int` devolve número.",
+        "O sinal de multiplicar em C é o `*`; o `x` seria só uma letra."
+      ]
+    },
+    {
+      "id": "o-que-sobra-nao-entra",
+      "statement": "Na divisão entre inteiros o que sobra não entra no resultado — e não vira arredondamento.",
+      "question": "20 figurinhas para 6 amigos, com `20 / 6` entre `int`. O que o programa imprime?",
+      "options": [
+        "3, porque o C corta o que sobra da divisão.",
+        "4, porque o C arredonda a divisão para cima.",
+        "3,33 — o resultado sai com a parte quebrada.",
+        "2, que é o que sobrou depois de repartir."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada amigo leva 3 e sobram 2 figurinhas, que a divisão simplesmente não devolve. Pegar o que sobrou é o assunto da próxima aula.",
+      "sectionId": "repartir-entre-amigos",
+      "optionRationales": [
+        "6 × 3 = 18 cabe em 20: cada um leva 3, e as 2 restantes não entram na conta.",
+        "O C corta para baixo; ele nunca sobe para o número seguinte.",
+        "A parte quebrada não existe no resultado de uma divisão entre `int`.",
+        "O que sobra é o resto, e ele é outra conta — não é o resultado do `/`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial dos operadores de conta: o * da multiplicação e o / da divisão, com a regra do inteiro."
+    },
+    {
+      "title": "Arithmetic types — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/arithmetic_types",
+      "description": "A página oficial dos tipos numéricos: por que num int não existe parte quebrada."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.5 diz que a divisão de inteiros descarta a parte fracionária."
+    }
+  ],
+  "challenges": [
+    "repartir-figurinhas"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

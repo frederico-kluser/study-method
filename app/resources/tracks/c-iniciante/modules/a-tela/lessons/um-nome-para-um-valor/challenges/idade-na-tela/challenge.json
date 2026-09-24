@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "idade-na-tela",
+  "title": "A idade na tela",
+  "concept": "a_variavel",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A idade na tela\n\nA função `idadeNaTela` já está no seu arquivo, com as chaves vazias — falta o **corpo** dela. Escreva, entre as chaves:\n\n1. declare uma variável `int` chamada `idade` guardando **20**;\n2. imprima UMA linha em que o `%d` recebe `idade`.\n\nA tela deve ficar exatamente assim:\n\n```text\na idade e 20 anos\n```\n\nO 20 entra na declaração e a frase recebe esse valor pelo `%d` — passar pela variável é o que esta aula cobra. O texto sai sem acento, do jeito que está acima.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* o programa de fora chama idadeNaTela() pelo nome — o nome e o contrato */\nvoid idadeNaTela(void) {\n    /* 1. declare aqui a variavel int idade guardando 20 */\n\n    /* 2. imprima a frase \"a idade e %d anos\" com o valor de idade */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio idade-na-tela — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid idadeNaTela(void);\n\nSM_TEST(a_idade_na_frase) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    idadeNaTela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da idade\", linha, \"a idade e 20 anos\\n\",\n              \"a frase leva o valor guardado em idade no lugar do %d\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na primeira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid idadeNaTela(void) {\n    int idade = 20;\n    printf(\"a idade e %d anos\\n\", idade);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_idade_na_frase",
+      "teste": "a_idade_na_frase",
+      "descricao": "a funcao idadeNaTela declara o int idade com 20 e imprime a linha \"a idade e 20 anos\", com o valor entrando pelo %d; o segundo checa_str prova que a saida termina ali"
+    }
+  ]
+}

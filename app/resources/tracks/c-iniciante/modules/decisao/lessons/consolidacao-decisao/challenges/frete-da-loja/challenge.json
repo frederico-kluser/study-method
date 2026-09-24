@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "frete-da-loja",
+  "title": "O frete da loja",
+  "concept": "o_projeto_da_decisao",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O frete da loja\n\nEscreva a cascata da função `freteDaLoja`. Ela lê **dois inteiros** digitados na mesma linha — o peso do pedido em quilos e a distância da entrega em quilômetros — e imprime o frete, numa linha só.\n\nDuas medidas decidem juntas, e cada degrau cobra as duas com `&&`:\n\n| peso | distância | imprime |\n|---|---|---|\n| de 5 kg para cima | de 100 km para cima | `frete 50` |\n| de 5 kg para cima | abaixo de 100 km | `frete 30` |\n| abaixo de 5 kg | de 100 km para cima | `frete 20` |\n| abaixo de 5 kg | abaixo de 100 km | `frete 10` |\n\nO último caso é o `else` da cascata — ele não precisa de condição, porque só chega ali quem falhou em todos os degraus acima.\n\nCom `9 30` digitado, a saída é exatamente:\n\n```text\nfrete 30\n```\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* freteDaLoja le o peso (kg) e a distancia (km) digitados e imprime o frete\n   numa linha so. Cada degrau cobra as DUAS medidas com &&:\n     frete 50 -> peso de 5 para cima   E distancia de 100 para cima\n     frete 30 -> peso de 5 para cima   E distancia abaixo de 100\n     frete 20 -> peso abaixo de 5      E distancia de 100 para cima\n     frete 10 -> o resto (o else, sem condicao)\n   A leitura ja esta escrita. Falta a cascata. */\nvoid freteDaLoja(void) {\n    int peso = 0;\n    int distancia = 0;\n\n    scanf(\"%d %d\", &peso, &distancia);\n\n    /* escreva a cascata aqui, no lugar desta linha */\n    printf(\"frete 10\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio frete-da-loja — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o proximo freopen ficar legal (C11 7.21.4).\n   Os quatro cenarios sao as quatro combinacoes de peso x distancia, e as\n   quatro saidas esperadas sao DIFERENTES: nenhum printf de texto fixo passa\n   nos quatro, e quem ignorar uma das duas medidas reprova em pelo menos um. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid freteDaLoja(void);\n\nSM_TEST(pesado_e_longe) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"9 250\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    freteDaLoja();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"9 kg a 250 km custa 50\", linha, \"frete 50\\n\",\n              \"as duas medidas passaram do limite: e o degrau mais caro\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o frete, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(pesado_e_perto) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"9 30\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    freteDaLoja();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"9 kg a 30 km custa 30\", linha, \"frete 30\\n\",\n              \"o peso passou e a distancia nao: so o segundo degrau casa\");\n    fclose(f);\n}\n\nSM_TEST(leve_e_longe) {\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"2 250\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    freteDaLoja();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"2 kg a 250 km custa 20\", linha, \"frete 20\\n\",\n              \"a distancia passou e o peso nao: o terceiro degrau e o que casa\");\n    fclose(f);\n}\n\nSM_TEST(leve_e_perto) {\n    FILE *e = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(e, \"2 30\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_4.tmp\", \"w\", stdout);\n    freteDaLoja();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_4.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"2 kg a 30 km custa 10\", linha, \"frete 10\\n\",\n              \"nenhum degrau casou, e o else sem condicao responde pelo resto\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid freteDaLoja(void) {\n    int peso = 0;\n    int distancia = 0;\n\n    scanf(\"%d %d\", &peso, &distancia);\n\n    if (peso >= 5 && distancia >= 100) {\n        printf(\"frete 50\\n\");\n    } else if (peso >= 5 && distancia < 100) {\n        printf(\"frete 30\\n\");\n    } else if (peso < 5 && distancia >= 100) {\n        printf(\"frete 20\\n\");\n    } else {\n        printf(\"frete 10\\n\");\n    }\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "pesado_e_longe",
+      "teste": "pesado_e_longe",
+      "descricao": "com 9 e 250 digitados, as duas medidas passam do limite e a funcao freteDaLoja imprime frete 50 numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "pesado_e_perto",
+      "teste": "pesado_e_perto",
+      "descricao": "com 9 e 30 digitados, o peso passa e a distancia nao: o degrau com && de peso alto e distancia baixa casa e a funcao imprime frete 30"
+    },
+    {
+      "id": "leve_e_longe",
+      "teste": "leve_e_longe",
+      "descricao": "com 2 e 250 digitados, a distancia passa e o peso nao: a funcao imprime frete 20 — quem ignorar uma das duas medidas reprova aqui"
+    },
+    {
+      "id": "leve_e_perto",
+      "teste": "leve_e_perto",
+      "descricao": "com 2 e 30 digitados, nenhum degrau casa e o else sem condicao responde: a funcao imprime frete 10"
+    }
+  ]
+}

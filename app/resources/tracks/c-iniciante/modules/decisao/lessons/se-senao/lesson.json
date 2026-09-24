@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "se-senao",
   "title": "Um caminho ou outro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O else dá ao if o segundo caminho: a condição é calculada uma vez e exatamente um dos dois blocos roda.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IfStmt",
+  "concepts": [
+    "o_outro_caminho"
+  ],
   "prerequisites": [
     "se"
   ],
+  "introduces": {
+    "productive": [
+      "node:IfStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o desvio deixa de ser 'roda ou não roda' e passa a ser uma bifurcação: a mesma condição, calculada uma vez, escolhe entre dois blocos, e um deles sempre roda",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-caminho-de-tras",
+      "title": "O outro caminho",
+      "markdown": "O `if` sozinho tem um caminho: roda o bloco, ou não roda nada. O `else` — *senão* — acrescenta o segundo caminho, o de quando a condição dá 0:\n\n```c\nint n = 7;\nif (n % 2 == 0) {\n    printf(\"par\\n\");\n} else {\n    printf(\"impar\\n\");\n}\n```\n\n```text\nimpar\n```\n\n`7 % 2` é 1, e `1 == 0` dá 0: o primeiro bloco é saltado e o C roda o do `else`. Troque só o 7 por 8 e o outro caminho aparece:\n\n```c\nint n = 8;\nif (n % 2 == 0) {\n    printf(\"par\\n\");\n} else {\n    printf(\"impar\\n\");\n}\n```\n\n```text\npar\n```"
+    },
+    {
+      "id": "um-e-so-um",
+      "title": "Um, e só um",
+      "markdown": "Exatamente um dos dois blocos roda: nunca os dois, nunca nenhum. Dois `if` separados não dão essa garantia:\n\n```c\nint nota = 6;\nif (nota >= 6) {\n    printf(\"passou\\n\");\n}\nif (6 >= nota) {\n    printf(\"ficou na media\\n\");\n}\n```\n\n```text\npassou\nficou na media\n```\n\nCom `nota` valendo 6 as DUAS condições são verdadeiras, e as duas linhas saem. São duas decisões independentes. O `else` fecha esse buraco: ele não é um segundo teste, é **todo o resto** do primeiro."
+    },
+    {
+      "id": "o-else-nao-tem-condicao",
+      "title": "O else não tem condição",
+      "markdown": "O `else` vem logo depois do `}` do `if` e **não tem parênteses**: não existe nada para testar nele.\n\n```c\nint idade = 15;\nif (idade >= 18) {\n    printf(\"pode entrar\\n\");\n} else {\n    printf(\"volte em alguns anos\\n\");\n    printf(\"ate mais\\n\");\n}\n```\n\n```text\nvolte em alguns anos\nate mais\n```\n\nO C calcula a condição UMA vez; o resultado escolhe o bloco. O bloco do `else` leva quantas linhas você quiser, e ele só existe grudado a um `if` — `else` solto não compila."
+    },
+    {
+      "id": "o-else-pega-o-que-sobrou",
+      "title": "O else pega o que sobrou",
+      "markdown": "O bloco do `else` roda em TODOS os casos que a condição não pegou — inclusive os que você não pensou. Um número negativo é um deles:\n\n```c\nint n = -3;\nif (n % 2 == 0) {\n    printf(\"par\\n\");\n} else {\n    printf(\"impar\\n\");\n}\n```\n\n```text\nimpar\n```\n\nEm C o resto herda o sinal do número de cima: `-3 % 2` é `-1`, e não `1`. Como `-1 == 0` dá 0, o `else` cobre esse caso sem uma linha a mais."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "exatamente-um-dos-dois-blocos-roda",
+      "statement": "Exatamente um dos dois blocos roda.",
+      "question": "Com `n` valendo 8 em `if (n % 2 == 0) { printf(\"par\\n\"); } else { printf(\"impar\\n\"); }`, o que sai na tela?",
+      "options": [
+        "Só `par`: o bloco do `else` é saltado.",
+        "`par` e `impar`, uma linha depois da outra.",
+        "Só `impar`: o `else` sempre roda no fim.",
+        "Nada: `8 % 2` é 0, e 0 significa falso."
+      ],
+      "answerIndex": 0,
+      "feedback": "`8 % 2` é 0, e a condição é `0 == 0`, que vale 1. Com 1 roda o bloco do `if` — e o do `else` é saltado. Um dos dois, nunca os dois.",
+      "sectionId": "o-caminho-de-tras",
+      "optionRationales": [
+        "A condição deu 1, então roda o bloco do `if` e só ele.",
+        "Os dois blocos nunca rodam juntos: é essa a garantia do `else`.",
+        "O `else` não é um encerramento: ele é o caminho de quando a condição dá 0.",
+        "Quem vale 0 é o resto (`8 % 2`), não a condição: a condição é `0 == 0`, que vale 1."
+      ]
+    },
+    {
+      "id": "o-else-nao-e-um-segundo-teste",
+      "statement": "O `else` não é um segundo `if`: ele é todo o resto da condição do `if` a que pertence.",
+      "question": "Por que dois `if` separados podem imprimir as duas linhas, e um `if`/`else` não pode?",
+      "options": [
+        "Porque dois `if` são duas decisões, e o `else` é o outro lado de uma só.",
+        "Porque o segundo `if` roda sempre logo depois do primeiro, aconteça o que acontecer.",
+        "Porque o bloco do `else` só aceita uma linha, e o do `if` aceita várias.",
+        "Porque o `else` testa a mesma condição outra vez, agora invertida."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada `if` decide por conta própria, e duas condições podem ser verdadeiras ao mesmo tempo. No `if`/`else` existe UMA condição: o valor dela escolhe o bloco, e sobra um só.",
+      "sectionId": "um-e-so-um",
+      "optionRationales": [
+        "São duas decisões separadas contra uma decisão com dois lados — é toda a diferença.",
+        "Rodar depois não é o problema: o problema é que o segundo `if` decide de novo, por conta própria.",
+        "Os dois blocos aceitam quantas linhas você quiser; o tamanho não tem nada a ver.",
+        "Nada é testado duas vezes: o C calcula a condição UMA vez e usa o resultado para escolher."
+      ]
+    },
+    {
+      "id": "a-condicao-e-calculada-uma-vez",
+      "statement": "No `if`/`else` a condição é calculada uma única vez, e o resultado escolhe qual bloco roda.",
+      "question": "Num `if (idade >= 18) { ... } else { ... }`, quantas vezes o C calcula `idade >= 18`?",
+      "options": [
+        "Uma só: o valor dela escolhe o bloco que roda.",
+        "Duas: uma para o `if` e outra, invertida, para o `else`.",
+        "Nenhuma, quando a condição é falsa.",
+        "Uma vez por linha dentro dos blocos."
+      ],
+      "answerIndex": 0,
+      "feedback": "A comparação vira um número uma vez. Se for 1, roda o bloco de cima; se for 0, roda o de baixo. O `else` não recalcula nada — ele nem tem parênteses.",
+      "sectionId": "o-else-nao-tem-condicao",
+      "optionRationales": [
+        "Uma conta, um resultado, um bloco escolhido.",
+        "O `else` não tem parênteses: não há segunda condição para calcular.",
+        "A condição é sempre calculada — é justamente o cálculo que revela que ela é falsa.",
+        "As linhas de dentro não repetem o teste: elas já rodam por causa do resultado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if` em C, com a forma `if (…) … else …` e a regra de qual ordem pertence a qual caminho."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial de `/` e `%`: o resto herda o sinal do dividendo, e é por isso que `-3 % 2` é `-1` e não `1`."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.8.4.1 define o `if`/`else` e §6.5.5 define o resto da divisão de inteiros."
+    }
+  ],
+  "challenges": [
+    "par-ou-impar"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

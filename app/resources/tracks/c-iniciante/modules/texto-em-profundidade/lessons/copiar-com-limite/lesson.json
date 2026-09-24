@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "copiar-com-limite",
   "title": "Copiar com freio de mão",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A strncpy copia texto sem nunca passar do limite que você dá — e, no caso apertado, a placa \\0 do fim fica por sua conta.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:strncpy",
+  "concepts": [
+    "copiar_com_limite"
+  ],
   "prerequisites": [
     "copiar-a-mao"
   ],
+  "introduces": {
+    "productive": [
+      "api:strncpy",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:strncpy"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a cópia deixa de depender do laço escrito à mão: uma chamada só move o texto e o limite passa a ser dado explícito — a caixa pequena corta o texto em vez de deixar a escrita passar para a memória vizinha",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-freio-de-mao",
+      "title": "A cópia com freio de mão",
+      "markdown": "Copiar à mão funciona — e não se defende. Se a origem tiver trinta letras e a caixa dez gavetas, o laço escreve fora da caixa, em memória que não é sua.\n\nA `<string.h>` tem a cópia com freio de mão. Ela recebe TRÊS coisas: para onde, de onde, e no máximo quantas gavetas:\n\n```c\nchar destino[20] = \"\";\nchar origem[] = \"Ana\";\nstrncpy(destino, origem, sizeof destino);\nprintf(\"%s\\n\", destino);\n```\n\n```text\nAna\n```\n\nO `sizeof destino` é o tamanho da CAIXA — vinte aqui, porque cada gaveta de `char` ocupa um byte. A cópia nunca passa desse número."
+    },
+    {
+      "id": "quando-nao-cabe",
+      "title": "Quando o texto não cabe",
+      "markdown": "E quando o texto não cabe? O freio segura: entram só as gavetas que existem, e o resto fica de fora.\n\n```c\nchar etiqueta[8] = \"\";\nstrncpy(etiqueta, \"computador\", 8);\netiqueta[7] = '\\0';\nprintf(\"%s\\n\", etiqueta);\n```\n\n```text\ncomputa\n```\n\n`computador` tem dez letras; a etiqueta tem oito gavetas. Sete letras entraram e a oitava ficou para a placa. Cortar o texto é feio; invadir a memória da vizinhança é pior — essa é a troca que o freio faz por você."
+    },
+    {
+      "id": "a-placa-e-sua",
+      "title": "A placa é sua responsabilidade",
+      "markdown": "O detalhe que morde: no caso apertado a `strncpy` usa TODAS as gavetas do limite e **não sobra lugar para a placa**. Um `%s` nessa caixa sairia procurando o fim na memória vizinha.\n\nPor isso a última linha da receita é sempre sua:\n\n```c\nchar destino[10] = \"\";\nstrncpy(destino, \"uma frase comprida\", sizeof destino);\ndestino[sizeof destino - 1] = '\\0';\nprintf(\"%s\\n\", destino);\n```\n\n```text\numa frase\n```\n\n`sizeof destino - 1` é sempre a última gaveta da caixa. Escrever a placa ali custa uma linha e resolve o caso ruim."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-limite-e-teto-nao-reserva",
+      "statement": "`strncpy(dst, src, sizeof dst)` nunca passa do limite — e cabe a VOCÊ garantir o `\\0` no fim.",
+      "question": "Com `char etiqueta[8]`, quantas gavetas `strncpy(etiqueta, \"computador\", 8)` escreve?",
+      "options": [
+        "Oito: o limite é um teto, e aqui ele foi usado inteiro.",
+        "Sete: a `strncpy` guarda a última para a placa.",
+        "Dez: a palavra entra toda, e a caixa se ajusta ao texto.",
+        "Nenhuma: a palavra não cabe, então a cópia é cancelada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O limite é um teto, não uma reserva: com dez letras para oito gavetas, a `strncpy` enche as oito e não sobra lugar para a placa. É por isso que a linha seguinte existe.",
+      "sectionId": "quando-nao-cabe",
+      "optionRationales": [
+        "O limite 8 é quanto ela PODE escrever, e o texto de dez letras faz ela usar tudo.",
+        "Essa é a confusão mais comum: a `strncpy` não reserva nada — quem reserva é você.",
+        "Nenhuma caixa cresce em C: o `[8]` foi decidido na declaração e não muda.",
+        "A cópia acontece sim; o que não acontece é a cópia INTEIRA do texto."
+      ]
+    },
+    {
+      "id": "a-ultima-gaveta-recebe-a-placa",
+      "statement": "A linha `destino[sizeof destino - 1] = '\\0';` fecha o texto na última gaveta da caixa.",
+      "question": "Por que a receita da cópia segura termina nessa linha?",
+      "options": [
+        "Para garantir a placa quando o texto lota a caixa.",
+        "Para apagar a caixa antes de a cópia começar.",
+        "Para que o `%s` comece a ler o texto pela gaveta 0.",
+        "Para contar quantas letras a cópia acabou de escrever."
+      ],
+      "answerIndex": 0,
+      "feedback": "No caso apertado a caixa fica cheia de letras e sem placa. Gravar o `\\0` na última gaveta garante que o `%s` encontre o fim dentro da caixa.",
+      "sectionId": "a-placa-e-sua",
+      "optionRationales": [
+        "É o seguro do caso ruim: com a placa na última gaveta, o `%s` sempre para dentro da caixa.",
+        "Apagar antes não resolveria o caso em que o texto ocupa todas as gavetas.",
+        "O `%s` já começa pela gaveta 0 sempre — o que falta saber é onde ele PARA.",
+        "Quem conta letras é o `strlen`; essa linha grava uma placa, não um número."
+      ]
+    },
+    {
+      "id": "sizeof-mede-a-caixa",
+      "statement": "`sizeof destino` é o tamanho da CAIXA, e não o do texto que está nela.",
+      "question": "Com `char destino[20] = \"\";` e `char origem[] = \"Ana\";`, quanto vale `sizeof destino`?",
+      "options": [
+        "20 — a caixa tem vinte gavetas de um byte.",
+        "3 — o mesmo que `strlen(origem)` devolveria aqui.",
+        "4 — as três letras da origem mais a placa.",
+        "1 — cada gaveta de `char` ocupa um byte só."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sizeof` mede a caixa declarada; o `strlen` mede o texto guardado nela. Nesta cópia o limite vem da caixa, porque é ela que não pode transbordar.",
+      "sectionId": "o-freio-de-mao",
+      "optionRationales": [
+        "São vinte gavetas de um byte cada: `sizeof` devolve 20.",
+        "3 é o tamanho do TEXTO — trabalho do `strlen`, não do `sizeof`.",
+        "4 seria `sizeof origem`, a caixa que o compilador dimensionou pelo texto.",
+        "Um byte é o tamanho de UMA gaveta; a caixa tem vinte delas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "strncpy — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/strncpy",
+      "description": "A página oficial da strncpy: os três argumentos e a regra do terminador quando o texto ocupa o limite."
+    },
+    {
+      "title": "strncpy(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/strncpy.3.html",
+      "description": "A man-page do sistema, com o aviso de que o destino pode ficar sem o byte nulo."
+    },
+    {
+      "title": "sizeof operator — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/sizeof",
+      "description": "A regra oficial do sizeof: o tamanho em bytes do objeto declarado, medido pelo compilador."
+    }
+  ],
+  "challenges": [
+    "o-copiador-seguro"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

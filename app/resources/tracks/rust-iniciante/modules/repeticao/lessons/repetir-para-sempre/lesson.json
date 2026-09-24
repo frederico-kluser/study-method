@@ -44,16 +44,16 @@
       "question": "O que o `loop` faz que o `if` não faz?",
       "options": [
         "repete o bloco de novo e de novo, sem perguntar nada",
-        "decide entre dois caminhos",
-        "troca o valor de uma variável",
-        "devolve um valor para o teste"
+        "decide entre dois caminhos, conforme a condição escrita",
+        "troca o valor de uma variável a cada volta",
+        "devolve um valor para o teste no fim do corpo"
       ],
       "answerIndex": 0,
       "feedback": "O `loop` é a repetição pura: entra, roda, volta ao começo — a saída é o `break`.",
       "sectionId": "o-laco-que-nao-pergunta-nada",
       "optionRationales": [
         "O `loop` roda a volta e volta ao começo, quantas vezes for preciso — a repetição é dele.",
-        "Decidir entre caminhos é o papel do `if` — o `loop` repete.",
+        "Decidir entre caminhos é papel do `if`, e ele decide uma vez só — o `loop` repete.",
         "Trocar o valor é papel do `=` e do `+=` dentro do corpo — não do laço em si.",
         "Devolver valor é papel da última expressão do corpo — o `loop` apenas repete."
       ]
@@ -64,17 +64,17 @@
       "question": "O que acontece se nenhum `break` interromper o `loop`?",
       "options": [
         "o laço repete para sempre e nada depois dele roda",
-        "o laço para sozinho depois de 10 voltas",
-        "o laço devolve o valor da última volta",
-        "o compilador recusa o laço"
+        "o laço para sozinho depois de algumas voltas",
+        "o laço devolve o valor da última volta e termina ali",
+        "o compilador recusa um laço sem break"
       ],
       "answerIndex": 0,
       "feedback": "`loop` sem `break` é repetição infinita: o programa fica preso e as linhas seguintes nunca rodam.",
       "sectionId": "sem-o-pare-ninguem-sai",
       "optionRationales": [
         "O `loop` não tem condição de fim: sem o `break` ele repete para sempre.",
-        "O `loop` não conta voltas sozinho — quem manda é o código dentro dele.",
-        "Devolver valor no fim é papel da última expressão — e ela nunca é alcançada sem o `break`.",
+        "O `loop` não conta voltas nem tem limite escondido — quem manda parar é o código.",
+        "Sem o `break` o laço nunca sai, e a expressão que devolveria o valor nunca é alcançada.",
         "O laço compila direitinho — o problema acontece quando o programa roda."
       ]
     },
@@ -83,19 +83,19 @@
       "statement": "No laço, o if é quem decide o momento do break: a condição vira true e o laço interrompe ali.",
       "question": "Em `soma_ate`, quem decide quando o laço para?",
       "options": [
-        "o if dentro do laço: quando `n` passa do limite, ele roda o break",
-        "o loop, que conta as voltas e para sozinho",
-        "o let mut soma, quando a soma fica grande",
-        "o teste, que manda o laço parar"
+        "o if do laço: quando `n` passa do limite, ele roda o break",
+        "o loop, que conta as voltas e para sozinho no fim",
+        "o let mut soma, que segura o laço quando a soma fica grande",
+        "o teste, que manda o laço parar ao chegar no valor"
       ],
       "answerIndex": 0,
       "feedback": "A condição `n > limite` vira `true`, o bloco do `if` roda e o `break` interrompe o laço na hora.",
       "sectionId": "a-corrida-que-soma-ate-o-limite",
       "optionRationales": [
         "O `if` é o juiz dentro do laço: condição `true`, `break` imediato.",
-        "O `loop` não tem juiz nenhum — por isso ele repete sem perguntar nada.",
-        "A soma é o acumulador: ela junta valores, não decide a parada.",
-        "O teste roda DEPOIS — quem decide dentro do programa é o código."
+        "O `loop` não conta nada e não para sozinho — por isso ele repete sem perguntar.",
+        "A soma é o acumulador: ela junta os valores da volta, e nunca decide a parada.",
+        "O teste roda de fora e só confere o resultado — a parada é decidida no código."
       ]
     }
   ],

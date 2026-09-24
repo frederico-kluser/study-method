@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "copiar-a-mao",
   "title": "Copiar à mão",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Copiar texto em C é mover letra por letra de uma caixa para a outra — e a placa \\0 do fim é uma das letras a copiar.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "copiar_a_mao"
+  ],
   "prerequisites": [
     "percorrer-a-string",
     "pegar-pela-gaveta"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a gaveta deixa de ser só leitura dentro do texto: a mesma porta passa a receber a letra que vem de outra caixa, e o texto copiado só existe de verdade quando a placa \\0 também atravessa",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "copiar-nao-e-atribuir",
+      "title": "O igual não copia texto",
+      "markdown": "Copiar um número é fácil: `b = a;` e pronto. Com texto não: `copia = origem;` **nem compila**. O nome da caixa não é o conteúdo dela — é o endereço da gaveta 0.\n\nCopiar texto é mover letra por letra, e cada letra mora numa gaveta:\n\n```c\nchar origem[] = \"Ana\";\nchar copia[20] = \"\";\ncopia[0] = origem[0];\ncopia[1] = origem[1];\ncopia[2] = origem[2];\n```\n\nÀ direita do `=`, `origem[0]` é a letra que está lá. À esquerda, `copia[0]` é a gaveta que recebe. Três gavetas mudaram de mão, uma linha por gaveta."
+    },
+    {
+      "id": "a-placa-tambem-se-copia",
+      "title": "A placa também se copia",
+      "markdown": "A cópia de cima ainda não é um texto. Uma caixa pode chegar com sobra de outro dono, e o `%s` imprime até achar a placa `\\0`:\n\n```c\nchar copia[20] = \"sobra-antiga\";\nchar origem[] = \"Ana\";\ncopia[0] = origem[0];\ncopia[1] = origem[1];\ncopia[2] = origem[2];\nprintf(\"%s\\n\", copia);\n```\n\n```text\nAnara-antiga\n```\n\nAs três letras entraram; o resto da sobra continuou lá. Falta copiar a placa, que é a quarta gaveta da origem: `copia[3] = origem[3];`.\n\nCom essa linha a mais, a cópia imprime `Ana` e para na gaveta 3."
+    },
+    {
+      "id": "o-laco-copia-qualquer-tamanho",
+      "title": "O laço copia qualquer tamanho",
+      "markdown": "Texto de tamanho desconhecido pede laço. O `i` nasce FORA do `for`: quando o laço acaba, ele ainda serve — é ele que marca onde a placa entra.\n\n```c\nchar origem[] = \"computador\";\nchar copia[20] = \"\";\nint i = 0;\nfor (i = 0; origem[i] != '\\0'; i++) {\n    copia[i] = origem[i];\n}\ncopia[i] = '\\0';\nprintf(\"%s\\n\", copia);\n```\n\n```text\ncomputador\n```\n\nO laço para AO VER a placa, então ele não a copia: quem copia é a linha de baixo. Sem ela, a cópia seria um texto sem fim."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sem-a-placa-a-copia-nao-acaba",
+      "statement": "Se o `\\0` não copia, a cópia é um texto sem fim.",
+      "question": "A caixa `copia` chega com `sobra-antiga` dentro. Você grava `Ana` nas gavetas 0, 1 e 2 e imprime com `%s`. O que sai na tela?",
+      "options": [
+        "`Anara-antiga`: o `%s` para na placa, e ela ficou longe.",
+        "`Ana`: o `%s` para onde a cópia parou de escrever.",
+        "`sobra-antiga`: gravar gaveta por gaveta não muda nada na caixa.",
+        "Nada: uma caixa com sobra dentro não pode ser impressa."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `%s` não sabe onde a sua cópia parou: ele anda pelas gavetas até achar o `\\0`. Com a sobra ainda lá, a placa só aparece no fim dela — e tudo isso sai na tela.",
+      "sectionId": "a-placa-tambem-se-copia",
+      "optionRationales": [
+        "As três letras entraram nas gavetas 0 a 2, e o `%s` seguiu pela sobra até achar a placa antiga.",
+        "`Ana` sairia se a gaveta 3 guardasse a placa — copiá-la é a linha que falta.",
+        "As três gavetas mudaram de verdade: o que sobrou intacto foi o resto da caixa.",
+        "Imprimir sempre funciona; o problema é onde o `%s` encontra o fim do texto."
+      ]
+    },
+    {
+      "id": "os-dois-lados-do-igual",
+      "statement": "Na linha `copia[i] = origem[i];` a mesma forma faz dois papéis: destino à esquerda, valor à direita.",
+      "question": "O que essa linha faz quando `i` vale 2?",
+      "options": [
+        "Grava na gaveta 2 de `copia` a letra da gaveta 2 de `origem`.",
+        "Faz as duas gavetas passarem a ser uma gaveta só, compartilhada.",
+        "Copia a caixa `origem` inteira para dentro da caixa `copia`.",
+        "Esvazia a gaveta 2 de `origem` depois de copiar a letra."
+      ],
+      "answerIndex": 0,
+      "feedback": "À direita do `=`, `origem[2]` é a letra que está guardada. À esquerda, `copia[2]` é o lugar onde ela vai ser gravada. Uma gaveta por linha.",
+      "sectionId": "copiar-nao-e-atribuir",
+      "optionRationales": [
+        "A letra é lida de um lugar e gravada no outro: uma gaveta de cada caixa, por linha.",
+        "Cada caixa tem as suas gavetas; a atribuição copia o conteúdo, não junta as duas.",
+        "Isso seria `copia = origem;`, que nem compila: caixa não se atribui de uma vez.",
+        "Ler uma gaveta não a esvazia — a letra continua lá depois da cópia."
+      ]
+    },
+    {
+      "id": "quem-copia-a-placa",
+      "statement": "O laço para AO VER a placa, então quem copia a placa é a linha depois do laço.",
+      "question": "Ao sair de `for (i = 0; origem[i] != '\\0'; i++)`, quanto vale o `i` que a linha `copia[i] = '\\0';` usa?",
+      "options": [
+        "O número da gaveta onde a placa da origem está.",
+        "Zero: o `for` devolve o `i` ao valor inicial.",
+        "O número de gavetas da caixa `copia`.",
+        "Um número depois da placa, porque o `i++` roda no fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição ficou falsa exatamente na gaveta da placa, e é com esse `i` que o laço parou. Gravar o `\\0` ali fecha a cópia no lugar certo.",
+      "sectionId": "o-laco-copia-qualquer-tamanho",
+      "optionRationales": [
+        "O laço parou na gaveta em que a condição virou falsa: a da placa.",
+        "O `for` não desfaz o `i`; ele para de rodar o corpo, e o valor fica.",
+        "O tamanho da caixa de destino nunca entrou na condição do laço.",
+        "O `i++` roda ANTES do próximo teste; quando o teste falha, o `i` não avança mais."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array em C: por que o nome da caixa não se atribui e o que os colchetes significam."
+    },
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A definição oficial de texto em C: a sequência de caracteres que termina no caractere nulo."
+    },
+    {
+      "title": "Array subscript — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A regra oficial do acesso por índice, que vale igual dos dois lados do sinal de igual."
+    }
+  ],
+  "challenges": [
+    "o-copiador"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

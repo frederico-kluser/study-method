@@ -766,6 +766,23 @@ export const C_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'node:DeclStmt',
   'decl:var',
   'node:IncludeDirective',
+  // A SÉTIMA (onda da autoria do M1, 2026-09-22): `global:stdin`, a outra ponta
+  // do MESMO envelope de captura. O contrato do M1 manda, em três aulas
+  // (`dobro-do-digitado`, `soma-digitada`, `proxima-letra`), um desafio cujo
+  // teste "injeta 21 no stdin" — e não existe outra forma in-process de
+  // alimentar a `scanf`: o `SM_RUNNER_SCRIPT` roda o binário SEM `<arquivo`
+  // (`"$SM_TMP/runner" >"$SM_CAPTURA" 2>&1`), então a injeção acontece DENTRO
+  // do cenário, com o mesmo `freopen` da captura de saída, em cima de `stdin`.
+  //
+  // Medido antes de acrescentar: `audit c-iniciante --limite 0` acusava
+  // `[A3] testsCode global:stdin — LACUNA DE CURRÍCULO` nos TRÊS desafios, e a
+  // chave não tinha origem possível — o aluno nunca escreve `stdin` no código
+  // dele, e declará-la em `introduces` para calar o gate seria exatamente o
+  // defeito que a barra A17–A23 existe para proibir.
+  //
+  // RECEPTIVA e só receptiva, como as outras seis: a solução do aluno que
+  // escrever `stdin` continua reprovando no A2.
+  'global:stdin',
 ] as const;
 
 /**

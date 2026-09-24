@@ -1071,10 +1071,11 @@ RULE_N="$(printf '%s\n' "$RULE_IDS" | grep -c . || true)"
 DAGGER_IDS="$(awk '/^## 9\./{f=1} /^## 10\./{f=0} f' "$CONTRACT" \
   | grep -oE '^\| [A-Z]+(-[A-Z0-9]+)+ †' | sed 's/^| //; s/ †$//' | sort -u)"
 DAGGER_N="$(printf '%s\n' "$DAGGER_IDS" | grep -c . || true)"
-# 90 = as 88 originais + AS-13 e BOOT-8, acrescentadas na mesma leva. O número é
-# LITERAL de propósito: derivá-lo da própria contagem faria o check concordar consigo
-# mesmo e nunca acusar uma regra perdida. Quem acrescenta regra ao §9 mexe aqui também.
-assert_eq "G-04a" "o §9 do contrato declara 90 regras permanentes" "90" "$RULE_N" "$(gate_rel "$CONTRACT") §9"
+# 93 = as 88 originais + AS-13 e BOOT-8 (mesma leva) + LAC-1..LAC-3 (revisão de
+# 2026-09-22, o bloco de LACUNA DO CURSO do §9.8). O número é LITERAL de propósito:
+# derivá-lo da própria contagem faria o check concordar consigo mesmo e nunca acusar
+# uma regra perdida. Quem acrescenta regra ao §9 mexe aqui também.
+assert_eq "G-04a" "o §9 do contrato declara 93 regras permanentes" "93" "$RULE_N" "$(gate_rel "$CONTRACT") §9"
 assert_eq "G-04b" "o §9 marca 11 regras † (críticas de segurança)" "11" "$DAGGER_N" "$(gate_rel "$CONTRACT") §9"
 
 if [ ! -f "$SKILL_MD" ]; then
@@ -1121,8 +1122,8 @@ else
     [ -z "$rid" ] && continue
     grep -qE "(^|[^A-Za-z0-9-])$rid([^A-Za-z0-9-]|$)" "$SKILL_MD" || miss="$miss$rid "
   done <<< "$RULE_IDS"
-  assert_grep_empty "I-33b" "os 90 IDs de regra do §9 estão no corpo do SKILL.md" \
-    "os 90 IDs (C-*, AS-*, AN-*, ESC-*, ERR-*, MEM-*, PRIV-*, SEG-*, DES-*, VIZ-*, BOOT-*)" \
+  assert_grep_empty "I-33b" "os 93 IDs de regra do §9 estão no corpo do SKILL.md" \
+    "os 93 IDs (C-*, AS-*, AN-*, ESC-*, ERR-*, MEM-*, PRIV-*, SEG-*, DES-*, VIZ-*, BOOT-*, LAC-*)" \
     "$( [ -n "$miss" ] && printf 'faltam: %s' "$miss" )"
   miss=""
   while IFS= read -r rid; do

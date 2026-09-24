@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "ler-uma-palavra",
   "title": "Ler uma palavra",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O scanf com %s lê uma palavra digitada direto para a caixa de letras — sem &, porque o nome da caixa já é endereço — e a largura %49s é o freio que impede o texto de passar do fim.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:scanf",
+  "concepts": [
+    "ler_uma_palavra"
+  ],
   "prerequisites": [
     "a-string-e-o-zero",
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "api:scanf",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:scanf"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto deixa de ser fixo no código: o que o usuário digita entra direto nas gavetas da caixa, e a scanf põe a placa do fim na gaveta seguinte à última letra lida",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "sem-o-e-comercial",
+      "title": "O %s dispensa o &",
+      "markdown": "Para ler um número, a `scanf` sempre pediu o endereço da casa: `scanf(\"%d\", &idade);`.\n\nCom texto é diferente — o buraco é `%s` e o `&` desaparece:\n\n```c\nchar nome[20];\nscanf(\"%19s\", nome);\n```\n\nO nome de uma caixa de gavetas **já é** um endereço: o da gaveta 0. Escrever `&nome` seria dar o endereço do endereço, e não é isso que a `scanf` espera.\n\nA regra curta: `%d` pede `&`; `%s` não pede."
+    },
+    {
+      "id": "o-freio-de-mao",
+      "title": "O freio de mão da largura",
+      "markdown": "A `scanf` não sabe o tamanho da sua caixa. Se o buraco for `%s` puro e o usuário digitar quarenta letras numa caixa de vinte gavetas, ela escreve fora da caixa — e o programa quebra em silêncio.\n\nO freio de mão é a **largura**, escrita dentro do buraco:\n\n```c\nchar cidade[20];\nscanf(\"%19s\", cidade);\n```\n\nDezenove letras no máximo, e a vigésima gaveta fica livre para o `\\0` que a `scanf` põe no fim. A conta é sempre a mesma: **tamanho da caixa menos um**."
+    },
+    {
+      "id": "uma-palavra-so",
+      "title": "Uma palavra, e só",
+      "markdown": "O `%s` recolhe letras e para no primeiro espaço. Digitando `Ana Maria`, a caixa fica só com a primeira palavra:\n\n```c\nchar nome[10];\nscanf(\"%9s\", nome);\nprintf(\"oi, %s!\\n\", nome);\n```\n\n```text\noi, Ana!\n```\n\nO `Maria` continua na fila, esperando a próxima leitura. É por isso que a aula se chama *ler uma palavra*: ler uma frase inteira, com espaços, é trabalho de outra ferramenta."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-nome-do-array-ja-e-endereco",
+      "statement": "O nome do array JÁ é endereço: no `%s` não vai `&`.",
+      "question": "Para ler uma palavra em `char nome[20]`, qual chamada está certa?",
+      "options": [
+        "`scanf(\"%19s\", nome);`",
+        "`scanf(\"%19s\", &nome[20]);`",
+        "`scanf(\"%19s\", nome[0]);`",
+        "`scanf(\"%19s\", &nome);`"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa entra pelo nome, que já é o endereço da gaveta 0. O `&` é o que um número pede, porque um número não é endereço de nada.",
+      "sectionId": "sem-o-e-comercial",
+      "optionRationales": [
+        "O nome da caixa já é o endereço da gaveta 0 — é exatamente o que a `scanf` quer.",
+        "A gaveta 20 fica FORA de uma caixa de 20 gavetas (as válidas vão de 0 a 19).",
+        "`nome[0]` é a letra da gaveta 0, não o endereço dela.",
+        "`&nome` é o endereço de um endereço — uma volta a mais do que a `scanf` espera."
+      ]
+    },
+    {
+      "id": "a-largura-e-o-freio",
+      "statement": "A largura no buraco é o freio de mão: em `char cidade[50]`, `%49s`.",
+      "question": "A caixa é `char cidade[50]`. Qual largura você escreve no buraco?",
+      "options": [
+        "`%49s`, uma gaveta a menos que a caixa.",
+        "`%50s`, o tamanho exato da caixa.",
+        "`%1s`, que é sempre o valor mais seguro.",
+        "`%s`, porque a scanf mede a caixa sozinha."
+      ],
+      "answerIndex": 0,
+      "feedback": "A última gaveta é da placa `\\0` que a `scanf` põe no fim. Em `char cidade[50]` sobram 49 para as letras: `%49s`.",
+      "sectionId": "o-freio-de-mao",
+      "optionRationales": [
+        "49 letras mais a placa do fim ocupam exatamente as 50 gavetas.",
+        "50 letras mais a placa dariam 51 gavetas — uma a mais do que existe.",
+        "`%1s` não quebra nada, mas joga fora quase tudo o que o usuário digitou.",
+        "A `scanf` não tem como saber o tamanho da caixa: quem informa o limite é você."
+      ]
+    },
+    {
+      "id": "o-s-para-no-espaco",
+      "statement": "O `%s` lê uma palavra: ele para no primeiro espaço.",
+      "question": "Com `char nome[10]` e `scanf(\"%9s\", nome);`, o usuário digita `Ana Maria`. O que fica na caixa?",
+      "options": [
+        "`Ana`, e `Maria` fica na fila.",
+        "`Ana Maria`, a frase inteira.",
+        "`AnaMaria`, sem o espaço do meio.",
+        "`Maria`, só a última palavra."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `%s` recolhe letras até o primeiro espaço e para ali. O `Maria` continua na fila, para a próxima leitura.",
+      "sectionId": "uma-palavra-so",
+      "optionRationales": [
+        "O espaço encerra a leitura do `%s`: entra `Ana`, e `Maria` fica esperando.",
+        "Uma leitura de `%s` nunca atravessa o espaço, então a frase inteira não entra.",
+        "A `scanf` não junta as palavras: ela para no espaço, sem apagá-lo da fila.",
+        "A leitura começa do início da fila, não do fim: `Ana` vem primeiro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da scanf: o especificador %s, a largura máxima do campo e o caractere nulo que ela acrescenta."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da scanf: a seção do %s explica por que a largura é obrigatória em código honesto."
+    },
+    {
+      "title": "Array declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A regra oficial que explica por que o nome de um array vale o endereço do primeiro elemento."
+    }
+  ],
+  "challenges": [
+    "eco-de-nome"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

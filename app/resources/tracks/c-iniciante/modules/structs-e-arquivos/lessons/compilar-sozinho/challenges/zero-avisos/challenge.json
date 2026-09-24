@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "zero-avisos",
+  "title": "Zero avisos",
+  "concept": "compilar_no_terminal",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Zero avisos\n\nA função `zeroAvisos` deveria devolver a área de um retângulo — largura vezes altura — usando a ficha `Retangulo`. Ela compila, roda… e devolve o número errado.\n\nO código que chegou tem **três avisos conhecidos**, e os três apontam para o mesmo buraco:\n\n```text\nwarning: unused variable 'sobra' [-Wunused-variable]\nwarning: missing field 'altura' initializer [-Wmissing-field-initializers]\nwarning: unused parameter 'altura' [-Wunused-parameter]\n```\n\nLeia os três, conserte o buraco e deixe a função devolvendo `largura * altura` para qualquer par de números.\n\nO teste automático **não lê avisos** — ele confere o valor devolvido. A prática do terminal (compilar com `-Wall -Wextra` até a resposta vir limpa) é sua, e é ela que encontra o bug antes do teste.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\ntypedef struct {\n    int largura;\n    int altura;\n} Retangulo;\n\n/* zeroAvisos devolve a area do retangulo: largura vezes altura.\n   Este codigo compila com TRES avisos — leia os tres e conserte. */\nint zeroAvisos(int largura, int altura) {\n    int sobra = 0;\n    Retangulo r = {largura};\n\n    return r.largura * r.altura;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio zero-avisos — counter_protocol (03-tdd 3.9.3).\n   O adaptador nao tem caminho de dados para avisos do compilador: o que\n   o teste confere e o VALOR devolvido, com tres pares diferentes para\n   que nenhum numero fixo passe. Os avisos sao a pista do aluno no\n   terminal, nao o gate do desafio. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint zeroAvisos(int largura, int altura);\n\nSM_TEST(tres_por_quatro_da_doze) {\n    checa_int(\"a area de 3 por 4\", zeroAvisos(3, 4), 12,\n              \"area e largura vezes altura: 3 x 4 = 12\");\n}\n\nSM_TEST(cinco_por_cinco_da_vinte_e_cinco) {\n    checa_int(\"a area de 5 por 5\", zeroAvisos(5, 5), 25,\n              \"o quadrado e o retangulo de lados iguais: 5 x 5 = 25\");\n}\n\nSM_TEST(um_por_nove_da_nove) {\n    checa_int(\"a area de 1 por 9\", zeroAvisos(1, 9), 9,\n              \"com largura 1 a area e a propria altura: 1 x 9 = 9\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    int largura;\n    int altura;\n} Retangulo;\n\n/* os tres avisos sumiram juntos: a variavel que sobrava saiu, a ficha\n   recebeu os DOIS campos e o parametro altura passou a ser usado. */\nint zeroAvisos(int largura, int altura) {\n    Retangulo r = {largura, altura};\n\n    return r.largura * r.altura;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "tres_por_quatro_da_doze",
+      "teste": "tres_por_quatro_da_doze",
+      "descricao": "zeroAvisos(3, 4) devolve 12: a ficha Retangulo recebe os dois campos e a area sai de largura vezes altura"
+    },
+    {
+      "id": "cinco_por_cinco_da_vinte_e_cinco",
+      "teste": "cinco_por_cinco_da_vinte_e_cinco",
+      "descricao": "zeroAvisos(5, 5) devolve 25 — o segundo par prova que o resultado nao e um numero fixo no codigo"
+    },
+    {
+      "id": "um_por_nove_da_nove",
+      "teste": "um_por_nove_da_nove",
+      "descricao": "zeroAvisos(1, 9) devolve 9: com o campo altura preenchido, a multiplicacao vale para qualquer par"
+    }
+  ]
+}

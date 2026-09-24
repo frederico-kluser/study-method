@@ -45,19 +45,19 @@
       "statement": "O acumulador é o nome que junta os valores das voltas: começa em 0 e cresce com o += a cada rodada que entra.",
       "question": "O que é o acumulador em `soma_dos_grandes`?",
       "options": [
-        "o nome `soma`, que começa em 0 e junta os valores das voltas com +=",
-        "o intervalo `0..limite`",
-        "a condição `n > cota`",
-        "o número da vez `n`"
+        "o nome `soma`, que começa em 0 e junta as porções com +=",
+        "o intervalo `0..limite`, que vai guardando cada valor somado",
+        "a condição `n > cota`, que soma o número da vez ao aprovar",
+        "o número da vez `n`, que chega ao fim do laço já somado"
       ],
       "answerIndex": 0,
       "feedback": "O acumulador é o `let mut soma = 0;` — cada volta que entra acrescenta a sua porção com `+=`.",
       "sectionId": "a-caixinha-que-junta",
       "optionRationales": [
         "A caixinha é o nome mutável que junta — e o `+=` é o gesto de cada porção.",
-        "O intervalo é o fornecedor dos números da vez — não junta nada.",
-        "A condição é o filtro — ela decide o que entra, não guarda.",
-        "O `n` é o número da vez — ele É o valor que entra na caixinha."
+        "O intervalo só FORNECE os números da vez: ele não guarda nem soma nada.",
+        "A condição é o filtro — ela decide se o `+=` roda, mas não soma sozinha.",
+        "O `n` é o valor que ENTRA na caixinha: a cada volta ele vira o próximo número."
       ]
     },
     {
@@ -65,19 +65,19 @@
       "statement": "O if de dentro do laço decide o que entra no acumulador — a volta que falha no teste passa em branco.",
       "question": "Por que `soma_dos_grandes(3, 10)` devolve 0?",
       "options": [
-        "porque nenhum número do intervalo passa da cota — nenhuma rodada entra",
-        "porque a soma começa em 0 e ninguém a toca",
-        "porque o intervalo 0..3 está vazio",
-        "porque o if troca a soma por 0"
+        "porque nenhum número do intervalo passa da cota — nada entra",
+        "porque a soma começa em 0 e nenhum `+=` aparece dentro do laço",
+        "porque o intervalo `0..3` está vazio e o corpo do for não roda",
+        "porque o `if` troca a soma por 0 quando a condição falha"
       ],
       "answerIndex": 0,
       "feedback": "Com a cota em 10, os números 0, 1 e 2 falham no teste — as voltas passam em branco e a caixinha fica em 0.",
       "sectionId": "o-acumulador-que-escolhe",
       "optionRationales": [
         "O filtro é quem reprova todas as rodadas: nenhuma condição vira `true`.",
-        "A soma COMEÇA em 0, mas o `+=` dentro do laço a tocaria — só não roda volta nenhuma.",
-        "O intervalo 0..3 tem três números — o que não roda é o corpo do `if`.",
-        "O `if` não troca nada: ele apenas decide se o `+=` roda."
+        "O `+=` está lá dentro, sim — o que não acontece é a condição aprovar alguma volta.",
+        "O intervalo `0..3` tem três números: o corpo do `for` roda as três voltas.",
+        "O `if` não escreve na soma: ele só decide se o `+=` daquela volta roda."
       ]
     },
     {
@@ -85,19 +85,19 @@
       "statement": "A forma nova é o ritmo: o += roda volta a volta, e o acumulador guarda o resultado de TODAS as voltas.",
       "question": "O que o `+=` dentro do laço faz que o `+=` do M1 não fazia?",
       "options": [
-        "roda volta a volta, acumulando o resultado de todas as rodadas",
-        "soma números maiores",
-        "troca o valor sem let mut",
-        "devolve o resultado para o teste"
+        "roda volta a volta e acumula o resultado de todas as rodadas",
+        "recomeça a soma em 0 a cada volta e guarda só a última porção",
+        "dispensa o `let mut`, porque o laço já deixa o nome mutável",
+        "devolve o total para o teste no fim de cada volta do laço"
       ],
       "answerIndex": 0,
       "feedback": "No M1 o `+=` somava uma vez; no laço, ele roda a cada volta — e a caixinha guarda o total de todas.",
       "sectionId": "o-mais-igual-agora-no-laco",
       "optionRationales": [
         "O ritmo é a forma nova: uma porção por volta, acumulada até o fim do intervalo.",
-        "O tamanho do número não muda o gesto — o `+=` soma do mesmo jeito.",
+        "A caixinha nasce ANTES do laço: ela sobrevive às voltas e nunca recomeça em 0.",
         "O `let mut` continua obrigatório — sem `mut` o compilador recusa a troca.",
-        "Devolver valor é papel da última expressão da função — não do `+=`."
+        "Quem devolve é a última expressão da função, depois de o laço terminar."
       ]
     }
   ],

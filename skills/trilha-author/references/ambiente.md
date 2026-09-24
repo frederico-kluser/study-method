@@ -53,7 +53,7 @@ ele compila, roda e julga.
 |---|---|---|---|
 | `python-iniciante` | python3 | `command -v python3` | `python3 -m unittest discover -s tests -p "test_*.py" -v` |
 | javascript (e typescript por transpilação) | node | `command -v node` | `node --test --test-reporter=tap tests/stub.test.js` |
-| `rust-iniciante` | rustup → cargo | `command -v cargo` | `cargo test` |
+| `rust-iniciante` | rustup → cargo | `command -v cargo` e, no macOS/Homebrew, `$(brew --prefix rustup)/bin/cargo` (o formula é keg-only — §3.5) | `cargo test` |
 | `c-iniciante` | gcc + clang (o runner aceita `cc`→`gcc`→`clang`; o PARSE exige clang) | `command -v gcc clang` | `gcc -std=c11 -g stub.c tests/test_stub.c -o runner -lm && ./runner && clang -std=c11 -fsyntax-only stub.c` |
 | o app (interface Electron) | node ≥ 22.13 + npm + jq | `command -v node npm jq` | `node --version && npm --version && jq --version` |
 
@@ -287,22 +287,87 @@ brew install python3 node jq
   (`brew install coreutils`) e exporte `/opt/homebrew/opt/coreutils/libexec/gnubin` no PATH
   ([docs/18 §3.3](../../../docs/18-estado-da-fabricacao-dos-cursos.md)).
 - Rust: rustup oficial (§4) — o Homebrew não é o caminho recomendado para o rust do produto.
+  Quando o caminho USADO é o do brew (é o que o `--ensure` deste auxiliar faz no macOS:
+  `brew install rustup` + `rustup default stable`), vale a armadilha do §3.5.1: o formula
+  `rustup` é **keg-only** e o `cargo` não entra no PATH.
 
-Verificação pós-install:
+#### 3.5.1 A armadilha keg-only do `rustup` do Homebrew (medida)
+
+Medido nesta máquina em 2026-09-22 (macOS 15.7.9, arm64, Homebrew 7.0.6 — `brew --version`):
+
+| Fato | Comando que mede | Resultado medido |
+|---|---|---|
+| o formula é keg-only | `brew info rustup` | "rustup is keg-only, which means it was not symlinked into /opt/homebrew, because it conflicts with rust" + `To use rustup, ensure you have "$(brew --prefix rustup)/bin" in your $PATH` |
+| onde os shims ficam | `brew --prefix rustup` | `/opt/homebrew/opt/rustup` (em Intel o prefix é `/usr/local` — **nunca** caminho fixo) |
+| eles RODAM de lá | `"$(brew --prefix rustup)/bin/cargo" --version` · `.../rustc --print sysroot` | `cargo 1.98.1` · `rustc 1.98.1` · `~/.rustup/toolchains/stable-aarch64-apple-darwin` |
+| mas NÃO estão no PATH | `command -v cargo` (PATH default) | vazio — e `brew` linka só o binário `rustup` (`/opt/homebrew/bin/rustup`), não `cargo`/`rustc` |
+| e o shim do cargo despacha o `rustc` PELO PATH | `cd <árvore mínima> && "$(brew --prefix rustup)/bin/cargo" test --offline` sem o keg no PATH | exit **101**: ``error: could not execute process `rustc -vV` (never executed)`` |
+| com o keg no PATH, passa | `env "PATH=$(brew --prefix rustup)/bin:$PATH" cargo test --offline` | exit 0, `test result: ok. 1 passed` |
+
+O comando que o operador tem de rodar **no shell dele**, antes de qualquer gate de cargo:
+
+```bash
+export PATH="$(brew --prefix rustup)/bin:$PATH"
+```
+
+Nenhum script do produto faz isso por você: o `_ensure-toolchain.sh` **não edita `PATH` nem
+arquivo de shell** (o mesmo contrato do README). O que ele faz é (a) descobrir esse bin por
+`brew --prefix rustup` e provar a toolchain com ele na frente do PATH **da própria prova**, e
+(b) dizer, no `stderr` e no `proof.detail` do JSON, o comando literal acima — é prontidão
+CONDICIONAL AO PATH DO OPERADOR, e o texto do `detail` diz isso com essas palavras.
+
+E o override da engine **não** substitui o `PATH` aqui: medido em 2026-09-22,
+`STUDY_METHOD_CARGO_BIN="$(brew --prefix rustup)/bin/cargo" npm run track --
+track:challenge:verify rust-iniciante a-tela a-primeira-funcao dobre-o-numero` (sem o export)
+reprova com o mesmo ``could not execute process `rustc -vV` `` e exit 1 — o runner do CLI herda
+`process.env` sem o pin de `RUSTC` (`electron/main/services/challengeExec.ts:160`), diferente do
+caminho da engine que pina (`lang/rust.ts`, decisão 6). Com o export, o mesmo comando sai
+**exit 0** (`✓ desafio aprovado pelas provas de execução`).
+
+Prova de prontidão endurecida do auxiliar (o que mudou junto com este parágrafo): a prova do
+rust sonda o **binário resolvido** (com keg-only o nome `cargo` não existe no PATH: medido,
+`bash -c 'cargo --version'` sai **127** `command not found`), e um `cargo` que não responde a
+`--version` para ali com o remédio nomeado
+(`rustup default stable`) em vez de cair no diagnóstico de sysroot, que seria falso. Medido
+depois do conserto:
+
+```bash
+bash skills/study-method/scripts/_ensure-toolchain.sh --check --language rust --json
+# exit 0 · languages.rust.proof.ok = true · path = /opt/homebrew/opt/rustup/bin/cargo
+# stderr: "rust: FALTA UM PASSO SEU — ... export PATH=\"$(brew --prefix rustup)/bin:$PATH\""
+bash skills/study-method/scripts/_ensure-toolchain.sh --self-test
+# exit 0 · 24 assertivas ok (nesta máquina eram 18 antes: as 2 do rust caíam no "modo
+# degradado" porque o cargo keg-only não era encontrado; 4 são novas — o contrato do exit
+# nas 3 direções e a regressão keg-only, que prova que SEM o bin no PATH da prova o
+# cargo test falha com 101)
+```
+
+E o veredito é fail-closed nos dois eixos: `ensure.failed` não-vazio sai **exit 1**, nunca 0
+(falha de prova DEPOIS de instalar é falha, não aprovação por omissão) — é a função `sm_verdict`
+e o auto-teste 5c a exercita em 3 direções (verde + failed não-vazio → 1; verde + failed vazio
+→ 0; prova reprovada + failed vazio → 1).
+
+Verificação pós-install (no macOS o par do rust vem do bin keg-only; em Intel o prefix é
+`/usr/local`, por isso o `brew --prefix`):
 
 ```bash
 python3 --version && gcc --version && jq --version && node --version && npm --version
+export PATH="$(brew --prefix rustup)/bin:$PATH" && cargo --version && rustc --version
 ```
 
 Fontes: [developer.apple.com/xcode/resources](https://developer.apple.com/xcode/resources/) ·
 [formulae.brew.sh/formula/python](https://formulae.brew.sh/formula/python) ·
 [formulae.brew.sh/formula/node](https://formulae.brew.sh/formula/node) ·
-[formulae.brew.sh/formula/jq](https://formulae.brew.sh/formula/jq)
+[formulae.brew.sh/formula/jq](https://formulae.brew.sh/formula/jq) ·
+[formulae.brew.sh/formula/rustup](https://formulae.brew.sh/formula/rustup) ·
+[rustup book — already installed Rust](https://rust-lang.github.io/rustup/installation/already-installed-rust.html) ·
+[docs.brew.sh — FAQ (keg-only)](https://docs.brew.sh/FAQ)
 
 ## 4. Rust via rustup oficial (fora do gerenciador de pacotes)
 
-Quando a família de distro não tem rustup (Debian/Ubuntu/Fedora/Alpine/macOS) ou quando se
-quer a versão estável corrente, o caminho oficial é o `rustup-init`. Não-interativo, perfil
+Quando a família de distro não tem rustup no gerenciador (Debian/Ubuntu/Fedora/Alpine) ou
+quando se quer a versão estável corrente, o caminho oficial é o `rustup-init`. No macOS o brew
+TEM o formula `rustup` (é o que o `--ensure` usa), com a armadilha keg-only do §3.5.1. Não-interativo, perfil
 mínimo, toolchain estável:
 
 ```bash

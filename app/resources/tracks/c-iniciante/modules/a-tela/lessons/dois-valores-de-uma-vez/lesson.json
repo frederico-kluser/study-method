@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "dois-valores-de-uma-vez",
   "title": "Dois valores de uma vez",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Uma chamada de scanf com dois %d pega dois números digitados de uma vez — e, para o %d, espaço e Enter separam igual.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:scanf",
+  "concepts": [
+    "dois_de_uma_vez"
+  ],
   "prerequisites": [
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "api:scanf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a leitura deixa de ser um valor por chamada: uma chamada de scanf pode preencher duas casas, na ordem dos %d, e o intervalo entre os dois numeros digitados (espaco, tabulacao ou Enter) e indiferente",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "dois-buracos-dois-valores",
+      "title": "Dois buracos, dois valores",
+      "markdown": "Na aula passada, uma chamada de `scanf` pegava UM número digitado:\n\n```c\nint a = 0;\nscanf(\"%d\", &a);\n```\n\nO formato da `scanf` aceita mais de um buraco. Com dois `%d` na mesma chamada ela pega dois números seguidos — e cada `&` diz em qual casa guardar cada um:\n\n```c\nint a = 0;\nint b = 0;\nscanf(\"%d %d\", &a, &b);\n```\n\nA ordem manda: o primeiro número digitado vai para `a`, o segundo para `b`. Dois buracos, dois `&`."
+    },
+    {
+      "id": "espaco-ou-enter",
+      "title": "Espaço ou Enter, tanto faz",
+      "markdown": "Você digita `3 4` e aperta Enter. A `scanf` lê o 3, guarda em `a`, lê o 4, guarda em `b`:\n\n```text\n3 4\n```\n\nSe você digitar um número em cada linha, apertando Enter no meio, o resultado é o MESMO:\n\n```text\n3\n4\n```\n\nPara o `%d`, espaço, tabulação e Enter são a mesma coisa: são o intervalo entre um número e o outro. Ele pula o intervalo, junta os algarismos que encontra e para no primeiro caractere que não é algarismo."
+    },
+    {
+      "id": "os-dois-valores-na-conta",
+      "title": "Os dois valores na conta",
+      "markdown": "Depois da leitura, `a` e `b` são variáveis como quaisquer outras — dá para somar as duas:\n\n```c\nint a = 0;\nint b = 0;\nscanf(\"%d %d\", &a, &b);\nprintf(\"%d\\n\", a + b);\n```\n\nDigitando `3 4`, a tela mostra:\n\n```text\n7\n```\n\nE o `&` continua obrigatório em cada um: sem ele a `scanf` receberia o valor guardado na casa em vez do endereço dela, e não teria onde escrever o que leu."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "espaco-e-enter-servem-os-dois",
+      "statement": "Digitando `3 4`, o `%d %d` lê os dois — espaço e Enter servem os dois.",
+      "question": "O programa tem `scanf(\"%d %d\", &a, &b);`. Você digita `3`, aperta Enter, digita `4` e aperta Enter. O que a `scanf` faz?",
+      "options": [
+        "Guarda 3 em `a` e 4 em `b`: para o `%d`, o Enter separa como o espaço.",
+        "Guarda só o 3 em `a` e descarta o 4, porque faltou o espaço entre eles.",
+        "Guarda 34 em `a`, juntando os algarismos num número só, e nada em `b`.",
+        "Não lê nada: com dois `%d` os dois números têm de vir na mesma linha."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `%d` pula qualquer intervalo — espaço, tabulação ou Enter — antes de juntar os algarismos. Digitar `3 4` ou um número por linha dá exatamente o mesmo resultado.",
+      "sectionId": "espaco-ou-enter",
+      "optionRationales": [
+        "O Enter é intervalo como o espaço: o primeiro `%d` fica com 3 e o segundo com 4.",
+        "O segundo `%d` continua esperando um número, e o Enter não o impede de achar o 4.",
+        "Juntar em 34 exigiria os algarismos colados (`34`), sem intervalo nenhum entre eles — e o segundo `%d` ainda leria o 4.",
+        "O espaço dentro do `\"%d %d\"` não obriga a digitar na mesma linha — ele também é só intervalo."
+      ]
+    },
+    {
+      "id": "cada-buraco-na-sua-ordem",
+      "statement": "Cada `%d` consome um valor na ordem: o primeiro número digitado vai para o primeiro `&`.",
+      "question": "Em `scanf(\"%d %d\", &idade, &altura);` você digita `30 175`. O que fica em `altura`?",
+      "options": [
+        "175, porque é o segundo número e `&altura` é o segundo endereço.",
+        "30, porque a `scanf` preenche as casas na ordem contrária.",
+        "Os dois, um depois do outro: `altura` acaba com 175 e antes com 30.",
+        "Nada: cada chamada de `scanf` preenche uma casa só, nunca duas."
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem dos `%d` casa com a ordem dos endereços: o primeiro valor lido vai no primeiro `&`, o segundo no segundo. Uma chamada preenche as duas casas.",
+      "sectionId": "dois-buracos-dois-valores",
+      "optionRationales": [
+        "Primeiro `%d` com o primeiro `&`, segundo com o segundo: `altura` fica com 175.",
+        "Não existe ordem contrária: a `scanf` casa buraco e endereço na ordem em que estão escritos.",
+        "Cada valor lido vai para UMA casa; o 30 vai para `idade` e nunca passa por `altura`.",
+        "Uma chamada preenche tantas casas quantos buracos o formato tiver — aqui, duas."
+      ]
+    },
+    {
+      "id": "dois-valores-dois-enderecos",
+      "statement": "Dois valores lidos, dois `&`: cada `%d` precisa do endereço da sua casa.",
+      "question": "Por que a `scanf` recebe `&a` em vez de `a`?",
+      "options": [
+        "Porque ela precisa do endereço da casa para escrever o valor lá dentro.",
+        "Porque o `&` transforma o número digitado em texto antes de guardar.",
+        "Porque o `&` soma um ao valor que já estava guardado naquela casa.",
+        "Por nada: escrever `scanf(\"%d\", a)`, sem o `&` na frente, funciona igual."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem escreve na variável é a `scanf` — e para isso ela precisa saber ONDE a variável mora. O `&` entrega esse endereço; sem ele, ela recebe só uma cópia do valor e não tem onde escrever.",
+      "sectionId": "os-dois-valores-na-conta",
+      "optionRationales": [
+        "O `&` entrega o endereço da casa; é por ele que a `scanf` consegue escrever na sua variável.",
+        "Converter o que foi digitado em número é trabalho do `%d`, não do `&`.",
+        "Somar um é o `+ 1`; o `&` não muda valor nenhum.",
+        "Sem o `&` a `scanf` recebe só uma cópia do valor e o programa quebra na hora de escrever."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da família scanf: o formato, os especificadores e a regra de que o espaço em branco do formato casa com qualquer intervalo."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da scanf descrita pelo sistema: cada especificador consome um argumento, na ordem, e o %d pula o branco antes de ler."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 7.21.6.2 define a fscanf/scanf, inclusive o que conta como branco entre dois valores."
+    }
+  ],
+  "challenges": [
+    "soma-digitada"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

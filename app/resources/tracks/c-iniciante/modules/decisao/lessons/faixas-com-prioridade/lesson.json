@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "faixas-com-prioridade",
   "title": "Faixas com prioridade",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A cascata testa de cima para baixo e para no primeiro degrau verdadeiro — e o `&&` com o `<` fecha cada faixa pelos dois lados, para a ordem deixar de decidir sozinha.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:logical:&&",
+  "concepts": [
+    "as_faixas_em_ordem"
+  ],
   "prerequisites": [
     "em-cascata",
     "e-logico"
   ],
+  "introduces": {
+    "productive": [
+      "op:logical:&&",
+      "op:binary:<"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a cascata deixa de ser uma lista de perguntas soltas e passa a ser uma FAIXA: cada degrau carrega o seu limite de baixo e o de cima, e a ordem dos degraus passa a ser uma decisão explícita",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "de-cima-para-baixo",
+      "title": "A cascata testa de cima para baixo",
+      "markdown": "Uma cascata `else if` testa de CIMA para BAIXO e PARA na primeira condição verdadeira. Por isso a ordem dos degraus é conteúdo, não arrumação. Com `imc = 32.0`:\n\n```c\ndouble imc = 32.0;\nif (imc >= 25.0) {\n    printf(\"sobrepeso\\n\");\n} else if (imc >= 30.0) {\n    printf(\"obesidade\\n\");\n}\n```\n\n```text\nsobrepeso\n```\n\nErrado — e o compilador não reclama. O `32.0 >= 25.0` casou primeiro, e o degrau de baixo nunca chegou a ser testado. Em faixas abertas, a mais ALTA vem primeiro."
+    },
+    {
+      "id": "fechar-a-faixa",
+      "title": "Fechar a faixa pelos dois lados",
+      "markdown": "A outra saída é dizer, em cada degrau, onde a faixa ACABA. Falta o lado de cima, e ele tem sinal próprio: o `<` pergunta *é menor que?*.\n\n```c\ndouble imc = 27.0;\nprintf(\"%d\\n\", imc < 30.0);\n```\n\n```text\n1\n```\n\nE o `&&` cola as duas pontas numa condição só, verdadeira apenas quando os DOIS lados são:\n\n```c\ndouble imc = 27.0;\nint naFaixa = imc >= 25.0 && imc < 30.0;\nprintf(\"%d\\n\", naFaixa);\n```\n\n```text\n1\n```"
+    },
+    {
+      "id": "a-faixa-fechada",
+      "title": "Faixa fechada não depende da ordem",
+      "markdown": "Com as faixas fechadas, só UMA condição pode ser verdadeira por vez — e a ordem deixa de decidir a resposta:\n\n```c\ndouble imc = 22.0;\nif (imc >= 25.0 && imc < 30.0) {\n    printf(\"sobrepeso\\n\");\n} else if (imc >= 18.5 && imc < 25.0) {\n    printf(\"normal\\n\");\n}\n```\n\n```text\nnormal\n```\n\nAs duas formas funcionam. A aberta é curta e depende da ordem; a fechada é mais longa e diz em cada degrau exatamente qual faixa ele cobre."
+    },
+    {
+      "id": "a-altura-em-metros",
+      "title": "A altura em metros, e o cast",
+      "markdown": "Falta o IMC. Ele é o peso dividido pela altura ao quadrado, com a altura em METROS — e a altura chega em centímetros, inteira:\n\n```c\nint altura = 175;\ndouble metros = (double)altura / 100;\nprintf(\"%f\\n\", metros);\n```\n\n```text\n1.750000\n```\n\nSem o `(double)` a conta nasce inteira, e o tipo do destino não a conserta:\n\n```c\nint altura = 175;\ndouble metros = altura / 100;\nprintf(\"%f\\n\", metros);\n```\n\n```text\n1.000000\n```\n\nUm metro em vez de 1,75 — e toda a classificação sai errada."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-ordem-das-faixas-importa",
+      "statement": "A ordem das faixas importa: o teste é de cima para baixo.",
+      "question": "Com `imc = 32.0`, a cascata da primeira seção — `>= 25.0` no primeiro degrau, `>= 30.0` no segundo — imprime o quê?",
+      "options": [
+        "Nada — duas condições verdadeiras cancelam a cascata.",
+        "`sobrepeso` — o primeiro degrau casou e a cascata parou ali.",
+        "`obesidade` — o C escolhe o degrau que descreve melhor o valor.",
+        "`sobrepeso` e `obesidade` — os dois degraus casaram."
+      ],
+      "answerIndex": 1,
+      "feedback": "A cascata testa de cima para baixo e PARA no primeiro degrau verdadeiro: `32.0 >= 25.0` casou, e o degrau de baixo nem foi testado. Em faixas abertas, a mais alta vem primeiro.",
+      "sectionId": "de-cima-para-baixo",
+      "optionRationales": [
+        "Duas condições verdadeiras não cancelam nada: vale a de cima.",
+        "O primeiro degrau deu verdadeiro, e a cascata para no primeiro que casa.",
+        "O C não compara qualidade de descrição: ele testa na ordem escrita e para no primeiro verdadeiro.",
+        "Numa cascata roda no máximo UM bloco — é isso que o `else` garante."
+      ]
+    },
+    {
+      "id": "o-e-logico-exige-os-dois",
+      "statement": "O `&&` só é verdadeiro quando os dois lados são verdadeiros — é ele que fecha a faixa pelos dois lados.",
+      "question": "Com `imc = 31.0`, quanto vale `imc >= 25.0 && imc < 30.0`?",
+      "options": [
+        "1 — basta um dos dois lados ser verdadeiro para o `&&` inteiro ser verdadeiro.",
+        "1 — os dois lados falam do mesmo `imc`.",
+        "31 — o `&&` devolve o valor comparado.",
+        "0 — o lado esquerdo deu 1, mas o direito deu 0."
+      ],
+      "answerIndex": 3,
+      "feedback": "`31.0 >= 25.0` é 1, mas `31.0 < 30.0` é 0 — e o `&&` exige os dois. Por isso a faixa fechada 25–30 rejeita o 31: ele pertence ao degrau de cima.",
+      "sectionId": "fechar-a-faixa",
+      "optionRationales": [
+        "Bastar um lado é o `||`; o `&&` cobra os dois.",
+        "Falar do mesmo valor não torna as duas perguntas verdadeiras — a segunda é falsa.",
+        "Comparação e `&&` devolvem 0 ou 1, nunca o valor comparado.",
+        "O `&&` exige os DOIS lados; o direito deu 0, então a condição inteira é 0."
+      ]
+    },
+    {
+      "id": "o-cast-antes-da-divisao",
+      "statement": "Sem o cast real, a altura em centímetros vira 1 metro: `175 / 100` é divisão inteira.",
+      "question": "Com `int altura = 175;`, o que `double metros = altura / 100;` — SEM o `(double)` — deixa em `metros`?",
+      "options": [
+        "175.000000 — a divisão só acontece se houver cast.",
+        "0.000000 — dividir inteiros menores dá sempre zero.",
+        "1.000000 — a divisão entre inteiros cortou antes de virar `double`.",
+        "1.750000 — o tipo `double` do nome que recebe o resultado já torna a conta real."
+      ],
+      "answerIndex": 2,
+      "feedback": "A conta acontece ANTES da atribuição, e ali os dois lados são inteiros: `175 / 100` é 1, e é o 1 que vira 1.000000. O `(double)` de um lado é o que faz a divisão nascer real.",
+      "sectionId": "a-altura-em-metros",
+      "optionRationales": [
+        "A divisão acontece sempre; o cast só muda se ela é inteira ou real.",
+        "`175 / 100` é 1, não 0 — o corte descarta a parte depois da vírgula, não o número todo.",
+        "A divisão inteira corta o 0,75 e sobra 1; só depois esse 1 é guardado como `double`.",
+        "O tipo do destino não muda a conta: quem decide é o tipo dos dois lados da divisão."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial do `&&` em C: devolve 0 ou 1, exige os dois lados e não avalia o direito quando o esquerdo já é falso."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`/`else` em C — a base da cascata: o `else` é testado só quando a condição de cima deu falso."
+    },
+    {
+      "title": "Implicit conversions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/conversion",
+      "description": "A página oficial das conversões de C: por que `175 / 100` é divisão inteira e o que o cast de um dos lados muda."
+    }
+  ],
+  "challenges": [
+    "classificar-imc"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

@@ -2,23 +2,127 @@
   "schemaVersion": 1,
   "slug": "o-nome-so-vive-dentro",
   "title": "O nome só vive dentro",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O nome declarado dentro de uma caixa nasce na chamada e acaba no `return`: o seu escopo é o corpo da função, e o valor só atravessa a parede pelo `return`.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "o_nome_local"
+  ],
   "prerequisites": [
     "devolver-em-vez-de-mostrar",
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "escopo"
+  ],
+  "notionalMachineDelta": "o nome deixa de ser único no programa: cada chamada abre um espaço próprio onde os nomes locais nascem e morrem, e o valor só sai dali pelo return",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-nome-nasce-na-chamada",
+      "title": "O nome nasce na chamada",
+      "markdown": "Um nome declarado DENTRO de uma caixa é um nome local:\n\n```c\nint area(int lado) {\n    int medida = lado * lado;\n    return medida;\n}\n```\n\n`medida` não existe antes da chamada. Ela nasce quando alguém chama `area`, guarda a conta, entrega o valor no `return` — e acaba ali.\n\nNa chamada seguinte ela nasce **de novo**, e não se lembra da chamada anterior."
+    },
+    {
+      "id": "fora-da-caixa-o-nome-nao-existe",
+      "title": "Fora da caixa o nome não existe",
+      "markdown": "Fora da caixa, esse nome não existe. Quem chama vê o VALOR devolvido, nunca o nome de dentro:\n\n```c\nint area(int lado) {\n    int medida = lado * lado;\n    return medida;\n}\n\nvoid mostrar(int lado) {\n    printf(\"%d\\n\", area(lado));\n}\n```\n\nEscrever `printf(\"%d\\n\", medida);` dentro de `mostrar` não compila: o compilador não conhece esse nome aqui.\n\nA região em que um nome existe tem nome próprio: **escopo**. O escopo de `medida` é o corpo de `area`, e nada mais."
+    },
+    {
+      "id": "dois-nomes-iguais-duas-caixas",
+      "title": "Dois nomes iguais, duas caixas",
+      "markdown": "Como cada nome local fica preso no seu escopo, duas caixas podem usar o MESMO nome sem briga:\n\n```c\nint area(int lado) {\n    int medida = lado * lado;\n    return medida;\n}\n\nint borda(int lado) {\n    int medida = 4 * lado;\n    return medida;\n}\n```\n\nSão dois `medida` diferentes, cada um no seu escopo — um nunca sobrescreve o outro.\n\nOnde a analogia quebra: a parede não guarda o valor. Sem `return`, a conta é feita e jogada fora quando a caixa acaba."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-nome-local-nasce-e-morre",
+      "statement": "O nome da variável local nasce na chamada e morre no `return`.",
+      "question": "A caixa `area` declara `int medida` no corpo. Quando essa `medida` existe?",
+      "options": [
+        "Do começo de uma chamada de `area` até o `return` dela.",
+        "Do início do programa até o fim, como todo nome escrito no arquivo.",
+        "Só depois do `return`, quando o valor já foi entregue.",
+        "Enquanto o programa não chamar outra caixa qualquer."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada chamada abre um espaço novo para os nomes locais: `medida` nasce ali e acaba quando a caixa devolve. Na chamada seguinte, nasce outra.",
+      "sectionId": "o-nome-nasce-na-chamada",
+      "optionRationales": [
+        "O nome local vive dentro de UMA chamada: nasce nela e acaba quando a caixa devolve.",
+        "Estar escrito no arquivo não basta: nome local só existe durante a chamada.",
+        "Depois do `return` a caixa já acabou — e com ela o nome de dentro.",
+        "Chamar outra caixa não apaga nada: o que encerra `medida` é o fim da chamada dela."
+      ]
+    },
+    {
+      "id": "o-escopo-e-o-corpo-da-caixa",
+      "statement": "O escopo de um nome local é o corpo da função em que ele foi declarado.",
+      "question": "`area` declara `medida` no corpo. O que acontece se `mostrar` tentar usar `medida`?",
+      "options": [
+        "A compilação para: dentro de `mostrar` esse nome não existe.",
+        "Funciona, e `mostrar` lê o último valor que `area` guardou.",
+        "Funciona, mas `medida` vale sempre 0 fora de `area`.",
+        "Funciona só se `mostrar` estiver escrita depois de `area` no arquivo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Fora do escopo, o nome não existe para o compilador — e ele reclama antes de rodar. O valor atravessa por uma porta só: o `return`.",
+      "sectionId": "fora-da-caixa-o-nome-nao-existe",
+      "optionRationales": [
+        "Fora do corpo de `area` o nome `medida` não existe, e o compilador para nele.",
+        "Nada fica guardado: o nome local acaba junto com a chamada.",
+        "Não há valor nenhum fora do escopo — não existe nem o nome.",
+        "A ordem no arquivo muda o que já foi declarado, não o escopo de um nome local."
+      ]
+    },
+    {
+      "id": "mesmo-nome-em-duas-caixas",
+      "statement": "Duas caixas podem declarar nomes locais iguais sem interferir uma na outra.",
+      "question": "`area` e `borda` declaram, cada uma, `int medida`. O que isso cria?",
+      "options": [
+        "Duas variáveis distintas, uma dentro de cada caixa.",
+        "Uma variável só, compartilhada pelas duas caixas.",
+        "Um erro de compilação: o nome já estava em uso.",
+        "Uma variável na primeira caixa e um apelido dela na segunda."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada corpo é um escopo. O mesmo nome em dois escopos são dois nomes — e mudar um não mexe no outro.",
+      "sectionId": "dois-nomes-iguais-duas-caixas",
+      "optionRationales": [
+        "Cada corpo tem o seu escopo, então são duas variáveis independentes.",
+        "Compartilhar exigiria um nome fora das duas caixas — não é o caso aqui.",
+        "Repetir o nome em OUTRO escopo é legal; o conflito seria no mesmo escopo.",
+        "Apelido nenhum: são duas declarações separadas, cada uma no seu corpo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Scope — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/scope",
+      "description": "A página oficial do escopo em C: um nome declarado dentro de um bloco vale do ponto da declaração até o fim do bloco."
+    },
+    {
+      "title": "Lifetime — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/lifetime",
+      "description": "A página oficial do tempo de vida: a variável local existe enquanto a chamada que a criou está em execução."
+    },
+    {
+      "title": "Declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/declarations",
+      "description": "A página oficial das declarações: onde um nome pode ser declarado e o que a declaração passa a permitir."
+    }
+  ],
+  "challenges": [
+    "sombra-de-nome"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

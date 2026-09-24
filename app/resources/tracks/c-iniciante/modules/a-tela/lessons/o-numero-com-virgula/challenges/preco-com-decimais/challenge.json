@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "preco-com-decimais",
+  "title": "Preço com decimais",
+  "concept": "o_numero_real",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Preço com decimais\n\nA tela do café precisa mostrar dois preços com centavos. Preço não é número inteiro: cada um mora num `double`.\n\nA função `precoComDecimais` já vem no arquivo, com o nome que o programa de fora chama. Complete o corpo dela para imprimir exatamente estas duas linhas:\n\n```text\no cafe custa 3.500000\no bolo custa 12.750000\n```\n\nDeclare **um `double` para cada preço** (3.5 para o café, 12.75 para o bolo) e imprima cada um com o buraco `%f`. Você não escreve as seis casas: quem as completa é o `%f`.\n\nLembre do ponto: em C a casa decimal se separa com `.`, nunca com `,`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* precoComDecimais mostra dois precos com centavos: o cafe custa 3.5 e o\n   bolo custa 12.75. Preco nao e numero inteiro: cada um mora num double.\n   O programa de fora chama precoComDecimais() pelo nome. */\nvoid precoComDecimais(void) {\n    /* 1) declare um double para o preco do cafe, guardando 3.5 */\n\n    /* 2) declare um double para o preco do bolo, guardando 12.75 */\n\n    /* 3) imprima \"o cafe custa %f\" com o preco do cafe */\n\n    /* 4) imprima \"o bolo custa %f\" com o preco do bolo */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio preco-com-decimais — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: a comparacao e por TEXTO (o %f do aluno, seis casas), nunca por\n   igualdade de double. A captura acontece dentro do teste: freopen manda o\n   stdout para um arquivo temporario proprio do cenario, fflush descarrega e o\n   arquivo e lido de volta. O main e o relatorio sao do harness. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid precoComDecimais(void);\n\nSM_TEST(os_dois_precos_com_seis_casas) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    precoComDecimais();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o preco do cafe\", linha, \"o cafe custa 3.500000\\n\",\n              \"o %f imprime 3.5 com seis casas: 3.500000\");\n    fgets(linha, 80, f);\n    checa_str(\"o preco do bolo\", linha, \"o bolo custa 12.750000\\n\",\n              \"o %f imprime 12.75 com seis casas: 12.750000\");\n    fclose(f);\n}\n\nSM_TEST(a_saida_acaba_no_segundo_preco) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    precoComDecimais();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba no segundo preco: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid precoComDecimais(void) {\n    double cafe = 3.5;\n    double bolo = 12.75;\n    printf(\"o cafe custa %f\\n\", cafe);\n    printf(\"o bolo custa %f\\n\", bolo);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "os_dois_precos_com_seis_casas",
+      "teste": "os_dois_precos_com_seis_casas",
+      "descricao": "a funcao precoComDecimais declara um double para cada preco (3.5 e 12.75) e imprime cada um com %f, que completa seis casas decimais: 3.500000 e 12.750000"
+    },
+    {
+      "id": "a_saida_acaba_no_segundo_preco",
+      "teste": "a_saida_acaba_no_segundo_preco",
+      "descricao": "a saida termina na segunda linha: uma terceira linha impressa reprova o desafio (o cenario le uma linha a mais e a compara com o sentinel)"
+    }
+  ]
+}

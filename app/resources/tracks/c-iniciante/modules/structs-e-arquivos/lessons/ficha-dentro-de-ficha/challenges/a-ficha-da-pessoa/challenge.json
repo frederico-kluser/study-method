@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-ficha-da-pessoa",
+  "title": "A ficha da pessoa",
+  "concept": "a_ficha_aninhada",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A ficha da pessoa\n\nOs dois moldes já vêm prontos no arquivo: a ficha `Ponto`, com `x` e `y`, e a ficha `Pessoa`, que tem um `nome` e uma `casa` — e a casa é um `Ponto` inteiro.\n\nEscreva a caixa que recebe uma pessoa e imprime a ficha dela numa linha:\n\n```text\nvoid aFichaDaPessoa(Pessoa p)\n```\n\nPara a pessoa `{\"Ana\", {3, 4}}`, a saída é exatamente esta linha:\n\n```text\nAna mora em 3,4\n```\n\nO nome sai com `%s`, e os dois números com `%d` — separados por uma vírgula, sem espaço. A linha termina com `\\n`, e **é a única linha impressa**: nada de título, nada de despedida.\n\nDica de caminho: o nome é `p.nome`; o `x` da casa mora dois níveis para dentro.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdio.h>\n\n/* os dois moldes, ja prontos */\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\ntypedef struct {\n    char nome[40];\n    Ponto casa;\n} Pessoa;\n\n/* escreva AQUI a caixa aFichaDaPessoa, com a janela que recebe a ficha:\n\n       void aFichaDaPessoa(Pessoa p)\n\n   Ela imprime UMA linha, assim: Ana mora em 3,4\n   O nome sai com %s; o x e o y da casa saem com %d, separados por virgula.\n   Sem return: esta caixa imprime. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-ficha-da-pessoa — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: a captura do stdout acontece DENTRO do teste (freopen para um\n   arquivo temporario por cenario, chamada da funcao, leitura de volta). Os\n   dois moldes sao declarados aqui com os MESMOS campos dos moldes do aluno, e\n   cada cenario passa a sua pessoa. Duas pessoas diferentes: nenhuma linha fixa\n   passa nos dois cenarios. */\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\ntypedef struct {\n    char nome[40];\n    Ponto casa;\n} Pessoa;\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid aFichaDaPessoa(Pessoa p);\n\nSM_TEST(a_ficha_da_ana) {\n    Pessoa a = {\"Ana\", {3, 4}};\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    aFichaDaPessoa(a);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da Ana\", linha, \"Ana mora em 3,4\\n\",\n              \"o nome sai do campo nome, e o 3 e o 4 saem dos campos da casa\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a ficha da pessoa e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(a_ficha_do_bruno) {\n    Pessoa b = {\"Bruno\", {10, 0}};\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    aFichaDaPessoa(b);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do Bruno\", linha, \"Bruno mora em 10,0\\n\",\n              \"trocando a ficha, a linha muda: o nome e os dois campos da casa dele\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\ntypedef struct {\n    char nome[40];\n    Ponto casa;\n} Pessoa;\n\nvoid aFichaDaPessoa(Pessoa p) {\n    printf(\"%s mora em %d,%d\\n\", p.nome, p.casa.x, p.casa.y);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_ficha_da_ana",
+      "teste": "a_ficha_da_ana",
+      "descricao": "com a pessoa {\"Ana\", {3, 4}}, a caixa imprime a linha \"Ana mora em 3,4\" — e so ela: o teste confere tambem que nao ha linha a mais"
+    },
+    {
+      "id": "a_ficha_do_bruno",
+      "teste": "a_ficha_do_bruno",
+      "descricao": "com a pessoa {\"Bruno\", {10, 0}}, a linha impressa muda junto: o nome vem do campo nome e os numeros dos campos da casa"
+    }
+  ]
+}

@@ -69,14 +69,36 @@ Receita concreta para o teste:
 6. A mensagem de falha diz para onde vai, o que deu e o próximo passo — **escrito dentro do
    orçamento** (J8), zero mensagem dirigida à pessoa.
 
-## 7. O teto do passo (P-MICRO)
+## 7. O teto do passo (P-MICRO) — e QUEM CONTA cada linha
 
-| Régua | Valor |
-|---|---|
-| Construções produtivas novas por aula | ≤ 2, nunca 3 (contadas pela regra do par) |
-| Elementos novos que **interagem** | ≤ 4; ≤ 2 enquanto o orçamento está quase vazio |
-| Elementos **não** interativos | até ~7 |
-| Tempo de resolução do desafio | ≤ 120 s para quem fez tudo antes |
+| Régua | Valor | Quem conta |
+|---|---|---|
+| Construções produtivas novas por aula | ≤ 2, nunca 3 (regra do par já aplicada) | **gate**: `npm run engine -- barra <slug>`, regra **A17** (erro) |
+| Primeira aula do curso | ≤ 1 produtiva nova, e toda chave lida com demonstração própria | **gate**: **A18** (erro) |
+| Novas totais (produtivas ∪ receptivas) | ≤ 4, e seções de teoria ≥ max(2, ⌈novas/2⌉) | **gate**: **A21** (erro) |
+| Cada chave nova demonstrada em bloco cercado com tag | obrigatório nesta aula | **gate**: **A19** (erro) |
+| Duas formas sintáticas por chave produtiva | ≥ 2 ocorrências distintas | **gate**: **A22** (aviso com contagem — não é verde) |
+| Elementos novos que **interagem** | ≤ 4; ≤ 2 enquanto o orçamento está quase vazio | leitura (sem gate) |
+| Elementos **não** interativos | até ~7 | leitura (sem gate) |
+| Tempo de resolução do desafio | ≤ 120 s para quem fez tudo antes | leitura (sem gate) |
+
+**A regra do par é MECÂNICA agora, não prosa.** Declare-a no `lesson.json` e o gate confere:
+
+```jsonc
+"introduces": {
+  "productive": ["global:print", "node:Call", "node:StrLiteral"],
+  "derived": [
+    { "chave": "node:Call", "de": "global:print" },
+    { "chave": "node:StrLiteral", "de": "global:print" }
+  ]
+}
+```
+
+**A23** só aceita a derivada quando (i) a chave e o pai estão os DOIS em `introduces.productive`,
+(ii) não há cadeia de derivadas e (iii) existe uma **LINHA de um bloco de código desta aula em que os
+dois ocorrem juntos** — é o que "a mesma construção produz inevitavelmente" quer dizer
+(`print("bom dia")` emite as três na mesma linha). Sem co-ocorrência é erro e a chave conta **cheia**
+em A17/A21. Ampliar `introduces` para calar o gate é o defeito com outro nome (P-AUTO).
 
 Os quatro testes de atomicidade, todos obrigatórios: **demonstrável** (cabe num worked example
 completo), **exercitável** (cabe num completion problem com uma lacuna cujo span contém o
@@ -115,6 +137,39 @@ worked example completo um **defeito** — deixe o aluno gerar e receber feedbac
 
 ## 10. O veredito
 
-Nenhuma aula sai por leitura: a sequência é `audit` 0 violações → `coverage` 0 lacunas →
-`requirements` em bijeção → `track:validate` ok (comandos em `validacao.md`). Se o gate reprova,
-o defeito é do conteúdo ou do grafo — nunca do gate.
+Nenhuma aula sai por leitura: a sequência é `audit` 0 violações → `barra` 0 erros (A17–A24) →
+`coverage` 0 lacunas → `requirements` em bijeção → `track:validate` ok → `convergir` em **PONTO-FIXO**
+(comandos em `validacao.md`; o laço em `recursao.md`). Se o gate reprova, o defeito é do conteúdo ou do
+grafo — nunca do gate. E quando o defeito é o **tamanho do passo** (A17/A18/A21), a ação prescrita não é
+argumentar: é **quebrar a aula** pelo procedimento de `recursao.md` §6 — o excedente é aula própria.
+
+## 11. As invariantes I1–I17 fora do pipeline — quem roda e o contador de bolso
+
+⚑ **A promessa que esta referência fazia era falsa.** "O grafo roda nas invariantes I1–I17 antes de
+existir prosa" vale **dentro** do pipeline `generate`: **I1–I11** moram em `engine/graph/invariants.ts` e
+o único chamador de `checkInvariants` é `engine/phases/f3Graph.ts:843` — fase F3, que exige chave de API
+(`grep -rn "graph/invariants" --include='*.ts' electron tools` devolve 1 importador). **I12/I14–I17**
+rodam no `audit` (`engine/audit.ts:60`, `type StructureRule = 'I12' | 'I14' | 'I15' | 'I16' | 'I17'`) e
+**I13 não roda em lugar nenhum** (`grep -rn "I13" --include='*.ts' electron tools` → vazio; o contrato a
+declara em docs/16 §5.2). Autoria manual, fora do `generate`, tem estes substitutos — e três invariantes
+sem substituto nenhum, o que é declarado, nunca prometido:
+
+| # | Exige | Quem roda hoje | Contador de bolso (offline, de `app/`) |
+|---|---|---|---|
+| I1 | DAG e todo referenciado existe | F3 (com chave) | `comm -13 <(jq -r '.slug' resources/tracks/<slug>/modules/*/lessons/*/lesson.json \| sort -u) <(jq -r '.prerequisites[]?' resources/tracks/<slug>/modules/*/lessons/*/lesson.json \| sort -u) \| wc -l` → medido **0** em `rust-iniciante` |
+| I2 | ≤2 produtivas por aula | **`barra` A17** (exato, com colapso) | `npm run engine -- barra <slug>` |
+| I3 | unicidade de origem | F3 (com chave) | `jq -r '[.introduces.productive[]?]\|unique\|.[]' resources/tracks/<slug>/modules/*/lessons/*/lesson.json \| sort \| uniq -d \| wc -l` → **21** em python, **36** em rust. **Não é 0 no curso bom**: consolidação re-declara o `targetAtom` (`jq -r '.role // "regular"' … \| sort \| uniq -c` → 34 `consolidation` em python). É SINAL, não gate |
+| I4 | origem existe e vem antes | **`audit` A1–A4 + `primeiraAulaQueEnsina`** (exato) | `npm run engine -- audit <slug> --limite 0` |
+| I5 | demonstrada na própria aula | **`barra` A19** (exato para o declarado) | `npm run engine -- barra <slug>` |
+| I6 | exigida no desafio da própria aula | **`audit` A6** (exato) | `npm run engine -- audit <slug> --limite 0` |
+| I7 | reaparece em ≥3 artefatos posteriores | ninguém | `grep -rlF '<token>' resources/tracks/<slug>/modules/*/lessons/*/challenges/*/challenge.json \| wc -l` → medido **12** para `for ` em rust. Não confere posterioridade nem faixa |
+| I8 | sem 3 aulas consecutivas da mesma família | ninguém | **sem substituto**: "família sintática" é resolvida pelo adaptador dentro do run. O que existe é o HISTOGRAMA em ordem de orçamento do `npm run engine -- barra <slug>` — olhar é humano |
+| I9 | 1ª aparição é a forma mais simples | ninguém | **sem substituto** |
+| I10 | ≥1 desafio resolvível com o orçamento vigente | **`coverage` (LACUNA) + `barra` A20** | `npm run engine -- coverage <slug>` · `barra <slug>` |
+| I11 | mudar a forma exige aula dedicada | só dentro do `reorder`, e só quando há movimento a verificar | **sem substituto** |
+| I12 · I14 · I15 · I16 · I17 | slug único · `order` único · `theory[].id` único · conceito do desafio na aula · `files[].path` não reservado | **`audit`** (roda) | `npm run engine -- audit <slug> --limite 0` |
+| I13 | `slug === basename(dir)` | **ninguém** | `for d in resources/tracks/<slug>/modules/*/lessons/*/; do [ "$(jq -r .slug "$d/lesson.json")" = "$(basename "$d")" ] \|\| echo "$d"; done` |
+
+Regra de execução: I8, I9, I11 e I13 entram na **lista de limitações declaradas** da sua entrega
+(`recursao.md` §5, o campo `limitacoesDeclaradas` do ledger). Limitação declarada é honestidade; o mesmo
+buraco **não declarado** é aprovação por omissão (P-NAO-MEDIDO).

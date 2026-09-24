@@ -2,22 +2,126 @@
   "schemaVersion": 1,
   "slug": "se",
   "title": "O primeiro desvio",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O if faz uma linha rodar só quando a condição entre parênteses dá 1 — e as chaves são o que decide quais linhas pertencem a esse desvio.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:IfStmt",
+  "concepts": [
+    "o_desvio"
+  ],
   "prerequisites": [
     "comparacoes"
   ],
+  "introduces": {
+    "productive": [
+      "node:IfStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "bloco de chaves"
+  ],
+  "notionalMachineDelta": "o programa deixa de ser uma fila reta de ordens: existe agora um trecho que pode ser saltado, e quem decide é o número que a condição vale (0 salta, 1 roda)",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-ordem-que-as-vezes-roda",
+      "title": "A ordem que às vezes roda",
+      "markdown": "Até aqui toda ordem que você escreveu rodou, sempre. O `if` — *se*, em inglês — é a primeira ordem que às vezes roda e às vezes não:\n\n```c\nint idade = 21;\nif (idade >= 18) {\n    printf(\"pode entrar\\n\");\n}\n```\n\n```text\npode entrar\n```\n\nEntre os parênteses vai a **condição**. Você já sabe que `idade >= 18` é um número: 1 quando é verdade, 0 quando não é. Deu 1, o bloco roda; deu 0, o C salta o bloco inteiro e segue para a linha de baixo."
+    },
+    {
+      "id": "as-chaves-seguram-o-bloco",
+      "title": "As chaves seguram o bloco",
+      "markdown": "As chaves `{` e `}` depois do `if` formam um **bloco**: tudo o que está dentro delas pertence ao `if` — uma linha ou dez.\n\n```c\nint nota = 4;\nif (nota >= 6) {\n    printf(\"passou\\n\");\n    printf(\"parabens\\n\");\n}\nprintf(\"fim\\n\");\n```\n\n```text\nfim\n```\n\nCom `nota` valendo 4 a condição dá 0, e as DUAS linhas de dentro são saltadas juntas. O último `printf` está fora do bloco, colado na margem: ele não pertence ao `if` e roda de qualquer jeito."
+    },
+    {
+      "id": "sem-chaves-so-a-primeira-linha",
+      "title": "Sem chaves, só a primeira linha",
+      "markdown": "O C também aceita `if` sem chaves — e aí só a PRIMEIRA linha depois dele pertence ao `if`:\n\n```c\nint idade = 15;\nif (idade >= 18)\n    printf(\"pode entrar\\n\");\nprintf(\"bem-vindo\\n\");\n```\n\n```text\nbem-vindo\n```\n\nOs dois `printf` parecem irmãos por causa do recuo. Aqui a analogia do recuo quebra: o compilador não lê espaço em branco, ele lê o `;` que fecha a primeira linha. O segundo `printf` está fora. Regra deste curso: **chaves sempre**, mesmo com uma linha só."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sem-chaves-so-a-primeira-linha-pertence",
+      "statement": "Sem chaves, só a PRIMEIRA linha depois do `if` pertence a ele — nesta trilha, chaves sempre.",
+      "question": "O código é `if (idade >= 18)` e, nas duas linhas seguintes (as duas recuadas), `printf(\"pode entrar\\n\");` e `printf(\"bem-vindo\\n\");`. Com `idade` valendo 15, o que aparece na tela?",
+      "options": [
+        "Só `bem-vindo`: sem chaves o `if` segurou apenas o primeiro `printf`.",
+        "Nada: a condição deu 0 e as duas linhas recuadas foram saltadas.",
+        "As duas linhas: `pode entrar` e `bem-vindo`.",
+        "Só `pode entrar`: a primeira linha depois do `if` roda de qualquer jeito."
+      ],
+      "answerIndex": 0,
+      "feedback": "O recuo engana o olho, não o compilador. Sem chaves o `if` manda só na linha seguinte — essa foi saltada (15 não chega a 18) — e o `bem-vindo`, que está fora, saiu. Com chaves as duas teriam sido saltadas.",
+      "sectionId": "sem-chaves-so-a-primeira-linha",
+      "optionRationales": [
+        "Sem chaves o `if` pega só a linha seguinte; a outra é uma ordem independente e rodou.",
+        "As duas seriam saltadas se houvesse chaves em volta delas — o recuo sozinho não faz bloco.",
+        "`pode entrar` não sai: 15 não chega a 18, e essa linha é justamente a que o `if` segura.",
+        "A primeira linha é exatamente a que depende da condição: ela só roda quando a condição dá 1."
+      ]
+    },
+    {
+      "id": "a-condicao-e-um-numero-que-decide",
+      "statement": "A condição entre parênteses é um número: 1 faz o bloco rodar, 0 faz o C saltar o bloco inteiro.",
+      "question": "Com `nota` valendo 4, quantas das duas linhas de dentro de `if (nota >= 6) { ... }` rodam?",
+      "options": [
+        "Nenhuma: a condição deu 0 e o bloco foi saltado.",
+        "Só a primeira: as chaves seguram uma linha de cada vez.",
+        "As duas: um bloco de `if` sempre roda ao menos uma vez.",
+        "Nenhuma, e o programa termina ali mesmo, sem a linha final."
+      ],
+      "answerIndex": 0,
+      "feedback": "`4 >= 6` vale 0, e com 0 o C salta o bloco inteiro — não importa quantas linhas ele tenha. O programa continua na primeira linha depois do `}`.",
+      "sectionId": "as-chaves-seguram-o-bloco",
+      "optionRationales": [
+        "A condição valeu 0, então nenhuma linha de dentro roda: o bloco é saltado de uma vez.",
+        "O bloco é uma peça só: o `if` não escolhe linhas de dentro, ele pega ou salta todas.",
+        "Um bloco de `if` pode rodar zero vez — é essa a novidade da aula.",
+        "Saltar o bloco não termina o programa: a execução segue na linha depois do `}`."
+      ]
+    },
+    {
+      "id": "a-linha-na-margem-roda-sempre",
+      "statement": "A linha colada na margem, depois do `}`, está fora do bloco e roda mesmo quando a condição dá 0.",
+      "question": "No código com `if (nota >= 6) { ... }` seguido de `printf(\"fim\\n\");` na margem, quando essa última linha roda?",
+      "options": [
+        "Sempre: ela está fora do bloco e não depende do `if`.",
+        "Só quando a condição dá 1, como as linhas de dentro.",
+        "Só quando a condição dá 0, como um caminho alternativo.",
+        "Nunca: depois do `}` o `if` já consumiu o resto da função."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `}` fecha o que pertence ao `if`. O que vem depois é ordem comum, na fila reta de sempre: roda com a condição verdadeira e também com ela falsa.",
+      "sectionId": "as-chaves-seguram-o-bloco",
+      "optionRationales": [
+        "O `}` marca o fim do que depende da condição; daí para baixo é fila reta de novo.",
+        "Depender da condição é privilégio de quem está DENTRO das chaves.",
+        "O `if` sozinho não tem caminho alternativo — isso é assunto da próxima aula.",
+        "O `if` manda só no seu bloco; o resto da função continua existindo e rodando."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if` em C: a condição entre parênteses, a ordem que ela comanda e a forma com e sem bloco."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens de C, com o bloco (`compound statement`) — as chaves que agrupam várias ordens em uma."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.8.2 define o bloco de chaves e §6.8.4.1 define o `if` e o que conta como condição verdadeira."
+    }
+  ],
+  "challenges": [
+    "maior-de-idade"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

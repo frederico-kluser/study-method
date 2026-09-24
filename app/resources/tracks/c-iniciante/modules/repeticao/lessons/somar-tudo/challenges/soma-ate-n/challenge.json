@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-ate-n",
+  "title": "Soma até N",
+  "concept": "o_acumulador",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Soma até N\n\nA função `somaAteN` pergunta um número inteiro N e imprime a **soma de todos os inteiros de 1 até N**, numa linha só.\n\nCom `5` digitado, a saída é:\n\n```text\n15\n```\n\nporque 1 + 2 + 3 + 4 + 5 = 15. Com `1` digitado, a saída é `1` — a faixa tem um número só.\n\nA leitura do N, o acumulador `soma` (já nascido em 0, **fora** do laço — é lá que ele precisa nascer) e o `printf` do total já estão no arquivo. Falta o miolo: o contador que nasce em 1 e o laço que soma cada número de 1 até N.\n\nO N vem de FORA: não escreva 15 no código. O mesmo laço tem de responder certo para qualquer número digitado.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdio.h>\n\n/* somaAteN le um inteiro N e imprime a soma de 1 ate N.\n   A leitura do N, o acumulador soma (ja nascido em 0 ANTES do laco, que e\n   onde ele precisa nascer) e a impressao do total ja estao escritas.\n   Falta o miolo: o contador que nasce em 1 e o laco que soma 1, 2, 3 ...\n   ate N em soma. */\nvoid somaAteN(void) {\n    int n = 0;\n    int soma = 0;\n\n    scanf(\"%d\", &n);\n\n    /* escreva aqui o contador que nasce em 1 e o while que vai ate n,\n       acrescentando o contador em soma a cada volta */\n\n    printf(\"%d\\n\", soma);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio soma-ate-n — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le\n   a entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid somaAteN(void);\n\nSM_TEST(a_soma_ate_cinco) {\n    /* o que a pessoa digita: 5 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"5\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    somaAteN();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de 1 ate 5\", linha, \"15\\n\",\n              \"1 + 2 + 3 + 4 + 5 sao 15: o acumulador recebeu as cinco parcelas\");\n\n    /* a saida e UMA linha — buffer NOVO com sentinel e um fgets a mais */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"o total e impresso uma vez, DEPOIS do laco: nenhum parcial vai para a tela\");\n    fclose(f);\n}\n\nSM_TEST(a_soma_ate_um) {\n    /* a faixa mais curta: um numero so */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    somaAteN();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de 1 ate 1\", linha, \"1\\n\",\n              \"com n valendo 1 o laco da uma volta so, e o acumulador fica com 1\");\n    fclose(f);\n}\n\nSM_TEST(a_soma_ate_cem) {\n    /* uma faixa que ninguem escreve a mao: a resposta so sai do laco */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"100\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    somaAteN();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de 1 ate 100\", linha, \"5050\\n\",\n              \"cem voltas do mesmo laco: a saida muda com o numero digitado\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid somaAteN(void) {\n    int n = 0;\n    int soma = 0;\n\n    scanf(\"%d\", &n);\n\n    int i = 1;\n    while (i <= n) {\n        soma += i;\n        i++;\n    }\n\n    printf(\"%d\\n\", soma);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_soma_ate_cinco",
+      "teste": "a_soma_ate_cinco",
+      "descricao": "com 5 digitado no stdin, a funcao somaAteN imprime 15 numa linha so — e o segundo checa_str prova que nenhum parcial do acumulador foi impresso dentro do laco"
+    },
+    {
+      "id": "a_soma_ate_um",
+      "teste": "a_soma_ate_um",
+      "descricao": "com 1 digitado, a mesma funcao imprime 1: a faixa de um numero so faz o laco dar uma volta unica"
+    },
+    {
+      "id": "a_soma_ate_cem",
+      "teste": "a_soma_ate_cem",
+      "descricao": "com 100 digitado, a mesma funcao imprime 5050 — a saida muda com a entrada, o que prova que o total foi acumulado pelo laco e nao escrito no codigo"
+    }
+  ]
+}

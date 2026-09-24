@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "eco-de-nome",
+  "title": "O eco do nome",
+  "concept": "ler_uma_palavra",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O eco do nome\n\nA função `ecoDeNome` lê **uma palavra** digitada e devolve o eco dela na tela, dentro de uma saudação.\n\nSe quem usa o programa digitar `Ana`, a saída é:\n\n```text\noi, Ana!\n```\n\nE se digitar `Bruno`:\n\n```text\noi, Bruno!\n```\n\nPassos:\n\n1. leia a palavra para dentro da caixa com `scanf` e o buraco `%s`, **sem** `&` — o nome da caixa já é o endereço;\n2. ponha o freio de mão na largura: a caixa tem 50 gavetas, então o buraco é `%49s`;\n3. imprima `oi, <palavra>!` com `%s` e `\\n` no fim.\n\nA caixa `palavra` já está declarada e vazia no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* ecoDeNome le uma palavra digitada e imprime a saudacao com ela.\n   A caixa de letras ja existe, vazia — falta encher e imprimir. */\nvoid ecoDeNome(void) {\n    char palavra[50] = \"\";\n    /* 1) leia a palavra digitada para dentro da caixa:\n          scanf com o buraco %49s, e SEM o & */\n\n    /* 2) imprima \"oi, <palavra>!\" com %s, e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio eco-de-nome — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo o que o aluno\n   digitaria, o freopen troca o stdin por esse arquivo, e a captura do\n   stdout acontece dentro do proprio cenario (freopen + fflush, sem\n   fclose no stdout). Dois cenarios, dois nomes diferentes: a saida nao\n   pode vir de um texto fixo no codigo. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid ecoDeNome(void);\n\nSM_TEST(o_eco_de_ana) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"Ana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    ecoDeNome();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o eco de Ana\", linha, \"oi, Ana!\\n\",\n              \"a palavra digitada entrou na caixa e saiu pelo buraco %s\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na linha da saudacao: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_eco_de_bruno) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"Bruno\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    ecoDeNome();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o eco de Bruno\", linha, \"oi, Bruno!\\n\",\n              \"outro nome digitado, outra saida: o texto vem da leitura, nao do codigo\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid ecoDeNome(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    printf(\"oi, %s!\\n\", palavra);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_eco_de_ana",
+      "teste": "o_eco_de_ana",
+      "descricao": "com Ana digitado no stdin, a funcao ecoDeNome le a palavra com scanf e %49s e imprime a linha \"oi, Ana!\", sem nada depois dela"
+    },
+    {
+      "id": "o_eco_de_bruno",
+      "teste": "o_eco_de_bruno",
+      "descricao": "com Bruno digitado no stdin, a mesma funcao imprime \"oi, Bruno!\" — a prova de que o texto vem da leitura e nao de um literal fixo no codigo"
+    }
+  ]
+}

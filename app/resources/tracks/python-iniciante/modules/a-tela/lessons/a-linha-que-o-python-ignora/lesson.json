@@ -73,6 +73,11 @@
       "title": "Uma introdução informal ao Python",
       "url": "https://docs.python.org/3/tutorial/introduction.html",
       "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    },
+    {
+      "title": "Comentários na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#comments",
+      "description": "A regra oficial do `#`: o comentário começa nele e vai até o fim da linha, e o Python não lê nada dali em diante."
     }
   ],
   "challenges": [

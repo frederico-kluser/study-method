@@ -2,22 +2,132 @@
   "schemaVersion": 1,
   "slug": "buraco-na-frase",
   "title": "O buraco na frase",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O %d é um buraco na frase: o printf tira um número inteiro dos valores que vêm depois da vírgula e encaixa ali, na ordem.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:printf",
+  "concepts": [
+    "o_buraco_do_numero"
+  ],
   "prerequisites": [
     "primeira-tela"
   ],
+  "introduces": {
+    "productive": [
+      "api:printf",
+      "node:IntegerLiteral"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:IntegerLiteral",
+        "de": "api:printf"
+      }
+    ]
+  },
+  "introducesTerms": [
+    "especificador"
+  ],
+  "notionalMachineDelta": "a frase deixa de ser um texto fechado: ela passa a ter buracos, e o printf preenche cada buraco com um valor que vem de fora do texto — a semente do nome com valor",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-buraco-e-o-valor",
+      "title": "Um buraco na frase",
+      "markdown": "Até aqui a frase saía inteira, do jeito que você escreveu. O `printf` sabe fazer mais: deixar um **buraco** no texto e preencher com um número que vem depois.\n\n```c\nprintf(\"tenho %d anos\\n\", 20);\n```\n\n```text\ntenho 20 anos\n```\n\nO `%d` é o buraco — o **especificador** de número inteiro; o `d` vem de *decimal*, o número escrito em algarismos. O `20`, depois da vírgula, é o valor que entra nele.\n\nRepare que o buraco fica DENTRO das aspas e o valor fica FORA: a vírgula é a fronteira entre o texto e os valores."
+    },
+    {
+      "id": "cada-buraco-consome-um-numero",
+      "title": "Cada buraco consome um número",
+      "markdown": "Com dois buracos, quem manda é a ordem: o primeiro `%d` fica com o primeiro valor, o segundo com o segundo.\n\n```c\nprintf(\"%d provas e %d aulas\\n\", 3, 12);\n```\n\n```text\n3 provas e 12 aulas\n```\n\nTrocar a ordem dos valores troca a frase: `printf(\"%d provas e %d aulas\\n\", 12, 3);` imprime `12 provas e 3 aulas`. Cada `%d` consome UM valor inteiro, na ordem em que aparecem — nada de adivinhação.\n\nConte sempre os dois lados: `%d` a mais do que valores não tem de onde tirar número, e o que sai na tela é imprevisível."
+    },
+    {
+      "id": "o-buraco-nao-e-texto",
+      "title": "O buraco não é texto",
+      "markdown": "O `%d` nunca aparece na tela: ele é a instrução de ONDE o número entra. Compare as duas ordens:\n\n```c\nprintf(\"total: %d\\n\", 42);\nprintf(\"total: 42\\n\");\n```\n\n```text\ntotal: 42\ntotal: 42\n```\n\nAs duas saem iguais — e é justo aí que mora a pergunta: para que serve o buraco, então? Porque o valor não vai ficar fixo para sempre. Na próxima aula ele ganha um nome, e a MESMA frase passa a servir para qualquer número; hoje você aprende o encaixe com o número na mão."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "cada-d-consome-um-inteiro",
+      "statement": "Cada `%d` consome um argumento inteiro, na ordem em que aparecem.",
+      "question": "O que `printf(\"%d provas e %d aulas\\n\", 3, 12);` imprime?",
+      "options": [
+        "3 provas e 12 aulas",
+        "12 provas e 3 aulas",
+        "%d provas e %d aulas",
+        "3 12 provas e aulas"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro `%d` pega o primeiro valor depois da vírgula (3) e o segundo pega o próximo (12). A ordem dos buracos casa com a ordem dos valores.",
+      "sectionId": "cada-buraco-consome-um-numero",
+      "optionRationales": [
+        "Primeiro buraco com o primeiro valor, segundo buraco com o segundo: 3 e depois 12.",
+        "Essa é a saída de `..., 12, 3` — a ordem dos valores é que decide.",
+        "O `%d` nunca sai na tela: ele é substituído pelo valor.",
+        "Cada valor entra no lugar do seu buraco, no meio do texto — eles não se juntam na frente."
+      ]
+    },
+    {
+      "id": "o-d-nao-aparece-na-tela",
+      "statement": "O `%d` é um buraco: ele não aparece na tela, o número aparece no lugar dele.",
+      "question": "O que aparece na tela com `printf(\"total: %d\\n\", 42);`?",
+      "options": [
+        "total: 42",
+        "total: %d",
+        "total: %d 42",
+        "total: 42 42"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `printf` lê o texto e, ao chegar no `%d`, escreve ali o valor que veio depois da vírgula. O buraco desaparece; o número fica.",
+      "sectionId": "o-buraco-e-o-valor",
+      "optionRationales": [
+        "O buraco é substituído pelo valor: sai `total: 42`.",
+        "O `%d` é instrução de formato, não texto: o `printf` o troca pelo valor antes de escrever.",
+        "O valor não se soma ao buraco: ele toma o lugar dele.",
+        "Há um buraco só e um valor só, então o número aparece uma vez."
+      ]
+    },
+    {
+      "id": "a-virgula-separa-texto-e-valor",
+      "statement": "A vírgula separa o texto dos valores: o que vem depois dela é o número que entra no buraco.",
+      "question": "Na ordem `printf(\"tenho %d anos\\n\", 20);`, qual é o papel do `20`?",
+      "options": [
+        "É o valor que entra no lugar do `%d`.",
+        "É o número de vezes que a frase será impressa.",
+        "É o tamanho máximo da frase em letras.",
+        "É parte do texto: sai depois da palavra anos."
+      ],
+      "answerIndex": 0,
+      "feedback": "Depois da vírgula vêm os VALORES, na ordem dos buracos. O `20` não é texto: ele é o número que o `%d` mostra.",
+      "sectionId": "o-buraco-e-o-valor",
+      "optionRationales": [
+        "Depois da vírgula vem o valor do buraco: o `%d` mostra 20.",
+        "O `printf` imprime uma vez por chamada; o valor não conta repetições.",
+        "O `printf` não limita tamanho de frase — o `20` é o número que aparece.",
+        "Texto é só o que está entre as aspas; o `20` está fora delas."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "printf, fprintf, sprintf, snprintf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/printf",
+      "description": "A página oficial do printf: o texto de formato e como cada especificador consome um argumento."
+    },
+    {
+      "title": "Integer constant — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/integer_constant",
+      "description": "O que são o 3 e o 12 escritos no código: a constante inteira que cada %d recebe."
+    },
+    {
+      "title": "printf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/printf.3.html",
+      "description": "A man-page do printf: a mesma função do seu programa, com a conversão %d descrita pelo sistema."
+    }
+  ],
+  "challenges": [
+    "ficha-numerada"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

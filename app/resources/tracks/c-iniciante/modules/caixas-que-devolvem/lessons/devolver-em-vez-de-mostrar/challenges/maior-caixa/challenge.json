@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-caixa",
+  "title": "A caixa do maior",
+  "concept": "devolver_um_valor",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A caixa do maior\n\nEscreva a caixa `maiorCaixa` — o nome que o programa de fora chama — com **duas janelas de entrada** e um valor de volta:\n\n```text\nint maiorCaixa(int a, int b)\n```\n\nEla **devolve** o maior dos dois números. Não imprime nada: quem chama é que decide o que fazer com o valor, e neste desafio o teste confere o **valor devolvido**, não a tela.\n\nCom `a` e `b` iguais, o maior é esse mesmo valor.\n\nUma dica de forma: compare os dois com `>=`, devolva um dentro do `if` e o outro depois dele — o primeiro `return` alcançado encerra a caixa.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* escreva AQUI a caixa maiorCaixa, com as duas janelas de entrada:\n   int maiorCaixa(int a, int b), que DEVOLVE o maior dos dois.\n   Nenhum printf: esta caixa entrega o valor, nao mostra. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio maior-caixa — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o prototipo da\n   caixa do aluno, chama-a e confere o VALOR devolvido com checa_int. Tres\n   cenarios: o maior em segundo, o maior em primeiro e os dois iguais. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint maiorCaixa(int a, int b);\n\nSM_TEST(o_maior_entre_3_e_9) {\n    checa_int(\"o maior entre 3 e 9\", maiorCaixa(3, 9), 9,\n              \"o maior e devolvido mesmo quando vem na segunda janela\");\n}\n\nSM_TEST(o_maior_entre_9_e_3) {\n    checa_int(\"o maior entre 9 e 3\", maiorCaixa(9, 3), 9,\n              \"trocar a ordem dos argumentos nao muda o maior\");\n}\n\nSM_TEST(os_dois_iguais) {\n    checa_int(\"o maior entre 4 e 4\", maiorCaixa(4, 4), 4,\n              \"com os dois valores iguais, o maior e esse mesmo valor\");\n}\n",
+  "solutionCode": "int maiorCaixa(int a, int b) {\n    if (a >= b) {\n        return a;\n    }\n    return b;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_maior_entre_3_e_9",
+      "teste": "o_maior_entre_3_e_9",
+      "descricao": "a caixa maiorCaixa devolve 9 para (3, 9) — o maior valor volta para quem chamou, mesmo estando na segunda janela"
+    },
+    {
+      "id": "o_maior_entre_9_e_3",
+      "teste": "o_maior_entre_9_e_3",
+      "descricao": "a caixa devolve 9 para (9, 3): a comparacao decide, nao a posicao do argumento"
+    },
+    {
+      "id": "os_dois_iguais",
+      "teste": "os_dois_iguais",
+      "descricao": "a caixa devolve 4 para (4, 4) — o caso de borda em que os dois valores sao iguais"
+    }
+  ]
+}

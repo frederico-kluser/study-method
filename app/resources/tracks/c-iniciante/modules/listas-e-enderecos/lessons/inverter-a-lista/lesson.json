@@ -2,23 +2,110 @@
   "schemaVersion": 1,
   "slug": "inverter-a-lista",
   "title": "Inverter a lista",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Inverter é trocar as gavetas simétricas no próprio lugar: a troca da aula passada entra num laço que para em n/2 — porque passar do meio desfaz o que já foi feito.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "inverter_no_proprio_lugar"
+  ],
   "prerequisites": [
     "preencher-lendo",
     "a-troca-que-funciona"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a lista deixa de ser só lida em ordem: o aluno passa a REORGANIZAR o conteúdo da mesma caixa, e o limite do laço (n/2) passa a fazer parte da correção do algoritmo",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "inverter-e-trocar-aos-pares",
+      "title": "Inverter é trocar aos pares",
+      "markdown": "Inverter uma lista não pede caixa nova. Basta trocar as gavetas SIMÉTRICAS — a primeira com a última, a segunda com a penúltima:\n\n```text\ngaveta:  0  1  2  3\nantes:   7  2  9  4\ndepois:  4  9  2  7\n```\n\nA gaveta 0 troca com a 3; a 1 troca com a 2. Duas trocas resolvem uma caixa de quatro — e a caixa continua sendo a mesma, só com o conteúdo remexido."
+    },
+    {
+      "id": "o-swap-que-ja-funciona",
+      "title": "A troca que já funciona",
+      "markdown": "A `trocar` da aula passada muda os originais porque recebe ENDEREÇOS. E `&notas[0]` é o endereço de uma gaveta, igual ao `&notas[i]` da `scanf`:\n\n```c\nvoid trocar(int *a, int *b);\n\nint notas[4] = {7, 2, 9, 4};\ntrocar(&notas[0], &notas[3]);\nprintf(\"%d %d\\n\", notas[0], notas[3]);\n```\n\n```text\n4 7\n```\n\nNada de novo entrou: é a troca de sempre, com as duas gavetas das pontas no lugar dos dois nomes."
+    },
+    {
+      "id": "o-par-simetrico-do-i",
+      "title": "O par simétrico do i",
+      "markdown": "Uma conta encontra o parceiro de cada gaveta: o par de `i` é `n - 1 - i`. Com `n` valendo 4, o 0 encontra o 3 e o 1 encontra o 2:\n\n```c\nvoid trocar(int *a, int *b);\n\nint notas[4] = {7, 2, 9, 4};\nint n = 4;\nfor (int i = 0; i < n / 2; i++) {\n    trocar(&notas[i], &notas[n - 1 - i]);\n}\n```\n\nO laço é o de sempre; o que mudou é onde ele PARA: em `n / 2`, o meio da caixa."
+    },
+    {
+      "id": "parar-no-meio",
+      "title": "Parar no meio, e por quê",
+      "markdown": "`n / 2` é divisão inteira: `4 / 2` dá 2 voltas (`i` valendo 0 e 1) e `5 / 2` dá 2 também — numa lista ímpar a gaveta do meio já está no lugar certo, e não tem com quem trocar.\n\nPassar do meio DESFAZ o trabalho. Com `n` valendo 4 e `i` valendo 2, a troca seria entre as gavetas 2 e 1 — exatamente a troca da volta anterior, de novo. A lista voltaria à ordem original:\n\n```text\ni = 0:  4  2  9  7\ni = 1:  4  9  2  7\ni = 2:  4  2  9  7   <- desfeito\n```"
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "chega-ate-a-metade",
+      "statement": "Chega até n/2: trocar além disso desfaz a troca.",
+      "question": "Numa lista de 4 gavetas, por que o laço da inversão para em `n / 2`?",
+      "options": [
+        "Porque cada troca cuida de duas gavetas: duas voltas cobrem as quatro.",
+        "Porque `n / 2` é o maior índice que existe numa caixa de quatro gavetas.",
+        "Porque a divisão inteira arredonda para baixo e evita ler fora da caixa.",
+        "Porque as gavetas do meio não podem ser trocadas em nenhuma situação."
+      ],
+      "answerIndex": 0,
+      "feedback": "Uma troca mexe nas DUAS gavetas do par. Depois de `n / 2` voltas todos os pares já foram trocados, e continuar refaz os mesmos pares ao contrário: a lista volta ao começo.",
+      "sectionId": "parar-no-meio",
+      "optionRationales": [
+        "Cada volta troca o par `i` e `n - 1 - i`: com 4 gavetas, duas voltas já mexeram em todas.",
+        "O maior índice de uma caixa de quatro é 3, não 2 — `n / 2` é onde o laço para, não o fim da caixa.",
+        "Não há leitura fora da caixa aqui: `n - 1 - i` fica dentro dela para qualquer `i` menor que `n`.",
+        "A gaveta do meio de uma lista ímpar não é trocada por não ter par — e as demais são trocadas normalmente."
+      ]
+    },
+    {
+      "id": "o-par-de-i-e-n-menos-1-menos-i",
+      "statement": "O par simétrico da gaveta `i` é a gaveta `n - 1 - i`.",
+      "question": "Numa lista de 5 notas, com qual gaveta a gaveta 1 é trocada?",
+      "options": [
+        "Com a gaveta 3, porque a conta `n - 1 - i` dá 3 para o `i` valendo 1.",
+        "Com a gaveta 4, a última da caixa, que é o par de qualquer outra gaveta.",
+        "Com a gaveta 2, a vizinha logo à direita, que é a sua simétrica.",
+        "Com nenhuma: numa lista de tamanho ímpar a gaveta 1 fica parada."
+      ],
+      "answerIndex": 0,
+      "feedback": "`n - 1 - i` com `n` valendo 5 e `i` valendo 1 dá 3. A última gaveta (4) é o par do `i` valendo 0; quem fica parada numa lista de 5 é a gaveta 2, a do meio.",
+      "sectionId": "o-par-simetrico-do-i",
+      "optionRationales": [
+        "A conta `n - 1 - i` dá 3, e a gaveta 3 é a segunda contando do fim — a simétrica da 1.",
+        "A gaveta 4 é o par da gaveta 0: o `i` valendo 0 dá `5 - 1 - 0`, que é 4.",
+        "Vizinhas não são simétricas: trocar 1 com 2 não inverteria a lista.",
+        "Numa lista de 5, a que fica parada é a do meio, a gaveta 2."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array subscript e o operador de endereço — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `[]` e do `&`: o índice que escolhe a gaveta e o endereço de um elemento do array."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A página oficial das contas em C: a divisão de inteiros corta a parte fracionária, e é disso que o `n / 2` do laço depende."
+    },
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for`: onde ficam o nascimento, a condição de parada e o passo do laço."
+    }
+  ],
+  "challenges": [
+    "o-inversor"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

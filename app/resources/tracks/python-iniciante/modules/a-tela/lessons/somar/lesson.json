@@ -72,6 +72,11 @@
       "title": "Expressões — as contas da linguagem",
       "url": "https://docs.python.org/3/reference/expressions.html",
       "description": "A referência oficial dos operadores de conta do Python."
+    },
+    {
+      "title": "Tipos numéricos — int, float, complex",
+      "url": "https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex",
+      "description": "A tabela oficial das contas de número, com a linha do x + y e o resultado que a soma devolve."
     }
   ],
   "challenges": [

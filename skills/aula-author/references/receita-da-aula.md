@@ -1,68 +1,94 @@
-# Receita de UMA aula — a receita completa
+# Receita de UMA aula — a parte COMUM às três linguagens
 
 Regras de execução dos passos `ler_contrato (módulo)`, `escrever_teoria`, `escrever_quiz` e
-`escrever_desafio_e_testes`. Todo schema e formato abaixo está no disco
-(`app/electron/main/content/trackTypes.ts`), nos contratos (`docs/16-engine-de-trilha.md` §10,
-`docs/17-trilha-python.md`) e nos padrões-ouro citados pelo caminho real em
-`app/resources/tracks/python-iniciante/`. Cada número foi medido nesta execução (2026-09-11).
+`escrever_desafio_e_testes` que **não dependem da linguagem da trilha**: o layout da aula, os dois
+schemas, as fases do canal, a regra do par (`introduces.derived`) e o gate das demonstrações.
 
-## 0. A aula como unidade — layout físico obrigatório
+**O que depende da linguagem tem arquivo próprio** (§6): inventário de chaves, axioma de entrada,
+semente receptiva do harness, forma do arquivo de teste, tetos medidos e armadilhas do adaptador.
 
-Uma aula = `lesson.json` **mais** um ou mais `challenges/<slug>/challenge.json`. Layout (I13:
-`slug === basename(dir)`; docs/17, "Regras para os desafios de aula"):
+> **POR QUE ESTE ARQUIVO FOI PARTIDO EM QUATRO** (decisão desta execução, 2026-09-22). A versão
+> anterior era Python por dentro — mandava ler `docs/17-trilha-python.md` como se fosse *o*
+> contrato (**14 ocorrências** — `git show HEAD:skills/aula-author/references/receita-da-aula.md |
+> grep -c docs/17`), e §5–§8 eram o adaptador de Python. O produto tem **três** trilhas em
+> autoria: `python-iniciante`, `rust-iniciante` e `c-iniciante` (`ls
+> app/resources/tracks/`). Uma referência é aberta INTEIRA quando é aberta: juntar as três línguas
+> num arquivo só faria o autor de C ler as regras de `runpy` do Python — e ler a regra da língua
+> errada é exatamente a classe de defeito que o gate existe para impedir. Por isso: **comum aqui,
+> língua em `receita-da-aula-<língua>.md`**, sem língua privilegiada.
+
+## 0. A aula como unidade — o que vai no disco e o que o adaptador GERA
+
+No disco a aula é **dois arquivos JSON**, e só:
 
 ```
 modules/<mod>/lessons/<aula>/lesson.json
 modules/<mod>/lessons/<aula>/challenges/<desafio>/challenge.json
-modules/<mod>/lessons/<aula>/challenges/<desafio>/solucao.py        ← raiz do desafio
-modules/<mod>/lessons/<aula>/challenges/<desafio>/tests/__init__.py  ← OBRIGATÓRIO
-modules/<mod>/lessons/<aula>/challenges/<desafio>/tests/test_solucao.py
 ```
 
-- **`tests/__init__.py` é obrigatório e é o exit-guard** (`PY_PACKAGE_MARKER` em
-  `electron/main/engine/lang/python.ts`): sem ele o CPython 3.14 recusa a descoberta com
-  `ImportError: Start directory is not importable` e o desafio "falha" sem ter rodado nada
-  (medido no docs/17). Conteúdo: o comentário padrão do harness; não inventar.
-- O `challenge.json` **não lista os arquivos** — o layout é fixo: `solucao.py` na raiz,
-  `tests/test_solucao.py` (tem de casar o `-p 'test_*.py'` do discover), `tests/__init__.py`.
-- O desafio de **módulo** vive em `modules/<mod>/challenges/<slug>/challenge.json`, declarado no
-  `module.json` como `challenge` (ex.: `a-tela/challenges/rachando-a-conta`); ele compõe o que o
-  módulo ensinou e **não pode introduzir construção nova**.
+Medido em 2026-09-22 na trilha de referência (112 aulas + 1 desafio de módulo = 113 desafios):
+
+```bash
+cd app/resources/tracks/python-iniciante
+find . -name challenge.json | wc -l   # → 113
+find . -name 'solucao.py' | wc -l     # → 0
+find . -name '__init__.py' | wc -l    # → 0
+```
+
+**Fonte, starter, teste e solução moram DENTRO do `challenge.json`** (`starterCode`, `testsCode`,
+`solutionCode`). A árvore que o runner compila/executa (`solucao.py` + `tests/__init__.py`;
+`Cargo.toml` + `src/lib.rs` + `tests/desafio.rs`; `solucao.c` + `tests/sm_harness.h` +
+`tests/sm_main.c` + `run.sh`) é **GERADA** pelo `layout()` do adaptador num diretório temporário, a
+cada prova de execução. Nunca escreva esses arquivos no repositório: a tabela de cada um está no
+arquivo da língua (§6).
+
+- **A ORDEM PEDAGÓGICA é a ordem de `module.json`** — `lessons[]` é uma lista ORDENADA e o loader
+  lê aula por aula nela (`electron/main/content/trackLoader.ts:186`); os módulos vêm por
+  `module.json.order` (`engine/budget.ts:156`, `pedagogicalOrder`). Criar o diretório da aula **não**
+  a coloca na trilha: o slug entra em `module.json.lessons[]`, na posição certa. É por aí que a
+  quebra POSICIONA a aula nova (`quebra-da-aula.md` §4).
+- `slug === basename(dir)` (I13) e o slug é único na trilha (I12).
+- O desafio de **módulo** vive em `modules/<mod>/challenges/<slug>/challenge.json` e é declarado no
+  `module.json` como `challenge`; ele compõe o que o módulo ensinou e **não introduz construção
+  nova**.
 
 ## 1. `lesson.json` — o schema real
 
-`schemaVersion: 1` (bumpar é **proibido** — docs/16 §10). Campos, com onde ver no padrão-ouro:
+`schemaVersion: 1` (bumpar é **proibido** — docs/16 §10).
 
 | Campo | O que vai | Exemplo vivo |
 |---|---|---|
 | `slug` | kebab-case ASCII; único na trilha (I12); `=== basename(dir)` (I13) | `a-primeira-linha` |
 | `title` / `summary` | pt-BR; resumo de uma linha | `A primeira linha` |
-| `difficulty` | 1..5 — **nenhum gate pode lê-lo** (docs/16 §10: é o cronômetro do produto, não sinal de nada); use a rampa do grafo | `1`..`4` |
-| `role` | `regular` (introduz) · `integration` (composição) — enum da engine; `consolidation` é o que o disco usa com o degrau nomeado (divergência ⚑ declarada em docs/16 §3.7 e docs/17) | `regular`, `consolidation` |
-| `targetAtom` | a chave que a aula distingue (o átomo-alvo da lacuna única) | `global:print`, `node:If` |
+| `difficulty` | 1..5 — **nenhum gate o lê** (docs/16 §10); use a rampa do grafo | `1`..`4` |
+| `role` | `regular` (introduz) · `integration` (composição) — enum da engine; `consolidation` é o que o disco usa com o degrau nomeado (divergência ⚑ declarada em docs/16 §3.7) | `regular` |
+| `targetAtom` | a chave que a aula distingue (o átomo-alvo da lacuna única) | `global:print`, `api:printf`, `node:FunctionItem` |
 | `concepts[]` | `concept.id` (nunca slug de aula); `challenge.concept` ∈ `lesson.concepts` (I16) | `["imprimir"]` |
-| `prerequisites[]` | `concept.id` — type check duro, **nunca** `lesson.slug` (docs/16 §3.4; 105 de 134 referências violavam na trilha legada) | `["devolver-em-vez-de-mostrar"]` |
-| `introduces` | `productive[]` (≤2 itens por A7/I2, contados pela regra do par §4) e `receptive[]`; invariante `productive ⊆ receptive` | ver `se` |
-| `introducesTerms[]` | termos novos da prosa (`term:`) — não são átomos, não entram em `productive` | `["term:recuo", "term:IndentationError"]` |
+| `prerequisites[]` | `concept.id` — type check duro, **nunca** `lesson.slug` (docs/16 §3.4) | `["devolver-em-vez-de-mostrar"]` |
+| `introduces` | `productive[]`, `receptive[]` e o aditivo `derived[]` (§4); invariante `productive ⊆ receptive` | ver §4 |
+| `introducesTerms[]` | termos novos da prosa (`term:`) — não são átomos, não entram em `productive` | `["term:recuo"]` |
 | `notionalMachineDelta?` | o que muda na máquina nocional | aula `se` |
-| `theory[]` | seções `{id, title, markdown}` — ids únicos (I15) e são **âncoras do quiz** (`sectionId`); markdown pt-BR com blocos cercados ```python (bloco com tag é código; crase inline é prosa — docs/16 §5.3) | `se`, `ordenar` |
-| `assertions[]` | o quiz: `id`, `statement`, `question`, `options` (**exatamente 4**, não vazias, únicas), `answerIndex`, `feedback`, `sectionId?`, `optionRationales?` | `imprimir-nao-e-devolver` (com rationales) |
+| `theory[]` | seções `{id, title, markdown}` — ids únicos (I15), **âncoras do quiz** (`sectionId`); blocos cercados **com tag da língua** (§5) | `se`, `ordenar` |
+| `assertions[]` | o quiz: `id`, `statement`, `question`, `options` (**exatamente 4**), `answerIndex`, `feedback`, `sectionId?`, `optionRationales?` | `imprimir-nao-e-devolver` |
 | `sources[]` | **2–3 fontes oficiais** (P-FONTE): `title`, `url` verificável, `description` | `se` (3 fontes) |
-| `challenges[]` | slugs dos desafios desta aula | `["escreva-oi"]` |
+| `challenges[]` | slugs dos desafios desta aula — **vazio reprova em A20** | `["escreva-oi"]` |
 
 **Quiz — regras duras (medidas):**
 
-- **Máx. 3 afirmações por aula** — `MAX_ASSERTIONS_PER_LESSON = 3` (`trackTypes.ts:508`); o loader
-  reprova 4+ (`assertions com N itens (máximo 3 por aula)`). Use 2–3.
+- **Máx. 3 afirmações por aula** — `MAX_ASSERTIONS_PER_LESSON = 3` (`content/trackTypes.ts`, hoje na linha 602 — `grep -n MAX_ASSERTIONS_PER_LESSON`); o
+  loader reprova 4+. Use 2–3.
 - `options` com **exatamente 4** itens, não vazios, únicos; `answerIndex` aponta o certo.
-- `feedback` é o texto pós-resposta: diz por que a alternativa certa é certa (ou o erro do distrator),
-  em tom diagnóstico, **nunca** dirigido à pessoa.
-- `optionRationales`: ausente = válido (estado das 20 aulas de `a-tela`); `[]` = ausência explícita;
-  não-vazio = comprimento **exatamente igual** ao de `options`, um racional por alternativa, na
-  MESMA ordem (docs/16 §10). Racional = material que o tutor usa quando o aluno erra: a explicação
-  do **distrator escolhido**.
-- `sectionId` deve apontar a seção de teoria que demonstra a afirmação — **não renomeie ids de
-  seção sem revalidar** (o quiz ancora neles).
+- `feedback` diz por que a certa é certa (ou qual é o erro do distrator), em tom diagnóstico,
+  **nunca** dirigido à pessoa.
+- `optionRationales`: ausente = válido; `[]` = ausência explícita; não-vazio = comprimento
+  **exatamente igual** ao de `options`, na MESMA ordem (docs/16 §10).
+- `sectionId` aponta a seção que DEMONSTRA a afirmação — não renomeie id de seção sem revalidar.
+
+**Teto de leitura (todas as línguas):** cada seção MONTADA (markdown + cercas + explanation) ≤ **560
+chars**; o gate é `tests/lessonTypewriterReadingSpeed.test.ts`, que varre `resources/tracks`
+INTEIRO (não só Python) e trava 7 tps = 28 chars/s com teto de 21 s ⇒ 588 chars. Medido nesta
+execução: `npx tsx --test tests/lessonTypewriterReadingSpeed.test.ts` → **15 pass · 0 fail**,
+exit 0. Estourou? **Encurte a prosa — nunca remova a demonstração da construção nova** (A19).
 
 ## 2. `challenge.json` — o schema real
 
@@ -70,301 +96,212 @@ modules/<mod>/lessons/<aula>/challenges/<desafio>/tests/test_solucao.py
 |---|---|
 | `slug` / `title` / `concept` | slug kebab único; `concept` ∈ `lesson.concepts` |
 | `difficulty` | herda a rampa da aula (provisório, sem peso de gate) |
-| `language` | `"python"` (o `track.json` da trilha declara `programmingLanguage: 'python'`, `runtime: 'cpython-3.14'`, `harnessLanguage: 'python'`) |
+| `language` | o token da trilha: `"python"` · `"rust"` · `"c"` (o `track.json` declara `programmingLanguage`, `runtime` e `harnessLanguage`) |
 | `outputChannel` | a fase do canal: `"impressao"` · `"ambos"` · `"retorno"` (§3) |
-| `statement` | markdown pt-BR, linguagem simples; o exemplo do enunciado **nunca** é caso de teste (J4) |
+| `statement` | markdown pt-BR; o exemplo do enunciado **nunca** é caso de teste (J4) |
 | `starterCode` | o esqueleto do aluno; **falha** nas provas (prova 2) |
-| `testsCode` | o arquivo de teste (layout da fase, §3) |
+| `testsCode` | o arquivo de teste na forma da língua (§6) |
 | `solutionCode` | a solução de referência; **passa** e contém o átomo-alvo (A6/J2) |
 | `expectedTestCount` | = número exato de testes (igualdade dupla: declarada == executada) |
-| `requirements[]` | **objetos** `{id, teste, descricao}`, UM por método `test_*` (§2.1) |
+| `requirements[]` | **objetos** `{id, teste, descricao}`, UM por teste (§2.1) |
 
-Campos aditivos opcionais (docs/16 §10): `notRequired[]` (não vazio quando houver o que declarar),
-`subgoals[]`, `foraDeEscopo` (obrigatório não-vazio na aula). O `a-tela` legado não tem
-`requirements` — os **21 desafios legados saem com 21 GAPs declarados** no `requirements` da trilha
-(dívida medida: `112 - 20 = 92` desafios novos com bijeção completa, 21 com gap).
+Campos aditivos opcionais (docs/16 §10): `notRequired[]`, `subgoals[]`, `foraDeEscopo`.
 
-- A função do desafio é derivada do slug (**kebab → snake_case**: `dobro-do-numero` →
-  `dobro_do_numero`; **nunca** camelCase).
-- **2–4 testes** por desafio de aula; **todo método `test_*` carrega docstring de uma linha em
-  pt-BR** — é o rótulo do check no veredito (`unittest -v` imprime a docstring abaixo do id;
-  sem ela o aluno leria `test_imprime_oi`, que é ruído).
-- Proibições **sempre** (lista literal de `PY_FORBIDDEN_INVARIANTS`, `lang/python.ts:617`):
-  `global:eval` · `global:exec` · `global:compile` · `global:__import__` · `global:globals` ·
-  `global:locals` · `global:vars` · `api:importlib.import_module` ·
-  `node:ComputedNonLiteralAttribute` · `node:DynamicAttributeHook`. Em **qualquer** superfície:
-  statement, starter, teoria, solução, teste. Só em prosa com crase, nunca em bloco cercado.
+- A função do desafio é derivada do slug, **na convenção da língua** (§6): `dobro-do-numero` →
+  `dobro_do_numero` (Python, Rust) · `dobroDoNumero` (C, docs/20).
+- **2–4 testes** por desafio de aula; **todo teste carrega um rótulo de uma linha em pt-BR** — é a
+  legenda que o veredito mostra ao aluno (docstring em Python, nome + rótulo do `checa_*` em C,
+  nome do `#[test]` em Rust).
+- As **proibições globais** são por língua e valem em QUALQUER superfície (statement, starter,
+  teoria, solução, teste) — lista e motivo em §6. Elas aparecem só em prosa com crase, nunca em
+  bloco cercado.
 
 ### 2.1 `requirements[]` — bijeção 1:1 com os testes
 
-O campo é um **array de objetos** `{id, teste, descricao}`; **string solta é ignorada e vira gap**
-(medido). Um por método `test_*`, `teste` = o nome exato do método. Exemplo real (`ordenar`):
+Array de **objetos** `{id, teste, descricao}`; **string solta é ignorada e vira gap** (medido). Um
+por teste, `teste` = o nome exato do teste no arquivo.
 
 ```json
 "requirements": [
-  { "id": "test_ordem_crescente_devolve_a_lista_em_ordem",
-    "teste": "test_ordem_crescente_devolve_a_lista_em_ordem",
-    "descricao": "ordem_crescente devolve a lista em ordem crescente" }
+  { "id": "REQ-1",
+    "teste": "testa_dobro_positivo",
+    "descricao": "A função dobro deve devolver 4 quando chamada com 2." }
 ]
 ```
 
-Fonte normativa: `derivarRequirements` lê os `test('…')`/`def test_...` do **arquivo de teste** (não
-da solução nem do enunciado) e `validarRequirements` confere a bijeção nos dois sentidos — gap
-`sempre` `testesSemRequirement`. Na trilha o placar real medido: **113 desafios · 92 bijeção
-completa · 21 com gap** (os legados de `a-tela`), `requirements` sai **1** — e o `audit` continua 0.
+`derivarRequirements` lê os testes do **arquivo de teste** (não da solução nem do enunciado) e
+`validarRequirements` confere a bijeção nos dois sentidos: gap `semTeste` (declarado sem teste) e
+gap `testesSemRequirement` (teste sem declaração). Comando: `npm run engine -- requirements <slug>`
+(**sem** `--limite` — ver `validacao.md` §3).
 
-## 3. As TRÊS fases de canal — o formato exato do arquivo de teste
+## 3. As TRÊS fases de canal — a progressão que não se inverte
 
-A progressão é pedagógica e **não se inverte** (docs/17, "A tensão imprimir × devolver"): inverter
-troca o modo de falha nº 1 de exercício gerado — solução imprime enquanto o teste espera retorno
-(30,9% medido — docs/16 §10) — por uma concepção errada sobre `print` × `return`.
+`outputChannel` é o mesmo enum nas três línguas, e a progressão é pedagógica: **impressão →
+`ambos` → retorno**. Inverter troca o modo de falha nº 1 de exercício gerado (solução imprime
+enquanto o teste espera retorno — 30,9% medido, docs/16 §10) por uma concepção errada sobre
+imprimir × devolver.
 
-### FASE SAÍDA (`outputChannel: "impressao"`, M1–M3) — o arquivo é `frozenRegion` inteira
+| Fase | `outputChannel` | O que o teste mede | Onde está a forma exata |
+|---|---|---|---|
+| SAÍDA | `"impressao"` | o que o programa IMPRIME (captura de `stdout`) | §6, arquivo da língua |
+| A VIRADA | `"ambos"` | os TRÊS fatos: devolve · imprime · chamar sozinha não imprime | §6, arquivo da língua |
+| VALOR | `"retorno"` | o que a função DEVOLVE | §6, arquivo da língua |
 
-O aluno lê, nunca edita. Captura `stdout` com `runpy.run_path` (roda o arquivo **do zero a cada
-chamada** — o `import` só executa na primeira vez e o segundo teste leria saída vazia) +
-`io.StringIO` + `contextlib.redirect_stdout`. O arquivo do aluno é um **script**, sem função.
-Exemplo real (`a-tela/a-primeira-linha/challenges/escreva-oi`):
+A virada é **uma aula própria** em cada trilha, e o desafio dela tem os três fatos no mesmo
+arquivo (`expectedTestCount: 3`).
 
-```python
-import contextlib
-import io
-import runpy
-import unittest
+## 4. A regra do par — agora é um CAMPO, não uma interpretação
 
+Uma construção quase nunca produz uma única chave. Medido com o extrator real (§5):
 
-def rodar():
-    """Roda solucao.py do zero e devolve tudo o que ele imprimiu."""
-    saida = io.StringIO()
-    with contextlib.redirect_stdout(saida):
-        runpy.run_path("solucao.py")
-    return saida.getvalue()
-
-
-class TestAPrimeiraLinha(unittest.TestCase):
-    def test_imprime_oi(self):
-        """o programa imprime oi"""
-        self.assertEqual(rodar(), "oi\n")
-```
-
-- **Não existe** `if __name__ == "__main__": unittest.main()` no arquivo: o runner é
-  `unittest discover`, que **nunca** executa esse bloco; deixá-lo faria o aluno ler `if`, `==` e
-  `__name__` sem papel nenhum (4 construções receptivas a mais, de graça).
-- **Por que `runpy.run_path` e não `importlib.import_module`**: `api:importlib.import_module` está
-  em `PY_FORBIDDEN_INVARIANTS` — importar por nome montado em runtime faz o gate mentir.
-
-### A VIRADA (`outputChannel: "ambos"` — M4, aula `imprimir-nao-e-devolver`) — TRÊS asserts
-
-O mesmo desafio mede três fatos diferentes: o que a caixa **devolve**, o que o programa **imprime**,
-e que **chamar a caixa sozinha não imprime nada** (o `print` da última linha é quem imprime).
-Exemplo real (`caixas-que-devolvem/imprimir-nao-e-devolver/challenges/devolver-e-imprimir`,
-`expectedTestCount: 3`):
-
-```python
-def test_devolve_a_saudacao(self):
-    """a caixa devolve a saudacao"""
-    self.assertEqual(saudacao("Ana"), "oi, Ana")
-
-def test_imprime_a_saudacao(self):
-    """o programa imprime a saudacao"""
-    self.assertEqual(rodar(), "oi, Ana\n")
-
-def test_chamar_sozinha_nao_imprime(self):
-    """chamar a caixa sozinha nao imprime nada"""
-    buffer = io.StringIO()
-    with contextlib.redirect_stdout(buffer):
-        saudacao("Bia")
-    self.assertEqual(buffer.getvalue(), "")
-```
-
-### FASE VALOR (`outputChannel: "retorno"`, da virada em diante) — `from solucao import X`
-
-```python
-import unittest
-
-from solucao import dobro
-
-
-class TestDobro(unittest.TestCase):
-    def test_dobro_de_2(self):
-        """o dobro de 2 e 4"""
-        self.assertEqual(dobro(2), 4)
-```
-
-**Medido no extrator real:** `from solucao import dobro` **não emite** `api:` nenhuma (o módulo do
-aluno não é API — o import do módulo do aluno não gera chave, análogo ao import relativo do JS;
-corrigido nesta execução). Variações legítimas vistas no disco: o teste pode importar com
-`from solucao import x` (ex.: `juntar-numa-string`) ou rodar o arquivo com `runpy.run_path` e
-indexar o dicionário (`rodar()["ordem_crescente"]`, ex.: `ordenar`) — o `runpy` também serve à fase
-VALOR quando o teste quer o arquivo inteiro.
-
-### Regras do arquivo de teste (todas medidas)
-
-- `tests/__init__.py` obrigatório (exit-guard; sem ele nada roda).
-- Runner: `python3 -B -m unittest discover -s tests -t . -p 'test_*.py' -v` — exit **0** passou ·
-  **1** falhou · **5** nada rodou. Medido no docs/17: starter (só comentário) → exit 1; stub vazio
-  (0 bytes) → exit 1; sem `tests/__init__.py` → `ImportError`; diretório sem `test_*.py` →
-  `NO TESTS RAN` / exit 5.
-- **Antes da aula `levantar-um-erro` (M9)**, os cenários possíveis são `example` e `boundary`;
-  cenário `error` só existe se o orçamento tem a construção de levantar erro (A11 — foi a causa-raiz
-  do desafio impossível da aula 1 da trilha legada).
-- **Antes da aula `abrir-um-arquivo` (M11)**, teste que espera erro usa a **forma de chamada**
-  `self.assertRaises(ValueError, dividir, 1, 0)` — **nunca** o gerenciador de contexto:
-  `with self.assertRaises(...)` emite `node:With` + `node:withitem`, que A3 reprovaria no orçamento
-  de entrada. A partir de M11 as duas formas são legítimas; o harness de M9–M10 usa a forma de
-  chamada (regra declarada no docs/17).
-- Em M20/M21, toda função enviada a processo é **função de módulo**, nunca `lambda` nem closure (o
-  `forkserver` — padrão do 3.14 no Linux, medido — referencia o alvo por importação; `lambda`
-  levantaria `PicklingError`).
-- Cada teste falha com o starter e passa com a solução; `expectedTestCount` = nº exato.
-
-## 4. A regra do par — como contar "construções produtivas novas"
-
-Uma construção quase nunca produz uma única chave. Medido no extrator real:
-
-```
-printf 'x += 1\n' | python3 -I -S app/electron/main/engine/vocab/py/extract_ast.py
-# → decl:aug · node:AugAssign · op:aug:+ · node:IntLiteral   (TRÊS chaves para UM gesto)
-```
-
-E A7/I2 limitam `introduces.productive` a **2 itens**. A resolução é normativa no docs/17:
-
-> A tabela `Ensina` lista só a chave que **DISTINGUE**. O gerador de `introduces` acrescenta as
-> chaves que a mesma construção produz inevitavelmente, e o conjunto conta como **UM item** para
-> A7/I2.
-
-As derivadas **não** são origem para efeito de I3 (quem registra primeiro fica com elas). O mapa é
-fechado e mecânico (fonte: docs/17, verificador Ensina × Presume — 14 derivados na cadeia):
-
-| Chave listada em `Ensina` | Derivadas que a mesma construção produz |
+| Trecho | Chaves não-estruturais, na MESMA linha |
 |---|---|
-| `decl:assign`, `decl:unpack` | `node:Assign` |
-| `decl:ann` | `node:AnnAssign` |
-| `decl:aug`, `op:aug:<qualquer>` | `node:AugAssign` |
-| `decl:walrus` | `node:NamedExpr` |
-| `decl:global` | `node:Global` |
-| `decl:nonlocal` | `node:Nonlocal` |
-| `decl:except-as` | `node:ExceptHandler` |
-| `op:binary:<qualquer>` | `node:BinOp` |
-| `op:bool:<qualquer>` | `node:BoolOp` |
-| `op:unary:<qualquer>` | `node:UnaryOp` |
-| `op:compare:<qualquer>` | `node:Compare` |
-| `node:With`, `node:AsyncWith` | `node:withitem` |
-| `node:ListComp`, `node:SetComp`, `node:DictComp`, `node:GeneratorExp` | `node:comprehension` |
-| `node:Match` | `node:match_case` |
-| `node:Lambda`, `node:FunctionDef` | `node:arg` só quando a aula é a de parâmetro; senão nada |
+| `print("bom dia")` (python) | `global:print` · `node:Call` · `node:StrLiteral` |
+| `printf("oi\n");` (c) | `api:printf` · `node:CallExpr` · `node:StringLiteral` |
+| `x * 2` (rust) | `op:binary:*` · `node:BinaryExpression` · `node:IntegerLiteral` |
 
-## 5. As chaves sintéticas reais do adaptador Python — as ÚNICAS que existem
+O contrato sempre disse que "a chave que DISTINGUE + as derivadas que a mesma construção produz
+inevitavelmente contam como UM item". Até 2026-09-22 isso era **prosa**: quem colapsava era o
+parágrafo. Agora o colapso se **declara** no campo aditivo `introduces.derived` e o gate **A23** o
+confere no disco.
 
-O `ast` do Python colapsa distinções que são evento de currículo; o adaptador refina
-(fonte: `vocab/py/extract_ast.py`, `_sinteticos` e `_LITERAL_NODE`; docs/17):
-
-| O que a aula precisa distinguir | Chave REAL emitida |
-|---|---|
-| número · texto · booleano · `None` · decimal · bytes · `...` | `node:IntLiteral`, `node:StrLiteral`, `node:BoolLiteral`, `node:NoneLiteral`, `node:FloatLiteral`, `node:BytesLiteral`, `node:ComplexLiteral`, `node:EllipsisLiteral` — **nunca** `node:Constant` cru |
-| `elif` × `else:` + `if` (só o `col_offset` difere) | `node:Elif` |
-| `if` com `else` × sem | `node:IfElse` |
-| `for`/`while` com `else` | `node:ForElse`, `node:WhileElse` |
-| `try` com `finally` | `node:Finally` |
-| `except ValueError as e` | `decl:except-as` |
-| `*args` · `**kwargs` · parâmetro com padrão | `decl:vararg`, `decl:kwarg`, `decl:default` |
-| decorador (`@deco` — não é nó, vive em `decorator_list`) | `node:Decorator` |
-| `a, b = 1, 2` | `decl:unpack` |
-| as outras formas de ligação | `decl:assign` · `decl:ann` · `decl:aug` · `decl:walrus` · `decl:global` · `decl:nonlocal` |
-| método × função | `node:MethodDef`; e os **dois** dunders refinados: `node:InitMethod`, `node:DunderStr` (os outros 14 protocolos são `MethodDef` para o gate — dívida declarada no docs/17) |
-| `int \| None` em anotação (emite também `op:binary:\|` + `node:BinOp`) | `node:OptionalAnnotation` |
-| comparador (um por operador de `a < b < c`) | `op:compare:<op>` |
-| referência livre a builtin, por escopo (`symtable`) | `global:<nome>` |
-| cadeia de atributo e import | `api:<caminho>` |
-| proibições indecidíveis | `node:ComputedNonLiteralAttribute`, `node:DynamicAttributeHook` |
-
-**Nove chaves INVENTADAS pela versão anterior que não existem** (cada uma produziria aula cujo
-orçamento nunca casaria, em silêncio): `node:ChainedCompare`, `node:ClassBase`, `node:ClassVar`,
-`node:ArgAnnotation`, `node:Returns`, `node:GenericAnnotation`, `node:ComprehensionIf`,
-`node:DunderEnter`, `node:DunderExit`. Os eixos `node:`/`op:`/`decl:`/`global:` são **FECHADOS** e
-validados por pertença estrita ao inventário `app/electron/main/engine/vocab/atoms.python.json`
-(medido: **632 chaves** = node 118 · op 42 · decl 11 · global 164 · api 297); `api:` é aberto só no
-formato. Nunca invente chave: rode o extrator real (§7) e use a chave EXATA emitida.
-
-## 6. A entrada da trilha — axioma, estruturais e a semente receptiva ATUAL
-
-Todo orçamento começa da entrada (docs/17, "Público e axioma de entrada").
-
-- **Axioma de entrada PRODUTIVO: duas chaves, e só duas** — `node:Call` (a gramática de "rodar")
-  e `node:StrLiteral` (a mensagem que o `print` mostra). Alargar o axioma é proibido: é o botão que
-  faz o gate perdoar em silêncio o que a trilha nunca ensinou. Medido: `print("oi")` →
-  `global:print` (a aula) + `node:Call` + `node:StrLiteral` (axioma). No disco, a aula 1 declara os
-  três em `introduces.productive` (divergência ⚑ contrato × disco, declarada no docs/17 — as duas
-  leituras passam no audit).
-- **Estruturais sempre permitidos** (`PYTHON_STRUCTURAL_ALWAYS_ALLOWED`, `atomKeys.ts:545`):
-  `node:Module` · `node:Name` · `node:Load` · `node:Store` · `node:Del` · `node:arguments` ·
-  `node:Expr` · `node:alias` · `node:keyword`. Contexto de expressão e container — não carregam
-  didática. Consequência: **`f(a=1)` (argumento nomeado) não introduz átomo nenhum** e é
-  obrigatoriamente consolidação — `node:keyword` é estrutural.
-- **Semente receptiva do harness Python ATUAL** (`PYTHON_HARNESS_RECEPTIVE_SEED`, `atomKeys.ts:490`
-  — já com as correções desta execução): o que o aluno LÊ em todo desafio e não escreve em nenhum.
-
-```
-node:Module  node:FunctionDef  node:arguments  node:arg  node:Return  node:Name
-node:Expr    node:Call         node:Attribute  node:Import  node:ImportFrom  node:alias
-node:ClassDef  node:MethodDef  node:IntLiteral  node:StrLiteral
-# fase SAÍDA — a captura de stdout:
-node:With  node:withitem  node:Assign  decl:assign
-# os módulos importados pelo harness, um por alias:
-api:unittest  api:io  api:contextlib  api:runpy
-# os membros que o harness chama:
-api:unittest.TestCase  api:io.StringIO  api:contextlib.redirect_stdout  api:runpy.run_path
-api:.getvalue  api:.assertEqual  api:.assertTrue  api:.assertIsNone  api:.assertRaises
-# fase VALOR — as asserções consertadas (onda 4); o `from solucao import X` NÃO emite api::
-api:.assertFalse  api:.assertNotEqual
+```json
+"introduces": {
+  "productive": ["global:print", "node:Call", "node:StrLiteral"],
+  "receptive": [],
+  "derived": [
+    { "chave": "node:Call", "de": "global:print" },
+    { "chave": "node:StrLiteral", "de": "global:print" }
+  ]
+}
 ```
 
-Ela entra no receptivo da aula 1 e **nunca** no produtivo. Dívida do contrato paga: `global:unittest`
-e `api:unittest.main` saíram (o `unittest` é importado → `api:unittest`; o bloco `__main__` foi
-removido) e as oito chaves da SAÍDA entraram.
+As quatro regras do campo (`engine/quality/barra.ts`, regra A23 — cada uma reprova com `ERRO
+[A23]`):
 
-## 7. Antes de escrever — a cadeia de conferências
+1. **Forma**: cada item é `{ "chave": "<atomo>", "de": "<atomo>" }`, as duas no formato de átomo.
+   Entrada malformada não é ignorada em silêncio: é erro.
+2. **Pai e filha declarados**: as DUAS têm de estar em `introduces.productive` desta aula — a regra
+   do par colapsa itens do mesmo declarado, não importa chave de fora.
+3. **Sem cadeia**: toda derivada aponta DIRETO para a chave que distingue. `A ← B ← C` é erro.
+4. **Co-ocorrência de LINHA**: tem de existir, em algum bloco de código da teoria DESTA aula, uma
+   linha em que a chave e o pai ocorrem juntas. É a medição de "a mesma construção produz
+   inevitavelmente". Sem co-ocorrência a chave **conta cheia** em A17 e A21.
 
-1. `introduces.productive` ≤ 2 (regra do par aplicada); `productive ⊆ receptive` (A7).
-2. Toda chave existe no inventário (eixos fechados) — em dúvida, rode o extrator real:
-   `printf 'SEU TRECHO\n' | python3 -I -S app/electron/main/engine/vocab/py/extract_ast.py` e use a
-   chave EXATA emitida (nunca inventar; o universo é `atoms.python.json`, 632 chaves). O extrator
-   roda sem node_modules — é Python puro com a stdlib.
-3. O que a aula cobra está demonstrado em bloco cercado da PRÓPRIA teoria (A13) e reaparece no
-   desafio (A6/J2); a primeira seção de teoria resolve o 1º desafio (A16).
-4. O teste usa só o orçamento de ENTRADA (A3) — releia o teste com os olhos do aluno pré-aula.
-5. Teste que **força** o átomo-alvo (P-CONTRA): ≥2 casos divergentes, esperados não-escalares,
-   meta EXCESSO 0. Padrões "não-crú" (não-literal) medidos no curso: valores computados
-   (`round(7 / 2, 1)`), visões `str(d.keys())`, conjuntos de 1 elemento, `hash(-1) == -2` —
-   **nunca** string crua de dict/set multi-elemento (o mínimo sintetizado acharia o literal).
-6. 2–3 `sources[]` oficiais com URL verificada (`curl -sI` → 200).
-7. Newline final em todo arquivo (gate-lint L-04; a lista trunca em 8 — varredura própria do
-   último byte quando houver dúvida).
+Efeito no teto: `A17` (≤2 produtivas novas) e `A21` (≤4 novas no total) contam **depois** do
+colapso. Um grupo de 5 chaves que nasce de um gesto só (a assinatura `pub fn dobro(x: i32) -> i32`
+emite `node:FunctionItem`, `node:Parameters`, `node:Parameter`, `node:PrimitiveType`,
+`node:VisibilityModifier` na MESMA linha) cabe numa aula **se** for declarado como um item; sem o
+campo, são 5 e a aula é penhasco.
 
-## 8. Medições das ondas 1–5 (2026-09-11) — regras de produção que já custaram caro
+Medido na trilha de referência: **5 aulas do `python-iniciante` declaram `derived`**
+(`grep -rl '"derived"' app/resources/tracks/python-iniciante --include=lesson.json | wc -l` → 5) e
+o curso fecha em **0 erros** na barra.
 
-- **Seções de teoria ≤ 560 chars MONTADOS** (markdown + cercas ```lang\ncode\n``` + explanation, o
-  que o tutor realmente digita). O teste `tests/lessonTypewriterReadingSpeed.test.ts` trava a
-  velocidade de leitura em 28 chars/s (7 tps) e o teto de paciência em **21 s por seção** → 21 × 28
-  = **588 chars**; o alvo de 560 deixa folga. Acima disso, **encurte a prosa — nunca remova a
-  demonstração da construção nova**.
-- **`for a, b in ...` emite `node:Tuple`** (medido no extrator). Enumerate/zip ensinam com
-  `for par in ...` + `par[0]`/`par[1]`; o desempacotamento (`decl:unpack`) é aula própria
-  (`abrir-a-tupla-em-nomes`).
-- **Receptor literal emite `api:str.join`** (medido: `"-".join(...)` → `api:str.join`), chave
-  diferente de `api:.join`. Na teoria e na solução, demonstre métodos com **receptor-nome**
-  (variável): `separador.join(itens)` → `api:.join` (`juntar-numa-string` faz exatamente isso).
-- **Consolidação re-declara o `targetAtom` em `introduces.productive`** (padrão medido no disco:
-  `mais-de-uma-linha → ['global:print']`; `imprimir-nao-e-devolver → ['node:Return',
-  'global:print']`) — é como A6 (puxar algo) e I3 (unicidade de ORIGEM, não de menção) convivem.
-  Consolidação sem degrau nomeado é aula que não ensina nada e o gate reclama.
-- **`op:compare:is not` / `not in` NÃO são declaráveis**: `ATOM_KEY_RE` (`atomKeys.ts:120`) é
-  `/^(node|decl|op|global|api|term|form):[^\s]+$/` — chave com espaço é descartada do `introduces`
-  em silêncio → lacuna no audit. O operador base (`is`, `in`) é produtivo; a negação **só em prosa
-  com crase** (é a regra normativa do docs/17; consertar a regex é decisão de engine para rodada
-  futura).
-- **`difficulty` 1..5** preencha pela rampa do grafo; nenhum gate pode lê-lo.
-- **O veredito por leitura é proibido**: a sequência de saída é `audit` 0 → `coverage` 0 → 
-  `requirements` bijeção → `track:validate`/`track:challenge:verify` (4 provas) → typewriter →
-  gates de repo (comandos e exits em `validacao.md`; o que cada vermelho significa em
-  `situacoes.md`).
+> Declarar `derived` para calar o gate é o mesmo defeito com outro nome: sem co-ocorrência, A23
+> reprova; com co-ocorrência, o colapso é verdade medida. Nunca invente pai.
+
+## 5. As demonstrações têm gate — A19 e A22
+
+**Declarar não é demonstrar** (A19, erro): toda chave nova de `introduces` — produtiva **e**
+receptiva — tem de aparecer em **bloco cercado com a tag da linguagem da trilha**, na teoria
+**desta** aula. As tags aceitas são as do adaptador (`theoryFenceTags`): `py`/`python`/`python3`,
+`rust`/`rs`, `c`. Bloco sem tag não é código para o extrator; crase inline é prosa.
+
+**Duas formas** (A22, aviso com contagem): cada chave produtiva nova aparece em **≥2 ocorrências
+sintaticamente distintas** nos blocos da aula (argumento literal *e* expressão composta; condição
+comparada *e* booleano pronto). Uma forma só faz o aluno induzir regra restrita demais.
+
+### 5.1 Como descobrir a chave EXATA que um trecho emite
+
+Nunca invente chave: rode o extrator da engine sobre o trecho literal. Forma curta (o trecho vai
+num *template literal* — escape `\n` como `\\n`, e use aspas duplas dentro):
+
+```bash
+cd /Volumes/Ext2TB/Projects/study-method/app && npx tsx -e 'import {extractAtoms} from "./electron/main/engine/extract"; const r = extractAtoms(`printf("oi\\n");`, {language:"c", surface:"theory"}); console.log(r.ok ? r.keys.join(" ") : "ERRO: " + r.error.message)'
+# → api:printf node:CallExpr node:DeclRefExpr node:StringLiteral
+```
+
+Forma à prova de aspas (o trecho vai num arquivo — use esta quando ele tiver aspas simples, crase
+ou várias linhas):
+
+```bash
+cat > "$TMPDIR/trecho.txt" <<'EOT'
+printf("oi\n");
+EOT
+cd /Volumes/Ext2TB/Projects/study-method/app && TRECHO="$TMPDIR/trecho.txt" npx tsx -e 'import fs from "node:fs"; import {extractAtoms} from "./electron/main/engine/extract"; const r = extractAtoms(fs.readFileSync(process.env.TRECHO!,"utf8"), {language:"c", surface:"theory"}); console.log(r.ok ? r.keys.join(" ") : "ERRO: " + r.error.message)'
+```
+
+Para a regra do par você precisa da **linha** de cada ocorrência — troque `extractAtoms` por
+`extractAllOccurrences`:
+
+```bash
+cd /Volumes/Ext2TB/Projects/study-method/app && npx tsx -e 'import {extractAllOccurrences} from "./electron/main/engine/extract"; const r = extractAllOccurrences(`print("bom dia")`, {language:"python", surface:"theory"}); if (r.ok) for (const o of r.occurrences) console.log(o.line, o.key);'
+# → 1 node:Expr · 1 node:Call · 1 node:Name · 1 node:Load · 1 global:print · 1 node:StrLiteral
+```
+
+Armadilha de shell medida: **crase dentro de string com aspas duplas do shell é substituição de
+comando**. O `npx tsx -e '...'` acima usa aspas SIMPLES por fora e crase por dentro de propósito.
+
+### 5.2 `surface: 'theory'` não é decoração — é o ENVELOPE DE FRAGMENTO
+
+Fato novo desta execução (`engine/extract.ts`, tabela `ENVELOPE_DE_FRAGMENTO`): em **C** e em
+**Rust** a teoria demonstra em FRAGMENTO (a aula 1 de C não pode mostrar `main`; a de Rust não pode
+mostrar a crate inteira), e fragmento **não parseia** sozinho. O extrator agora tenta o parse
+VERBATIM primeiro e, falhando, embrulha o fragmento num TU sintético — mas **só quando
+`surface: 'theory'`**. Sem isso o gate vê ZERO demonstração e A19 reprova a aula inteira:
+
+```
+extractAtoms('printf("oi\n");', {language:'c'})                     → ERRO clang (1:8): expected parameter declarator
+extractAtoms('printf("oi\n");', {language:'c', surface:'theory'})   → api:printf node:CallExpr node:StringLiteral
+extractAtoms('dobro(-3)', {language:'rust'})                        → ERRO erro de sintaxe: falta ;
+extractAtoms('dobro(-3)', {language:'rust', surface:'theory'})      → node:CallExpression node:IntegerLiteral node:UnaryExpression op:unary:-
+```
+
+Consequência para quem escreve teoria de C: o fragmento é embrulhado num CORPO DE FUNÇÃO, então ele
+precisa ser válido como corpo — um trecho que usa nome não declarado não parseia
+(`x = x + 1;` sozinho → `ERRO clang (1:1): type specifier missing`), e o conserto é declarar no
+mesmo bloco (`int x = 3;` + `x = x + 1;` → `decl:var node:BinaryOperator node:DeclStmt
+node:IntegerLiteral node:VarDecl op:assign:= op:binary:+`).
+
+## 6. O roteador da língua — leia o arquivo da SUA trilha
+
+A língua sai do `track.json` da trilha (`programmingLanguage`), nunca da conversa:
+
+```bash
+python3 -c "import json;print(json.load(open('app/resources/tracks/<slug>/track.json'))['programmingLanguage'])"
+```
+
+| `programmingLanguage` | Trilha no disco | Leia | Contrato de conteúdo |
+|---|---|---|---|
+| `python` | `python-iniciante` | `receita-da-aula-python.md` | `docs/17-trilha-python.md` |
+| `rust` | `rust-iniciante` | `receita-da-aula-rust.md` | `docs/20-trilha-rust.md` |
+| `c` | `c-iniciante` | `receita-da-aula-c.md` | `docs/20-trilha-c.md` · `skills/trilha-author/references/prova-c.md` |
+
+O número de aulas de cada trilha muda a cada onda de autoria — **meça, não cite de memória**
+(medido em 2026-09-22: python 112, c 115):
+
+```bash
+cd /Volumes/Ext2TB/Projects/study-method && python3 -c "import json, os; b='app/resources/tracks/<slug>'; t=json.load(open(b+'/track.json')); print(sum(len(json.load(open(os.path.join(b,'modules',m,'module.json')))['lessons']) for m in t['modules']))"
+```
+
+Cada arquivo de língua traz, na mesma ordem: **inventário e vocabulário** (onde está e como
+conferir pertença) · **axioma de entrada** · **semente receptiva do harness** · **forma do arquivo
+de teste, por fase** · **tetos medidos** · **armadilhas conhecidas do adaptador**.
+
+## 7. Antes de escrever — a cadeia de conferências (vale nas três línguas)
+
+1. A língua veio do `track.json`; a receita aberta é a DELA (§6).
+2. `introduces.productive` ≤ 2 depois do colapso, e o colapso está DECLARADO em `derived` (§4).
+3. Toda chave existe no inventário da língua — em dúvida, rode o extrator (§5.1) e use a chave
+   EXATA emitida.
+4. Toda chave nova tem demonstração em bloco cercado com a tag da língua NESTA aula (A19), e a
+   produtiva aparece em 2 formas distintas (A22).
+5. `|productive ∪ receptive|` ≤ 4 e seções de teoria ≥ max(2, ⌈novas/2⌉) (A21).
+6. A aula tem desafio (A20) e o teste **força** o átomo-alvo (P-CONTRA): ≥2 casos divergentes,
+   esperados não-escalares, meta EXCESSO 0 no `coverage`.
+7. O teste é legível com o orçamento de **ENTRADA** (A3) — o aluno lê o teste antes da aula.
+8. 2–3 `sources[]` oficiais com URL verificada (`curl -sI` → 200), do domínio da língua.
+9. Newline final em todo arquivo (gate-lint L-04).
+10. Estourou algum teto de A17/A21 e não existe aula anterior que ensine o que sobrou? **Não
+    amplie o `introduces`: quebre a aula** — `quebra-da-aula.md`, procedimento numerado.

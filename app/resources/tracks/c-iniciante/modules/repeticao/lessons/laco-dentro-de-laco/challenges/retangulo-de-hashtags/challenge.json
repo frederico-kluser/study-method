@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "retangulo-de-hashtags",
+  "title": "Retângulo de hashtags",
+  "concept": "laco_dentro_de_laco",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Retângulo de hashtags\n\nA função `retanguloDeHashtags` lê **dois** números inteiros digitados na mesma linha — primeiro a quantidade de linhas, depois a de colunas — e desenha um retângulo de `#`.\n\nO laço de fora já está no arquivo: ele conta as linhas e imprime a quebra de cada uma. Falta o laço DE DENTRO, aquele que escreve os `#` de uma linha.\n\nCom `3 4` digitado, a saída é exatamente:\n\n```text\n####\n####\n####\n```\n\nCom `1 2`, a saída é uma linha só:\n\n```text\n##\n```\n\nDica: o `#` sai com `printf(\"#\")`, sem `\\n` — a quebra de linha é trabalho do laço de fora.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* retanguloDeHashtags le dois inteiros (linhas e colunas) e desenha um\n   retangulo de #.\n   O laco de fora ja esta pronto: ele conta as linhas e imprime a quebra.\n   Falta o laco DE DENTRO, que escreve as marcas de uma linha. */\nvoid retanguloDeHashtags(void) {\n    int linhas = 0;\n    int colunas = 0;\n    scanf(\"%d %d\", &linhas, &colunas);\n\n    for (int linha = 1; linha <= linhas; linha++) {\n        /* escreva aqui o laco de dentro: colunas vezes o caractere # */\n\n        printf(\"\\n\");\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio retangulo-de-hashtags — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4).\n   Os dois desenhos tem tamanhos diferentes de proposito: um retangulo\n   escrito a mao no codigo passaria num cenario e reprovaria no outro. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid retanguloDeHashtags(void);\n\nSM_TEST(o_retangulo_3_por_4) {\n    /* o que a pessoa digita: 3 linhas e 4 colunas */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"3 4\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    retanguloDeHashtags();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"linha 1 de 3x4\", linha, \"####\\n\",\n              \"a linha 1 do retangulo tem 4 marcas\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 2 de 3x4\", linha, \"####\\n\",\n              \"a linha 2 do retangulo tem 4 marcas\");\n    fgets(linha, 80, f);\n    checa_str(\"linha 3 de 3x4\", linha, \"####\\n\",\n              \"a linha 3 do retangulo tem 4 marcas\");\n\n    /* a saida TERMINA na linha 3 — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em 3x4\", fim, \"(nada impresso)\",\n              \"com 3 e 4 o desenho acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_retangulo_1_por_2) {\n    /* o que a pessoa digita: 1 linhas e 2 colunas */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"1 2\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_2.tmp */\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    retanguloDeHashtags();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"linha 1 de 1x2\", linha, \"##\\n\",\n              \"a linha 1 do retangulo tem 2 marcas\");\n\n    /* a saida TERMINA na linha 1 — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em 1x2\", fim, \"(nada impresso)\",\n              \"com 1 e 2 o desenho e uma linha so, com duas marcas\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid retanguloDeHashtags(void) {\n    int linhas = 0;\n    int colunas = 0;\n    scanf(\"%d %d\", &linhas, &colunas);\n\n    for (int linha = 1; linha <= linhas; linha++) {\n        for (int coluna = 1; coluna <= colunas; coluna++) {\n            printf(\"#\");\n        }\n\n        printf(\"\\n\");\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_retangulo_3_por_4",
+      "teste": "o_retangulo_3_por_4",
+      "descricao": "com 3 e 4 digitados no stdin, retanguloDeHashtags desenha tres linhas de quatro marcas cada e nao imprime nenhuma linha extra"
+    },
+    {
+      "id": "o_retangulo_1_por_2",
+      "teste": "o_retangulo_1_por_2",
+      "descricao": "com 1 e 2 digitados no stdin, a mesma funcao desenha uma linha so com duas marcas — o desenho muda de tamanho com os dois numeros, o que prova que ele vem dos dois lacos"
+    }
+  ]
+}

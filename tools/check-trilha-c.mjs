@@ -3,7 +3,17 @@
 // Verificação executável Ensina × Presume do docs/20-trilha-c.md (onda 2;
 // inventário re-congelado na onda 4 contra o adaptador medido das ondas 3–4).
 //
-// Node puro (sem libs). Uso:  node tools/check-trilha-c.mjs [caminho-do-doc]
+// Node puro (sem libs). Uso:
+//   node tools/check-trilha-c.mjs [caminho-do-doc] [--so-doc] [--disco DIR]
+//
+// DUAS METADES, e a segunda nasceu porque a primeira mentia sozinha (medido em
+// 2026-09-22): com 113 das 115 aulas do disco em ESQUELETO — teoria placeholder,
+// zero quiz, zero desafio — este script imprimia "VERDE" porque lia exatamente
+// UM arquivo: o próprio documento. Contrato conferido contra si mesmo não é
+// gate. Agora:
+//   (1) DOC   — o contrato consigo mesmo (I12/LACUNA/VOCAB/A7/A6/ESTRUTURA);
+//   (2) DISCO — o contrato contra `app/resources/tracks/c-iniciante` (D1-D7).
+// `--so-doc` volta ao comportamento antigo, e é o único jeito de pular o disco.
 //
 // O que reprova (docs/20 §"A verificação"):
 //   I12    — slug de aula repetido no mesmo curso
@@ -32,15 +42,21 @@
 // (congelado) — este script é o guard executável do mesmo contrato.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptDir, '..');
-const docPath = process.argv[2]
-  ? resolve(process.argv[2])
-  : join(repoRoot, 'docs', '20-trilha-c.md');
+const argv = process.argv.slice(2);
+const soDoc = argv.includes('--so-doc');
+const idxDisco = argv.indexOf('--disco');
+const posicionais = argv.filter((a, i) => !a.startsWith('--') && i !== idxDisco + 1);
+const docPath = posicionais[0] ? resolve(posicionais[0]) : join(repoRoot, 'docs', '20-trilha-c.md');
+const discoDir =
+  idxDisco >= 0 && argv[idxDisco + 1]
+    ? resolve(argv[idxDisco + 1])
+    : join(repoRoot, 'app', 'resources', 'tracks', 'c-iniciante');
 
 // ── O inventário CONGELADO (fonte: cInventory() de lang/c.ts) ────────────────
 // 34 kinds — os 28 da onda 2 + os 6 medidos na onda 3 (RecordDecl, MemberExpr,
@@ -126,6 +142,43 @@ function extractKeys(ensinaCell, vocab) {
   }
   // 3. dedupe preservando a ordem.
   return [...new Set(found)];
+}
+
+/**
+ * As chaves que a célula `Ensina` realmente INTRODUZ — o insumo de D6.
+ *
+ * Diferente de `extractKeys` (que alimenta A7/VOCAB e conta o TETO DO PASSO):
+ * aqui saem também as chaves qualificadas como **"em forma nova"**, que é a
+ * convenção do doc para "esta chave JÁ foi ensinada e reaparece noutra forma".
+ * Medido em 2026-09-22 na aula 20 do M1 (`uma-letra-e-um-numero`): a célula diz
+ * "`node:CharacterLiteral` (a letra que é número; `decl:var` **em forma nova**: o
+ * tipo `char` …)" e o `lesson.json` declara SÓ o `node:CharacterLiteral` — e está
+ * certo, porque `decl:var` nasceu na aula 7 e re-declará-la diria que ela é nova.
+ * Sem este filtro, D6 acusaria a aula correta.
+ *
+ * A janela é de 80 caracteres DEPOIS do fechamento da crase da chave: a
+ * qualificação, na escrita do doc, vem sempre colada na chave que ela qualifica.
+ */
+function chavesIntroduzidas(ensinaCell, vocab) {
+  const todas = extractKeys(ensinaCell, vocab);
+  if (!/em forma nova/.test(ensinaCell)) return todas;
+  return todas.filter((key) => {
+    let from = 0;
+    let achou = false;
+    for (;;) {
+      const i = ensinaCell.indexOf(key, from);
+      if (i < 0) break;
+      achou = true;
+      const janela = ensinaCell.slice(i + key.length, i + key.length + 80);
+      if (!/em forma nova/.test(janela)) return true; // esta menção INTRODUZ
+      from = i + key.length;
+    }
+    // Chave cuja ÚNICA menção (ou todas elas) vem qualificada como "em forma
+    // nova" NÃO é introduzida aqui. `achou === false` só acontece se a chave
+    // veio de um span que o texto cru não contém — nesse caso mantém, porque o
+    // silêncio favorece o check e não o conteúdo.
+    return !achou;
+  });
 }
 
 function parseDoc(text) {
@@ -274,17 +327,121 @@ for (const mod of modules) {
   }
 }
 
+// ── (2) A METADE DO DISCO — D1-D7 ────────────────────────────────────────────
+//
+// O que cada regra reprova, e por que ela existe (cada uma nasceu de um defeito
+// MEDIDO no dia 2026-09-22, não de imaginação):
+//   D1 aula do doc que não existe no disco
+//   D2 aula no disco que o doc não declara
+//   D3 ordem do `lessons[]` do module.json diferente da ordem da tabela do doc
+//   D4 aula sem desafio — o defeito que deixava o aluno CONCLUIR 113 aulas vazias
+//      em 113 cliques (o app não bloqueia a conclusão de aula sem desafio)
+//   D5 aula ESQUELETO: nenhum bloco cercado com tag `c` na teoria, ou a teoria é
+//      o placeholder de autoria (o aluno lia nota interna do repositório)
+//   D6 chave que o doc declara em `Ensina` e o disco não declara em `introduces`
+//   D7 módulo que o doc lista e o disco não tem (ou o contrário)
+const disco = { rodou: false, aulas: 0, esqueletos: 0, semDesafio: 0 };
+if (!soDoc) {
+  const trackJson = join(discoDir, 'track.json');
+  if (!existsSync(trackJson)) {
+    err('D7', 0, `--disco ${discoDir} não tem track.json (use --so-doc para conferir só o documento)`);
+  } else {
+    disco.rodou = true;
+    const track = JSON.parse(readFileSync(trackJson, 'utf8'));
+    const modulosNoDisco = Array.isArray(track.modules) ? track.modules : [];
+    const modulosNoDoc = modules.map((m) => m.slug);
+    for (const slug of modulosNoDoc) {
+      if (!modulosNoDisco.includes(slug)) err('D7', 0, `módulo \`${slug}\` está no doc e não no track.json`);
+    }
+    for (const slug of modulosNoDisco) {
+      if (!modulosNoDoc.includes(slug)) err('D7', 0, `módulo \`${slug}\` está no track.json e não no doc`);
+    }
+
+    for (const mod of modules) {
+      const modDir = join(discoDir, 'modules', mod.slug);
+      const modJson = join(modDir, 'module.json');
+      if (!existsSync(modJson)) {
+        err('D7', mod.line, `módulo \`${mod.slug}\` sem module.json no disco`);
+        continue;
+      }
+      const meta = JSON.parse(readFileSync(modJson, 'utf8'));
+      const noDisco = Array.isArray(meta.lessons) ? meta.lessons : [];
+      const noDoc = mod.lessons.map((l) => l.slug);
+
+      // D3 — a ordem é conteúdo: o orçamento cumulativo é uma dobra sobre ela.
+      if (noDisco.join(',') !== noDoc.join(',')) {
+        const faltando = noDoc.filter((s) => !noDisco.includes(s));
+        const sobrando = noDisco.filter((s) => !noDoc.includes(s));
+        if (faltando.length > 0) err('D1', mod.line, `módulo \`${mod.slug}\`: aula(s) do doc ausente(s) do module.json: ${faltando.join(', ')}`);
+        if (sobrando.length > 0) err('D2', mod.line, `módulo \`${mod.slug}\`: aula(s) no module.json que o doc não declara: ${sobrando.join(', ')}`);
+        if (faltando.length === 0 && sobrando.length === 0) {
+          err('D3', mod.line, `módulo \`${mod.slug}\`: a ORDEM do module.json difere da tabela do doc (doc: ${noDoc.join(' → ')})`);
+        }
+      }
+
+      for (const lesson of mod.lessons) {
+        const lessonJson = join(modDir, 'lessons', lesson.slug, 'lesson.json');
+        if (!existsSync(lessonJson)) {
+          err('D1', lesson.line, `aula \`${mod.slug}/${lesson.slug}\` não existe no disco`);
+          continue;
+        }
+        disco.aulas++;
+        const L = JSON.parse(readFileSync(lessonJson, 'utf8'));
+
+        // D5 — esqueleto. Duas assinaturas: o summary de autoria e a ausência de
+        // qualquer bloco cercado com tag `c` na teoria.
+        const teoria = Array.isArray(L.theory) ? L.theory : [];
+        const markdown = teoria.map((s2) => String(s2.markdown ?? '')).join('\n');
+        const temBlocoC = /```c\b/.test(markdown);
+        const ehPlaceholder = String(L.summary ?? '').startsWith('Aula em esqueleto');
+        if (ehPlaceholder || !temBlocoC) {
+          disco.esqueletos++;
+          err('D5', lesson.line, `aula \`${mod.slug}/${lesson.slug}\` é ESQUELETO no disco (${ehPlaceholder ? 'summary de autoria' : 'nenhum bloco cercado com tag c na teoria'}) — o aluno leria nota interna do repositório no lugar da aula`);
+        }
+
+        // D4 — aula sem desafio não é aula (o app não bloqueia a conclusão dela).
+        const desafios = Array.isArray(L.challenges) ? L.challenges : [];
+        if (desafios.length === 0) {
+          disco.semDesafio++;
+          err('D4', lesson.line, `aula \`${mod.slug}/${lesson.slug}\` sem desafio (challenges[] vazio)`);
+        }
+        for (const ch of desafios) {
+          const chJson = join(modDir, 'lessons', lesson.slug, 'challenges', ch, 'challenge.json');
+          if (!existsSync(chJson)) err('D4', lesson.line, `aula \`${mod.slug}/${lesson.slug}\` declara o desafio \`${ch}\` e ele não existe no disco`);
+        }
+
+        // D6 — a chave do doc tem de estar declarada no disco. O contrário NÃO
+        // é erro: o disco declara também as DERIVADAS da regra do par
+        // (`introduces.derived`), que a célula do doc resume em prosa.
+        const declaradas = new Set([
+          ...(L.introduces?.productive ?? []),
+          ...(L.introduces?.receptive ?? []),
+        ]);
+        for (const key of chavesIntroduzidas(lesson.ensina, vocab)) {
+          if (!isValidKey(key, vocab)) continue; // já reportado por VOCAB
+          if (!declaradas.has(key)) {
+            err('D6', lesson.line, `aula \`${mod.slug}/${lesson.slug}\`: o doc declara \`${key}\` em Ensina e o lesson.json não o declara em introduces`);
+          }
+        }
+      }
+    }
+  }
+}
+
 // ── Veredito ──────────────────────────────────────────────────────────────────
 const totalAulas = modules.reduce((n, m) => n + m.lessons.length, 0);
 if (errors.length > 0) {
   console.error(`✗ check-trilha-c: ${errors.length} problema(s) em ${docPath}\n`);
   for (const e of errors) console.error('  ' + e);
   console.error(`\naulas: ${totalAulas} · chaves contadas: ${countableTotal} · consolidações: ${consolidated} · células pendentes: ${pendingCells}`);
+  if (disco.rodou) console.error(`disco (${discoDir}): ${disco.aulas} aulas lidas · ${disco.esqueletos} esqueleto(s) · ${disco.semDesafio} sem desafio`);
   process.exit(1);
 }
 
 console.log(`✓ check-trilha-c: VERDE`);
+console.log(`  metades rodadas: doc${disco.rodou ? ' + DISCO (' + discoDir + ')' : ' SÓ (--so-doc: o disco NÃO foi conferido)'}`);
 console.log(`  módulos: ${modules.length} · aulas: ${totalAulas} (esperado 115)`);
+if (disco.rodou) console.log(`  disco: ${disco.aulas} aulas lidas · ${disco.esqueletos} esqueleto(s) · ${disco.semDesafio} sem desafio`);
 console.log(`  chaves congeladas contadas: ${countableTotal} · consolidações: ${consolidated}/${totalAulas} · células [pendente:]: ${pendingCells}`);
 console.log(`  inventário: ${NODE_KINDS.length} kinds node: · decl: ${DECL_KINDS.join('/')} · op:assign ${OP_FAMILIES.assign.length} ops · op:binary ${OP_FAMILIES.binary.length} ops · op:logical ${OP_FAMILIES.logical.length} ops · op:unary ${OP_FAMILIES.unary.length} ops · op:update ${OP_FAMILIES.update.length} ops · global: ${GLOBALS.length} · api: eixo aberto`);
 if (warn.length > 0) {

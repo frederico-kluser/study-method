@@ -2,23 +2,126 @@
   "schemaVersion": 1,
   "slug": "contando-iguais",
   "title": "Contando iguais",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Contar não é somar: um contador que começa em zero, um for que passa por todas as gavetas e um if que faz a pergunta — e o contador cresce só dentro do if.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "contando_iguais"
+  ],
   "prerequisites": [
     "varrer-a-lista",
     "se"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr",
+      "op:binary:=="
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a varredura da lista deixa de só mostrar ou somar: cada gaveta passa a responder uma pergunta, e o programa guarda QUANTAS responderam sim",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-contador-e-uma-pergunta",
+      "title": "Um contador e uma pergunta por gaveta",
+      "markdown": "Contar não é somar. Somar acumula o VALOR de cada gaveta; contar acumula **1**, e só quando a gaveta responde sim à pergunta.\n\nA forma tem três peças: um contador que começa em zero, o `for` que passa por todas as gavetas e o `if` que pergunta.\n\n```c\nint notas[6] = {7, 5, 10, 6, 4, 10};\nint total = 0;\nfor (int i = 0; i < 6; i++) {\n    if (notas[i] == 10) {\n        total += 1;\n    }\n}\nprintf(\"%d\\n\", total);\n```\n\n```text\n2\n```\n\nDuas gavetas valem 10, então o contador terminou em **2** — não em 20."
+    },
+    {
+      "id": "so-dentro-do-if",
+      "title": "O contador cresce só dentro do if",
+      "markdown": "O `total += 1;` está DENTRO das chaves do `if`. Tirá-lo de lá troca a conta:\n\n```c\nint placar[6] = {7, 5, 10, 6, 4, 10};\nint voltas = 0;\nfor (int i = 0; i < 6; i++) {\n    if (placar[i] == 10) {\n        printf(\"achei\\n\");\n    }\n    voltas += 1;\n}\nprintf(\"%d\\n\", voltas);\n```\n\n```text\nachei\nachei\n6\n```\n\nAgora ele conta VOLTAS do laço, não acertos: deu 6, o tamanho da lista. Quem decide se o contador cresce são as chaves do `if` — a indentação não manda nada."
+    },
+    {
+      "id": "a-mesma-forma-outra-pergunta",
+      "title": "A mesma forma, outra pergunta",
+      "markdown": "Trocar o `==` por `>=` muda o que se conta, e mais nada:\n\n```c\nint notas[6] = {7, 5, 10, 6, 4, 9};\nint aprovados = 0;\nfor (int i = 0; i < 6; i++) {\n    if (notas[i] >= 6) {\n        aprovados += 1;\n    }\n}\nprintf(\"%d\\n\", aprovados);\n```\n\n```text\n4\n```\n\n`7`, `10`, `6` e `9` alcançaram o corte; `5` e `4` não. O `==` conta os iguais, o `>=` conta os que alcançaram.\n\nOnde a forma quebra: o contador não sabe QUAIS gavetas responderam sim — só quantas."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-contador-cresce-so-dentro-do-if",
+      "statement": "O contador cresce SÓ dentro do `if`.",
+      "question": "Numa lista de 6 gavetas, o `total += 1;` foi escrito FORA das chaves do `if`. Quanto `total` vale no fim do laço?",
+      "options": [
+        "6 — ele passou a contar voltas do laço, não acertos.",
+        "2 — ele continua contando só as gavetas que valem 10.",
+        "0 — fora das chaves do `if`, aquela linha não roda.",
+        "1 — ele cresce uma vez só, quando o laço termina."
+      ],
+      "answerIndex": 0,
+      "feedback": "Fora do `if`, a linha roda em toda volta: o contador passa a medir o tamanho da lista. Quem decide se ele cresce são as chaves do `if`, não a indentação.",
+      "sectionId": "so-dentro-do-if",
+      "optionRationales": [
+        "A linha passou a rodar em toda volta do `for`: seis voltas, seis somas.",
+        "Contar acertos exige a linha DENTRO das chaves do `if`; ali fora ela ignora a pergunta.",
+        "Ela roda, e mais do que antes: nada no `for` impede a linha seguinte ao `if`.",
+        "O `for` não guarda a soma para o fim: cada volta executa o corpo inteiro."
+      ]
+    },
+    {
+      "id": "contar-nao-e-somar",
+      "statement": "Contar acumula 1 por acerto; somar acumula o valor da gaveta.",
+      "question": "Na lista `{7, 5, 10, 6, 4, 10}`, o contador de gavetas iguais a 10 termina em quanto?",
+      "options": [
+        "2 — são duas gavetas com 10.",
+        "20 — é a soma dos dois dez.",
+        "10 — é o valor que estava sendo procurado.",
+        "6 — é o tamanho da lista inteira."
+      ],
+      "answerIndex": 0,
+      "feedback": "O contador ganha `1` por gaveta que responde sim, nunca o valor dela. Duas gavetas valem 10, então o resultado é 2.",
+      "sectionId": "um-contador-e-uma-pergunta",
+      "optionRationales": [
+        "Cada acerto vale `1` no contador, e houve dois acertos.",
+        "20 sairia de `total += notas[i];` — isso é somar, não contar.",
+        "10 é o valor procurado, não a quantidade de vezes que ele apareceu.",
+        "6 sairia de um contador fora do `if`, que conta voltas em vez de acertos."
+      ]
+    },
+    {
+      "id": "igual-ou-alcancou",
+      "statement": "`==` conta os iguais; `>=` conta os que alcançaram o corte.",
+      "question": "Para contar quantas notas de `{7, 5, 10, 6, 4, 9}` chegaram a 6, qual pergunta vai dentro do `if`?",
+      "options": [
+        "`notas[i] >= 6`",
+        "`notas[i] == 6`",
+        "`notas[i] >= i`",
+        "`i >= 6`"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"Chegou a 6\" inclui o próprio 6 e tudo acima dele: é `>=`. Com `==` você contaria só as notas exatamente iguais a 6 — neste caso, uma.",
+      "sectionId": "a-mesma-forma-outra-pergunta",
+      "optionRationales": [
+        "`>=` aceita o 6 e tudo acima: 7, 10, 6 e 9 alcançaram o corte.",
+        "`==` acerta só o 6 exato e deixaria 7, 10 e 9 de fora.",
+        "`i` é o número da gaveta, não a nota: comparar os dois não responde nada.",
+        "Isso pergunta pelo número da gaveta, não pela nota guardada nela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array subscript — a referência oficial do operador de índice",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `[]`: como o índice escolhe o elemento do array, para ler e para escrever."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `==`, `!=`, `>=` e companhia: o que cada comparação devolve em C."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`: o que entra na condição e qual bloco roda quando ela é verdadeira."
+    }
+  ],
+  "challenges": [
+    "quantos-aprovados"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

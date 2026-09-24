@@ -38,18 +38,18 @@
       "statement": "A função que transforma recebe String por valor e devolve uma String nova.",
       "question": "Em `transformar(texto: String) -> String`, quantos donos passam pelo caminho?",
       "options": [
-        "Dois: o que entra (consumido) e o que sai (novo)",
-        "Um só",
-        "Nenhum",
-        "Três"
+        "Dois: o que entra (consumido) e o que sai",
+        "Um só: a mesma String entra e volta mudada",
+        "Nenhum: a função só empresta o texto",
+        "Três: o parâmetro, o format! e o que retorna"
       ],
       "answerIndex": 0,
       "feedback": "O dono entra (e morre dentro); a String nova sai pelo retorno.",
       "optionRationales": [
-        "Entrada e saída são dois valores donos — o consumo e a criação.",
-        "São dois: a caixa recebida e a caixa devolvida.",
-        "Toda String no caminho tem dono — em cada ponta, um.",
-        "Entrada e saída: dois donos, não três."
+        "Entrada e saída são dois donos: um consumido, um criado.",
+        "O format! não mexe na caixa recebida: ele monta OUTRA String, e a recebida morre no fim.",
+        "Emprestar pediria &String na assinatura; texto: String recebe o dono de verdade.",
+        "A String que o format! monta É a que sai pelo retorno — não é uma terceira caixa."
       ]
     },
     {
@@ -59,17 +59,17 @@
       "question": "Depois de `let rotulo = transformar(String::from(\"ano\"));`, o que sobra da String `ano`?",
       "options": [
         "Nada: ela foi consumida; rotulo é a nova dona",
-        "Ela continua dona",
-        "Ela vira rotulo",
-        "Ela fica vazia"
+        "Ela continua dona; rotulo só aponta para ela",
+        "Ela virou rotulo: é a mesma caixa renomeada",
+        "Ela fica vazia, pronta para receber outro texto"
       ],
       "answerIndex": 0,
       "feedback": "A caixa morreu na transformação; o dono que volta é o rótulo.",
       "optionRationales": [
         "A String criada na hora foi consumida; o retorno é outra caixa.",
-        "A caixa criada em linha não sobrevive à chamada.",
-        "rotulo é OUTRA caixa — a antiga foi consumida.",
-        "Consumir não esvazia: a caixa inteira se foi."
+        "rotulo não aponta para nada: o retorno é uma String própria, e apontar pediria &.",
+        "Não há renome: transformar devolve a caixa que o format! montou.",
+        "Consumir não esvazia: a caixa inteira se foi na chamada."
       ]
     }
   ],

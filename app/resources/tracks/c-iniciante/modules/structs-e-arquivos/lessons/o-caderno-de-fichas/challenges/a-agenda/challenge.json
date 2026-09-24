@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-agenda",
+  "title": "A agenda",
+  "concept": "o_caderno_de_fichas",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A agenda\n\nDuas funções, os dois lados do mesmo contrato: uma escreve as fichas no caderno, a outra as lê de volta.\n\n**`aAgenda`** — monta duas fichas `Pessoa` (nome e idade) com estes dados exatos e grava `agenda.txt` no modo `\"w\"`, **uma linha por ficha**, nome e idade separados por espaço:\n\n```text\nana 30\nbruno 31\n```\n\n**`somaDasIdades`** — abre `agenda.txt` no modo `\"r\"`, lê ficha por ficha com o `fscanf` (nome e idade, na mesma ordem) e **devolve a soma das idades** que leu. O caderno pode ter duas fichas, três, ou nenhuma — quem sabe onde ele acaba é o valor devolvido pelo `fscanf`.\n\nA ficha é sua: declare o `typedef struct` com `char nome[40]` e `int idade` no topo do arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\ntypedef struct {\n    char nome[40];\n    int idade;\n} Pessoa;\n\n/* aAgenda grava as duas fichas em agenda.txt, uma linha por ficha:\n   \"ana 30\" e depois \"bruno 31\". */\nvoid aAgenda(void) {\n    Pessoa ana = {\"ana\", 30};\n    Pessoa bruno = {\"bruno\", 31};\n    FILE *f = fopen(\"agenda.txt\", \"w\");\n\n    /* escreva aqui os dois fprintf, campo a campo, com \\n no fim */\n\n    fclose(f);\n}\n\n/* somaDasIdades le as fichas de agenda.txt e devolve a soma das idades. */\nint somaDasIdades(void) {\n    Pessoa p = {\"\", 0};\n    int soma = 0;\n    FILE *f = fopen(\"agenda.txt\", \"r\");\n\n    /* escreva aqui o laco de fscanf: nome e idade, na mesma ordem */\n\n    fclose(f);\n    return soma;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio a-agenda — counter_protocol (03-tdd 3.9.3).\n   Dois lados, medidos separado: o cenario 1 LE o caderno que a funcao do\n   aluno escreveu; os cenarios 2 e 3 escrevem o caderno NO TESTE e cobram o\n   valor devolvido pela leitura; o cenario 4 fecha a volta inteira.\n   Cada cenario zera agenda.txt com o modo \"w\" antes de comecar. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nvoid aAgenda(void);\nint somaDasIdades(void);\n\nSM_TEST(a_agenda_grava_uma_linha_por_ficha) {\n    FILE *zera = fopen(\"agenda.txt\", \"w\");\n    fclose(zera);\n\n    aAgenda();\n\n    FILE *f = fopen(\"agenda.txt\", \"r\");\n    char linha[80] = \"(nada escrito)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ficha de cima\", linha, \"ana 30\\n\",\n              \"a primeira ficha ocupa a primeira linha, nome e idade\");\n    fgets(linha, 80, f);\n    checa_str(\"a ficha de baixo\", linha, \"bruno 31\\n\",\n              \"a segunda ficha ocupa a segunda linha, no mesmo formato\");\n    char fim[80] = \"(nada escrito)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha ficha a mais\", fim, \"(nada escrito)\",\n              \"o caderno acaba na segunda ficha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(le_duas_fichas_e_soma) {\n    FILE *c = fopen(\"agenda.txt\", \"w\");\n    fprintf(c, \"clara 20\\ndinis 22\\n\");\n    fclose(c);\n\n    checa_int(\"a soma de duas fichas lidas\", somaDasIdades(), 42,\n              \"20 + 22 = 42: as idades vem do caderno, nao do codigo\");\n}\n\nSM_TEST(le_tres_fichas_e_soma) {\n    FILE *c = fopen(\"agenda.txt\", \"w\");\n    fprintf(c, \"edu 7\\nflor 9\\nglau 11\\n\");\n    fclose(c);\n\n    checa_int(\"a soma de tres fichas lidas\", somaDasIdades(), 27,\n              \"7 + 9 + 11 = 27: o laco le enquanto o fscanf devolver 2\");\n}\n\nSM_TEST(escreve_e_le_de_volta) {\n    FILE *zera = fopen(\"agenda.txt\", \"w\");\n    fclose(zera);\n\n    aAgenda();\n\n    checa_int(\"a volta inteira\", somaDasIdades(), 61,\n              \"30 + 31 = 61: o que aAgenda gravou e o que somaDasIdades le\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\ntypedef struct {\n    char nome[40];\n    int idade;\n} Pessoa;\n\nvoid aAgenda(void) {\n    Pessoa ana = {\"ana\", 30};\n    Pessoa bruno = {\"bruno\", 31};\n    FILE *f = fopen(\"agenda.txt\", \"w\");\n\n    fprintf(f, \"%s %d\\n\", ana.nome, ana.idade);\n    fprintf(f, \"%s %d\\n\", bruno.nome, bruno.idade);\n\n    fclose(f);\n}\n\nint somaDasIdades(void) {\n    Pessoa p = {\"\", 0};\n    int soma = 0;\n    FILE *f = fopen(\"agenda.txt\", \"r\");\n\n    while (fscanf(f, \"%s %d\", p.nome, &p.idade) == 2) {\n        soma = soma + p.idade;\n    }\n\n    fclose(f);\n    return soma;\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "a_agenda_grava_uma_linha_por_ficha",
+      "teste": "a_agenda_grava_uma_linha_por_ficha",
+      "descricao": "aAgenda grava agenda.txt com uma linha por ficha — \"ana 30\" e \"bruno 31\", campo a campo com fprintf — e nenhuma linha a mais"
+    },
+    {
+      "id": "le_duas_fichas_e_soma",
+      "teste": "le_duas_fichas_e_soma",
+      "descricao": "com o caderno de duas fichas escrito pelo teste (clara 20 e dinis 22), somaDasIdades devolve 42: as idades sao lidas do arquivo"
+    },
+    {
+      "id": "le_tres_fichas_e_soma",
+      "teste": "le_tres_fichas_e_soma",
+      "descricao": "com tres fichas (edu 7, flor 9 e glau 11), somaDasIdades devolve 27 — o laco de fscanf le enquanto os dois campos entrarem"
+    },
+    {
+      "id": "escreve_e_le_de_volta",
+      "teste": "escreve_e_le_de_volta",
+      "descricao": "a volta inteira: depois de aAgenda gravar as duas fichas, somaDasIdades re-le o caderno e devolve 61 (30 + 31)"
+    }
+  ]
+}

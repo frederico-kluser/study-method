@@ -2,20 +2,133 @@
   "schemaVersion": 1,
   "slug": "consolidacao-caixas",
   "title": "O projeto do módulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O projeto que junta o módulo: uma caixa por conversão, um switch que escolhe a caixa pela opção e um menu do-while que repete até a pessoa sair.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "decl:func",
+  "concepts": [
+    "o_conversor_de_unidades"
+  ],
+  "prerequisites": [
+    "sua-primeira-caixa",
+    "devolver-em-vez-de-mostrar",
+    "mais-de-uma-janela",
+    "declarar-antes-de-usar",
+    "copias-no-vestibulo"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de ser uma caixa avulsa e passa a ter arquitetura: cartazes no topo, caixas pequenas que devolvem, uma caixa que escolhe entre elas e um laço que atende a pessoa mais de uma vez",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-programa-em-caixas",
+      "title": "O programa inteiro, em caixas",
+      "markdown": "Um programa de verdade não é uma caixa só. O conversor deste projeto tem três partes:\n\n- uma caixa por **conversão** (metros para centímetros, quilos para gramas);\n- uma caixa que **escolhe** a conversão pela opção digitada;\n- o menu, que mostra as opções e repete.\n\nNo topo do arquivo ficam os cartazes — os protótipos — para o compilador conhecer as caixas antes de qualquer chamada:\n\n```c\ndouble metrosParaCentimetros(double metros);\ndouble quilosParaGramas(double quilos);\n```\n\nEle lê de cima para baixo: cartaz primeiro, chamada depois."
+    },
+    {
+      "id": "uma-caixa-por-conversao",
+      "title": "Uma caixa por conversão",
+      "markdown": "Cada conversão é uma multiplicação, e cada uma vira uma caixa que **devolve**:\n\n```c\ndouble metrosParaCentimetros(double metros) {\n    return metros * 100.0;\n}\n\ndouble quilosParaGramas(double quilos) {\n    return quilos * 1000.0;\n}\n```\n\nNenhuma das duas imprime. Caixa pequena, um trabalho só: assim cada conversão pode ser conferida em separado e reaproveitada por quem quiser — o menu de hoje ou outro programa amanhã."
+    },
+    {
+      "id": "o-switch-escolhe-a-caixa",
+      "title": "O switch escolhe a caixa",
+      "markdown": "A opção é um número, e o `switch` casa cada número com uma caixa. O `return` dentro do `case` já encerra tudo:\n\n```c\ndouble metrosParaCentimetros(double metros);\ndouble quilosParaGramas(double quilos);\n\ndouble converter(int opcao, double valor) {\n    switch (opcao) {\n        case 1:\n            return metrosParaCentimetros(valor);\n        case 2:\n            return quilosParaGramas(valor);\n    }\n    return valor;\n}\n```\n\nO `return valor;` do fim é a rede: opção desconhecida devolve o valor sem converter."
+    },
+    {
+      "id": "o-menu-que-repete",
+      "title": "O menu que repete",
+      "markdown": "O menu é um `do-while`: mostra as opções, lê a escolha e repete enquanto ela não for zero — por ser `do-while`, aparece pelo menos uma vez.\n\n```c\nvoid menu(void) {\n    int opcao = 1;\n    do {\n        printf(\"1 - metros para centimetros\\n\");\n        printf(\"2 - quilos para gramas\\n\");\n        printf(\"0 - sair\\n\");\n        scanf(\"%d\", &opcao);\n    } while (opcao);\n}\n```\n\n`while (opcao)` repete enquanto a opção for diferente de zero; o zero é falso e encerra o laço.\n\nNo desafio, quem escolhe a opção é o teste: ele chama a sua caixa com o número direto."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "os-cartazes-ficam-em-cima",
+      "statement": "Os protótipos ficam no topo do arquivo porque o compilador lê de cima para baixo.",
+      "question": "Por que os protótipos das caixas de conversão ficam em cima, antes da caixa que as chama?",
+      "options": [
+        "Porque o compilador lê de cima para baixo: chamar antes de definir não compila.",
+        "Porque o programa roda as caixas na ordem em que elas aparecem no arquivo.",
+        "Porque é no topo do arquivo que o `main` procura os nomes das caixas ao começar.",
+        "Só por arrumação: o compilador aceita do mesmo jeito, com protótipo ou sem nenhum."
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador não olha para a frente. O protótipo é a promessa de que a caixa existe, com aquele nome, aquelas janelas e aquele tipo de volta — e é ela que autoriza a chamada escrita antes da definição.",
+      "sectionId": "o-programa-em-caixas",
+      "optionRationales": [
+        "O cartaz no topo é o que permite chamar uma caixa definida mais abaixo.",
+        "A ordem no arquivo não é a ordem de execução: quem chama decide isso.",
+        "O `main` não procura nada no arquivo: ele chama nomes que o compilador já conhece.",
+        "Sem protótipo e com a definição abaixo da chamada, a compilação falha."
+      ]
+    },
+    {
+      "id": "uma-caixa-um-trabalho",
+      "statement": "Cada conversão é uma caixa pequena que devolve o valor convertido e não imprime nada.",
+      "question": "Por que o conversor tem uma caixa por conversão, em vez de uma caixa grande que faz tudo?",
+      "options": [
+        "Porque cada caixa pode ser conferida e reaproveitada por conta própria.",
+        "Porque o C não permite duas contas dentro do corpo da mesma função.",
+        "Porque uma caixa grande não conseguiria receber parâmetros do tipo `double`.",
+        "Porque só a primeira caixa escrita no arquivo consegue devolver um valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "Caixa pequena é caixa testável: o teste chama `metrosParaCentimetros` sozinha e sabe exatamente o que cobrar. A caixa que escolhe fica com uma tarefa só — escolher.",
+      "sectionId": "uma-caixa-por-conversao",
+      "optionRationales": [
+        "Uma caixa por trabalho é o que deixa cada parte conferível e reutilizável.",
+        "Um corpo de função aceita quantas contas você quiser.",
+        "Qualquer caixa pode ter janelas `double`, grande ou pequena.",
+        "Toda caixa com tipo de retorno pode devolver, esteja onde estiver no arquivo."
+      ]
+    },
+    {
+      "id": "o-menu-roda-pelo-menos-uma-vez",
+      "statement": "O `do-while` do menu mostra as opções pelo menos uma vez e repete enquanto a opção não for zero.",
+      "question": "Se a primeira coisa que a pessoa digitar for 0, quantas vezes o menu aparece na tela?",
+      "options": [
+        "Uma vez: o `do-while` só testa a condição depois de rodar o corpo.",
+        "Nenhuma: a condição já é falsa no começo, então o corpo não roda.",
+        "Duas: o menu aparece, lê o 0 e ainda aparece uma última vez antes de sair.",
+        "Para sempre: com 0 o laço nunca chega à sua condição de parada."
+      ],
+      "answerIndex": 0,
+      "feedback": "No `do-while` o corpo vem primeiro e o teste depois: o menu é mostrado, a opção é lida, e só então a condição decide se repete. Com 0 ela é falsa e o laço acaba — uma passagem só.",
+      "sectionId": "o-menu-que-repete",
+      "optionRationales": [
+        "O corpo do `do-while` roda antes do primeiro teste: o menu aparece uma vez.",
+        "Esse é o `while` comum, que testa antes; o `do-while` testa depois.",
+        "Depois que a condição dá falsa, o corpo não roda de novo.",
+        "O 0 é exatamente o que torna a condição falsa e encerra o laço."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial do protótipo: a declaração sem corpo que apresenta a função ao compilador antes da definição."
+    },
+    {
+      "title": "switch statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/switch",
+      "description": "A página oficial do `switch`: a expressão inteira é comparada com os rótulos `case` e o controle salta para o que casar."
+    },
+    {
+      "title": "do-while loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/do",
+      "description": "A página oficial do `do-while`: o corpo roda antes do primeiro teste da condição, por isso o menu aparece pelo menos uma vez."
+    }
+  ],
+  "challenges": [
+    "conversor-de-unidades"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

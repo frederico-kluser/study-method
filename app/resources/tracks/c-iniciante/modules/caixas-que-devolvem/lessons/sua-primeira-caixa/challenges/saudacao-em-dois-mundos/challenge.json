@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "saudacao-em-dois-mundos",
+  "title": "Saudação em dois mundos",
+  "concept": "a_sua_caixa",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Saudação em dois mundos\n\nDuas caixas neste desafio, e as duas são suas.\n\n**1. A caixa `saudacao`** — não recebe nada, não devolve nada, e imprime exatamente esta linha:\n\n```text\nbom dia, mundo\n```\n\n**2. A caixa `saudacaoEmDoisMundos`** — é o nome que o programa de fora chama. Ela **não imprime nada por conta própria**: só CHAMA a `saudacao`, duas vezes. Na tela, então:\n\n```text\nbom dia, mundo\nbom dia, mundo\n```\n\nO texto aparece UMA vez no seu arquivo, dentro da `saudacao`. Defina a `saudacao` acima de quem a chama, e não esqueça o `\\n` no fim do texto entre aspas.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* 1) escreva AQUI a caixa saudacao: void saudacao(void), com UM printf\n      que imprime a linha \"bom dia, mundo\" */\n\n\n/* 2) e AQUI a caixa saudacaoEmDoisMundos: void saudacaoEmDoisMundos(void),\n      que so CHAMA saudacao duas vezes (nenhum printf aqui dentro) */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio saudacao-em-dois-mundos — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario captura o stdout DENTRO do teste: freopen manda o stdout para\n   um arquivo proprio, o teste chama a funcao do aluno e le o arquivo de\n   volta. O fflush descarrega SEM fechar — o stdout fica no estado legal para\n   o freopen do cenario seguinte. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nvoid saudacao(void);\nvoid saudacaoEmDoisMundos(void);\n\nSM_TEST(a_caixa_sozinha_imprime_uma_linha) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    saudacao();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha da caixa saudacao\", linha, \"bom dia, mundo\\n\",\n              \"a caixa saudacao existe e imprime a sua linha\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"a caixa nao imprime linha a mais\", fim, \"(nada impresso)\",\n              \"uma chamada roda o corpo uma vez: uma linha, e acabou\");\n    fclose(f);\n}\n\nSM_TEST(duas_chamadas_duas_linhas) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    saudacaoEmDoisMundos();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira saudacao\", linha, \"bom dia, mundo\\n\",\n              \"a primeira chamada roda o corpo da caixa\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda saudacao\", linha, \"bom dia, mundo\\n\",\n              \"a segunda chamada roda o MESMO corpo outra vez\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha terceira linha\", fim, \"(nada impresso)\",\n              \"sao duas chamadas: a saida acaba na segunda linha\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid saudacao(void) {\n    printf(\"bom dia, mundo\\n\");\n}\n\nvoid saudacaoEmDoisMundos(void) {\n    saudacao();\n    saudacao();\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_caixa_sozinha_imprime_uma_linha",
+      "teste": "a_caixa_sozinha_imprime_uma_linha",
+      "descricao": "a caixa saudacao existe com o nome exato e imprime uma unica linha, a frase bom dia, mundo — o cenario a chama sozinha e prova que nao ha linha a mais"
+    },
+    {
+      "id": "duas_chamadas_duas_linhas",
+      "teste": "duas_chamadas_duas_linhas",
+      "descricao": "a caixa saudacaoEmDoisMundos chama a saudacao duas vezes: a saida tem as duas linhas iguais, nesta ordem, e acaba na segunda"
+    }
+  ]
+}

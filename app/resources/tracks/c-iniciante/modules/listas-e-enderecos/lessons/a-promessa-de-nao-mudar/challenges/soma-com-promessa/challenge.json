@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-com-promessa",
+  "title": "Soma com promessa",
+  "concept": "a_promessa_de_so_ler",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Soma com promessa\n\nRefaça a soma da lista, agora com a promessa na assinatura:\n\n```c\nint somaComPromessa(const int v[], int n)\n```\n\nA função devolve a soma das `n` primeiras notas de `v` e **não muda nenhuma gaveta**. O `const` é a promessa, e o compilador a cobra: se você tentar escrever em `v`, o programa nem compila.\n\nO teste chama a sua função três vezes: uma lista de 5 notas, outra de 3, e de novo a de 5 — mas com `n` igual a 2, para provar que é o `n` que manda no quanto entra na conta.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a funcao somaComPromessa inteira, com esta assinatura:\n\n       int somaComPromessa(const int v[], int n)\n\n   Dentro dela: um total que comeca em 0, um for de i = 0 ate n - 1\n   somando v[i] no total, e o return do total. Nenhuma gaveta de v\n   muda — o const na assinatura e a promessa. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio soma-com-promessa — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: sem captura de stdout, o cenario assevera o RETORNO. As\n   duas primeiras listas tem somas diferentes e o terceiro cenario repete\n   a primeira lista com n menor: nenhum numero fixo passa nos tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint somaComPromessa(const int v[], int n);\n\nSM_TEST(a_soma_das_cinco_notas) {\n    int v[5] = {7, 3, 9, 1, 5};\n    checa_int(\"a soma das cinco notas\", somaComPromessa(v, 5), 25,\n              \"7 + 3 + 9 + 1 + 5 da 25: todas as gavetas entram na conta\");\n}\n\nSM_TEST(a_soma_de_outra_turma) {\n    int v[3] = {6, 4, 2};\n    checa_int(\"a soma das tres notas\", somaComPromessa(v, 3), 12,\n              \"com outra lista a soma muda: 6 + 4 + 2 da 12\");\n}\n\nSM_TEST(o_n_manda_no_quanto_entra) {\n    int v[5] = {7, 3, 9, 1, 5};\n    checa_int(\"com n = 2 so as duas primeiras entram\", somaComPromessa(v, 2), 10,\n              \"o laco vai de 0 ate n - 1: com n = 2 a conta para depois do 3\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nint somaComPromessa(const int v[], int n) {\n    int total = 0;\n    for (int i = 0; i < n; i++) {\n        total += v[i];\n    }\n    return total;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_soma_das_cinco_notas",
+      "teste": "a_soma_das_cinco_notas",
+      "descricao": "somaComPromessa({7, 3, 9, 1, 5}, 5) devolve 25 — a soma das cinco gavetas, lidas sem nenhuma escrita na lista"
+    },
+    {
+      "id": "a_soma_de_outra_turma",
+      "teste": "a_soma_de_outra_turma",
+      "descricao": "somaComPromessa({6, 4, 2}, 3) devolve 12 — com outra lista e outro tamanho, a soma acompanha"
+    },
+    {
+      "id": "o_n_manda_no_quanto_entra",
+      "teste": "o_n_manda_no_quanto_entra",
+      "descricao": "somaComPromessa({7, 3, 9, 1, 5}, 2) devolve 10 — o laco vai de 0 ate n - 1, entao so as duas primeiras gavetas entram na conta"
+    }
+  ]
+}

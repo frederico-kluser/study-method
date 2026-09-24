@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "hipotenusa",
+  "title": "A hipotenusa",
+  "concept": "a_raiz_quadrada",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A hipotenusa\n\nA caixa `hipotenusa` recebe os dois catetos de um triângulo retângulo e **devolve** a hipotenusa:\n\n```text\ndouble hipotenusa(double a, double b)\n```\n\nA conta é o teorema de Pitágoras: a hipotenusa é a **raiz quadrada da soma dos quadrados** dos catetos — primeiro `a * a + b * b`, depois `sqrt`.\n\nO `#include <math.h>` já está no arquivo e o runner compila ligando a biblioteca de matemática. Nenhum `printf` aqui: o teste confere o **valor devolvido**.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <math.h>\n\n/* a caixa hipotenusa ja vem com as duas janelas e o tipo do valor de volta.\n   Troque o 0.0 pela conta: a raiz quadrada de a * a + b * b. */\ndouble hipotenusa(double a, double b) {\n    return 0.0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio hipotenusa — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o prototipo da\n   caixa do aluno, chama-a e confere o VALOR devolvido com checa_double.\n   Os tres pares sao ternos pitagoricos: a raiz cai exata em double, e por\n   isso a comparacao por igualdade e legitima (prova-c regra 12). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\ndouble hipotenusa(double a, double b);\n\nSM_TEST(hipotenusa_de_3_e_4) {\n    checa_double(\"a hipotenusa de 3 e 4\", hipotenusa(3.0, 4.0), 5.0,\n                 \"9 mais 16 da 25, e a raiz de 25 e 5\");\n}\n\nSM_TEST(hipotenusa_de_5_e_12) {\n    checa_double(\"a hipotenusa de 5 e 12\", hipotenusa(5.0, 12.0), 13.0,\n                 \"25 mais 144 da 169, e a raiz de 169 e 13\");\n}\n\nSM_TEST(hipotenusa_de_8_e_15) {\n    checa_double(\"a hipotenusa de 8 e 15\", hipotenusa(8.0, 15.0), 17.0,\n                 \"64 mais 225 da 289, e a raiz de 289 e 17\");\n}\n",
+  "solutionCode": "#include <math.h>\n\ndouble hipotenusa(double a, double b) {\n    return sqrt(a * a + b * b);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "hipotenusa_de_3_e_4",
+      "teste": "hipotenusa_de_3_e_4",
+      "descricao": "a caixa hipotenusa devolve 5.0 para os catetos (3, 4) — a raiz quadrada de a * a + b * b, calculada com sqrt"
+    },
+    {
+      "id": "hipotenusa_de_5_e_12",
+      "teste": "hipotenusa_de_5_e_12",
+      "descricao": "a caixa devolve 13.0 para (5, 12): outro par de catetos, para que um valor fixo devolvido nao passe no teste"
+    },
+    {
+      "id": "hipotenusa_de_8_e_15",
+      "teste": "hipotenusa_de_8_e_15",
+      "descricao": "a caixa devolve 17.0 para (8, 15) — a conta tem de acontecer de verdade dentro da caixa"
+    }
+  ]
+}

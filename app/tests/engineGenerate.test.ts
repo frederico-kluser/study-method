@@ -653,11 +653,30 @@ describe('P-22 generate — fiação completa offline (fases reais + fakes)', ()
           // a maquinaria Variable* = 4; ExportKeyword/NumericLiteral são H13).
           // No draft, seção com `tag` não-vazia vira `theory[].code`
           // (o markdown É o código — ver materializarTrilha §f12).
+          //
+          // DUAS SEÇÕES (2026-09-22). O `auditTrack` passou a rodar a BARRA
+          // A17–A23 (`engine/quality/barra.ts`) e o G-FINAL da F12 reprovou a
+          // trilha materializada com UMA seção só — medido:
+          //   ErroGeracao GFINAL_FALHOU: audit: A21
+          //   modules/m1/lessons/variaveis/lesson.json: são necessárias ao
+          //   menos 2 seções de teoria nesta aula (mínimo 2, e uma a cada duas
+          //   construções novas)
+          // A regra tem razão sobre a fixture: uma seção só não ensina duas
+          // construções. A segunda seção mostra a MESMA construção em outra
+          // forma (o que A22 pede) e não acrescenta chave nenhuma ao
+          // orçamento — `export let idade = 7;` usa `decl:let` e literal, que
+          // a aula já declara.
           theory: [
             {
               id: 'o-que-e-variavel',
               secao: 'teoria',
               markdown: 'export let total = 1;\n',
+              tag: 'js',
+            },
+            {
+              id: 'outra-caixa',
+              secao: 'teoria',
+              markdown: 'export let idade = 7;\n',
               tag: 'js',
             },
           ],

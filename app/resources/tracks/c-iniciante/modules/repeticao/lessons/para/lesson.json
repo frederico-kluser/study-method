@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "para",
   "title": "O laço de três partes",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O for junta as três peças do laço numa linha só — nascimento, condição e passo, separados por ponto e vírgula — e o passo roda depois do corpo, na subida.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "o_laco_para"
+  ],
   "prerequisites": [
     "enquanto"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "as três peças do laço deixam de estar espalhadas pelo código e passam a morar num cabeçalho único, com uma ordem fixa de execução que o aluno pode recitar: nascimento uma vez, condição antes de cada volta, corpo, passo na subida",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "as-tres-pecas-numa-linha-so",
+      "title": "As três peças numa linha só",
+      "markdown": "No `while` as três peças do laço ficam espalhadas: o nascimento antes, a condição entre parênteses, o passo perdido no meio do corpo. O `for` junta as três na MESMA linha, separadas por ponto e vírgula:\n\n```c\nfor (int i = 1; i <= 3; i++) {\n    printf(\"volta %d\\n\", i);\n}\n```\n\n```text\nvolta 1\nvolta 2\nvolta 3\n```\n\nO cabeçalho se lê `for (nascimento; condição; passo)`. É o mesmo laço da aula do `while` — e, com as peças sempre no mesmo lugar, é bem mais difícil esquecer o passo."
+    },
+    {
+      "id": "a-ordem-das-quatro-coisas",
+      "title": "A ordem das quatro coisas",
+      "markdown": "O `for` roda numa ordem fixa, e vale decorar:\n\n1. o **nascimento** acontece UMA vez, antes de tudo;\n2. a **condição** é conferida ANTES de cada volta;\n3. o **corpo** roda quando a resposta é 1;\n4. o **passo** roda DEPOIS do corpo, na subida para a próxima conferência.\n\n```c\nfor (int i = 1; i <= 2; i++) {\n    printf(\"corpo %d\\n\", i);\n}\nprintf(\"acabou\\n\");\n```\n\n```text\ncorpo 1\ncorpo 2\nacabou\n```\n\nO passo não roda antes do corpo: por isso a primeira volta vê `i` valendo 1, e não 2."
+    },
+    {
+      "id": "o-mesmo-laco-de-duas-formas",
+      "title": "O mesmo laço, de duas formas",
+      "markdown": "Os dois laços abaixo fazem a MESMA coisa; a diferença é só onde as peças moram.\n\n```c\nint i = 1;\nwhile (i <= 3) {\n    printf(\"%d\\n\", i);\n    i++;\n}\n```\n\n```c\nint i;\nfor (i = 1; i <= 3; i++) {\n    printf(\"%d\\n\", i);\n}\n```\n\nO segundo mostra que o nascimento do `for` não precisa declarar nome novo: pode ser uma atribuição a um nome que já existe.\n\nEscolha pelo que você sabe: `for` quando o número de voltas é conhecido, `while` quando a parada depende de outra coisa."
+    },
+    {
+      "id": "o-corpo-que-usa-o-contador",
+      "title": "O contador é um valor, não só um relógio",
+      "markdown": "O contador não serve só para contar voltas: ele é um número como outro qualquer e cabe em qualquer conta dentro do corpo.\n\n```c\nint n = 7;\nfor (int i = 1; i <= 3; i++) {\n    printf(\"%d x %d = %d\\n\", n, i, n * i);\n}\n```\n\n```text\n7 x 1 = 7\n7 x 2 = 14\n7 x 3 = 21\n```\n\nSão três `%d` numa frase só, e os valores entram na ordem em que aparecem: o `n`, o contador e o resultado de `n * i`. É essa dupla vida do `i` que faz um laço de três linhas escrever uma tabuada inteira."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-passo-roda-depois-do-corpo",
+      "statement": "`for (início; condição; passo)` — o passo roda DEPOIS do corpo, na subida.",
+      "question": "Em `for (int i = 1; i <= 2; i++)`, qual valor de `i` o corpo vê na PRIMEIRA volta?",
+      "options": [
+        "1, porque o passo só roda depois do corpo, na subida.",
+        "2, porque o `i++` roda antes de entrar no corpo.",
+        "0, porque o contador começa do zero em todo `for`.",
+        "3, porque a condição é conferida até falhar antes da primeira volta."
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem é nascimento, condição, corpo, passo. Na primeira volta o passo ainda não rodou: o corpo vê o valor de nascimento.",
+      "sectionId": "a-ordem-das-quatro-coisas",
+      "optionRationales": [
+        "O nascimento põe 1 em `i`, a condição aprova e o corpo roda — o passo só acontece depois dele.",
+        "Se o passo rodasse antes, o valor de nascimento nunca chegaria ao corpo e a primeira volta se perderia.",
+        "Quem escolhe o valor inicial é você, no nascimento: aqui está escrito `int i = 1`.",
+        "A condição é conferida uma vez por volta, não repetidamente antes da primeira."
+      ]
+    },
+    {
+      "id": "for-e-while-sao-o-mesmo-laco",
+      "statement": "O `for` e o `while` expressam o mesmo laço: mudam de lugar as peças, não o comportamento.",
+      "question": "Qual `for` faz o mesmo que `int i = 1; while (i <= 3) { printf(\"%d\\n\", i); i++; }`?",
+      "options": [
+        "`for (int i = 1; i++; i <= 3) { printf(\"%d\\n\", i); }`",
+        "`for (i <= 3; int i = 1; i++) { printf(\"%d\\n\", i); }`",
+        "`for (int i = 1; i <= 3; i++) { printf(\"%d\\n\", i); }`",
+        "`for (int i = 1; i <= 3) { printf(\"%d\\n\", i); i++; }`"
+      ],
+      "answerIndex": 2,
+      "feedback": "A ordem do cabeçalho é sempre nascimento, condição, passo — nessa ordem, separados por ponto e vírgula. Com as peças trocadas o laço muda de sentido ou nem compila.",
+      "sectionId": "o-mesmo-laco-de-duas-formas",
+      "optionRationales": [
+        "Aqui `i++` está no lugar da condição e a comparação no lugar do passo: o laço perde a pergunta que o faz parar.",
+        "A condição veio antes do nascimento, e ela fala de um nome que ainda não existe.",
+        "As três peças do `while` foram para o cabeçalho na ordem certa: nascimento, condição, passo.",
+        "O cabeçalho do `for` tem três partes, e esta só tem duas: falta o campo do passo."
+      ]
+    },
+    {
+      "id": "o-contador-cabe-numa-conta",
+      "statement": "O contador é um valor e pode entrar em contas dentro do corpo.",
+      "question": "O que `int n = 7; for (int i = 1; i <= 3; i++) { printf(\"%d x %d = %d\\n\", n, i, n * i); }` imprime na segunda linha?",
+      "options": [
+        "`7 x 2 = 7`",
+        "`7 x 2 = 14`",
+        "`2 x 7 = 14`",
+        "`n x 2 = 14`"
+      ],
+      "answerIndex": 1,
+      "feedback": "Na segunda volta `i` vale 2: o primeiro `%d` recebe o `n`, o segundo recebe o `i` e o terceiro recebe o resultado de `7 * 2`. Cada `%d` consome o argumento na ordem em que aparece.",
+      "sectionId": "o-corpo-que-usa-o-contador",
+      "optionRationales": [
+        "O terceiro `%d` recebe `n * i`, não o `n` sozinho — a conta é feita antes de o valor chegar ao `printf`.",
+        "Na segunda volta `i` vale 2, e o terceiro `%d` recebe o resultado da conta `7 * 2`.",
+        "Os argumentos entram na ordem em que aparecem: primeiro o `n`, depois o contador.",
+        "O nome `n` nunca é impresso: o `%d` mostra o VALOR que o nome guarda."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for` em C: a ordem exata de inicialização, condição, corpo e expressão de iteração."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página oficial das ordens de C, com os laços entre as ordens de iteração."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.8.5.3 define que a expressão de iteração do `for` é avaliada depois de cada execução do corpo."
+    }
+  ],
+  "challenges": [
+    "tabuada"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

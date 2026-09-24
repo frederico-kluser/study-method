@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-das-notas",
+  "title": "A soma das notas",
+  "concept": "varrer_a_lista",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# A soma das notas\n\nEscreva a caixa `somaDasNotas`, com as duas janelas de entrada e um valor de volta:\n\n```text\nint somaDasNotas(int primeira, int ultima)\n```\n\nDentro dela, monte a caixa de cinco gavetas do módulo:\n\n```c\nint notas[5] = {primeira, 8, 6, 9, ultima};\n```\n\nE **devolva a soma das cinco notas**, somando com um `for` que anda de 0 até a última gaveta. Não imprime nada: quem chama é que decide o que fazer com o número, e neste desafio o teste confere o **valor devolvido**.\n\nCom `primeira` valendo 10 e `ultima` valendo 2, a soma é `10 + 8 + 6 + 9 + 2`, ou seja 35.\n\nDuas dicas de forma: o total nasce antes do laço, em 0; e a condição é `i < 5`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* escreva AQUI a caixa somaDasNotas, com as duas janelas de entrada:\n\n       int somaDasNotas(int primeira, int ultima)\n\n   Dentro dela: monte a caixa\n   int notas[5] = {primeira, 8, 6, 9, ultima};\n   some as cinco gavetas com um for (i de 0 a 4)\n   e DEVOLVA o total. Nenhum printf: esta caixa entrega o valor. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio soma-das-notas — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o prototipo\n   da caixa do aluno, chama-a e confere o VALOR devolvido com checa_int.\n   Tres turmas de notas de pontas diferentes: nenhum numero fixo devolvido\n   passa nos tres cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint somaDasNotas(int primeira, int ultima);\n\nSM_TEST(a_soma_da_turma_a) {\n    checa_int(\"a soma da turma A\", somaDasNotas(10, 2), 35,\n              \"10 + 8 + 6 + 9 + 2 da 35: as cinco gavetas entram na soma\");\n}\n\nSM_TEST(a_soma_da_turma_b) {\n    checa_int(\"a soma da turma B\", somaDasNotas(3, 7), 33,\n              \"3 + 8 + 6 + 9 + 7 da 33: mudar as pontas muda o total\");\n}\n\nSM_TEST(a_soma_com_as_pontas_em_zero) {\n    checa_int(\"a soma com as pontas em zero\", somaDasNotas(0, 0), 23,\n              \"com as pontas em 0 sobram as tres gavetas do meio: 8 + 6 + 9 da 23\");\n}\n",
+  "solutionCode": "int somaDasNotas(int primeira, int ultima) {\n    int notas[5] = {primeira, 8, 6, 9, ultima};\n    int total = 0;\n    for (int i = 0; i < 5; i++) {\n        total += notas[i];\n    }\n    return total;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_soma_da_turma_a",
+      "teste": "a_soma_da_turma_a",
+      "descricao": "com (10, 2), somaDasNotas devolve 35 — o laco passa pelas cinco gavetas e o total volta para quem chamou"
+    },
+    {
+      "id": "a_soma_da_turma_b",
+      "teste": "a_soma_da_turma_b",
+      "descricao": "com (3, 7), a soma e 33: as gavetas das pontas mudam o total, o que so um laco sobre a caixa reproduz"
+    },
+    {
+      "id": "a_soma_com_as_pontas_em_zero",
+      "teste": "a_soma_com_as_pontas_em_zero",
+      "descricao": "com (0, 0), a soma e 23 — o caso de borda em que as gavetas das pontas nao acrescentam nada ao total"
+    }
+  ]
+}

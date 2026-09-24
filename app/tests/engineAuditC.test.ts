@@ -59,6 +59,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { auditTrack } from '../electron/main/engine/audit';
+import { REGRAS_DA_BARRA } from '../electron/main/engine/quality/barra';
 import { extractAllOccurrences, extractAtoms, type ExtractSurface } from '../electron/main/engine/extract';
 import { cDetect } from '../electron/main/engine/lang/c';
 import { pythonAdapter } from '../electron/main/engine/lang/python';
@@ -170,6 +171,26 @@ function trilhaC(testsCode: string = TESTS_CODE_C): LoadedTrack {
 }
 
 /** As violações de UM desafio, em forma comparável (a auditoria roda declared). */
+/**
+ * ESCOPO DESTE ARQUIVO (2026-09-22): a BARRA A17–A23.
+ *
+ * O `auditTrack` passou a rodar a barra pedagógica (`quality/barra.ts`,
+ * agnóstica de linguagem) e a mesclar os achados em `violations`. Esta suíte
+ * mede o ADAPTADOR DE C dentro do gate — parse do `testsCode` da convenção
+ * `counter_protocol`, semente receptiva, mensagem A2 do clang, posições
+ * rebaseadas —, e a fixture é UMA aula que ensina função + parâmetro +
+ * multiplicação + literal de uma vez, numa seção de teoria. Como aula 1 de
+ * curso isso é penhasco, e a barra acha exatamente isso (medido: A17 1 · A18 1 ·
+ * A21 2 · A22 5). O que esta suíte afirma continua sendo sobre o orçamento e o
+ * parse; a barra tem suíte própria em `tests/engineBarra.test.ts`.
+ */
+const DA_BARRA: ReadonlySet<string> = new Set<string>(REGRAS_DA_BARRA);
+
+/** As violações que NÃO são da barra — o escopo desta suíte. */
+function semABarra<T extends { regra: string }>(vs: readonly T[]): T[] {
+  return vs.filter((v) => !DA_BARRA.has(v.regra));
+}
+
 function violacoesDe(testsCode: string): Array<{
   regra: string;
   campo: string;
@@ -199,14 +220,15 @@ describe('audit C — a trilha honesta não tem violação de parse (o probe da 
     const rep = auditTrack(trilhaC(), { mode: 'declared' });
     assert.equal(rep.trackSlug, 'trilha-c-fixture');
     // o placar inteiro: nenhum A1/A2/A3/A4/A6/DEC/estutural sobrou — o desafio
-    // honesto da convenção counter_protocol passa do gate INTEIRO.
+    // honesto da convenção counter_protocol passa do gate INTEIRO. (Sobre o
+    // recorte `semABarra`, ver o bloco de ESCOPO no topo deste arquivo.)
     assert.deepEqual(
-      rep.violations.map((v) => `${v.regra}@${v.campo}`),
+      semABarra(rep.violations).map((v) => `${v.regra}@${v.campo}`),
       [],
-      `violações inesperadas: ${JSON.stringify(rep.violations.map((v) => [v.regra, v.campo, v.linha, v.mensagem]))}`,
+      `violações inesperadas: ${JSON.stringify(semABarra(rep.violations).map((v) => [v.regra, v.campo, v.linha, v.mensagem]))}`,
     );
-    assert.equal(rep.totals.violacoes, 0);
-    assert.equal(rep.totals.desafiosComViolacao, 0);
+    assert.equal(rep.totals.violacoes, rep.totals.errosDaBarra, 'o que sobra no placar é da barra');
+    assert.equal(rep.totals.desafiosComViolacao, 0, 'nenhum DESAFIO com violação — a barra é da aula');
     // o orçamento em modo declarado não acumula erro de parse de teoria
     assert.deepEqual(rep.parseErrors, []);
   });
@@ -254,7 +276,7 @@ describe('audit C — a trilha honesta não tem violação de parse (o probe da 
       ],
       `A3 em enforcement: a linha 4 é a linha DO AUTOR (while … break;), não a do fonte combinado`,
     );
-    assert.equal(rep.totals.violacoes, 2);
+    assert.equal(semABarra(rep.violations).filter((v) => (v.severidade ?? 'erro') === 'erro').length, 2);
   });
 });
 
@@ -266,7 +288,7 @@ describe('audit C — a mensagem A2 fala a linguagem certa (clang, não JavaScri
   skip: !TEM_C ? 'toolchain C ausente (clang/python3/extrator)' : false,
 }, () => {
   it('testsCode quebrado: UMA violação A2, mensagem do clang, SEM JavaScript, SEM prefixo duplo', () => {
-    const vs = violacoesDe('SM_TEST(quebrado) { checa_int(');
+    const vs = semABarra(violacoesDe('SM_TEST(quebrado) { checa_int('));
     assert.equal(vs.length, 1, JSON.stringify(vs));
     const v = vs[0];
     assert.equal(v.regra, 'A2');
@@ -725,6 +747,28 @@ const SITES_DE_TESTSCODE_COM_SURFACE = [
 ];
 
 /**
+ * Os sites que passam `surface: 'theory'` — a SEGUNDA razão de a superfície
+ * existir, nascida em 2026-09-22 com a barra pedagógica A17–A23.
+ *
+ * Por que um registro separado e não uma linha no de cima: a normalização de
+ * `testsCode` é uma ANTE-SALA (prefixo sempre presente, para a macro `SM_TEST`
+ * do harness existir no parse) e a de `theory` é um ENVELOPE DE FRAGMENTO
+ * (segunda tentativa, só quando o parse verbatim falha, com prefixo E sufixo).
+ * São mecanismos diferentes no `extract.ts`, para superfícies diferentes, e
+ * misturá-los num registro só faria a mensagem de falha mandar o próximo leitor
+ * para o lado errado.
+ *
+ * MEDIDO: a teoria de C e de Rust demonstra em FRAGMENTO — `printf("oi\n");`
+ * solto reprova o clang em 1:8 e `dobro(-3)` solto reprova o tree-sitter. Sem
+ * `surface: 'theory'` a barra veria ZERO demonstração em toda aula de C, e A19
+ * ("declarar não é demonstrar") reprovaria a aula correta.
+ */
+const SITES_DE_TEORIA_COM_SURFACE = [
+  'electron/main/engine/quality/barra.ts#bloco.code', // Demo(i) da barra A17–A23
+  'electron/main/engine/modes/convergencia.ts#bloco.code', // posicoesDasChaves (ordem dos grupos na quebra)
+];
+
+/**
  * Os sites com `language` e SEM `surface`, com a razão de cada um poder ficar
  * sem a normalização: a superfície dele parseia standalone (não é testsCode)
  * ou é inerte por guarda de linguagem.
@@ -737,6 +781,11 @@ const ISENTOS_COM_LANGUAGE: Record<string, string> = {
   'electron/main/engine/quality/discriminacao.ts#desafio.solutionCode': 'solutionCode parseia standalone',
   'electron/main/engine/quality/minimalPython.ts#candidato': 'minimal Python (solutionCode), guarda própria',
   'electron/main/engine/quality/minimalC.ts#candidato': 'minimal C (solutionCode sintetizado, parseia standalone), guarda própria',
+  // PRÉ-EXISTENTE, registrado em 2026-09-22: `minimalRust.ts` entrou com o
+  // adaptador de Rust (commit c6621212) e este catálogo não acompanhou — o
+  // check estava VERMELHO desde então, apesar da mensagem daquele commit
+  // ("suíte 4818 testes 0 falhas"). A razão é a mesma dos dois irmãos.
+  'electron/main/engine/quality/minimalRust.ts#candidato': 'minimal Rust (solutionCode sintetizado, parseia standalone), guarda própria',
   'electron/main/engine/quality/progressao.ts#arquivo.solution': 'solutionCode da bateria (javascript-only)',
   'electron/main/engine/quality/progressao.ts#arquivo.starter': 'starterCode da bateria (javascript-only)',
   'electron/main/engine/quality/progressao.ts#codigo': 'teoria (demoDaAula) — bloco cercado parseia standalone',
@@ -755,11 +804,20 @@ describe('audit C — o catálogo dos call-sites de extração (nenhum testsCode
       comSurface.filter((id) => SITES_DE_TESTSCODE_COM_SURFACE.includes(id)),
       SITES_DE_TESTSCODE_COM_SURFACE,
     );
-    // e NENHUM site a mais passou surface sem ser julgado aqui:
+    // e NENHUM site a mais passou surface sem ser julgado aqui — nem de
+    // testsCode, nem de teoria:
+    const julgados = [...SITES_DE_TESTSCODE_COM_SURFACE, ...SITES_DE_TEORIA_COM_SURFACE];
     assert.deepEqual(
-      comSurface.filter((id) => !SITES_DE_TESTSCODE_COM_SURFACE.includes(id)),
+      comSurface.filter((id) => !julgados.includes(id)),
       [],
-      'novo call-site com `surface`: se alimenta testsCode, registre-o acima; senão, a dica é ruído',
+      'novo call-site com `surface`: alimenta testsCode → SITES_DE_TESTSCODE_COM_SURFACE; ' +
+        'lê teoria → SITES_DE_TEORIA_COM_SURFACE; nenhum dos dois → a dica é ruído',
+    );
+    // e os sites de teoria declarados existem de verdade nos fontes:
+    assert.deepEqual(
+      SITES_DE_TEORIA_COM_SURFACE.filter((id) => !comSurface.includes(id)),
+      [],
+      'site de teoria registrado que não existe (ou parou de passar `surface`) nos fontes',
     );
   });
 

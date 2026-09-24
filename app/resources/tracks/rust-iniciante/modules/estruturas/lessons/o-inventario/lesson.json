@@ -45,17 +45,17 @@
       "question": "O que `Item { nome, quantidade }.linha()` faz?",
       "options": [
         "Monta a peça e chama o método linha NELA, na mesma expressão",
-        "Declara o método linha dentro do molde",
-        "Guarda a peça numa variável e depois chama",
-        "Compara a peça com o resultado do método"
+        "Define o molde Item com os campos e depois declara o método linha",
+        "Guarda a peça numa variável antes de chamar o método",
+        "Chama o método linha antes de montar a peça"
       ],
       "answerIndex": 0,
       "feedback": "Montar e perguntar na mesma linha: a peça nasce receptora.",
       "optionRationales": [
         "A peça nasce e vai direto ao método — sem nome no meio.",
-        "O método já está declarado no impl; aqui ele é CHAMADO.",
-        "Sem let: a peça não é guardada, ela é consumida na chamada.",
-        "Não há comparação: a expressão monta e chama."
+        "Molde se define com `struct Item { … }` fora da função; aqui os campos só RECEBEM valor.",
+        "Sem `let` não há variável: a peça é valor temporário, consumido na própria chamada.",
+        "Primeiro a peça fica pronta com os campos; só então ela pode receber `.linha()`."
       ]
     },
     {
@@ -65,17 +65,17 @@
       "question": "Em `carimbar`, o que a linha `Carimbo { letra, vezes }.marca()` produz?",
       "options": [
         "O texto do carimbo, montado e formatado na mesma expressão",
-        "Um Carimbo novo, sem texto",
-        "O número de vezes formatado",
-        "Um erro: o let é obrigatório antes do método"
+        "Um Carimbo novo com os campos preenchidos, e nada além disso",
+        "Só o número de vezes, formatado pelo format! do método",
+        "Um erro de compilação: falta o let antes de chamar o método"
       ],
       "answerIndex": 0,
       "feedback": "A peça nasce, o método responde, o format! escreve — tudo numa expressão só.",
       "optionRationales": [
         "Montar + método + format!: a cadeia completa em uma linha.",
-        "O marca devolve String — não a peça.",
-        "O self.vezes entra no texto; o resultado é a frase inteira.",
-        "Compila sem let: o receptor é a expressão."
+        "A peça é montada, sim — mas o `.marca()` continua a expressão e devolve String.",
+        "O `self.vezes` entra no texto ao lado da letra; o resultado é a frase inteira.",
+        "Compila sem `let`: o receptor do método pode ser a própria expressão que monta."
       ]
     }
   ],

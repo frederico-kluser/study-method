@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "devolver-verdade-ou-falso",
   "title": "Devolver verdade ou falso",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A comparação já vale 0 ou 1 — então ela pode ir direto no `return`, e quem chama recebe a resposta pronta para usar como condição.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ReturnStmt",
+  "concepts": [
+    "devolver_a_comparacao"
+  ],
   "prerequisites": [
     "devolver-cedo",
     "verdadeiro-e-falso-com-nome"
   ],
+  "introduces": {
+    "productive": [
+      "node:ReturnStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a resposta de uma pergunta deixa de ficar presa numa flag dentro da caixa: a própria comparação atravessa o return e chega pronta a quem chamou",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-pergunta-ja-vale-zero-ou-um",
+      "title": "A pergunta já vale 0 ou 1",
+      "markdown": "Uma comparação não é só uma pergunta: ela **vale** um número — 1 quando é verdadeira, 0 quando é falsa.\n\n```c\n#include <stdio.h>\n#include <stdbool.h>\n\nvoid mostrar(void) {\n    int idade = 21;\n    bool maior = idade >= 18;\n    printf(\"%d\\n\", maior);\n    printf(\"%d\\n\", 15 >= 18);\n}\n```\n\n```text\n1\n0\n```\n\nA flag não inventou nada: copiou o 1 que `21 >= 18` já havia produzido. A linha de baixo mostra o outro lado — `15 >= 18` é falsa e vale 0."
+    },
+    {
+      "id": "devolver-a-propria-comparacao",
+      "title": "Devolver a própria comparação",
+      "markdown": "Se a comparação já vale 0 ou 1, ela pode ir direto para o `return` — sem passar por nome nenhum no meio:\n\n```c\n#include <stdbool.h>\n\nbool maiorDeIdade(int idade) {\n    return idade >= 18;\n}\n```\n\nO `return` não devolve a pergunta: devolve a **resposta** dela, já calculada. Com `idade` valendo 21 a caixa entrega 1; com 15, entrega 0.\n\nO `bool` na frente do nome é a promessa do que sai daqui: um 0 ou um 1."
+    },
+    {
+      "id": "quem-chama-usa-a-resposta",
+      "title": "Quem chama usa a resposta",
+      "markdown": "Quem recebe um 0 ou um 1 pode usá-lo direto como condição, sem comparar de novo:\n\n```c\n#include <stdio.h>\n#include <stdbool.h>\n\nbool passou(int nota) {\n    return nota >= 6;\n}\n\nvoid mostrar(int nota) {\n    if (passou(nota)) {\n        printf(\"aprovado\\n\");\n    }\n}\n```\n\nA chamada `passou(nota)` vira o valor devolvido no lugar em que foi escrita — e o `if` decide com ele.\n\nOnde a analogia quebra: a caixa não decide nada nem mostra nada. Ela entrega o 0 ou o 1; quem decide é quem chamou."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-return-devolve-o-valor-da-comparacao",
+      "statement": "`return idade >= 18;` já devolve o 0/1 da comparação.",
+      "question": "A caixa é `bool maiorDeIdade(int idade) { return idade >= 18; }`. Com `idade` valendo 21, o que ela devolve?",
+      "options": [
+        "1 — o valor que a comparação produziu.",
+        "A pergunta `idade >= 18`, para quem chamou comparar depois.",
+        "21, a idade que entrou pela janela.",
+        "Nada: falta uma flag guardando a resposta antes."
+      ],
+      "answerIndex": 0,
+      "feedback": "A comparação é resolvida na hora do `return`: com 21 ela vira 1, e é esse 1 que atravessa. A flag era só um lugar de passagem.",
+      "sectionId": "devolver-a-propria-comparacao",
+      "optionRationales": [
+        "A comparação vira 1 antes de o valor sair, e é o 1 que chega a quem chamou.",
+        "Pergunta nenhuma viaja: o que sai do `return` é sempre um valor já calculado.",
+        "A idade entrou pela janela, mas o que sai é o resultado da comparação com 18.",
+        "A flag é opcional: guardar antes de devolver não muda o valor devolvido."
+      ]
+    },
+    {
+      "id": "quanto-vale-uma-comparacao-falsa",
+      "statement": "Uma comparação vale 1 quando é verdadeira e 0 quando é falsa.",
+      "question": "Quanto vale a comparação `15 >= 18`?",
+      "options": [
+        "0 — e é esse 0 que o `return` entrega.",
+        "1: toda comparação escrita vale 1.",
+        "15, o número que está à esquerda do sinal.",
+        "Nada: o `>=` só funciona dentro de um `if`."
+      ],
+      "answerIndex": 0,
+      "feedback": "15 não alcança 18, então a comparação vale 0. O `>=` produz um número em qualquer lugar do código, não só dentro do `if`.",
+      "sectionId": "a-pergunta-ja-vale-zero-ou-um",
+      "optionRationales": [
+        "15 não alcança 18: a comparação é falsa e o seu valor é 0.",
+        "O valor depende dos números comparados — não é sempre 1.",
+        "O 15 é um dos lados da comparação; o resultado dela é 0 ou 1.",
+        "Uma comparação vale um número onde quer que esteja escrita, inclusive num `return`."
+      ]
+    },
+    {
+      "id": "a-resposta-serve-de-condicao",
+      "statement": "Quem chama pode usar o valor devolvido direto como condição do `if`.",
+      "question": "Em `if (passou(nota)) { ... }`, o que o `if` recebe para decidir?",
+      "options": [
+        "O 0 ou o 1 que a chamada `passou(nota)` devolveu.",
+        "O texto `passou(nota)`, que o `if` resolve sozinho depois.",
+        "A nota que entrou na caixa `passou`.",
+        "Nada: uma chamada não pode ficar dentro de um `if`."
+      ],
+      "answerIndex": 0,
+      "feedback": "A chamada é resolvida primeiro: no lugar dela fica o valor devolvido, e é com esse 0 ou 1 que o `if` decide.",
+      "sectionId": "quem-chama-usa-a-resposta",
+      "optionRationales": [
+        "A chamada é trocada pelo valor devolvido antes de o `if` decidir.",
+        "Texto nenhum sobra: a chamada roda e devolve um número.",
+        "A nota entrou na caixa; o que volta é a resposta da comparação.",
+        "Chamada dentro de condição é o uso normal de uma caixa que devolve."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "return statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/return",
+      "description": "A página oficial do `return` em C: a expressão é avaliada e o valor vai para quem chamou."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `>=`, `<=` e `==`: cada comparação produz 1 (verdadeiro) ou 0 (falso)."
+    },
+    {
+      "title": "Boolean type support — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/types/boolean",
+      "description": "A página oficial do `stdbool.h`: `bool` é o nome de biblioteca para `_Bool`, e `true`/`false` são 1 e 0."
+    }
+  ],
+  "challenges": [
+    "maioridade-caixa"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

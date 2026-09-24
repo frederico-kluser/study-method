@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "proxima-letra",
+  "title": "A próxima letra",
+  "concept": "a_letra_e_numero",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A próxima letra\n\nA função `proximaLetra` já começa com a letra de partida declarada — `char primeira = 'a';` — e com uma casa para o número de passos. Complete o corpo dela:\n\n1. leia com `scanf` **quantos passos** andar na fileira das minúsculas;\n2. imprima a letra que fica esse tanto de passos depois da letra de partida, com `%c` e `\\n` no fim.\n\nCom **1** passo sai a letra seguinte (`b`); com **0** passos sai a própria letra de partida (`a`); com **25** passos sai a última da fileira (`z`).\n\nNão troque a letra de partida por outra, e não imprima nada além da letra — nenhum texto, nenhuma linha extra. O caminho é a conta, não a letra digitada à mão: a letra de partida é um número, e somar passos nele anda na fileira.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* proximaLetra le quantos passos andar e imprime a letra que fica\n   esse tanto de passos depois da letra de partida. */\nvoid proximaLetra(void) {\n    char primeira = 'a';   /* a letra de partida — nao mude */\n    int passos = 0;\n    /* 1) leia os passos digitados, com scanf e %d (com o &) */\n\n    /* 2) imprima a letra: some os passos na letra de partida e\n          mostre o resultado com %c, com \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio proxima-letra — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo os passos que\n   o aluno digitaria, o freopen troca o stdin por esse arquivo, e a captura\n   do stdout acontece dentro do proprio cenario (freopen + fflush, sem\n   fclose no stdout). Tres cenarios com respostas diferentes: nenhuma letra\n   fixa no codigo passa nos tres — a conta com a letra e obrigatoria. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid proximaLetra(void);\n\nSM_TEST(um_passo_e_a_letra_seguinte) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"1\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    proximaLetra();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"um passo depois de a\", linha, \"b\\n\",\n              \"a letra de partida mais 1 e a letra seguinte da fileira\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na linha da letra: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(zero_passo_e_a_propria_letra) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"0\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    proximaLetra();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"zero passo fica na letra de partida\", linha, \"a\\n\",\n              \"somar zero nao anda: sai a propria letra de partida\");\n    fclose(f);\n}\n\nSM_TEST(vinte_e_cinco_passos_chega_no_z) {\n    FILE *digitado = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(digitado, \"25\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    proximaLetra();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"vinte e cinco passos depois de a\", linha, \"z\\n\",\n              \"a fileira das minusculas tem 26 letras: 25 passos depois de a e o z\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid proximaLetra(void) {\n    char primeira = 'a';\n    int passos = 0;\n    scanf(\"%d\", &passos);\n    printf(\"%c\\n\", primeira + passos);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "um_passo_e_a_letra_seguinte",
+      "teste": "um_passo_e_a_letra_seguinte",
+      "descricao": "digitado 1 passo, a funcao proximaLetra imprime b (a letra seguinte a de partida) e mais nada — os dois checa_str conferem a linha da letra e o fim da saida"
+    },
+    {
+      "id": "zero_passo_e_a_propria_letra",
+      "teste": "zero_passo_e_a_propria_letra",
+      "descricao": "digitado 0 passo, a funcao imprime a propria letra de partida (a) — somar zero na letra nao anda na fileira"
+    },
+    {
+      "id": "vinte_e_cinco_passos_chega_no_z",
+      "teste": "vinte_e_cinco_passos_chega_no_z",
+      "descricao": "digitados 25 passos, a funcao imprime z — o fim da fileira das minusculas, prova de que a letra impressa vem da conta e nao de uma letra fixa"
+    }
+  ]
+}

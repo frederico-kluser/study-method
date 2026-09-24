@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "entrada-do-show",
+  "title": "A entrada do show",
+  "concept": "um_desvio_dentro_do_outro",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A entrada do show\n\nEscreva a função `entradaDoShow`. Ela lê **dois inteiros** digitados na mesma linha — a idade e se a pessoa tem ingresso (`1` para sim, `0` para não) — e imprime uma linha só, assim:\n\n| situação | imprime |\n|---|---|\n| idade de 18 para cima **e** ingresso `1` | `pode entrar` |\n| idade de 18 para cima **e** ingresso `0` | `compre o ingresso` |\n| idade abaixo de 18 | `menor de idade` |\n\nRepare na terceira linha: quem é menor de idade é barrado **sem** a pergunta do ingresso. Por isso a decisão do ingresso mora DENTRO do bloco da idade — um `if` dentro do outro, cada um com as suas chaves.\n\nCom `20 0` digitado, a saída é exatamente:\n\n```text\ncompre o ingresso\n```\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* entradaDoShow le a idade e o ingresso (1 = tem, 0 = nao tem) digitados\n   e imprime uma linha so:\n     pode entrar        -> idade de 18 para cima E ingresso 1\n     compre o ingresso  -> idade de 18 para cima E ingresso 0\n     menor de idade     -> idade abaixo de 18\n   A leitura ja esta escrita. Falta a decisao: o if da idade por FORA e,\n   dentro do bloco dele, o if do ingresso — cada um com as suas chaves. */\nvoid entradaDoShow(void) {\n    int idade = 0;\n    int ingresso = 0;\n\n    scanf(\"%d %d\", &idade, &ingresso);\n\n    /* escreva a decisao aqui, no lugar desta linha */\n    printf(\"pode entrar\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio entrada-do-show — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o proximo freopen ficar legal (C11 7.21.4).\n   As tres saidas esperadas sao DIFERENTES, e o terceiro cenario tem\n   ingresso 1 com idade 16: quem trocar a ordem dos dois if (ingresso por\n   fora) responde \"pode entrar\" e reprova ali. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid entradaDoShow(void);\n\nSM_TEST(maior_com_ingresso) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"20 1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    entradaDoShow();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"20 anos com ingresso entra\", linha, \"pode entrar\\n\",\n              \"as duas condicoes deram verdadeiro: a de fora abriu e a de dentro casou\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a resposta da portaria, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(maior_sem_ingresso) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"20 0\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    entradaDoShow();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"20 anos sem ingresso compra\", linha, \"compre o ingresso\\n\",\n              \"a idade abriu a porta e o else de DENTRO respondeu pelo ingresso\");\n    fclose(f);\n}\n\nSM_TEST(menor_com_ingresso) {\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"16 1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    entradaDoShow();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"16 anos e barrado mesmo com ingresso\", linha, \"menor de idade\\n\",\n              \"a idade e a pergunta de FORA: falhando ela, o ingresso nem e olhado\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid entradaDoShow(void) {\n    int idade = 0;\n    int ingresso = 0;\n\n    scanf(\"%d %d\", &idade, &ingresso);\n\n    if (idade >= 18) {\n        if (ingresso == 1) {\n            printf(\"pode entrar\\n\");\n        } else {\n            printf(\"compre o ingresso\\n\");\n        }\n    } else {\n        printf(\"menor de idade\\n\");\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "maior_com_ingresso",
+      "teste": "maior_com_ingresso",
+      "descricao": "com 20 e 1 digitados, a funcao entradaDoShow passa pelo if de fora (idade) e pelo if de dentro (ingresso) e imprime pode entrar numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "maior_sem_ingresso",
+      "teste": "maior_sem_ingresso",
+      "descricao": "com 20 e 0 digitados, o if de fora abre e o else de DENTRO responde: a funcao imprime compre o ingresso"
+    },
+    {
+      "id": "menor_com_ingresso",
+      "teste": "menor_com_ingresso",
+      "descricao": "com 16 e 1 digitados, o if de fora da falso e o de dentro nem e testado: a funcao imprime menor de idade — quem inverte a ordem dos dois if reprova neste cenario"
+    }
+  ]
+}

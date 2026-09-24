@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "quantos-aprovados",
+  "title": "Quantos aprovados",
+  "concept": "contando_iguais",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Quantos aprovados\n\nA caixa `quantosAprovados` recebe a **nota de corte** e devolve **quantas** notas da turma alcançaram esse corte. A lista das notas já está escrita dentro dela:\n\n```text\n7  5  10  6  4  9\n```\n\nCom corte `6`, quatro notas alcançam (`7`, `10`, `6` e `9`): a caixa devolve `4`. Com corte `9`, só `10` e `9` alcançam: devolve `2`. Com corte `11`, ninguém alcança: devolve `0`.\n\nNada de `printf` aqui: esta caixa **devolve** o número. Varra as seis gavetas com um `for`, pergunte `notas[i] >= corte` dentro do `if` e faça o contador crescer só ali.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "/* quantosAprovados recebe a nota de corte e DEVOLVE quantas notas da lista\n   alcancaram esse corte. A lista e o contador ja estao aqui; falta o laco\n   que passa pelas seis gavetas e o if que faz o contador crescer.\n   Nenhum printf: esta caixa entrega o numero, nao mostra. */\nint quantosAprovados(int corte) {\n    int notas[6] = {7, 5, 10, 6, 4, 9};\n    int total = 0;\n\n    /* varra as seis gavetas e conte as que alcancaram o corte */\n\n    return total;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio quantos-aprovados — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O teste declara o prototipo da\n   caixa do aluno, chama-a com tres cortes diferentes e confere o VALOR\n   devolvido com checa_int. A lista e fixa e o corte e que muda: uma caixa\n   que devolvesse um numero fixo reprovaria em dois dos tres cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint quantosAprovados(int corte);\n\nSM_TEST(quatro_alcancam_o_corte_6) {\n    checa_int(\"com corte 6, quatro notas alcancam\", quantosAprovados(6), 4,\n              \"7, 10, 6 e 9 sao maiores ou iguais a 6; 5 e 4 ficam de fora\");\n}\n\nSM_TEST(duas_alcancam_o_corte_9) {\n    checa_int(\"com corte 9, duas notas alcancam\", quantosAprovados(9), 2,\n              \"subir o corte derruba a contagem: so 10 e 9 alcancam o 9\");\n}\n\nSM_TEST(ninguem_alcanca_o_corte_11) {\n    checa_int(\"com corte 11, ninguem alcanca\", quantosAprovados(11), 0,\n              \"nenhuma nota chega a 11, e o contador termina como comecou: em zero\");\n}\n",
+  "solutionCode": "int quantosAprovados(int corte) {\n    int notas[6] = {7, 5, 10, 6, 4, 9};\n    int total = 0;\n\n    for (int i = 0; i < 6; i++) {\n        if (notas[i] >= corte) {\n            total += 1;\n        }\n    }\n\n    return total;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "quatro_alcancam_o_corte_6",
+      "teste": "quatro_alcancam_o_corte_6",
+      "descricao": "a caixa devolve 4 para o corte 6 — o contador cresce uma vez por gaveta cujo valor e maior ou igual ao corte, e as notas 5 e 4 ficam de fora"
+    },
+    {
+      "id": "duas_alcancam_o_corte_9",
+      "teste": "duas_alcancam_o_corte_9",
+      "descricao": "a caixa devolve 2 para o corte 9: a contagem muda com o corte recebido, o que prova que a comparacao acontece de verdade dentro do laco"
+    },
+    {
+      "id": "ninguem_alcanca_o_corte_11",
+      "teste": "ninguem_alcanca_o_corte_11",
+      "descricao": "a caixa devolve 0 para o corte 11 — o caso de borda em que nenhuma gaveta responde sim e o contador termina como comecou"
+    }
+  ]
+}

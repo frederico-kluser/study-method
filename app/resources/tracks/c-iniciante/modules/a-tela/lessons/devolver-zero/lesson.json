@@ -2,22 +2,128 @@
   "schemaVersion": 1,
   "slug": "devolver-zero",
   "title": "O programa termina e diz como foi",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O main acaba com return 0; — e esse número é o recado que o programa deixa para o sistema: zero significa \"terminou bem\".",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:ReturnStmt",
+  "concepts": [
+    "o_codigo_de_saida"
+  ],
   "prerequisites": [
     "o-esqueleto"
   ],
+  "introduces": {
+    "productive": [
+      "api:printf"
+    ],
+    "receptive": [
+      "node:ReturnStmt"
+    ],
+    "derived": []
+  },
+  "introducesTerms": [
+    "código de saída"
+  ],
+  "notionalMachineDelta": "o programa deixa de acabar no ar: além do que aparece na tela, ele devolve ao sistema um número — o código de saída — e o 0 do main é o \"terminou bem\"",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-programa-inteiro",
+      "title": "O programa até a última linha",
+      "markdown": "Você já tem duas peças: a função que escreve e o `main`, a porta por onde o programa começa. Falta olhar a ÚLTIMA linha do `main`:\n\n```c\nvoid tela(void) {\n    printf(\"o fim chegou\\n\");\n}\n\nint main(void) {\n    tela();\n    return 0;\n}\n```\n\nA ordem é de cima para baixo: o `main` chama a sua função, ela imprime, e então o `main` executa `return 0;` — a última coisa que acontece.\n\nEssas duas linhas do `main` são do programa de fora: nesta aula você só as LÊ. (O topo do arquivo, com a linha do `#include`, é a aula seguinte.)"
+    },
+    {
+      "id": "o-numero-que-o-programa-devolve",
+      "title": "O número que o programa devolve",
+      "markdown": "O `int` na frente de `main` diz o que a porta **devolve**: um número inteiro. E quem recebe esse número não é você — é o sistema que mandou o programa rodar.\n\n```c\nint main(void) {\n    return 0;\n}\n```\n\nEsse programa não mostra nada e termina bem: o `return 0;` é o recado \"acabei, e deu certo\". É o **código de saída**. Qualquer outro número é combinado como \"algo saiu errado\" — por isso o zero é o fim limpo, e é o que o seu desafio precisa.\n\nA analogia da porta quebra aqui: a porta não fala. O `return` fala — devolve um valor para quem chamou."
+    },
+    {
+      "id": "quem-devolve-e-quem-so-imprime",
+      "title": "Quem devolve e quem só imprime",
+      "markdown": "Compare as duas assinaturas do programa de cima:\n\n- `void tela(void)` — `void` é *nada*: a sua função só imprime, e por isso não tem `return` nenhum.\n- `int main(void)` — `int` é *um número*: por isso o `main` acaba com `return 0;`.\n\nImprimir e devolver são canais diferentes: a tela é para a pessoa, o número é para o sistema. Nesta aula você só LÊ o `return`; escrever um `return` que entrega um valor é assunto do módulo 4.\n\nNo desafio a sua função imprime o fim do relatório — e o programa só sai com código 0 se cada conferência do teste passar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-zero-e-o-codigo-de-saida",
+      "statement": "O `0` que o `main` devolve é o código de saída: zero significa \"terminou bem\".",
+      "question": "O `main` do programa acaba com `return 0;`. O que esse `0` quer dizer?",
+      "options": [
+        "Que o programa terminou bem: zero é o código de sucesso.",
+        "Que o programa não imprimiu nada na tela antes de acabar.",
+        "Que o `main` não devolve valor nenhum a quem o chamou.",
+        "Que o programa rodou zero vez: nem chegou a começar."
+      ],
+      "answerIndex": 0,
+      "feedback": "O número do `return` do `main` é o código de saída — o recado que o programa deixa para o sistema. Zero é o combinado de \"deu tudo certo\"; outro número significa problema.",
+      "sectionId": "o-numero-que-o-programa-devolve",
+      "optionRationales": [
+        "Zero é o código de saída de sucesso: o programa avisa ao sistema que terminou bem.",
+        "O que apareceu na tela é outro canal: o código de saída fala de como o programa acabou, não da tela.",
+        "O contrário: é justamente por devolver um número que o `main` é declarado `int` e acaba com `return 0;`.",
+        "O `0` não conta vezes — ele é o valor devolvido no fim, uma vez só."
+      ]
+    },
+    {
+      "id": "o-return-do-main-e-a-ultima-linha",
+      "statement": "O `return 0;` do `main` é a última linha: ele roda depois de a sua função ter impresso tudo.",
+      "question": "Na ordem de execução do programa da primeira seção, quando o `return 0;` roda?",
+      "options": [
+        "Depois de `tela()` imprimir: é a última linha do `main`.",
+        "Antes de `tela()`, para avisar que o programa vai começar bem.",
+        "Ao mesmo tempo que `tela()`: as duas linhas rodam juntas.",
+        "Nunca: ele está ali só para o compilador ler e conferir."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `main` roda de cima para baixo: primeiro a chamada `tela();`, que imprime, e só então o `return 0;`, que encerra o programa com o código de saída.",
+      "sectionId": "o-programa-inteiro",
+      "optionRationales": [
+        "O `main` executa suas linhas de cima para baixo: a chamada primeiro, o `return` por último.",
+        "O `return` está escrito DEPOIS da chamada — e o programa segue a ordem do texto.",
+        "Nada roda ao mesmo tempo aqui: a chamada termina, o programa volta e segue para a linha de baixo.",
+        "Ele roda de verdade: é a linha que encerra o programa e entrega o código de saída."
+      ]
+    },
+    {
+      "id": "void-nao-devolve-int-devolve",
+      "statement": "A sua função é `void`: ela imprime e não devolve valor nenhum — o `return 0;` é do `main`.",
+      "question": "Por que `void tela(void)` não tem `return` nenhum, enquanto `int main(void)` tem `return 0;`?",
+      "options": [
+        "Porque o `void` significa nada a devolver, e o `int`, um número.",
+        "Porque só a função `main` tem permissão de usar `return` em C.",
+        "Porque a `tela` já imprimiu, e imprimir é a mesma coisa que devolver.",
+        "Porque uma função chamada por outra nunca pode devolver nada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O tipo da frente é o contrato do retorno: `void` é nada (e aí não há valor para devolver), `int` é um número (e aí o `return` entrega esse número).",
+      "sectionId": "quem-devolve-e-quem-so-imprime",
+      "optionRationales": [
+        "O tipo escrito antes do nome é o que a função devolve: `void` é nada, `int` é um número.",
+        "`return` não é privilégio do `main`: qualquer função com tipo de retorno o usa — é o que você vai escrever no módulo 4.",
+        "São canais diferentes: imprimir mostra para a pessoa, devolver entrega um valor a quem chamou.",
+        "Ser chamada por outra função não muda nada: o que decide é o tipo de retorno declarado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "main function — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/main_function",
+      "description": "A página oficial do main: a entrada do programa e o valor int que ele devolve ao ambiente."
+    },
+    {
+      "title": "Exit status — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/program/EXIT_status",
+      "description": "O que o número devolvido pelo main significa: 0 (e EXIT_SUCCESS) é o fim bem-sucedido."
+    },
+    {
+      "title": "exit(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/exit.3.html",
+      "description": "Como o sistema recebe o código de saída de um programa que terminou."
+    }
+  ],
+  "challenges": [
+    "fim-limpo"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "enquadra",
+  "title": "Enquadra",
+  "concept": "uma_caixa_chama_outra",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Enquadra\n\nEnquadrar é trazer um número para dentro de uma faixa: abaixo do piso, vira o piso; acima do teto, vira o teto; dentro da faixa, fica como está.\n\nEscreva **três** caixas, e a de cima usa as outras duas:\n\n- `maior(a, b)` devolve o maior dos dois;\n- `menor(a, b)` devolve o menor dos dois;\n- `enquadra(x, min, max)` devolve `x` enquadrado na faixa `min`..`max` — **chamando** `maior` e `menor`, sem comparar nada por conta própria.\n\nO caminho é este: primeiro `maior(x, min)` levanta `x` até o piso; o valor que volta desce até o teto com `menor`.\n\nExemplos: `enquadra(5, 0, 10)` devolve 5; `enquadra(15, 0, 10)` devolve 10.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "/* Tres caixas — e a de baixo chama as de cima.\n\n   maior(a, b)  devolve o maior dos dois\n   menor(a, b)  devolve o menor dos dois\n   enquadra(x, min, max)  devolve x trazido para dentro da faixa min..max */\n\nint maior(int a, int b) {\n    /* 1. devolva a quando a alcanca b; senao, devolva b */\n    return 0;\n}\n\nint menor(int a, int b) {\n    /* 2. devolva a quando a nao passa de b; senao, devolva b */\n    return 0;\n}\n\nint enquadra(int x, int min, int max) {\n    /* 3. sem comparar nada aqui: chame maior(x, min) para levantar x ate o\n          piso, e desca o valor que voltou ate o teto com menor(..., max) */\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio enquadra — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Fase VALOR: o teste declara os PROTOTIPOS das tres caixas do aluno e\n   compara o VALOR DEVOLVIDO por cada uma. O ultimo cenario exercita as duas\n   caixas internas direto — elas precisam existir para enquadra chamar. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint maior(int a, int b);\nint menor(int a, int b);\nint enquadra(int x, int min, int max);\n\nSM_TEST(o_cinco_cabe_na_faixa) {\n    checa_int(\"5 na faixa 0..10 fica 5\", enquadra(5, 0, 10), 5,\n              \"5 esta dentro da faixa: nem o piso nem o teto mexem nele\");\n}\n\nSM_TEST(o_quinze_encosta_no_teto) {\n    checa_int(\"15 na faixa 0..10 vira 10\", enquadra(15, 0, 10), 10,\n              \"15 passa do teto: menor(15, 10) devolve o teto\");\n}\n\nSM_TEST(o_um_sobe_para_o_piso) {\n    checa_int(\"1 na faixa 2..8 vira 2\", enquadra(1, 2, 8), 2,\n              \"1 esta abaixo do piso: maior(1, 2) devolve o piso\");\n}\n\nSM_TEST(as_caixas_internas_respondem_sozinhas) {\n    checa_int(\"o maior de 3 e 9 e 9\", maior(3, 9), 9,\n              \"maior devolve o maior dos dois numeros que recebeu\");\n    checa_int(\"o menor de 3 e 9 e 3\", menor(3, 9), 3,\n              \"menor devolve o menor dos dois numeros que recebeu\");\n}\n",
+  "solutionCode": "int maior(int a, int b) {\n    if (a >= b) {\n        return a;\n    }\n    return b;\n}\n\nint menor(int a, int b) {\n    if (a <= b) {\n        return a;\n    }\n    return b;\n}\n\nint enquadra(int x, int min, int max) {\n    int comPiso = maior(x, min);\n    return menor(comPiso, max);\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_cinco_cabe_na_faixa",
+      "teste": "o_cinco_cabe_na_faixa",
+      "descricao": "enquadra(5, 0, 10) devolve 5: o valor que ja esta dentro da faixa atravessa as duas chamadas sem mudar"
+    },
+    {
+      "id": "o_quinze_encosta_no_teto",
+      "teste": "o_quinze_encosta_no_teto",
+      "descricao": "enquadra(15, 0, 10) devolve 10: acima do teto, o valor que volta de menor e o proprio teto"
+    },
+    {
+      "id": "o_um_sobe_para_o_piso",
+      "teste": "o_um_sobe_para_o_piso",
+      "descricao": "enquadra(1, 2, 8) devolve 2: abaixo do piso, o valor que volta de maior e o proprio piso — e a faixa muda de teste para teste, entao a conta nao pode ser fixa"
+    },
+    {
+      "id": "as_caixas_internas_respondem_sozinhas",
+      "teste": "as_caixas_internas_respondem_sozinhas",
+      "descricao": "maior(3, 9) devolve 9 e menor(3, 9) devolve 3: as duas caixas internas existem e respondem sozinhas, que e o que permite enquadra chamar em vez de comparar"
+    }
+  ]
+}

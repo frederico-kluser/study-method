@@ -581,6 +581,13 @@ describe('caso feliz — L1–L3 de um micro-currículo passam na bateria inteir
 
     // Nada da bateria derrubou: o placar de erros da trilha inteira é zero.
     assert.equal(report.totals.violacoes, 0, JSON.stringify(report.violations, null, 2));
+    // E ESTE ZERO NÃO FALA PELA BARRA A17–A23 (fiada no `auditTrack` em
+    // 2026-09-22): a fixture não declara `introduces`, o orçamento sai
+    // `inferred` e a barra é declared-only (`audit.ts` → `barraValePara`).
+    // A checagem que não rodou está DECLARADA — é o corolário do §9.2 (um zero
+    // só é informação com `checagensNaoExecutadas == 0`).
+    assert.equal(report.barra, undefined);
+    assert.ok(report.limitacoes.some((l) => l.id === 'A17-A23-NAO-RODOU-EM-INFERRED'));
   });
 });
 

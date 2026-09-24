@@ -311,8 +311,16 @@ describe('minimalC — o prover recebe a linguagem e o stub certos', { skip: !TE
 
 describe('minimalPorLinguagem — o despacho de C', () => {
   it("'c' está na tabela, e os irmãos não saíram dela", () => {
-    assert.deepEqual(LINGUAGENS_COM_SINTETIZADOR, ['c', 'javascript', 'python']);
+    // PIN CORRIGIDO EM 2026-09-22, e a correção é sobre o pin, não sobre a
+    // tabela: `rust` entrou em `LINGUAGENS_COM_SINTETIZADOR` com o adaptador de
+    // Rust (`quality/minimalRust.ts`, commit c6621212) e esta lista literal não
+    // acompanhou — o caso estava VERMELHO desde então, apesar de a mensagem
+    // daquele commit afirmar "suíte 4818 testes 0 falhas". A lista é literal de
+    // propósito (derivá-la da própria tabela faria o check concordar consigo
+    // mesmo), então quem porta um sintetizador novo mexe aqui na mesma leva.
+    assert.deepEqual(LINGUAGENS_COM_SINTETIZADOR, ['c', 'javascript', 'python', 'rust']);
     assert.equal(exigirSintetizadorMinimo('c').name, 'sintetizarCodigoMinimoC');
+    assert.equal(exigirSintetizadorMinimo('rust').name, 'sintetizarCodigoMinimoRust');
   });
 
   it('sintetizarCodigoMinimoDaLinguagem(language: "c") despacha para o sintetizador de C', async () => {

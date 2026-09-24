@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "negacao",
   "title": "Inverter a condição",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O `!` na frente de uma resposta a vira do avesso: o que era 1 vira 0, o que era 0 vira 1 — e assim uma condição pergunta o contrário do que ela dizia.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:unary:!",
+  "concepts": [
+    "a_negacao"
+  ],
   "prerequisites": [
     "ou-logico"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:!",
+      "node:UnaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryOperator",
+        "de": "op:unary:!"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a condição deixa de perguntar só o que está escrito: com o `!` na frente, o programa passa a decidir pelo CONTRÁRIO da resposta — e o aluno ganha um jeito de tratar o caso que sobra sem escrever a comparação ao contrário",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-nao-na-frente",
+      "title": "O \"não\" na frente da resposta",
+      "markdown": "Em C a comparação É um número: `1` quando a resposta é sim, `0` quando é não. O `!` escrito na frente vira essa resposta do avesso.\n\n```c\nprintf(\"%d\\n\", !(5 >= 9));\n```\n\n```text\n1\n```\n\n`5 >= 9` é 0 — cinco não é maior nem igual a nove. O `!` recebe esse 0 e devolve 1.\n\nE ao contrário:\n\n```c\nprintf(\"%d\\n\", !(9 >= 5));\n```\n\n```text\n0\n```\n\nLeia o `!` como a palavra **não**: \"não é verdade que 9 é maior ou igual a 5\". E 9 é — então sobra 0.\n\nCom o `>` a conta é a mesma:\n\n```c\nprintf(\"%d\\n\", !(3 > 2));\n```\n\n```text\n0\n```"
+    },
+    {
+      "id": "negar-um-nome",
+      "title": "Negar o que está guardado",
+      "markdown": "O `!` também vem na frente de um nome. Aqui `chovendo` guarda 0, então `!chovendo` vale 1 — e o bloco roda:\n\n```c\nint chovendo = 0;\nif (!chovendo) {\n    printf(\"pode estender a roupa\\n\");\n}\n```\n\n```text\npode estender a roupa\n```\n\nA regra do C é curta: **zero é falso; qualquer outro número é verdadeiro**. Por isso `!` de 0 dá 1, e `!` de 7 dá 0.\n\nOnde a palavra \"não\" deixa de servir: o `!` não entende frase nenhuma — ele olha um número e devolve 0 ou 1."
+    },
+    {
+      "id": "negar-a-faixa-inteira",
+      "title": "Negar a pergunta inteira",
+      "markdown": "Os parênteses decidem o que o `!` nega. Aqui ele nega a faixa inteira, as duas comparações de uma vez:\n\n```c\nint n = 0;\nif (!(n >= 1 && 100 >= n)) {\n    printf(\"fora da faixa\\n\");\n}\n```\n\n```text\nfora da faixa\n```\n\n`100 >= n` pergunta \"100 é maior ou igual a n?\" — ou seja, \"n não passou de 100\". O `&&` responde 1 só quando as duas são sim: é a faixa de 1 a 100.\n\nCom `n` valendo 0 o `&&` devolve 0, e o `!` vira esse 0 em 1: está fora."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-nao-troca-a-resposta",
+      "statement": "`!(3 > 2)` é 0: a negação troca verdadeiro por falso.",
+      "question": "O que a linha `printf(\"%d\\n\", !(9 >= 5));` imprime?",
+      "options": [
+        "0",
+        "1",
+        "5",
+        "9"
+      ],
+      "answerIndex": 0,
+      "feedback": "`9 >= 5` é 1; o `!` vira esse 1 em 0, e o `%d` mostra o 0. O `!` sempre entrega 0 ou 1 — nunca o número comparado.",
+      "sectionId": "o-nao-na-frente",
+      "optionRationales": [
+        "`9 >= 5` vale 1 e o `!` o vira em 0: é o 0 que chega ao `%d`.",
+        "1 é o valor de `9 >= 5` ANTES do `!` — o `!` ainda o vira do avesso.",
+        "O 5 é um dos lados comparados; a comparação devolve 0 ou 1, nunca o lado.",
+        "O 9 é o outro lado da comparação, e ele também não é a resposta dela."
+      ]
+    },
+    {
+      "id": "zero-e-falso",
+      "statement": "Em C zero é falso e qualquer outro número é verdadeiro — por isso o `!` devolve 1 só quando recebe 0.",
+      "question": "Com `int chovendo = 0;`, quanto vale `!chovendo`?",
+      "options": [
+        "0, porque `chovendo` já vale 0.",
+        "1, porque o `!` vira o 0 do avesso.",
+        "O mesmo valor de `chovendo`, sem mudança nenhuma.",
+        "Nada: o `!` só pode vir na frente de uma comparação."
+      ],
+      "answerIndex": 1,
+      "feedback": "O `!` olha o valor guardado: 0 é falso, e negar falso dá 1. Se `chovendo` guardasse 7, `!chovendo` daria 0.",
+      "sectionId": "negar-um-nome",
+      "optionRationales": [
+        "Esse é o valor de `chovendo`; o `!` na frente ainda o inverte antes de responder.",
+        "Zero é falso, e negar falso dá 1 — é isso que faz o bloco do `if` rodar.",
+        "O `!` nunca devolve o valor recebido: ele devolve 0 ou 1, o contrário do que recebeu.",
+        "O `!` aceita qualquer número na frente dele, venha de comparação ou de um nome."
+      ]
+    },
+    {
+      "id": "os-parenteses-decidem",
+      "statement": "Os parênteses decidem o que o `!` nega: dentro deles, a pergunta inteira.",
+      "question": "Com `n` valendo 50, o que acontece em `if (!(n >= 1 && 100 >= n)) {`?",
+      "options": [
+        "O bloco roda: 50 está na faixa de 1 a 100.",
+        "O bloco roda só quando `n` é exatamente 1 ou exatamente 100.",
+        "O bloco não roda: dentro dos parênteses dá 1, e o `!` faz 0.",
+        "Dá erro de compilação: o `!` não pode vir antes de um parêntese aberto."
+      ],
+      "answerIndex": 2,
+      "feedback": "Com 50 as duas comparações são sim, o `&&` devolve 1 e o `!` o vira em 0 — condição falsa, bloco pulado. O aviso é para quem está FORA.",
+      "sectionId": "negar-a-faixa-inteira",
+      "optionRationales": [
+        "50 está na faixa mesmo — e é por isso que o bloco do aviso NÃO roda.",
+        "As duas comparações são `>=`: elas valem para a faixa toda, não só para as pontas.",
+        "O `&&` responde 1 para o 50, e o `!` vira esse 1 em 0: a condição fica falsa.",
+        "O `!` aceita um parêntese na frente; é assim que ele nega a pergunta inteira."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial do `!`, do `&&` e do `||`: cada um devolve 0 ou 1, e zero é o único valor falso."
+    },
+    {
+      "title": "C Operator Precedence — a tabela oficial de precedência",
+      "url": "https://en.cppreference.com/w/c/language/operator_precedence",
+      "description": "A tabela que mostra por que o `!` gruda no que vem logo depois dele — e por que os parênteses mudam o que ele nega."
+    },
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if`: o bloco roda quando a condição é diferente de zero."
+    }
+  ],
+  "challenges": [
+    "fora-da-faixa"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

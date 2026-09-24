@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "o-triangulo",
   "title": "O triângulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Quando a condição do laço de dentro usa o contador do laço de fora, cada linha sai com um tamanho diferente — e o retângulo vira triângulo.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "o_triangulo"
+  ],
   "prerequisites": [
     "laco-dentro-de-laco"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a grade deixa de ser retangular: o número de voltas do laço de dentro passa a ser calculado a partir do contador do de fora, e o desenho ganha forma variável linha a linha",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-condicao-olha-para-fora",
+      "title": "A condição de dentro olha para fora",
+      "markdown": "No retângulo, o laço de dentro parava sempre no mesmo número. Troque esse número pelo contador do laço de fora:\n\n```c\nfor (int i = 1; i <= 4; i++) {\n    for (int j = 1; j <= i; j++) {\n        printf(\"#\");\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\n#\n##\n###\n####\n```\n\n`j <= i` é a única diferença. Na volta em que `i` vale 1, o de dentro dá 1 volta; quando `i` vale 4, dá 4. A linha `i` tem `i` marcas — e o desenho deixa de ser um bloco."
+    },
+    {
+      "id": "o-contador-de-fora-vale-dentro",
+      "title": "O contador de fora vale lá dentro",
+      "markdown": "Por que `i` pode aparecer no cabeçalho do laço de dentro? Porque o laço de dentro está DENTRO do corpo do de fora, e lá `i` existe e já tem valor:\n\n```c\nfor (int i = 1; i <= 3; i++) {\n    printf(\"linha %d: \", i);\n    for (int j = 1; j <= i; j++) {\n        printf(\"%d\", j);\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\nlinha 1: 1\nlinha 2: 12\nlinha 3: 123\n```\n\nO contrário não vale: `j` nasce no cabeçalho do laço de dentro e morre quando ele acaba. Depois do `}` do laço de dentro, o nome `j` nem existe mais."
+    },
+    {
+      "id": "de-cabeca-para-baixo",
+      "title": "O triângulo ao contrário",
+      "markdown": "Se `j <= i` cresce, `j <= 5 - i` encolhe. O mesmo par de laços desenha o triângulo de cabeça para baixo:\n\n```c\nfor (int i = 1; i <= 4; i++) {\n    for (int j = 1; j <= 5 - i; j++) {\n        printf(\"#\");\n    }\n    printf(\"\\n\");\n}\n```\n\n```text\n####\n###\n##\n#\n```\n\nA forma do desenho mora na CONDIÇÃO do laço de dentro. O resto — os dois cabeçalhos, o `printf` do miolo, a quebra de linha no fim da volta de fora — continua exatamente igual."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-linha-i-tem-i-marcas",
+      "statement": "A linha i tem i caracteres: a condição do laço de dentro usa o contador de fora.",
+      "question": "Com `for (int i = 1; i <= 4; i++)` por fora e `for (int j = 1; j <= i; j++)` por dentro, quantos `#` saem na TERCEIRA linha?",
+      "options": [
+        "3, porque naquela volta `i` vale 3.",
+        "4, porque o laço de fora vai até 4.",
+        "1, porque `j` sempre começa em 1.",
+        "12, porque são 4 linhas de 3 marcas."
+      ],
+      "answerIndex": 0,
+      "feedback": "Na terceira linha `i` vale 3, então `j` vai de 1 a 3: três voltas, três marcas. É o contador de fora que dita o tamanho da linha.",
+      "sectionId": "a-condicao-olha-para-fora",
+      "optionRationales": [
+        "A condição do laço de dentro é `j <= i`, e na terceira linha `i` vale 3: três voltas.",
+        "O 4 é o limite do laço de FORA, que conta linhas — não o tamanho de cada linha.",
+        "`j` começa em 1 em todas as linhas, mas quem decide onde ele para é `i`.",
+        "12 é o total de marcas de um retângulo 4 × 3; aqui cada linha tem um tamanho diferente."
+      ]
+    },
+    {
+      "id": "j-so-existe-dentro",
+      "statement": "O contador do laço de fora vale dentro do laço de dentro; o contrário não.",
+      "question": "Por que `j <= i` funciona no cabeçalho do laço de dentro?",
+      "options": [
+        "Porque o laço de dentro está no corpo do de fora, onde `i` já existe.",
+        "Porque `i` e `j` são o mesmo contador com dois nomes diferentes.",
+        "Porque o C copia o valor de `i` para `j` no começo de cada volta do laço.",
+        "Porque todo contador de laço vale no programa inteiro."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço de dentro é uma ordem do corpo do de fora: ali `i` está vivo e com valor. Já `j` morre quando o laço de dentro acaba.",
+      "sectionId": "o-contador-de-fora-vale-dentro",
+      "optionRationales": [
+        "Tudo o que está no corpo do laço de fora enxerga `i` — inclusive o cabeçalho do laço de dentro.",
+        "São dois nomes e dois contadores: `i` anda uma casa por linha, `j` anda do 1 ao limite em cada linha.",
+        "Nenhuma cópia acontece: `j` recebe o valor do seu próprio cabeçalho, que é 1.",
+        "O contador declarado no cabeçalho vale só dentro do laço; fora dele o nome não existe."
+      ]
+    },
+    {
+      "id": "a-forma-mora-na-condicao",
+      "statement": "A forma do desenho mora na condição do laço de dentro.",
+      "question": "Num laço de fora que vai de 1 a 4, a condição de dentro troca de `j <= i` para `j <= 5 - i`. O que muda na tela?",
+      "options": [
+        "O triângulo sai de cabeça para baixo: 4, 3, 2 e 1 marcas.",
+        "Nada muda no desenho: o total de marcas continua sendo 10.",
+        "Saem 4 linhas iguais, com 4 marcas cada uma.",
+        "O laço de fora passa a contar ao contrário, de 4 até 1."
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição decide quantas voltas o laço de dentro dá em cada linha. Com `5 - i`, a primeira linha tem 4 marcas e a última tem 1.",
+      "sectionId": "de-cabeca-para-baixo",
+      "optionRationales": [
+        "Para `i` igual a 1, 2, 3 e 4, o `5 - i` vale 4, 3, 2 e 1: o triângulo desce em vez de subir.",
+        "O total de marcas é o mesmo (10), mas a ORDEM das linhas inverte — e o desenho é outro.",
+        "Linhas iguais sairiam se a condição não usasse `i`, como no retângulo.",
+        "O cabeçalho do laço de fora não foi tocado: ele continua indo de 1 a 4."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do for: a condição é reavaliada a cada volta, e pode usar qualquer nome visível no ponto em que está escrita."
+    },
+    {
+      "title": "Scope — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/scope",
+      "description": "A página oficial do escopo em C: o nome declarado no cabeçalho de um for vale do cabeçalho até o fim do corpo daquele laço."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.5.3 descreve o for e diz que o nome declarado no cabeçalho vale no laço inteiro — e só nele."
+    }
+  ],
+  "challenges": [
+    "triangulo-de-hashtags"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

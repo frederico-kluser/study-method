@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "notas-na-tela",
+  "title": "As notas na tela",
+  "concept": "a_caixa_com_gavetas",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# As notas na tela\n\nA turma tem **cinco notas**. As três do meio são sempre as mesmas — 8, 6 e 9 —, e as duas das pontas mudam de turma para turma: o programa de fora entrega a primeira e a última.\n\nEscreva a função `notasNaTela`, com as duas janelas de entrada:\n\n```text\nvoid notasNaTela(int primeira, int ultima)\n```\n\nDentro dela, crie a caixa de cinco gavetas com o inicializador entre chaves:\n\n```c\nint notas[5] = {primeira, 8, 6, 9, ultima};\n```\n\nE imprima as cinco notas, **uma por linha**, da gaveta 0 até a gaveta 4. Com `primeira` valendo 10 e `ultima` valendo 2, a tela fica assim:\n\n```text\n10\n8\n6\n9\n2\n```\n\nNenhuma linha a mais: a saída acaba na quinta nota.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a funcao notasNaTela inteira, com as duas janelas:\n\n       void notasNaTela(int primeira, int ultima)\n\n   Dentro dela: crie a caixa de cinco gavetas\n   int notas[5] = {primeira, 8, 6, 9, ultima};\n   e imprima as cinco notas, uma por linha, da gaveta 0 ate a 4. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio notas-na-tela — counter_protocol (03-tdd 3.9.3).\n   Fase SAIDA: o teste chama a funcao do aluno e captura o stdout no\n   proprio cenario (freopen para arquivo temporario, fflush, leitura de\n   volta). Cada cenario tem o SEU arquivo de captura. Duas turmas: a\n   primeira e a ultima nota mudam, as tres do meio nao. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid notasNaTela(int primeira, int ultima);\n\nSM_TEST(as_cinco_notas_da_turma_a) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    notasNaTela(10, 2);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 0 da turma A\", linha, \"10\\n\",\n              \"a primeira nota entregue vai para a gaveta 0 e sai na primeira linha\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 1 da turma A\", linha, \"8\\n\",\n              \"a segunda gaveta guarda o 8 do inicializador\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 2 da turma A\", linha, \"6\\n\",\n              \"a terceira gaveta guarda o 6 do inicializador\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 3 da turma A\", linha, \"9\\n\",\n              \"a quarta gaveta guarda o 9 do inicializador\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 4 da turma A\", linha, \"2\\n\",\n              \"a ultima nota entregue vai para a gaveta 4, a quinta e ultima\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a caixa tem cinco gavetas: a saida acaba na quinta linha\");\n    fclose(f);\n}\n\nSM_TEST(as_cinco_notas_da_turma_b) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    notasNaTela(3, 7);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 0 da turma B\", linha, \"3\\n\",\n              \"com outra turma, a gaveta 0 muda junto com a nota entregue\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 1 da turma B\", linha, \"8\\n\",\n              \"as tres gavetas do meio nao dependem da turma\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 2 da turma B\", linha, \"6\\n\",\n              \"as tres gavetas do meio nao dependem da turma\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 3 da turma B\", linha, \"9\\n\",\n              \"as tres gavetas do meio nao dependem da turma\");\n    fgets(linha, 80, f);\n    checa_str(\"a gaveta 4 da turma B\", linha, \"7\\n\",\n              \"a gaveta 4 muda junto com a ultima nota entregue\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais na turma B\", fim, \"(nada impresso)\",\n              \"a saida acaba na quinta nota tambem aqui\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid notasNaTela(int primeira, int ultima) {\n    int notas[5] = {primeira, 8, 6, 9, ultima};\n    printf(\"%d\\n\", notas[0]);\n    printf(\"%d\\n\", notas[1]);\n    printf(\"%d\\n\", notas[2]);\n    printf(\"%d\\n\", notas[3]);\n    printf(\"%d\\n\", notas[4]);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "as_cinco_notas_da_turma_a",
+      "teste": "as_cinco_notas_da_turma_a",
+      "descricao": "com (10, 2), a funcao notasNaTela imprime as cinco gavetas na ordem — 10, 8, 6, 9 e 2, uma por linha — e nao imprime nenhuma linha a mais"
+    },
+    {
+      "id": "as_cinco_notas_da_turma_b",
+      "teste": "as_cinco_notas_da_turma_b",
+      "descricao": "com (3, 7), as gavetas das pontas mudam e as tres do meio nao: a saida e 3, 8, 6, 9 e 7, uma por linha, e termina na quinta"
+    }
+  ]
+}

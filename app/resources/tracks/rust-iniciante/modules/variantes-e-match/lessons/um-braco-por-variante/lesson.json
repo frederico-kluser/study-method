@@ -40,17 +40,17 @@
       "question": "No braço `Lado::Direito => 1`, o que é `Lado::Direito` e o que é `1`?",
       "options": [
         "O padrão (a pergunta) e o valor do braço (a resposta)",
-        "O padrão e o nome do braço",
-        "A condição e o corpo do if",
-        "O conjunto e a variante que casou"
+        "O padrão e o nome que identifica este braço no match",
+        "A condição booleana e o corpo do if que ela abre",
+        "O nome do conjunto e o número da variante que casou nele"
       ],
       "answerIndex": 0,
       "feedback": "À esquerda de `=>` fica o padrão; à direita, o valor que o braço devolve.",
       "optionRationales": [
         "Isso: o padrão pergunta se a variante casou; a resposta é o valor do braço.",
-        "Braço não tem nome: o compilador o conhece pela ordem e pelo padrão.",
-        "Não é if: a pergunta do match é um PADRÃO, não uma condição.",
-        "`Lado::Direito` é caminho, sim — mas o `1` é a resposta do braço, não a variante."
+        "Braço não tem nome: o compilador o acha pela ordem e pelo padrão, nunca por um nome.",
+        "Não é if: o match pergunta por PADRÃO e o braço não abre corpo de if nenhum.",
+        "`Lado::Direito` é o caminho da variante; o `1` é a RESPOSTA do braço, não um número dela."
       ]
     },
     {
@@ -60,17 +60,17 @@
       "question": "Num match que devolve `String`, o que acontece com o braço que devolve `1`?",
       "options": [
         "A compilação reprova: os braços prometem tipos diferentes",
-        "O 1 é convertido para \"1\"",
-        "O braço com 1 é ignorado",
-        "O tipo do match vira uma mistura dos dois"
+        "O 1 é convertido para o texto \"1\" na hora de devolver",
+        "O braço que devolve 1 é ignorado e o match segue",
+        "O tipo do match passa a aceitar String e i32 no mesmo match"
       ],
       "answerIndex": 0,
       "feedback": "O match tem UM tipo — o que todos os braços prometem; um fora reprova.",
       "optionRationales": [
         "Isso: o compilador compara o tipo de TODOS os braços e reprova o divergente.",
-        "Rust não converte número em texto por conta própria: conversão é explícita.",
-        "O braço divergente é erro de compilação — o compilador não escolhe por você.",
-        "Não existe \"mistura\": o tipo do match é decidido ANTES de rodar."
+        "Rust não converte número em texto por conta própria: conversão é sempre explícita.",
+        "Braço divergente não é ignorado, é erro de compilação — o compilador não escolhe por você.",
+        "O match tem UM tipo só, decidido ANTES de rodar: não existe braço de tipo livre."
       ]
     }
   ],

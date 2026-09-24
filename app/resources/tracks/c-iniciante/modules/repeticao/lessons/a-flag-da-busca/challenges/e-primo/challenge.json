@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-primo",
+  "title": "É primo",
+  "concept": "a_flag_da_busca",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# É primo\n\nA função `ePrimo` lê um número inteiro `N` (de 2 para cima) digitado pela pessoa e imprime **1** se `N` for primo, ou **0** se não for.\n\n`N` é primo quando nenhum número de 2 até `N - 1` divide `N` sem deixar resto.\n\nO laço que varre os candidatos a divisor já está no arquivo. Faltam as três peças da flag:\n\n1. declare a flag ANTES do laço, começando em `true` (*até agora nenhum divisor apareceu*);\n2. dentro do `if`, derrube a flag e saia do laço com `break`;\n3. depois do laço, imprima a flag com `%d`.\n\nCom `13` digitado, a saída é:\n\n```text\n1\n```\n\nCom `15` digitado (que o 3 divide), a saída é:\n\n```text\n0\n```\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdbool.h>\n#include <stdio.h>\n\n/* ePrimo le um inteiro N (2 ou mais) e imprime 1 se N for primo e 0 se\n   nao for. N e primo quando nenhum numero de 2 ate N - 1 divide N.\n   O laco que varre os candidatos a divisor ja esta pronto.\n   Faltam as tres pecas da flag: declare-a ANTES do laco comecando em\n   true, derrube-a dentro do if (e saia com break), e imprima-a com %d\n   depois do laco. */\nvoid ePrimo(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    /* declare aqui a flag, comecando em true */\n\n    for (int d = 2; d <= n - 1; d++) {\n        if (n % d == 0) {\n            /* achou um divisor: derrube a flag e saia do laco */\n        }\n    }\n\n    /* imprima aqui a flag com %d, numa linha so */\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio e-primo — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4).\n   Os tres N cobrem as duas respostas e a borda: imprimir sempre 1 reprova\n   no 15, imprimir sempre 0 reprova no 13, e o 2 e a menor entrada valida. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid ePrimo(void);\n\nSM_TEST(o_13_e_primo) {\n    /* o que a pessoa digita: 13 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"13\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    ePrimo();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 13 e primo\", linha, \"1\\n\",\n              \"nenhum numero de 2 a 12 divide o 13, entao a flag chega ao fim levantada e sai 1\");\n\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em N=13\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: o veredito, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_15_nao_e_primo) {\n    /* o que a pessoa digita: 15 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"15\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_2.tmp */\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    ePrimo();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 15 nao e primo\", linha, \"0\\n\",\n              \"o 3 divide o 15, entao a flag e derrubada dentro do laco e sai 0\");\n\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em N=15\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so, mesmo quando o divisor aparece no meio da busca\");\n    fclose(f);\n}\n\nSM_TEST(o_2_e_primo) {\n    /* o que a pessoa digita: 2 */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"2\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_3.tmp */\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    ePrimo();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 2 e primo\", linha, \"1\\n\",\n              \"com N=2 o laco nao da nenhuma volta, e a resposta e o valor com que a flag nasceu\");\n\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais em N=2\", fim, \"(nada impresso)\",\n              \"a saida continua sendo uma linha so na menor entrada valida\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdbool.h>\n#include <stdio.h>\n\nvoid ePrimo(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    bool primo = true;\n\n    for (int d = 2; d <= n - 1; d++) {\n        if (n % d == 0) {\n            primo = false;\n            break;\n        }\n    }\n\n    printf(\"%d\\n\", primo);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_13_e_primo",
+      "teste": "o_13_e_primo",
+      "descricao": "com 13 digitado no stdin, ePrimo varre os candidatos de 2 a 12, nenhum divide, e a flag chega ao fim do laco levantada: imprime 1 numa linha so"
+    },
+    {
+      "id": "o_15_nao_e_primo",
+      "teste": "o_15_nao_e_primo",
+      "descricao": "com 15 digitado no stdin, o divisor 3 derruba a flag dentro do laco e o break sai: imprime 0 — a resposta muda com a entrada, o que prova que ela vem da busca e nao de um numero fixo"
+    },
+    {
+      "id": "o_2_e_primo",
+      "teste": "o_2_e_primo",
+      "descricao": "com 2 digitado no stdin, o laco nao da nenhuma volta e a resposta e o valor inicial da flag: imprime 1, o que prova que ela nasce levantada e FORA do laco"
+    }
+  ]
+}

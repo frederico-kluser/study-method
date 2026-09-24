@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "o-dado-na-caixa",
   "title": "O dado na caixa",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Uma ficha entra pela janela de entrada e volta pelo retorno como um valor só — e, por ser cópia, mexer nela dentro da caixa não muda a ficha de quem chamou.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "a_ficha_na_caixa"
+  ],
   "prerequisites": [
     "o-apelido-do-molde",
     "devolver-em-vez-de-mostrar"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ficha passa a atravessar a fronteira da caixa: entra copiada por uma janela, é mexida lá dentro e volta inteira pelo retorno — e a ficha de fora só muda se quem chamou guardar o que voltou",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-ficha-entra-na-caixa",
+      "title": "A ficha entra pela janela",
+      "markdown": "A janela de entrada de uma caixa aceita uma ficha como aceita um `int` — basta dizer o tipo dela:\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nvoid mostrar(Ponto p) {\n    printf(\"ponto %d %d\\n\", p.x, p.y);\n}\n```\n\n`Ponto p` na janela: `p` é uma ficha inteira, com os campos dentro. Lá dentro, o ponto acessa os campos como sempre — a caixa não recebe `x` e `y` soltos, recebe a ficha."
+    },
+    {
+      "id": "a-caixa-devolve-uma-ficha",
+      "title": "A caixa devolve uma ficha",
+      "markdown": "O tipo escrito antes do nome também pode ser uma ficha: então a caixa ENTREGA a ficha inteira.\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nPonto mover(Ponto p, int dx, int dy) {\n    p.x = p.x + dx;\n    p.y = p.y + dy;\n    return p;\n}\n```\n\nTrês janelas: a ficha e os dois deslocamentos. Cada campo anda o seu, e o `return p;` entrega a ficha já mudada a quem chamou — nada foi impresso."
+    },
+    {
+      "id": "o-que-entra-e-uma-copia",
+      "title": "O que entra é uma cópia",
+      "markdown": "A ficha que entra é uma CÓPIA — o vestíbulo de sempre, agora com uma ficha:\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nPonto mover(Ponto p, int dx, int dy) {\n    p.x = p.x + dx;\n    return p;\n}\n\nvoid usar(void) {\n    Ponto a;\n    a.x = 3;\n    a.y = 4;\n    Ponto b = mover(a, 10, 0);\n    printf(\"a %d b %d\\n\", a.x, b.x);\n}\n```\n\n```text\na 3 b 13\n```\n\n`a` não andou: quem andou foi a cópia, e ela voltou em `b`."
+    },
+    {
+      "id": "o-caminho-de-volta",
+      "title": "O caminho de volta é o retorno",
+      "markdown": "Se a cópia não muda o original, como a mudança chega de fora? Pelo **retorno**: quem chamou guarda o que a caixa devolveu.\n\n```c\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\nPonto mover(Ponto p, int dx, int dy) {\n    p.x = p.x + dx;\n    return p;\n}\n\nvoid usar(void) {\n    Ponto a;\n    a.x = 3;\n    a.y = 4;\n    a = mover(a, 10, 0);\n}\n```\n\nA cópia entrou, voltou mudada e o `=` a trouxe para `a`. A caixa nunca alcança a ficha de fora sozinha — isso é a aula seguinte."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-ficha-entra-como-copia",
+      "statement": "A função recebe a CÓPIA: mudar o parâmetro não muda o original (o vestíbulo de novo).",
+      "question": "`a.x` vale 3. Depois de `Ponto b = mover(a, 10, 0);`, quanto vale `a.x`?",
+      "options": [
+        "3: o que entrou na caixa foi uma cópia.",
+        "13, porque a caixa somou 10 no campo x.",
+        "13 nas duas fichas, tanto em `a` como em `b`.",
+        "0: a ficha de fora fica vazia depois da chamada."
+      ],
+      "answerIndex": 0,
+      "feedback": "A ficha entra copiada. A caixa mexeu na cópia e devolveu ela — `b.x` é 13 e `a.x` continua 3.",
+      "sectionId": "o-que-entra-e-uma-copia",
+      "optionRationales": [
+        "A cópia é que andou; a ficha de fora ficou como estava.",
+        "O 10 entrou na cópia, não na ficha de quem chamou.",
+        "Só `b` recebeu a ficha devolvida; `a` não mudou.",
+        "Passar uma ficha para uma caixa não apaga nada dela."
+      ]
+    },
+    {
+      "id": "o-tipo-de-retorno-pode-ser-ficha",
+      "statement": "O tipo antes do nome pode ser uma ficha: a caixa devolve a ficha inteira, campos e tudo.",
+      "question": "Na assinatura `Ponto mover(Ponto p, int dx, int dy)`, o que o PRIMEIRO `Ponto` diz?",
+      "options": [
+        "Que a caixa devolve uma ficha `Ponto`.",
+        "Que a caixa recebe uma ficha `Ponto`.",
+        "Que a caixa devolve os campos em linhas separadas.",
+        "Que a caixa imprime a ficha antes de acabar."
+      ],
+      "answerIndex": 0,
+      "feedback": "O tipo da frente é sempre o do valor DEVOLVIDO. O que ela recebe está entre os parênteses — e ali também há um `Ponto`.",
+      "sectionId": "a-caixa-devolve-uma-ficha",
+      "optionRationales": [
+        "O tipo antes do nome é o do retorno, e aqui o retorno é uma ficha.",
+        "O que entra vem entre os parênteses, depois do nome.",
+        "Devolver não é imprimir: nenhuma linha sai da caixa.",
+        "A caixa não tem `printf` nenhum: ela entrega a ficha."
+      ]
+    },
+    {
+      "id": "a-ficha-conta-como-uma-janela",
+      "statement": "Uma ficha passa pela janela de entrada como um valor só, inteira, com os campos dentro.",
+      "question": "Quantas janelas de entrada tem `mover(Ponto p, int dx, int dy)`?",
+      "options": [
+        "Três: a ficha e os dois deslocamentos.",
+        "Quatro: `x`, `y`, `dx` e `dy`.",
+        "Duas: só os dois deslocamentos contam.",
+        "Uma: tudo entra junto dentro da ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "São três janelas, separadas por vírgula. A ficha ocupa UMA delas e leva os campos consigo — quem chama passa a ficha, não os campos.",
+      "sectionId": "a-caixa-devolve-uma-ficha",
+      "optionRationales": [
+        "Três nomes entre os parênteses, três janelas — e a primeira é uma ficha.",
+        "Os campos não são janelas: eles viajam dentro da ficha.",
+        "A ficha também é uma janela: ela está declarada ali.",
+        "Os deslocamentos entram por janelas próprias, fora da ficha."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial dos parâmetros e do tipo de retorno: uma estrutura é um tipo como qualquer outro nas duas pontas."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct`: a ficha é um objeto único, e é como objeto único que ela entra e sai da função."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.9.1 diz que o parâmetro recebe uma CÓPIA do argumento (passagem por valor)."
+    }
+  ],
+  "challenges": [
+    "o-movedor"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "ler-o-caderno",
   "title": "Ler linha por linha",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O fgets pede uma linha ao caderno e a guarda numa variável de texto — com o fim de linha dentro — e devolve NULL quando não há mais linha.",
+  "difficulty": 3,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:fgets",
+  "concepts": [
+    "ler_do_arquivo"
+  ],
   "prerequisites": [
     "o-caderno",
     "percorrer-a-string"
   ],
+  "introduces": {
+    "productive": [
+      "api:fgets"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o caderno passa a ter mão dupla: o programa não só grava, ele PEDE uma linha por vez, com um limite de tamanho, e reconhece o fim do caderno pelo NULL que volta",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "ler-e-pedir-uma-linha",
+      "title": "Ler é pedir uma linha",
+      "markdown": "Escrever era mandar; ler é **pedir**. O `fgets` pede UMA linha ao caderno e a guarda numa variável de texto:\n\n```c\nFILE *f = fopen(\"diario.txt\", \"r\");\nchar linha[80] = \"\";\nfgets(linha, 80, f);\nprintf(\"%s\", linha);\nfclose(f);\n```\n\nOs três argumentos, na ordem: **onde** guardar, **quanto** cabe lá — o freio de mão, o `fgets` nunca passa disso — e de **qual** caderno."
+    },
+    {
+      "id": "a-linha-vem-com-o-fim-de-linha",
+      "title": "A linha vem com o fim de linha dentro",
+      "markdown": "Repare no `printf(\"%s\", linha)`: sem `\\n` no fim. Não é descuido — o `fgets` traz o fim de linha **dentro** do texto, junto com a linha.\n\n```c\nFILE *f = fopen(\"diario.txt\", \"r\");\nchar texto[200] = \"\";\nfgets(texto, 200, f);\nprintf(\"[%s]\", texto);\nfclose(f);\n```\n\nSe a primeira linha do caderno é `acordei`, aparece na tela:\n\n```text\n[acordei\n]\n```\n\nO `]` caiu na linha de baixo: a prova de que o fim de linha veio junto."
+    },
+    {
+      "id": "quando-as-linhas-acabam",
+      "title": "Quando as linhas acabam",
+      "markdown": "E quando o caderno acaba? O `fgets` devolve `NULL` — o mesmo `NULL` do `fopen` que não abriu. É assim que o laço sabe que não há mais linha:\n\n```c\nFILE *f = fopen(\"diario.txt\", \"r\");\nchar linha[80] = \"\";\nwhile (1) {\n    if (fgets(linha, 80, f) == NULL) {\n        break;\n    }\n    printf(\"%s\", linha);\n}\nfclose(f);\n```\n\nO laço não conta linhas: ele pede até levar `NULL` na resposta."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "os-tres-argumentos-do-fgets",
+      "statement": "O `fgets(buffer, tamanho, f)` lê UMA linha por vez: onde guardar, quanto cabe lá e de qual caderno.",
+      "question": "Em `fgets(linha, 80, f)`, o que é o `80`?",
+      "options": [
+        "O máximo que cabe em `linha`, com o terminador.",
+        "A linha do caderno que se quer ler: a octogésima.",
+        "Quantas linhas o `fgets` vai ler nesta chamada.",
+        "O número de letras que a linha precisa ter."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `80` é o tamanho da variável `linha`, não do arquivo: é o freio de mão que impede o `fgets` de escrever fora dela. Quantas linhas ele lê é sempre uma — a próxima.",
+      "sectionId": "ler-e-pedir-uma-linha",
+      "optionRationales": [
+        "É o tamanho do lugar onde a linha vai ser guardada, e o `fgets` respeita esse limite.",
+        "O `fgets` não escolhe linha por número: ele lê sempre a próxima, de cima para baixo.",
+        "Uma chamada de `fgets` lê UMA linha — ler várias é trabalho do laço.",
+        "A linha do caderno tem o tamanho que tiver; o `80` fala do espaço de destino."
+      ]
+    },
+    {
+      "id": "o-fim-de-linha-vem-junto",
+      "statement": "O `fgets` traz o fim de linha DENTRO do texto lido, junto com a linha.",
+      "question": "A primeira linha do caderno é `acordei`. Depois do `fgets`, o que está na variável?",
+      "options": [
+        "`acordei` e, depois dele, o fim de linha.",
+        "`acordei` só, sem o fim de linha.",
+        "`acordei` com um espaço no lugar do fim de linha.",
+        "`acordei` com o fim de linha antes da palavra."
+      ],
+      "answerIndex": 0,
+      "feedback": "O fim de linha é parte do que estava gravado, e o `fgets` entrega o que estava gravado. Por isso, ao imprimir a linha lida, você usa `%s` sem acrescentar outro fim de linha.",
+      "sectionId": "a-linha-vem-com-o-fim-de-linha",
+      "optionRationales": [
+        "A linha lida termina no fim de linha — é o que o `[%s]` da teoria mostrou, com o `]` caindo abaixo.",
+        "Nada fica para trás: o fim de linha marca o fim da linha e vem junto com ela.",
+        "O `fgets` não troca nada por espaço: ele copia os caracteres como estão no caderno.",
+        "A ordem é a do caderno: primeiro a palavra, o fim de linha depois dela."
+      ]
+    },
+    {
+      "id": "fgets-devolve-nulo-no-fim",
+      "statement": "Quando não há mais linha, o `fgets` devolve `NULL` — é assim que o laço sabe que o caderno acabou.",
+      "question": "O laço pede uma linha por vez. O que faz ele parar no fim do caderno?",
+      "options": [
+        "O `fgets` devolver `NULL`: não havia mais linha.",
+        "O `fgets` devolver `0`, como faz o `fclose` quando fecha.",
+        "O `fclose` ser chamado dentro do laço.",
+        "A variável de texto ficar cheia e não caber mais nada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O fim do caderno não é um número: é a ausência de linha, e o `fgets` a comunica com `NULL`. Quem fecha é o `fclose`, depois do laço — fechar no meio deixaria o caderno indisponível.",
+      "sectionId": "quando-as-linhas-acabam",
+      "optionRationales": [
+        "`NULL` é a resposta do `fgets` para \"não há mais linha\": o laço testa isso e sai.",
+        "`0` é a resposta do `fclose`, e quer dizer o contrário: deu certo.",
+        "Fechar dentro do laço acabaria com o caderno na primeira volta, antes de ler o resto.",
+        "A variável é reaproveitada a cada volta: ela nunca enche."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fgets — a referência oficial da biblioteca de C",
+      "url": "https://en.cppreference.com/w/c/io/fgets",
+      "description": "A página oficial do fgets: o limite de tamanho, o fim de linha que vem no buffer e o NULL do fim do arquivo."
+    },
+    {
+      "title": "fgets(3) — a man-page do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/fgets.3.html",
+      "description": "A man-page do sistema: fgets lê no máximo tamanho-1 caracteres, guarda o fim de linha e termina o texto com \\0."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C: a seção 7.21.7.2 define o fgets, inclusive o ponteiro nulo devolvido no fim do arquivo."
+    }
+  ],
+  "challenges": [
+    "o-leitor-do-diario"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

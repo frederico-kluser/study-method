@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "fora-da-faixa",
+  "title": "Fora da faixa",
+  "concept": "a_negacao",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Fora da faixa\n\nA função `foraDaFaixa` lê um número inteiro digitado pela pessoa e avisa quando ele está **fora** da faixa de 1 a 100.\n\nCom o número fora da faixa, a saída é exatamente:\n\n```text\nfora da faixa\n```\n\nCom o número dentro da faixa, a função **não imprime nada** — nenhuma linha.\n\nA leitura com `scanf` já está escrita. O que falta é o `if` que nega a faixa INTEIRA: o `!` na frente das duas comparações, como na última seção da teoria.\n\nO limite de cima vem escrito como `100 >= n` — é a mesma pergunta que \"n não passou de 100\", com o `>=` que você já conhece.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* foraDaFaixa le um numero digitado e avisa quando ele esta FORA da\n   faixa de 1 a 100. Dentro da faixa, ela nao imprime nada.\n   A leitura ja esta escrita: falta o if que nega a faixa inteira. */\nvoid foraDaFaixa(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    /* escreva aqui o if com o ! na frente da faixa inteira e, dentro\n       das chaves, o printf do aviso \"fora da faixa\" */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio fora-da-faixa — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le\n   a entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid foraDaFaixa(void);\n\nSM_TEST(o_zero_esta_fora) {\n    /* o que a pessoa digita: 0 — abaixo do comeco da faixa */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"0\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    foraDaFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 0 esta fora da faixa\", linha, \"fora da faixa\\n\",\n              \"0 nao chega a 1: a faixa inteira e falsa, e o ! a vira em verdadeira\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"o aviso e uma linha so\");\n    fclose(f);\n}\n\nSM_TEST(o_cinquenta_esta_dentro) {\n    /* 50 esta na faixa: a funcao nao pode imprimir nada */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"50\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    foraDaFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 50 nao gera aviso\", linha, \"(nada impresso)\",\n              \"dentro da faixa a condicao negada e falsa: o bloco do aviso nao roda\");\n    fclose(f);\n}\n\nSM_TEST(o_cento_e_um_esta_fora) {\n    /* 101 passou do fim da faixa: o aviso volta */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"101\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    foraDaFaixa();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o 101 esta fora da faixa\", linha, \"fora da faixa\\n\",\n              \"101 passou de 100: o segundo lado do && e falso, e o ! avisa\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid foraDaFaixa(void) {\n    int n = 0;\n    scanf(\"%d\", &n);\n\n    if (!(n >= 1 && 100 >= n)) {\n        printf(\"fora da faixa\\n\");\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_zero_esta_fora",
+      "teste": "o_zero_esta_fora",
+      "descricao": "com 0 digitado no stdin, a funcao foraDaFaixa imprime a linha \"fora da faixa\" e mais nenhuma linha — o 0 nao chega ao comeco da faixa"
+    },
+    {
+      "id": "o_cinquenta_esta_dentro",
+      "teste": "o_cinquenta_esta_dentro",
+      "descricao": "com 50 digitado no stdin, a funcao nao imprime nada: dentro da faixa a condicao negada e falsa e o bloco do aviso nao roda"
+    },
+    {
+      "id": "o_cento_e_um_esta_fora",
+      "teste": "o_cento_e_um_esta_fora",
+      "descricao": "com 101 digitado no stdin, a funcao volta a imprimir \"fora da faixa\" — o limite de cima tambem e cobrado, nao so o de baixo"
+    }
+  ]
+}

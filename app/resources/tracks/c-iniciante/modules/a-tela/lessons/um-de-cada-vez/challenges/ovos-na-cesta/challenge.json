@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "ovos-na-cesta",
+  "title": "Ovos na cesta",
+  "concept": "de_um_em_um",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Ovos na cesta\n\nA cesta já tem **9 ovos**. A galinha põe mais três, um de cada vez — e a função `ovosNaCesta` mostra a cesta depois de cada ovo posto.\n\nOs três `printf` já estão no arquivo, na ordem certa. O que falta é o passo: antes de cada `printf`, escreva o `++` que soma UM ovo ao contador.\n\nA saída são três linhas, cada uma no formato `ovos na cesta: <quantos>`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* ovosNaCesta mostra a cesta depois de cada ovo posto. A cesta comeca com\n   9 ovos e recebe mais tres, um de cada vez. Os tres printf ja estao na\n   ordem: escreva, antes de cada um, o ++ que soma UM ovo ao contador. */\nvoid ovosNaCesta(void) {\n    int ovos = 9;\n\n    /* primeiro ovo: some um a ovos, de um em um */\n    printf(\"ovos na cesta: %d\\n\", ovos);\n\n    /* segundo ovo */\n    printf(\"ovos na cesta: %d\\n\", ovos);\n\n    /* terceiro ovo */\n    printf(\"ovos na cesta: %d\\n\", ovos);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio ovos-na-cesta — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste (modelo cenario-do-harness):\n   freopen manda o stdout para o arquivo temporario, o teste chama a funcao\n   do aluno e le o arquivo de volta — stdlib puro, sem runner proprio. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid ovosNaCesta(void);\n\nSM_TEST(a_cesta_depois_de_cada_ovo) {\n    /* captura: o stdout vira o arquivo sm_saida.tmp */\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    ovosNaCesta();\n    fflush(stdout);\n\n    /* leitura linha a linha: um passo de um por linha */\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a cesta depois do primeiro ovo\", linha, \"ovos na cesta: 10\\n\",\n              \"a cesta comeca com 9 e o primeiro ++ leva a 10\");\n    fgets(linha, 80, f);\n    checa_str(\"a cesta depois do segundo ovo\", linha, \"ovos na cesta: 11\\n\",\n              \"cada ++ anda exatamente uma casa: 10 vira 11\");\n    fgets(linha, 80, f);\n    checa_str(\"a cesta depois do terceiro ovo\", linha, \"ovos na cesta: 12\\n\",\n              \"tres ovos, tres passos de um: 9 mais 3 sao 12\");\n    /* a saida TERMINA na terceira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"sao tres ovos: nenhuma quarta linha e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid ovosNaCesta(void) {\n    int ovos = 9;\n    ovos++;\n    printf(\"ovos na cesta: %d\\n\", ovos);\n    ovos++;\n    printf(\"ovos na cesta: %d\\n\", ovos);\n    ovos++;\n    printf(\"ovos na cesta: %d\\n\", ovos);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_cesta_depois_de_cada_ovo",
+      "teste": "a_cesta_depois_de_cada_ovo",
+      "descricao": "a funcao ovosNaCesta soma um ao contador com ++ antes de cada impressao, partindo de 9, e imprime ovos na cesta: 10, ovos na cesta: 11 e ovos na cesta: 12, e nada alem disso"
+    }
+  ]
+}

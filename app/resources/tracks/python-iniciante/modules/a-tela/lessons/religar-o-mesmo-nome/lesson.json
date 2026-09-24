@@ -72,6 +72,11 @@
       "title": "Uma introdução informal ao Python",
       "url": "https://docs.python.org/3/tutorial/introduction.html",
       "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    },
+    {
+      "title": "Assignment statements — a atribuição na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#assignment-statements",
+      "description": "A regra oficial diz que a atribuição serve para ligar e religar nomes, e que o lado direito é resolvido antes — é por isso que `preco = preco + 45` funciona."
     }
   ],
   "challenges": [

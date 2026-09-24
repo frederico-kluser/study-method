@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "conta-espacos",
+  "title": "Conta espaços",
+  "concept": "a_string_como_parametro",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Conta espaços\n\nEscreva a função `contaEspacos`, que recebe uma frase e **devolve** quantos espaços ela tem:\n\n```c\nint contaEspacos(char s[])\n```\n\nEla não imprime nada: o resultado sai pelo `return`.\n\nExemplos:\n\n- com `\"ola meu mundo\"` ela devolve **2** (os dois espaços entre as três palavras);\n- com `\"palavra\"` ela devolve **0**.\n\nDois cuidados que a aula explicou:\n\n- o parâmetro não traz tamanho: o laço vai até a gaveta guardar o `\\0`;\n- o espaço é um caractere como qualquer outro, e o literal dele é `' '` — um espaço entre apóstrofos.\n\nO contador nasce antes do laço, senão cada volta esquece a anterior.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "/* contaEspacos devolve quantos espacos existem na frase s.\n   O programa de fora (o harness) chama esta funcao — voce escreve o corpo.\n   Nada e impresso aqui: o resultado sai pelo return. */\nint contaEspacos(char s[]) {\n    /* escreva aqui: um contador antes do laco, o laco ate a placa \\0,\n       o if que compara a gaveta com ' ' e o return do total */\n\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio conta-espacos — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: o teste declara o prototipo da funcao do aluno, monta a\n   frase numa caixa propria, chama e confere o RETORNO — sem captura de\n   saida. Tres frases de contagens diferentes (2, 4 e 0): um return\n   constante nao passa nas tres. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint contaEspacos(char s[]);\n\nSM_TEST(dois_espacos_em_tres_palavras) {\n    char frase[] = \"ola meu mundo\";\n    checa_int(\"os espacos de ola meu mundo\", contaEspacos(frase), 2,\n              \"tres palavras seguidas sao separadas por dois espacos\");\n}\n\nSM_TEST(quatro_espacos_em_cinco_letras) {\n    char frase[] = \"a b c d e\";\n    checa_int(\"os espacos de a b c d e\", contaEspacos(frase), 4,\n              \"outra frase, outra contagem: o total vem do percurso da caixa\");\n}\n\nSM_TEST(uma_palavra_sozinha_nao_tem_espaco) {\n    char frase[] = \"palavra\";\n    checa_int(\"os espacos de palavra\", contaEspacos(frase), 0,\n              \"sem nenhum espaco na frase o contador termina em zero\");\n}\n",
+  "solutionCode": "int contaEspacos(char s[]) {\n    int n = 0;\n    for (int i = 0; s[i] != '\\0'; i++) {\n        if (s[i] == ' ') {\n            n++;\n        }\n    }\n    return n;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "dois_espacos_em_tres_palavras",
+      "teste": "dois_espacos_em_tres_palavras",
+      "descricao": "com a frase \"ola meu mundo\" a funcao contaEspacos devolve 2: o laco percorre a caixa recebida no parametro ate a placa \\0 e soma 1 em cada gaveta que guarda um espaco"
+    },
+    {
+      "id": "quatro_espacos_em_cinco_letras",
+      "teste": "quatro_espacos_em_cinco_letras",
+      "descricao": "com a frase \"a b c d e\" a mesma funcao devolve 4 — a prova de que o total vem do percurso e nao de um numero fixo no codigo"
+    },
+    {
+      "id": "uma_palavra_sozinha_nao_tem_espaco",
+      "teste": "uma_palavra_sozinha_nao_tem_espaco",
+      "descricao": "com a frase \"palavra\", que nao tem espaco nenhum, a funcao devolve 0: o contador nasce em zero e nenhuma gaveta o incrementa"
+    }
+  ]
+}

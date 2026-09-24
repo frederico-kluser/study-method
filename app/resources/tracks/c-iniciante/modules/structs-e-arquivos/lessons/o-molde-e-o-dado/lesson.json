@@ -2,22 +2,130 @@
   "schemaVersion": 1,
   "slug": "o-molde-e-o-dado",
   "title": "O molde e o dado",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O `struct` declara o molde de uma ficha — vários campos, cada um com o seu tipo — e o ponto (`p.x`) é o gesto que entra na ficha para ler ou guardar um campo.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:RecordDecl",
+  "concepts": [
+    "a_ficha"
+  ],
   "prerequisites": [
     "um-nome-para-um-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:RecordDecl",
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o dado deixa de ser sempre um valor solto: um nome passa a guardar uma FICHA com vários campos, cada campo com o seu tipo e o seu lugar, e o ponto é o caminho até um campo",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-molde-da-ficha",
+      "title": "O molde da ficha",
+      "markdown": "Um ponto na tela são DOIS valores que andam juntos: `x` e `y`. Até aqui cada um teria o seu nome solto. Um **struct** é o molde de uma ficha: ele junta valores sob um nome só.\n\n```c\nstruct Ponto {\n    int x;\n    int y;\n};\n```\n\n`struct` é a palavra da linguagem; `Ponto` é o nome do molde, com maiúscula por convenção. Entre as chaves vêm os **campos**, um por linha, cada um com o seu tipo — e o `;` depois do `}` é obrigatório.\n\nO molde é o formulário em branco: nada foi preenchido ainda."
+    },
+    {
+      "id": "a-ficha-preenchida",
+      "title": "A ficha, e o ponto que entra nela",
+      "markdown": "Declarado o molde, `struct Ponto` passa a ser um tipo — e a ficha se declara como qualquer nome:\n\n```c\nstruct Ponto {\n    int x;\n    int y;\n};\n\nstruct Ponto p;\np.x = 3;\np.y = 4;\n```\n\n`struct Ponto p;` cria a ficha `p`, com os campos em branco. O **ponto** entre o nome e o campo é o gesto de entrar na ficha: `p.x` é o campo `x` daquela ficha e se comporta como qualquer nome — recebe valor com `=`.\n\nDuas fichas do mesmo molde têm cada uma o seu `x`."
+    },
+    {
+      "id": "o-campo-vale-um-valor",
+      "title": "O campo vale um valor",
+      "markdown": "O campo não serve só para receber: onde cabe um inteiro, cabe um campo.\n\n```c\nstruct Cartao {\n    int entrada;\n    int saida;\n};\n\nstruct Cartao c;\nc.entrada = 8;\nc.saida = 17;\nprintf(\"saiu as %d\\n\", c.saida);\nprintf(\"horas %d\\n\", c.saida - c.entrada);\n```\n\n```text\nsaiu as 17\nhoras 9\n```\n\nO campo entra no `%d` como qualquer inteiro, e entra na conta do mesmo jeito. O molde aqui é outro, e o gesto do ponto é o mesmo."
+    },
+    {
+      "id": "cada-campo-com-seu-tipo",
+      "title": "Cada campo tem o seu tipo",
+      "markdown": "Os campos não precisam ser do mesmo tipo — e é isso que faz da ficha uma FICHA. Molde curto cabe numa linha: o compilador ignora o desenho.\n\n```c\nstruct Aluno { int idade; double nota; };\n\nstruct Aluno a;\na.idade = 17;\na.nota = 9.5;\nprintf(\"%d anos, nota %.1f\\n\", a.idade, a.nota);\n```\n\n```text\n17 anos, nota 9.5\n```\n\n`idade` é `int`, `nota` é `double`: cada campo pede o seu formato no `printf`. Onde a analogia do formulário quebra: a ficha não confere nada — ela só reserva lugares com nome e tipo."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-ficha-junta-tipos-diferentes",
+      "statement": "`struct Ponto` agrupa valores DIFERENTES numa ficha só; cada campo tem o seu tipo.",
+      "question": "No molde `struct Aluno { int idade; double nota; };`, o que os dois campos têm em comum?",
+      "options": [
+        "Ficam na mesma ficha, e cada um tem o seu tipo.",
+        "Ficam na mesma ficha, e por isso têm de ter o mesmo tipo.",
+        "São dois nomes soltos, fora de ficha.",
+        "São dois formatos do `printf`, e não campos de ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "O molde junta campos DIFERENTES: `idade` é `int` e `nota` é `double`. O que os dois compartilham é a ficha — o tipo é de cada um.",
+      "sectionId": "cada-campo-com-seu-tipo",
+      "optionRationales": [
+        "É exatamente isso: uma ficha só, e cada campo com o tipo que o molde deu a ele.",
+        "Não: o molde existe justamente para juntar tipos diferentes na mesma ficha.",
+        "Eles estão dentro das chaves de `struct Aluno`: a ficha é essa.",
+        "`%d` e `%.1f` são formatos do `printf`; os campos são `idade` e `nota`."
+      ]
+    },
+    {
+      "id": "o-ponto-entra-na-ficha",
+      "statement": "O ponto entre o nome da ficha e o nome do campo é o que entra na ficha: `p.x` é o campo `x` daquela ficha.",
+      "question": "Com `struct Ponto p;` já declarada, o que a linha `p.x = 3;` faz?",
+      "options": [
+        "Guarda 3 no campo `x` da ficha `p`, e só nele.",
+        "Guarda 3 nos dois campos da ficha `p` de uma vez.",
+        "Cria um nome novo chamado `p.x`.",
+        "Muda o molde `struct Ponto` para todas as fichas dele."
+      ],
+      "answerIndex": 0,
+      "feedback": "`p.x` é um lugar só: o campo `x` da ficha `p`. O `y` dela continua como estava, e o molde não muda.",
+      "sectionId": "a-ficha-preenchida",
+      "optionRationales": [
+        "O ponto escolhe UM campo da ficha, e o `=` guarda o valor nele.",
+        "Cada campo recebe por conta própria: o `y` precisa da sua linha.",
+        "`p.x` não é um nome novo: é o campo `x` que já existe dentro de `p`.",
+        "O molde descreve a forma; escrever num campo mexe só naquela ficha."
+      ]
+    },
+    {
+      "id": "molde-nao-e-ficha",
+      "statement": "Declarar o molde não cria ficha nenhuma: a ficha nasce ao declarar uma variável do molde.",
+      "question": "O programa tem `struct Ponto { int x; int y; };` e mais nada. Quantas fichas existem?",
+      "options": [
+        "Nenhuma: o molde é só o formulário em branco.",
+        "Uma ficha, e o nome dela é `Ponto`.",
+        "Duas fichas: uma para o `x`, outra para o `y`.",
+        "Uma ficha para cada campo escrito entre as chaves."
+      ],
+      "answerIndex": 0,
+      "feedback": "O molde só descreve os campos. A ficha aparece com `struct Ponto p;` — e cada declaração dessas é uma ficha nova.",
+      "sectionId": "o-molde-da-ficha",
+      "optionRationales": [
+        "Sem declarar uma variável do molde, não há lugar nenhum guardando valor.",
+        "`Ponto` é o nome do MOLDE; a ficha ganha nome quando você a declara.",
+        "Os campos moram dentro de uma ficha; eles não são fichas.",
+        "O número de campos não multiplica fichas: fichas se declaram uma a uma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct` em C: a declaração do molde, os campos e o ponto-e-vírgula que a fecha."
+    },
+    {
+      "title": "Member access operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do acesso a campo: o `.` chega ao campo de uma ficha e vale como o valor dele."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a subcláusula 6.7.2.1 define o especificador de estrutura e os seus membros."
+    }
+  ],
+  "challenges": [
+    "cartao-de-ponto"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

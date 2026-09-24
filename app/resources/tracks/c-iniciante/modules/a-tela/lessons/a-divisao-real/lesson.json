@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "a-divisao-real",
   "title": "Dividir de verdade",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa double não conserta a divisão inteira: quem faz a conta virar real é o cast, e ele basta de um lado — (double)7 / 2 dá 3.5.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "node:CStyleCastExpr",
+  "concepts": [
+    "a_divisao_real"
+  ],
   "prerequisites": [
     "multiplicar-e-dividir",
     "o-numero-com-virgula"
   ],
+  "introduces": {
+    "productive": [
+      "node:CStyleCastExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o tipo deixa de ser só a etiqueta da caixa e passa a ser escolha do aluno DENTRO da conta: o cast muda o tipo de um operando antes da operação, e é isso que decide se a divisão corta ou não",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-nao-conserta",
+      "title": "A caixa não conserta a conta",
+      "markdown": "Guardar a conta num `double` não salva a metade perdida:\n\n```c\ndouble media = 7 / 2;\nprintf(\"%f\\n\", media);\n```\n\n```text\n3.000000\n```\n\nEsperava 3.5? Primeiro o C resolve `7 / 2`, e ali os dois lados são inteiros — a divisão corta e dá 3. Só depois esse 3 entra na caixa, já sem a metade.\n\nA caixa não conserta a conta. Quem tem de ser real é **a conta** — e quem faz isso é o **cast**:\n\n```c\nprintf(\"%f\\n\", (double)7 / 2);\n```\n\n```text\n3.500000\n```"
+    },
+    {
+      "id": "o-cast-de-um-lado",
+      "title": "O cast: trate este número como real",
+      "markdown": "O cast é o nome do tipo entre parênteses, na frente do número: `(double)7` se lê \"trate este 7 como real\".\n\nO 7 escrito no código continua 7; o cast só decide de que jeito ele entra na conta. E basta marcar **um** dos lados:\n\n```c\nprintf(\"%f\\n\", 7 / (double)2);\n```\n\n```text\n3.500000\n```\n\nCom um lado real, o C faz a divisão real e ninguém corta a metade. Marcar os dois lados não é erro — é só desnecessário."
+    },
+    {
+      "id": "a-hora-do-cast",
+      "title": "A hora do cast",
+      "markdown": "O cast tem hora. Dentro dos parênteses da divisão, ele chega tarde:\n\n```c\nprintf(\"%f\\n\", (double)(7 / 2));\nprintf(\"%f\\n\", (double)7 / 2);\n```\n\n```text\n3.000000\n3.500000\n```\n\nNa primeira linha o cast pega o resultado de `7 / 2` — que já é 3, já cortado. Na segunda, ele pega o 7 antes da conta, e aí a divisão nasce real.\n\nA regra prática: o cast vai **no número, antes da barra**."
+    },
+    {
+      "id": "o-cast-na-media",
+      "title": "O cast numa média",
+      "markdown": "Numa média há uma soma antes da divisão. Somar não corta nada — só a divisão corta —, então o cast pode abraçar a soma inteira:\n\n```c\nprintf(\"%f\\n\", (double)(7 + 8) / 2);\nprintf(\"%f\\n\", ((double)7 + 8) / 2);\n```\n\n```text\n7.500000\n7.500000\n```\n\nAs duas formas servem: o que importa é o cast chegar antes da barra. Onde isso quebra: `(double)((7 + 8) / 2)` sai 7.000000, porque a divisão ficou dentro dos parênteses."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-cast-de-um-lado-basta",
+      "statement": "`(double)7 / 2` é 3.5 — o cast de um lado basta para a conta virar real.",
+      "question": "O que `printf(\"%f\\n\", (double)7 / 2);` imprime?",
+      "options": [
+        "3.000000",
+        "3.500000",
+        "3",
+        "erro de compilação: não se divide real por inteiro"
+      ],
+      "answerIndex": 1,
+      "feedback": "Com um lado real, o C faz a divisão real: 3.5, que o `%f` mostra como 3.500000. Não é preciso marcar os dois lados.",
+      "sectionId": "o-cast-de-um-lado",
+      "optionRationales": [
+        "3.000000 é o que sai SEM o cast, quando os dois lados são inteiros e a divisão corta.",
+        "Um lado real já obriga a conta inteira a ser real: 3.5, mostrado com seis casas.",
+        "Sem casas decimais é a saída do `%d`; aqui o buraco é `%f`.",
+        "Dividir real por inteiro é permitido: o C converte o inteiro e faz a conta real."
+      ]
+    },
+    {
+      "id": "a-caixa-double-nao-conserta",
+      "statement": "`double media = 7 / 2;` guarda 3: a divisão inteira acontece antes da caixa receber o valor.",
+      "question": "Depois de `double media = 7 / 2;`, quanto o `%f` mostra para `media`?",
+      "options": [
+        "3.500000, porque a caixa é double.",
+        "3.000000, porque a divisão entre inteiros cortou antes.",
+        "3.5, sem as casas de zero.",
+        "0.000000, porque a caixa não aceita o valor."
+      ],
+      "answerIndex": 1,
+      "feedback": "A conta é resolvida primeiro, entre dois inteiros: dá 3. A caixa `double` só guarda o que sobrou da conta — e não há como recuperar a metade depois.",
+      "sectionId": "a-caixa-nao-conserta",
+      "optionRationales": [
+        "O tipo da caixa não muda a conta que já foi feita do lado direito do `=`.",
+        "Os dois lados da divisão são inteiros, então ela corta e entrega 3; o double guarda 3.",
+        "O `%f` sempre completa até a sexta casa — e o valor guardado aqui é 3, não 3.5.",
+        "A caixa aceita o valor sem reclamar: ela recebe 3, o resultado já cortado."
+      ]
+    },
+    {
+      "id": "o-cast-chega-tarde",
+      "statement": "`(double)(7 / 2)` dá 3.0: dentro dos parênteses a divisão já cortou.",
+      "question": "Por que `(double)(7 / 2)` é 3.000000 e `(double)7 / 2` é 3.500000?",
+      "options": [
+        "No primeiro o cast pega o resultado já cortado; no segundo ele pega o 7 antes da conta.",
+        "Porque parênteses são proibidos junto de cast.",
+        "Porque no primeiro faltou o `%f`.",
+        "Porque `(double)(7 / 2)` arredonda para baixo e `(double)7 / 2` arredonda para cima."
+      ],
+      "answerIndex": 0,
+      "feedback": "O que está dentro dos parênteses é resolvido primeiro: `7 / 2` já vira 3, e marcar o 3 como real não devolve a metade. O cast tem de entrar antes da barra.",
+      "sectionId": "a-hora-do-cast",
+      "optionRationales": [
+        "É a ordem: o cast só afeta a conta se chegar antes dela.",
+        "Parênteses e cast convivem bem; o problema é o que fica dentro deles.",
+        "Os dois exemplos usam `%f` — a diferença está na conta, não no buraco.",
+        "Nenhum dos dois arredonda: a divisão inteira corta, e a real não precisa cortar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Cast operator — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/cast",
+      "description": "A página oficial do cast em C: o nome do tipo entre parênteses convertendo o valor de uma expressão."
+    },
+    {
+      "title": "Implicit conversions — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/conversion",
+      "description": "As conversões aritméticas usuais: por que basta um operando real para a operação inteira ser feita em real."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A divisão em C: entre inteiros o resultado é truncado; com um operando de ponto flutuante, não."
+    }
+  ],
+  "challenges": [
+    "media-de-dois"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

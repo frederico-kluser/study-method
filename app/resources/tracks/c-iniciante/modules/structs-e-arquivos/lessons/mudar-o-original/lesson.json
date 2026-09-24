@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "mudar-o-original",
   "title": "Mudar o original",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
-  "role": "regular",
-  "concepts": [],
+  "summary": "A ficha também se alcança pelo endereço: `p->x` é o atalho de `(*p).x`, e escrever pela flecha muda o ORIGINAL, não a cópia.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:MemberExpr",
+  "concepts": [
+    "o_campo_pela_flecha"
+  ],
   "prerequisites": [
     "o-dado-na-caixa",
     "ir-ate-a-casa"
   ],
+  "introduces": {
+    "productive": [
+      "node:MemberExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a ficha deixa de viajar sempre como cópia: com o endereço dela na janela, a caixa escreve no campo do original, e o efeito sobrevive à chamada",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-copia-anda-o-original-fica",
+      "title": "A cópia anda, o original fica",
+      "markdown": "Na aula passada a ficha entrou na caixa como **cópia**: a caixa mexeu na cópia, e o original ficou onde estava.\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nvoid mover(Ponto p, int dx) {\n    p.x += dx;\n}\n```\n\nChamar `mover(pos, 2)` não move a sua ficha um milímetro: o `p` de dentro é outra ficha, preenchida com uma foto da sua.\n\nPara mudar o original, a caixa precisa saber ONDE ele mora — e endereço você já sabe pegar: com o `&`."
+    },
+    {
+      "id": "o-endereco-da-ficha",
+      "title": "O endereço da ficha",
+      "markdown": "`&pos` é o endereço da ficha — o mesmo `&` que a `scanf` sempre pediu. Um `Ponto *` é o papel que guarda esse endereço:\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nPonto pos;\npos.x = 3;\nPonto *p = &pos;\nprintf(\"o x da ficha: %d\\n\", (*p).x);\n```\n\n```text\no x da ficha: 3\n```\n\nLeia de dentro para fora: `*p` é ir até a ficha, e o `.x` entra no campo dela. Os parênteses são obrigatórios — sem eles o `.` valeria primeiro, e `p` não é ficha: é papel."
+    },
+    {
+      "id": "a-flecha-e-o-atalho",
+      "title": "A flecha é o atalho",
+      "markdown": "Ir até a ficha e entrar no campo é gesto tão comum que o C tem um atalho só para ele: a flecha `->`. As duas primeiras linhas abaixo fazem a MESMA coisa.\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nPonto pos;\nPonto *p = &pos;\n(*p).x = 10;\np->x = 10;\np->y = p->x + 2;\nprintf(\"%d %d\\n\", pos.x, pos.y);\n```\n\n```text\n10 12\n```\n\nRepare em quem mudou: o `printf` lê `pos.x` e `pos.y` — e os dois vieram diferentes. Escrever pela flecha escreveu no ORIGINAL."
+    },
+    {
+      "id": "a-caixa-que-muda-o-original",
+      "title": "A caixa que muda o original",
+      "markdown": "Com o endereço na janela, a caixa passa a escrever na ficha de quem chamou:\n\n```c\ntypedef struct { int x; int y; } Ponto;\n\nvoid moverVia(Ponto *p, int dx, int dy) {\n    p->x += dx;\n    p->y += dy;\n}\n```\n\nQuem chama passa o endereço: depois de `moverVia(&pos, 2, 5)` com a ficha em 3 e 4, `pos.x` vale 5 e `pos.y` vale 9. A caixa não devolve nada — o resultado dela é a ficha mudada.\n\nOnde a analogia quebra: o papel não é a casa. Jogar o papel fora não apaga a ficha, e dois papéis podem apontar para a mesma."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-flecha-escreve-no-original",
+      "statement": "`p->x` é `(*p).x`: o ponteiro enxerga o original e muda de verdade.",
+      "question": "Se `p` guarda o endereço da ficha `pos`, o que `p->x = 10;` faz?",
+      "options": [
+        "Escreve 10 no campo `x` da própria ficha `pos`.",
+        "Escreve 10 no campo `x` de uma cópia de `pos`.",
+        "Faz o papel `p` guardar o número 10 no lugar do endereço.",
+        "Nada: sem o `*` na frente do `p` a linha não chega à ficha."
+      ],
+      "answerIndex": 0,
+      "feedback": "A flecha é o atalho de `(*p).x`: ela vai até a ficha que o papel aponta e entra no campo. Como o papel guarda o endereço de `pos`, quem recebe o 10 é `pos.x`.",
+      "sectionId": "a-flecha-e-o-atalho",
+      "optionRationales": [
+        "O `->` vai até a ficha apontada e entra no campo: o 10 cai em `pos.x`.",
+        "Cópia é o que acontece quando a ficha entra por valor; aqui entrou o endereço.",
+        "O que muda o valor do papel é `p = ...`; com `p->x` o alvo é o campo, não o papel.",
+        "O `*` está embutido na flecha — `p->x` já é `(*p).x`."
+      ]
+    },
+    {
+      "id": "os-parenteses-de-p-ponto-x",
+      "statement": "Em `(*p).x` os parênteses são obrigatórios: sem eles o `.` valeria antes do `*`.",
+      "question": "Por que `(*p).x` precisa dos parênteses em volta do `*p`?",
+      "options": [
+        "Porque sem eles o `.` valeria primeiro, e `p` não é uma ficha.",
+        "Porque todo `*` em C exige um par de parênteses em volta.",
+        "Porque eles são enfeite de estilo: `*p.x` faz exatamente o mesmo.",
+        "Porque o `.` só aceita papel com endereço do lado esquerdo."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `.` vale antes do `*`. Sem os parênteses, `*p.x` seria \"vá até o campo `x` de `p`\" — e `p` é papel, não ficha: o compilador reclama.",
+      "sectionId": "o-endereco-da-ficha",
+      "optionRationales": [
+        "O `.` é avaliado antes do `*`, e `p.x` não existe: `p` é papel, não ficha.",
+        "Fora dessa combinação o `*` dispensa parênteses: `*p = ...` não leva nenhum.",
+        "`*p.x` é outra coisa — e não compila, porque `p` não tem campo `x`.",
+        "É o contrário: o `.` quer uma FICHA do lado esquerdo; o papel é quem precisa do `*` ou da flecha."
+      ]
+    },
+    {
+      "id": "a-caixa-com-endereco-muda-o-original",
+      "statement": "A janela `Ponto *p` recebe o endereço: o que a caixa escreve pela flecha continua lá depois dela.",
+      "question": "Com `pos` valendo x=3 e y=4, quanto vale `pos.x` depois de `moverVia(&pos, 2, 5);`?",
+      "options": [
+        "5, porque a caixa somou o `dx` no `x` do original.",
+        "3, porque a caixa só mexeu numa cópia de `pos`.",
+        "2, porque o campo `x` passa a valer o `dx` recebido.",
+        "9, porque a caixa somou o `dx` e o `dy` no campo `x`."
+      ],
+      "answerIndex": 0,
+      "feedback": "`p->x += dx` soma 2 em cima do 3 que já estava lá, e escreve na ficha de quem chamou: `pos.x` vira 5. O `dy` vai para o outro campo, `pos.y`, que vira 9.",
+      "sectionId": "a-caixa-que-muda-o-original",
+      "optionRationales": [
+        "O `+=` soma 2 ao 3 que já estava no campo, na ficha do original.",
+        "Ficaria em 3 se a janela fosse `Ponto p` (por valor); aqui ela recebe o endereço.",
+        "`p->x = dx` faria isso; o `+=` soma em cima do que havia.",
+        "O `dy` não entra no `x`: cada campo recebe o seu, e o 9 é o valor de `pos.y`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Member access operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `.` e do `->`: a flecha é definida como o acesso a campo do objeto apontado."
+    },
+    {
+      "title": "struct — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/struct",
+      "description": "A página oficial do `struct` em C: os campos, o tipo de cada um e o endereço da ficha."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.2.3 define `p->x` como `(*p).x` e a precedência que obriga os parênteses."
+    }
+  ],
+  "challenges": [
+    "o-movedor-de-verdade"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

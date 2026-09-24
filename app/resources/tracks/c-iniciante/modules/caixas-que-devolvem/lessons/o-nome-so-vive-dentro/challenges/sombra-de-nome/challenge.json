@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "sombra-de-nome",
+  "title": "Sombra de nome",
+  "concept": "o_nome_local",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Sombra de nome\n\nDuas caixas, o **mesmo** nome local — e nenhuma vê o nome da outra. É a sombra de nome do título.\n\nEscreva o corpo das duas:\n\n- `sombraDeNome` recebe o lado e devolve a **área** do quadrado (`lado` × `lado`);\n- `bordaDoQuadrado` recebe o lado e devolve a **borda** (4 × `lado`).\n\nAs duas guardam a conta num nome local chamado `medida` e devolvem esse nome. São dois `medida` diferentes: cada um vive no seu corpo.\n\nO que **não** funciona é tentar ler o nome de fora:\n\n```c\nint sombraDeNome(int lado) {\n    int medida = lado * lado;\n    return 0;\n}\n\nint bordaDoQuadrado(int lado) {\n    return medida;   /* NAO COMPILA: medida nao existe aqui */\n}\n```\n\nO valor tem uma porta só para sair da caixa: o `return`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "/* sombraDeNome devolve a area do quadrado: lado x lado.\n   bordaDoQuadrado devolve a borda do quadrado: 4 x lado.\n\n   As duas usam um nome local chamado medida — cada uma o seu. */\n\nint sombraDeNome(int lado) {\n    /* 1. declare o nome local medida com a area (lado x lado) */\n\n    /* 2. troque o 0 abaixo: devolva medida */\n    return 0;\n}\n\nint bordaDoQuadrado(int lado) {\n    /* 3. o mesmo aqui: um medida proprio, com 4 x lado, e devolva-o */\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio sombra-de-nome — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Fase VALOR: o teste declara os PROTOTIPOS das caixas do aluno e compara o\n   VALOR DEVOLVIDO — o nome local de dentro nao aparece em lugar nenhum aqui,\n   porque de fora ele nao existe. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint sombraDeNome(int lado);\nint bordaDoQuadrado(int lado);\n\nSM_TEST(a_area_atravessa_a_parede) {\n    checa_int(\"a area do lado 5 e 25\", sombraDeNome(5), 25,\n              \"a conta ficou num nome local e o return trouxe o valor para ca\");\n}\n\nSM_TEST(a_borda_tem_o_seu_proprio_nome) {\n    checa_int(\"a borda do lado 5 e 20\", bordaDoQuadrado(5), 20,\n              \"o medida desta caixa e outro: 4 x 5, e nao 5 x 5\");\n    checa_int(\"a borda do lado 3 e 12\", bordaDoQuadrado(3), 12,\n              \"segundo lado na MESMA caixa: um 20 fixo no return nao passa aqui\");\n}\n\nSM_TEST(outra_chamada_outro_valor) {\n    checa_int(\"a area do lado 3 e 9\", sombraDeNome(3), 9,\n              \"a cada chamada o nome local nasce de novo, com o lado desta vez\");\n}\n",
+  "solutionCode": "int sombraDeNome(int lado) {\n    int medida = lado * lado;\n    return medida;\n}\n\nint bordaDoQuadrado(int lado) {\n    int medida = 4 * lado;\n    return medida;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_area_atravessa_a_parede",
+      "teste": "a_area_atravessa_a_parede",
+      "descricao": "sombraDeNome(5) devolve 25: a area calculada num nome local atravessa a parede da caixa pelo return"
+    },
+    {
+      "id": "a_borda_tem_o_seu_proprio_nome",
+      "teste": "a_borda_tem_o_seu_proprio_nome",
+      "descricao": "bordaDoQuadrado(5) devolve 20 e bordaDoQuadrado(3) devolve 12: o nome local medida desta caixa e independente do medida da outra — o mesmo nome, dois escopos. Os DOIS lados sao necessarios: com um so, um 20 fixo no return passaria sem conta nenhuma"
+    },
+    {
+      "id": "outra_chamada_outro_valor",
+      "teste": "outra_chamada_outro_valor",
+      "descricao": "sombraDeNome(3) devolve 9: a cada chamada o nome local nasce de novo com o lado daquela chamada, o que prova que a conta e feita e nao fixa"
+    }
+  ]
+}

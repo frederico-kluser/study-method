@@ -2,23 +2,136 @@
   "schemaVersion": 1,
   "slug": "mais-contas",
   "title": "As contas que vêm de fora",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A biblioteca padrão já traz caixas prontas: com o `#include <math.h>` no topo, o `sqrt` devolve a raiz quadrada do `double` que entra pela janela.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:sqrt",
+  "concepts": [
+    "a_raiz_quadrada"
+  ],
   "prerequisites": [
     "devolver-em-vez-de-mostrar",
     "a-divisao-real"
   ],
+  "introduces": {
+    "productive": [
+      "api:sqrt",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:sqrt"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o programa deixa de ter só as caixas que o aluno escreveu: existe uma biblioteca de caixas prontas, que um cartaz no topo (#include) apresenta ao compilador e um pedaço do comando de compilação liga ao programa",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-caixa-que-ja-vem-pronta",
+      "title": "A caixa que já vem pronta",
+      "markdown": "Nem toda caixa é sua. O C já vem com uma biblioteca de caixas prontas, e `sqrt` é a que devolve a **raiz quadrada** de um número.\n\nPara usá-la, uma linha no topo do arquivo avisa o compilador de que ela existe:\n\n```c\n#include <math.h>\n```\n\nÉ o mesmo gesto do `#include <stdio.h>`, que traz o `printf`: o `<math.h>` é o cartaz com a promessa das caixas de matemática. Sem ele, o compilador não conhece `sqrt` e para.\n\nFalta ainda LIGAR a biblioteca na hora de compilar — é o `-lm` no fim do comando `cc`. No desafio, o runner já o coloca."
+    },
+    {
+      "id": "a-chamada-vale-a-raiz",
+      "title": "A chamada vale a raiz",
+      "markdown": "`sqrt` recebe um `double` e devolve um `double`. É uma caixa que devolve, como as suas: a chamada VALE o valor de volta, no lugar onde foi escrita.\n\n```c\ndouble lado = sqrt(25.0);\nprintf(\"o lado e %f\\n\", lado);\n```\n\n```text\no lado e 5.000000\n```\n\n`sqrt(25.0)` vale 5.0, e o `%f` mostra o `double` com seis casas. A caixa de fora não imprimiu nada: quem imprimiu foi o `printf` de quem chamou."
+    },
+    {
+      "id": "o-argumento-pode-ser-uma-conta",
+      "title": "O argumento pode ser uma conta",
+      "markdown": "Entre os parênteses cabe uma **conta**, não só um número escrito. Ela é calculada primeiro, e o resultado é o que entra pela janela:\n\n```c\ndouble d = sqrt(9.0 + 16.0);\n```\n\nO `9.0 + 16.0` vira 25.0, o `sqrt` recebe 25.0 e devolve 5.0: sempre de dentro para fora.\n\nE a caixa pronta trabalha dentro da sua:\n\n```c\ndouble ladoDoQuadrado(double area) {\n    return sqrt(area);\n}\n```\n\n`ladoDoQuadrado(49.0)` devolve 7.0 — a sua caixa devolve o que a caixa pronta calculou."
+    },
+    {
+      "id": "double-entra-double-volta",
+      "title": "double entra, double volta",
+      "markdown": "A janela de `sqrt` é `double`, e um inteiro também serve: ele é convertido na entrada.\n\n```c\ndouble raiz = sqrt(16);\n```\n\n`raiz` fica com 4.0. O caminho de volta é que cobra atenção: guardar a raiz num `int` corta a parte decimal, como na divisão real.\n\nOnde a analogia da caixa quebra: esta você não abre nem conserta — e ela tem limite. Raiz de número negativo não é número, e nesta trilha `sqrt` só recebe valores positivos."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sqrt-recebe-e-devolve-double",
+      "statement": "`sqrt` recebe e devolve `double`; o `-lm` no comando liga a biblioteca matemática (o runner já traz).",
+      "question": "O arquivo tem `#include <math.h>` e chama `sqrt`, mas o programa não fica pronto: falta o código da caixa. O que resolve?",
+      "options": [
+        "Ligar a biblioteca de matemática no comando: o `-lm` no fim.",
+        "Nada: o `#include <math.h>` já resolve tudo sozinho.",
+        "Trocar o `double` por `int` na variável que guarda a raiz devolvida.",
+        "Chamar `sqrt` só de dentro de uma caixa sua, nunca no corpo do `main`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `#include` é a promessa: o compilador passa a conhecer `sqrt`. O `-lm` é a entrega: ele liga ao seu programa o código já compilado da biblioteca. São dois passos, e o runner do desafio faz o segundo por você.",
+      "sectionId": "a-caixa-que-ja-vem-pronta",
+      "optionRationales": [
+        "O `-lm` é o que liga o código da biblioteca de matemática ao programa.",
+        "O `#include` só apresenta a caixa ao compilador; ligar o código dela é outro passo.",
+        "O tipo da variável não tem nada a ver com achar o código da caixa.",
+        "De onde você chama `sqrt` é indiferente: o que falta é a biblioteca ligada."
+      ]
+    },
+    {
+      "id": "a-conta-entra-antes-da-janela",
+      "statement": "O argumento de `sqrt` pode ser uma conta: ela é calculada antes de o valor entrar pela janela.",
+      "question": "Quanto vale `sqrt(9.0 + 16.0)`?",
+      "options": [
+        "5.0: a soma dá 25.0, e a raiz de 25.0 é 5.0.",
+        "7.0: a raiz de 9.0 somada com a raiz de 16.0 dá 3.0 + 4.0.",
+        "25.0: o `sqrt` apenas soma os dois números da conta.",
+        "Erro: dentro dos parênteses do `sqrt` só cabe um número escrito."
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro a conta, depois a chamada: `9.0 + 16.0` vale 25.0, e é 25.0 que entra pela janela. A raiz de 25.0 é 5.0 — somar as raízes daria 7.0, e é outra conta.",
+      "sectionId": "o-argumento-pode-ser-uma-conta",
+      "optionRationales": [
+        "A conta acontece antes: o `sqrt` recebe 25.0 e devolve 5.0.",
+        "A raiz da soma não é a soma das raízes: esse caminho daria 7.0, e não é o que a linha faz.",
+        "O `sqrt` não soma nada: quem soma é o `+` da conta, antes da chamada.",
+        "Qualquer expressão que valha um número cabe ali dentro."
+      ]
+    },
+    {
+      "id": "a-caixa-pronta-devolve-nao-mostra",
+      "statement": "`sqrt` devolve o valor; quem mostra na tela é quem chamou.",
+      "question": "A linha `sqrt(25.0);`, sozinha dentro de uma caixa, mostra o que na tela?",
+      "options": [
+        "Nada: o valor é devolvido e, sem ninguém para usá-lo, se perde.",
+        "`5.000000`, porque a caixa `sqrt` já traz um `printf` dentro dela.",
+        "`25.000000`, que é o número que entrou pela janela da caixa.",
+        "`sqrt(25.0)`, do jeito que a linha está escrita no arquivo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Devolver e mostrar são canais diferentes, e isso vale também para as caixas prontas. A raiz é entregue na linha da chamada; se ninguém a guarda nem a imprime, ela se perde.",
+      "sectionId": "a-chamada-vale-a-raiz",
+      "optionRationales": [
+        "O valor devolvido só aparece se quem chamou fizer algo com ele.",
+        "Nenhuma caixa da biblioteca de matemática imprime: todas devolvem.",
+        "O `sqrt` não repete o que entrou; ele devolve a raiz do que entrou.",
+        "Código não sai na tela: o que sai é o que algum `printf` mandar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "sqrt, sqrtf, sqrtl — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/numeric/math/sqrt",
+      "description": "A página oficial do `sqrt` em C: ela recebe e devolve `double`, e vive em `<math.h>`."
+    },
+    {
+      "title": "sqrt(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/sqrt.3.html",
+      "description": "A man-page do `sqrt`, com a linha que manda compilar ligando a biblioteca de matemática: *Link with -lm*."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão C11 (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão por dentro: a subcláusula 7.12.7.5 (The sqrt functions) define o que `sqrt` recebe e o que ela devolve."
+    }
+  ],
+  "challenges": [
+    "hipotenusa"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

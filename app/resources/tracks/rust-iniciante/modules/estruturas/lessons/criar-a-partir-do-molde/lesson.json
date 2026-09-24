@@ -19,7 +19,17 @@
       "node:FieldInitializer",
       "node:FieldIdentifier"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:FieldInitializerList",
+        "de": "node:StructExpression"
+      },
+      {
+        "chave": "node:FieldInitializer",
+        "de": "node:StructExpression"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [
@@ -46,18 +56,18 @@
       "statement": "A peça começa pelo NOME do molde e enche os campos entre chaves.",
       "question": "O que `Ponto { x: x, y: y }` faz?",
       "options": [
-        "Cria um valor do molde Ponto com os campos x e y recebendo os valores x e y",
-        "Declara o molde Ponto de novo",
-        "Chama a função Ponto",
-        "Compara dois pontos"
+        "Cria um valor do molde Ponto: os campos x e y recebem x e y",
+        "Declara o molde Ponto outra vez, com os campos x e y",
+        "Chama uma função chamada Ponto passando x e y",
+        "Cria duas variáveis novas chamadas x e y dentro do molde Ponto"
       ],
       "answerIndex": 0,
       "feedback": "É a PEÇA: o nome do molde abre a construção, e campo por campo recebe o seu valor.",
       "optionRationales": [
         "O nome do molde + chaves é a forma de criar o valor; cada campo: valor enche um campo.",
-        "A declaração usa a palavra struct — a peça usa só o nome.",
-        "Ponto não é função solta: é molde, e a peça usa chaves.",
-        "Comparação é `==`, não chaves com campos."
+        "A declaração usa a palavra struct e diz o TIPO de cada campo; aqui só o nome abre a peça.",
+        "Ponto não é função solta: é molde, e a peça se escreve com chaves, não com parênteses.",
+        "As chaves enchem CAMPOS de uma peça; o x da direita é uma variável que já existia."
       ]
     },
     {
@@ -66,18 +76,18 @@
       "statement": "A peça enche TODOS os campos do molde — falta e sobra são erro de compilação.",
       "question": "Com o molde `Ponto { pub x: i32, pub y: i32 }`, o que falta em `Ponto { x: 2 }`?",
       "options": [
-        "O campo y — a peça tem de encher todos os campos",
-        "Um ponto e vírgula",
-        "A palavra struct na frente",
-        "Nada — a peça está completa"
+        "O campo y — a peça enche todos os campos",
+        "Um ponto e vírgula no fim da construção",
+        "A palavra struct na frente do nome Ponto",
+        "Nada: o campo y assume zero quando não é citado"
       ],
       "answerIndex": 0,
       "feedback": "A peça tem de encher TODOS os campos do molde: sem o `y`, o compilador cobra `missing field y`.",
       "optionRationales": [
         "Todo campo do molde tem de estar na peça — o compilador cobra a falta.",
-        "O ponto e vírgula não resolve: o problema é o CAMPO ausente.",
-        "A peça nunca leva a palavra struct — o problema é o campo ausente.",
-        "Está incompleta: o y não recebeu valor nenhum."
+        "O ponto e vírgula não resolve: o problema é o CAMPO ausente, não a pontuação.",
+        "A peça nunca leva a palavra struct — e o campo ausente continuaria ausente.",
+        "Rust não dá valor padrão a campo não citado: sem o `y`, a peça nem compila."
       ]
     }
   ],

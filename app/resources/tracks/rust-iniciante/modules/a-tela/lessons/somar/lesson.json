@@ -10,12 +10,11 @@
     "soma"
   ],
   "prerequisites": [
-    "a-primeira-funcao"
+    "multiplicar"
   ],
   "introduces": {
     "productive": [
-      "op:binary:+",
-      "node:BinaryExpression"
+      "op:binary:+"
     ],
     "receptive": []
   },
@@ -29,12 +28,12 @@
     {
       "id": "os-espacos-sao-decoracao",
       "title": "Os espaços são decoração",
-      "markdown": "O espaço em volta do `+` é só para ler melhor. Estas duas linhas fazem a mesma coisa:\n\n```rust\na + b\na+b\n```\n\nO costume em Rust é deixar um espaço de cada lado do operador — quem lê o seu código depois vai agradecer."
+      "markdown": "O espaço em volta do `+` é só para ler melhor. Estas duas linhas fazem a mesma conta:\n\n```rust\na + b\n```\n\n```rust\na+b\n```\n\nO costume em Rust é deixar um espaço de cada lado do operador — quem lê o seu código depois vai agradecer."
     },
     {
-      "id": "somar-valores-grandes",
-      "title": "Somar valores grandes",
-      "markdown": "O tamanho do número não muda nada — quem faz a conta é o computador:\n\n```rust\npub fn soma(a: i32, b: i32) -> i32 {\n    a + b\n}\n```\n\nChamada com `1200` e `45`, ela devolve `1245`. Vale a pena escrever a conta em vez de escrever o resultado pronto: você para de errar e para de conferir."
+      "id": "um-valor-fixo-no-outro-lado",
+      "title": "Um valor fixo no outro lado",
+      "markdown": "Do outro lado do `+` também cabe um número fixo, como o `2` do `*` da aula passada:\n\n```rust\npub fn mais_dez(a: i32) -> i32 {\n    a + 10\n}\n```\n\nChamada com `1200`, ela devolve `1210` — o tamanho do número não muda nada, porque quem faz a conta é o computador. Vale a pena escrever a conta em vez do resultado pronto: a mesma função serve para qualquer número que chegar."
     }
   ],
   "assertions": [
@@ -58,13 +57,27 @@
       "question": "`a+b` e `a + b` produzem valores diferentes?",
       "options": [
         "Não: os espaços são só para leitura.",
-        "Sim: sem espaços a conta falha.",
+        "Sim: sem os espaços a conta não compila.",
         "Sim: sem espaços o resultado dobra.",
         "Sim: os espaços invertem a ordem."
       ],
       "answerIndex": 0,
       "feedback": "Espaço é decoração; a conta é a mesma.",
       "sectionId": "os-espacos-sao-decoracao"
+    },
+    {
+      "id": "o-valor-fixo-do-outro-lado",
+      "statement": "Um dos lados do `+` pode ser um número fixo.",
+      "question": "Com o corpo `a + 10`, o que `mais_dez(1200)` devolve?",
+      "options": [
+        "1210",
+        "1200",
+        "10",
+        "120010"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `1200` entra em `a`, e `1200 + 10` dá 1210.",
+      "sectionId": "um-valor-fixo-no-outro-lado"
     }
   ],
   "sources": [
@@ -74,9 +87,9 @@
       "description": "O capítulo oficial das funções, onde a aritmética aparece no corpo."
     },
     {
-      "title": "Hello, World! — Rust by Example",
-      "url": "https://doc.rust-lang.org/rust-by-example/hello.html",
-      "description": "Os exemplos oficiais de primeira aritmética em Rust."
+      "title": "Operator Expressions — The Rust Reference",
+      "url": "https://doc.rust-lang.org/reference/expressions/operator-expr.html",
+      "description": "A referência oficial dos operadores, onde o `+` da soma é definido."
     }
   ],
   "challenges": [

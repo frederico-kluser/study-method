@@ -322,13 +322,94 @@ describe('onda5 paralelismo — sintetizarEmLote (quality/minimal.ts)', () => {
 // 3. e 4. A fiação F0..F12 com a verificação F9/F11 paralela + o bridge da F10
 // ---------------------------------------------------------------------------
 
-/** Um nó F2 com o corpus de código do engineGenerate (fixture mínima válida). */
-function noDe(conceito: string, solution: string, starter: string): NoAtomico {
-  const atomosSolucao = atomosDe(solution);
-  const atomosStarter = atomosDe(starter);
+/**
+ * O CORPUS DA FIXTURE — UMA CONSTRUÇÃO NOVA POR AULA, DUAS SEÇÕES DE TEORIA.
+ *
+ * Até 2026-09-22 as três aulas desta fixture tinham o MESMO corpo
+ * (`export let total = 1;`) e UMA seção de teoria: o que se testa aqui é a
+ * FIAÇÃO (F9/F11 em paralelo, o bridge da F10, o F12 fechando), e repetir o
+ * corpo era o caminho mais curto. Aí o `auditTrack` passou a rodar a BARRA
+ * A17–A23 (`engine/quality/barra.ts`) e o G-FINAL da F12 reprovou a trilha
+ * materializada — com razão. Medido:
+ *
+ *   ErroGeracao GFINAL_FALHOU: audit:
+ *     A21 modules/m1/lessons/condicionais/lesson.json: são necessárias ao menos
+ *         2 seções de teoria nesta aula (…)
+ *     A20 modules/m1/lessons/lacos/lesson.json:     aula regular que não
+ *         introduz construção nenhuma (…)
+ *     A20 modules/m1/lessons/variaveis/lesson.json: idem
+ *
+ * Duas aulas iguais à primeira não introduzem construção nenhuma, e uma seção
+ * só não ensina duas construções. A fixture virou um MICRO-CURSO de verdade:
+ * cada aula acrescenta UMA construção ao orçamento cumulativo (literal →
+ * soma → multiplicação) e demonstra em DUAS seções.
+ *
+ * `role: "consolidation"` (o que a A20 prescreve para reforço) NÃO era
+ * alternativa: `LessonDraftSchema` (`schemas/artifacts.ts:406`) aceita só
+ * `regular|integration` — o draft do pipeline não tem como declarar reforço.
+ *
+ * A ORDEM ALFABÉTICA IMPORTA, e é por isso que os nomes são `atribuir` <
+ * `somar` < `vezes`: a trilha materializada é auditada na ordem pedagógica, e a
+ * PRIMEIRA aula tem teto de 1 construção produtiva nova (A18). `atribuir` é a
+ * única com 1 (o literal); as outras duas têm 2 (dentro do teto geral de A17 e
+ * fora da aula 1). Os nomes são de UMA palavra porque a mesma string é o
+ * `ConceptId` (snake_case, `graph/model.ts:55`) e o slug da aula (kebab-case):
+ * `a-variavel` reprova em `conceptId`.
+ */
+interface CorpusDaAula {
+  /** o que já vem escrito (o aluno não digita) — `starterCode`. */
+  starter: string;
+  /** a solução e a 1ª seção de teoria (a demonstração da construção nova). */
+  corpo: string;
+  /** a 2ª seção de teoria: a MESMA construção em outra forma (A21/A22). */
+  outraForma: string;
+  /** o teste do desafio (lido no orçamento de ENTRADA — A3). */
+  testes: string;
+  /** o nome da variável, para o enunciado e o span da lacuna. */
+  variavel: string;
+}
+
+const CORPUS: Readonly<Record<string, CorpusDaAula>> = {
+  'atribuir': {
+    starter: 'export let total;\n',
+    corpo: 'export let total = 1;\n',
+    outraForma: 'export let idade = 7;\n',
+    testes:
+      "import { total } from './solution.mjs';\n" + "test('total existe', () => { assert.equal(total, 1); });\n",
+    variavel: 'total',
+  },
+  'somar': {
+    starter: 'export let soma = 1;\n',
+    corpo: 'export let soma = 1 + 2;\n',
+    outraForma: 'export let anos = 3 + 4;\n',
+    testes: "import { soma } from './solution.mjs';\n" + "test('soma existe', () => { assert.equal(soma, 3); });\n",
+    variavel: 'soma',
+  },
+  'vezes': {
+    starter: 'export let dobro = 2;\n',
+    corpo: 'export let dobro = 2 * 3;\n',
+    outraForma: 'export let area = 4 * 5;\n',
+    testes:
+      "import { dobro } from './solution.mjs';\n" + "test('dobro existe', () => { assert.equal(dobro, 6); });\n",
+    variavel: 'dobro',
+  },
+};
+
+/** O DIFF produtivo (o que o aluno escreve) e o receptivo de uma aula do corpus. */
+function faixasDe(corpus: CorpusDaAula): { produtivas: string[]; receptivas: string[] } {
+  const atomosSolucao = atomosDe(corpus.corpo);
+  const atomosStarter = atomosDe(corpus.starter);
   const produtivas = atomosSolucao.filter((a) => !atomosStarter.includes(a));
   const receptivas = dedupDe([...atomosStarter, ...atomosSolucao]);
-  assert.ok(produtivas.length >= 1 && produtivas.length <= 2, `DIFF produtivo de ${conceito} entre 1-2 átomos`);
+  assert.ok(produtivas.length >= 1 && produtivas.length <= 2, `DIFF produtivo entre 1-2 átomos: ${produtivas.join(', ')}`);
+  return { produtivas, receptivas };
+}
+
+/** Um nó F2 com o corpus de código da aula (fixture mínima válida). */
+function noDe(conceito: string): NoAtomico {
+  const corpus = CORPUS[conceito];
+  assert.ok(corpus !== undefined, `corpus da aula ${conceito}`);
+  const { produtivas, receptivas } = faixasDe(corpus);
   return {
     chave_conceito: conceito,
     nome: `aula de ${conceito}`,
@@ -345,16 +426,11 @@ function noDe(conceito: string, solution: string, starter: string): NoAtomico {
         tipo: 'completion-uma-lacuna',
         descricao: `declara a variável de ${conceito}`,
         atomo_alvo: produtivas[0],
-        lacuna: { span: 'let total = 1', contem_atomo_alvo: true },
+        lacuna: { span: corpus.corpo.trim().replace('export ', ''), contem_atomo_alvo: true },
       },
     ],
   };
 }
-
-const CORPO_DA_AULA = 'export let total = 1;\n';
-const STARTER_DA_AULA = 'export let total;\n';
-const TESTES_DA_AULA =
-  "import { total } from './solution.mjs';\n" + "test('total existe', () => { assert.equal(total, 1); });\n";
 
 /** O override da F7: escreve os drafts de TODAS as aulas (budgetHash do freeze REAL). */
 function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Promise<void> {
@@ -363,19 +439,16 @@ function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Prom
       ARTEFATO_F4,
     );
     const snapshots = derivarSnapshots(budgetReal);
-    // O MESMO corpus do engineGenerate.test.ts: produtivo = o DIFF (1..2
-    // átomos); receptivo = união das superfícies; a teoria demonstra o que o
-    // introduces declara (A13/A13d — o gate agressivo do G-FINAL).
-    const atomosSolucao = atomosDe(CORPO_DA_AULA);
-    const atomosStarter = atomosDe(STARTER_DA_AULA);
-    const produtivas = atomosSolucao.filter((a) => !atomosStarter.includes(a));
-    const receptivas = dedupDe([...atomosStarter, ...atomosSolucao]);
-    assert.ok(produtivas.length >= 1 && produtivas.length <= 2, 'DIFF produtivo entre 1-2 átomos');
-
+    // Produtivo = o DIFF (1..2 átomos); receptivo = união das superfícies; a
+    // teoria demonstra o que o introduces declara (A13/A13d e A19 — os gates
+    // agressivos do G-FINAL), em DUAS seções (A21).
     for (const conceito of conceitos) {
       const ref = `m1/${conceito}`;
       const snapshot = snapshots.find((s) => s.aula_slug === ref);
       assert.ok(snapshot, `snapshot de ${ref} derivado do orçamento`);
+      const corpus = CORPUS[conceito];
+      assert.ok(corpus !== undefined, `corpus da aula ${conceito}`);
+      const { produtivas, receptivas } = faixasDe(corpus);
 
       const draftAula: LessonDraft = {
         slug: conceito,
@@ -397,9 +470,15 @@ function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Prom
         research: [],
         theory: [
           {
-            id: 'o-que-e-variavel',
+            id: 'a-construcao',
             secao: 'teoria',
-            markdown: CORPO_DA_AULA,
+            markdown: corpus.corpo,
+            tag: 'js',
+          },
+          {
+            id: 'outra-forma',
+            secao: 'teoria',
+            markdown: corpus.outraForma,
             tag: 'js',
           },
         ],
@@ -414,22 +493,22 @@ function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Prom
         slug: `declarar-${conceito}`,
         conceito,
         language: 'nodejs',
-        statement: `Declare uma variável chamada total com o valor 1 (${conceito}).`,
-        starterCode: STARTER_DA_AULA.trim(),
-        solutionCode: CORPO_DA_AULA.trim(),
-        testsCode: TESTES_DA_AULA.trim(),
+        statement: `Complete a variável \`${corpus.variavel}\` (${conceito}).`,
+        starterCode: corpus.starter.trim(),
+        solutionCode: corpus.corpo.trim(),
+        testsCode: corpus.testes.trim(),
         expectedTestCount: 1,
         outputChannel: 'retorno',
-        requires: ['op:assign:='],
+        requires: [produtivas[0]],
         notRequired: [],
         subgoals: ['declarar', 'atribuir'],
-        scenarios: [{ tipo: 'exemplo', derivado_de: 'op:assign:=', descricao: 'uma atribuição com literal' }],
+        scenarios: [{ tipo: 'exemplo', derivado_de: produtivas[0], descricao: 'uma atribuição com literal' }],
         taskSkill: 'declarar-e-atribuir',
         supportLevel: 'com_andaime',
         surfaceDomain: 'ordem-de-execucao',
         solutionAlternates: [],
         wrongSolutions: [],
-        requirements: [{ id: 'R1', descricao: 'a variável existe', teste: 'total existe' }],
+        requirements: [{ id: 'R1', descricao: 'a variável existe', teste: `${corpus.variavel} existe` }],
         justificativa: 'desafio mínimo da aula',
         aprovado: true,
       };
@@ -440,7 +519,7 @@ function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Prom
   };
 }
 
-const CONCEITOS = ['variaveis', 'condicionais', 'lacos'];
+const CONCEITOS = ['atribuir', 'somar', 'vezes'];
 
 /** Monta a fiação F0..F12 OFFLINE com N aulas (LLM/busca/prover fakes). */
 async function rodarFiacao(opts: {
@@ -451,7 +530,7 @@ async function rodarFiacao(opts: {
 }): Promise<ReturnType<typeof gerarTrilha>> {
   const { dir, dirProduto, depsExtras } = opts;
   const llm = new FakeLlm();
-  const nos = CONCEITOS.map((c) => noDe(c, CORPO_DA_AULA, STARTER_DA_AULA));
+  const nos = CONCEITOS.map((c) => noDe(c));
   const brief: Brief = {
     tema: 'JavaScript do zero',
     objetivo_geral: 'ler e escrever os primeiros programas',

@@ -95,6 +95,48 @@ const SOLUTION_C = 'int dobro(int x) {\n    return 2 * x;\n}\n';
  * handle de leitura. É ESTE envelope que a onda 4 mediu contra a semente — o
  * fixture mínimo acima é a fase VALOR, que não captura nada.
  */
+/**
+ * O TERCEIRO template medido: o envelope de ENTRADA (onda da autoria do M1,
+ * 2026-09-22). Três desafios do M1 do `c-iniciante` (`dobro-do-digitado`,
+ * `soma-digitada`, `proxima-letra`) leem o teclado, e o contrato do docs/20
+ * manda que o teste "injete" o valor. Não existe outra forma in-process: o
+ * `SM_RUNNER_SCRIPT` roda o binário SEM `<arquivo`
+ * (`"$SM_TMP/runner" >"$SM_CAPTURA" 2>&1`), então a injeção acontece DENTRO do
+ * cenário — `fopen`/`fprintf` escrevem o que a pessoa digitaria e um `freopen`
+ * aponta o `stdin` para esse arquivo, o espelho exato da captura de saída.
+ *
+ * É este template que torna `global:stdin` MEDIDA em vez de asserida: antes de
+ * ele entrar aqui, a chave estava fora da semente e o `audit` acusava
+ * `[A3] testsCode global:stdin — LACUNA DE CURRÍCULO` nos três desafios, sem
+ * conteúdo capaz de fechá-la (o aluno nunca escreve `stdin`).
+ */
+const TESTS_CODE_ENTRADA_C = [
+  '#include <stdio.h>',
+  '',
+  '/* prototipo da funcao do aluno (o teste declara o que exercita) */',
+  'void dobroDoDigitado(void);',
+  '',
+  'SM_TEST(o_dobro_de_21) {',
+  '    /* o que a pessoa digita: 21 */',
+  '    FILE *e = fopen("sm_entrada_1.tmp", "w");',
+  '    fprintf(e, "21\\n");',
+  '    fclose(e);',
+  '    freopen("sm_entrada_1.tmp", "r", stdin);',
+  '',
+  '    /* captura: o stdout vira o arquivo sm_saida_1.tmp */',
+  '    freopen("sm_saida_1.tmp", "w", stdout);',
+  '    dobroDoDigitado();',
+  '    fflush(stdout);',
+  '',
+  '    FILE *f = fopen("sm_saida_1.tmp", "r");',
+  '    char linha[80] = "(nada impresso)";',
+  '    fgets(linha, 80, f);',
+  '    checa_str("o dobro de 21", linha, "42\\n",',
+  '              "o 21 digitado entrou em n pela scanf, e o dobro de 21 e 42");',
+  '    fclose(f);',
+  '}',
+].join('\n');
+
 const TESTS_CODE_SAIDA_C = [
   '#include <stdio.h>',
   '',
@@ -186,11 +228,18 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     `${SM_COUNT_PREABULO}\n${TESTS_CODE_SAIDA_C}`,
     'tests/test_solucao.c',
   );
+  // o envelope de ENTRADA (o template dos três desafios de teclado do M1) — é
+  // ELE que mede `global:stdin`
+  const chavesDoTestsCodeEntrada = chavesDe(
+    `${SM_COUNT_PREABULO}\n${TESTS_CODE_ENTRADA_C}`,
+    'tests/test_solucao.c',
+  );
   const emitidoPeloMaterial = new Set<string>([
     ...chavesDoHeader,
     ...chavesDoMain,
     ...chavesDoTestsCode,
     ...chavesDoTestsCodeSaida,
+    ...chavesDoTestsCodeEntrada,
   ]);
 
   it('guardas de sanidade: o material medido é o harness da convenção', () => {
@@ -215,10 +264,19 @@ describe('gates C — a semente receptiva cobre o harness REAL, e nada além del
     ]) {
       assert.ok(chavesDoTestsCodeSaida.has(marca), `o testsCode de SAÍDA deixou de emitir ${marca}`);
     }
+    // o template de ENTRADA carrega a outra ponta do envelope (medido na onda
+    // da autoria do M1): a injeção de teclado nomeia o `stdin`.
+    for (const marca of ['global:stdin', 'api:freopen', 'api:fprintf', 'api:fopen', 'api:fclose']) {
+      assert.ok(
+        chavesDoTestsCodeEntrada.has(marca),
+        `o testsCode de ENTRADA deixou de emitir ${marca}`,
+      );
+    }
   });
 
   it('nada FALTA: toda chave do testsCode está na semente ∪ estrutural (a regra A3)', () => {
     for (const [nome, chaves] of [
+      ['testsCode de ENTRADA', chavesDoTestsCodeEntrada] as const,
       ['VALOR', chavesDoTestsCode],
       ['SAÍDA', chavesDoTestsCodeSaida],
     ] as const) {

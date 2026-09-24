@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "ordem-invertida",
+  "title": "Ordem invertida",
+  "concept": "o_prototipo",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# Ordem invertida\n\nO arquivo já vem com as duas caixas escritas — e na ordem errada para o compilador:\n\n- `ordemInvertida` recebe o lado e devolve o perímetro do triângulo equilátero, **chamando** `triplo`;\n- `triplo` está definida **abaixo** dela.\n\nComo está, o arquivo não compila: na linha da chamada, o nome `triplo` ainda não foi apresentado.\n\n**Não mude a ordem das caixas.** Acrescente, na linha marcada no topo, o **cartaz** de `triplo`: a primeira linha dela, com `;` no lugar do corpo.\n\nCom o cartaz no lugar, o arquivo compila e os valores devolvidos batem: `ordemInvertida(4)` devolve 12 e `triplo(5)` devolve 15.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "/* O compilador le de cima para baixo.\n\n   ordemInvertida chama triplo — e triplo esta definida LA EMBAIXO.\n   Como esta, o arquivo NAO compila: na linha da chamada o nome triplo\n   ainda nao foi apresentado.\n\n   Nao mude a ordem das caixas: acrescente o cartaz. */\n\n/* 1. escreva AQUI o prototipo de triplo — a primeira linha dela, com ; no fim */\n\nint ordemInvertida(int lado) {\n    return triplo(lado);\n}\n\nint triplo(int n) {\n    return n * 3;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio ordem-invertida — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Fase VALOR: o teste declara os PROTOTIPOS das caixas do aluno e compara o\n   VALOR DEVOLVIDO. Repare que o teste faz, para as caixas do aluno, o mesmo\n   que o cartaz que falta no arquivo dele: apresenta o nome antes de usar. */\n\n/* prototipos das funcoes do aluno (o teste declara o que exercita) */\nint ordemInvertida(int lado);\nint triplo(int n);\n\nSM_TEST(o_perimetro_do_lado_4_e_12) {\n    checa_int(\"o perimetro do lado 4 e 12\", ordemInvertida(4), 12,\n              \"ordemInvertida chama triplo: 4 x 3 = 12\");\n}\n\nSM_TEST(o_perimetro_do_lado_7_e_21) {\n    checa_int(\"o perimetro do lado 7 e 21\", ordemInvertida(7), 21,\n              \"com outro lado o valor muda: 7 x 3 = 21\");\n}\n\nSM_TEST(a_caixa_de_baixo_responde) {\n    checa_int(\"o triplo de 5 e 15\", triplo(5), 15,\n              \"a caixa definida embaixo continua valendo — o cartaz so a apresentou mais cedo\");\n}\n",
+  "solutionCode": "/* O cartaz na porta: o prototipo de triplo apresenta o nome ao compilador\n   antes da primeira chamada. A definicao continua la embaixo. */\nint triplo(int n);\n\nint ordemInvertida(int lado) {\n    return triplo(lado);\n}\n\nint triplo(int n) {\n    return n * 3;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_perimetro_do_lado_4_e_12",
+      "teste": "o_perimetro_do_lado_4_e_12",
+      "descricao": "ordemInvertida(4) devolve 12: com o prototipo de triplo no topo o arquivo compila e a chamada feita antes da definicao vale"
+    },
+    {
+      "id": "o_perimetro_do_lado_7_e_21",
+      "teste": "o_perimetro_do_lado_7_e_21",
+      "descricao": "ordemInvertida(7) devolve 21: o valor devolvido acompanha o lado recebido, o que prova que a chamada a triplo acontece de verdade"
+    },
+    {
+      "id": "a_caixa_de_baixo_responde",
+      "teste": "a_caixa_de_baixo_responde",
+      "descricao": "triplo(5) devolve 15: a caixa definida abaixo responde normalmente — o cartaz apenas a apresentou mais cedo ao compilador"
+    }
+  ]
+}

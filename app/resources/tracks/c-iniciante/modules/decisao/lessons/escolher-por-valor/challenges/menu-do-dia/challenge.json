@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "menu-do-dia",
+  "title": "O menu do dia",
+  "concept": "o_painel_de_botoes",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O menu do dia\n\nA função `menuDoDia` lê o número do dia digitado pela pessoa e imprime o prato daquele dia, numa linha só:\n\n| dia | prato |\n|---|---|\n| 1 | `sopa` |\n| 2 | `arroz com feijao` |\n| 3 | `macarrao` |\n| 4 | `peixe` |\n| 5 | `pizza` |\n| 6 | `churrasco` |\n| 7 | `lasanha` |\n| qualquer outro | `dia invalido` |\n\nCom o dia `6` a saída é exatamente:\n\n```text\nchurrasco\n```\n\nA leitura com `scanf` e o **primeiro botão do painel** já estão escritos. Continue os outros seis `case` e feche o painel com o `default`.\n\nCada caso termina em `break;` — sem ele a execução cai no caso de baixo e dois pratos saem juntos.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* menuDoDia le o numero do dia digitado e imprime o prato do dia:\n   1 sopa · 2 arroz com feijao · 3 macarrao · 4 peixe · 5 pizza\n   6 churrasco · 7 lasanha · qualquer outro: dia invalido\n   O primeiro botao do painel ja esta escrito — continue os outros. */\nvoid menuDoDia(void) {\n    int dia = 0;\n    scanf(\"%d\", &dia);\n\n    switch (dia) {\n        case 1:\n            printf(\"sopa\\n\");\n            break;\n        /* continue daqui: case 2 ate case 7, cada um com o seu break,\n           e o default com \"dia invalido\" no fim */\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio menu-do-dia — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o dia que a pessoa \"digitaria\", aponta\n   o stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os arquivos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid menuDoDia(void);\n\nSM_TEST(o_dia_1_e_sopa) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    menuDoDia();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dia 1 e sopa\", linha, \"sopa\\n\",\n              \"o 1 entra pelo case 1 do painel\");\n    /* a PROVA do break: sem ele a execucao cai no case de baixo e uma\n       segunda linha aparece aqui */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha prato a mais\", fim, \"(nada impresso)\",\n              \"o break fecha o caso: um dia, um prato, uma linha\");\n    fclose(f);\n}\n\nSM_TEST(o_dia_6_e_churrasco) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"6\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    menuDoDia();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dia 6 e churrasco\", linha, \"churrasco\\n\",\n              \"o 6 salta direto para o case 6, sem passar pelos de cima\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha prato a mais no dia 6\", fim, \"(nada impresso)\",\n              \"o break do case 6 impede a queda para o case 7\");\n    fclose(f);\n}\n\nSM_TEST(o_dia_9_e_invalido) {\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"9\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    menuDoDia();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o dia 9 nao tem botao\", linha, \"dia invalido\\n\",\n              \"9 nao casa com nenhum case: quem responde e o default\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid menuDoDia(void) {\n    int dia = 0;\n    scanf(\"%d\", &dia);\n\n    switch (dia) {\n        case 1:\n            printf(\"sopa\\n\");\n            break;\n        case 2:\n            printf(\"arroz com feijao\\n\");\n            break;\n        case 3:\n            printf(\"macarrao\\n\");\n            break;\n        case 4:\n            printf(\"peixe\\n\");\n            break;\n        case 5:\n            printf(\"pizza\\n\");\n            break;\n        case 6:\n            printf(\"churrasco\\n\");\n            break;\n        case 7:\n            printf(\"lasanha\\n\");\n            break;\n        default:\n            printf(\"dia invalido\\n\");\n            break;\n    }\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_dia_1_e_sopa",
+      "teste": "o_dia_1_e_sopa",
+      "descricao": "com 1 digitado no stdin, a funcao menuDoDia imprime sopa e mais nenhuma linha — o break do case 1 impede a queda para o case de baixo"
+    },
+    {
+      "id": "o_dia_6_e_churrasco",
+      "teste": "o_dia_6_e_churrasco",
+      "descricao": "com 6 digitado no stdin, a funcao imprime churrasco e mais nenhuma linha: o painel salta direto para o case 6 e o break fecha o caso"
+    },
+    {
+      "id": "o_dia_9_e_invalido",
+      "teste": "o_dia_9_e_invalido",
+      "descricao": "com 9 digitado no stdin, a funcao imprime dia invalido — o default atende o valor que nao casou com nenhum case"
+    }
+  ]
+}

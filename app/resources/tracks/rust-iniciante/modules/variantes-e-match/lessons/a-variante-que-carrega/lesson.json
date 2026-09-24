@@ -48,16 +48,16 @@
       "question": "Na declaração `Vale(i32)`, o que o `i32` entre parênteses declara?",
       "options": [
         "O tipo do valor que a variante Vale carrega",
-        "O número de variantes do conjunto",
-        "O valor inicial da variante",
+        "O nome do valor carregado, usado depois no padrão",
+        "O valor inicial que todo Vale carrega",
         "O tipo do conjunto Brinde"
       ],
       "answerIndex": 0,
       "feedback": "A variante declara o que carrega: cada `Vale` carrega UM i32.",
       "optionRationales": [
         "Isso: `Vale(i32)` é a forma da variante — um Vale qualquer carrega um i32.",
-        "A lista de variantes fica fora, uma por linha; os parênteses são do conteúdo.",
-        "A declaração diz a FORMA, não um valor pronto: o valor é de cada peça.",
+        "Nome do conteúdo só existe no PADRÃO do braço, `Vale(valor)`; na declaração, entre parênteses, vai o TIPO.",
+        "A declaração diz a FORMA, não um valor pronto: cada `Vale` montado traz o seu próprio i32.",
         "O tipo do conjunto é `Brinde`; o `i32` é o conteúdo desta variante."
       ]
     },
@@ -68,17 +68,17 @@
       "question": "No braço `Brinde::Vale(valor) => valor`, o que é o `valor` do lado direito?",
       "options": [
         "O valor carregado pela variante, nomeado pelo padrão",
-        "O nome da variante",
-        "Um valor fixo, sempre zero",
-        "O conjunto inteiro, desmontado"
+        "O nome da variante que casou com o braço",
+        "Um valor fixo, o mesmo para todo Vale que chegar ao braço",
+        "O próprio Brinde que chegou ao match, ainda montado"
       ],
       "answerIndex": 0,
       "feedback": "O padrão extrai: casou com Vale, o que ela carregava passa a se chamar `valor`.",
       "optionRationales": [
         "Isso: casar com `Vale(valor)` é extrair — o conteúdo chega com o nome do padrão.",
-        "`valor` não é variante nenhuma: é o nome dado ao conteúdo carregado.",
-        "O valor vem da peça montada (`Vale(30)` traz 30) — não é constante.",
-        "O padrão casou com a VARIANTE e tirou o conteúdo — não o conjunto todo."
+        "O nome da variante é `Vale`; `valor` é o apelido que o padrão dá ao conteúdo que ela carregava.",
+        "O valor vem da peça montada: `Vale(30)` traz 30 e `Vale(5)` traz 5 — nada aí é constante.",
+        "O padrão DESMONTOU o Brinde que chegou: `valor` é o `i32` de dentro, não o Brinde inteiro."
       ]
     }
   ],

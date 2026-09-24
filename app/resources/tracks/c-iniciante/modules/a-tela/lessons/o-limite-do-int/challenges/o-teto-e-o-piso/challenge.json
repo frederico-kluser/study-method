@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-teto-e-o-piso",
+  "title": "O teto e o piso",
+  "concept": "o_limite_do_int",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O teto e o piso\n\nEscreva o corpo da função `oTetoEOPiso`: ela imprime, em duas linhas, o **maior** e o **menor** `int` que cabem nesta máquina — nessa ordem, um por linha, cada um com `%d` e `\\n` no fim.\n\n**Não digite os números.** Quem sabe quais são é o compilador: peça o inventário dos limites no topo do arquivo — a linha que falta está marcada em cima, ao lado do `#include <stdio.h>` que já está lá — e imprima os dois nomes que ele traz.\n\nA saída tem duas linhas e acaba ali — nenhum texto a mais, nenhuma linha extra.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n/* FALTA aqui em cima o inventario dos limites: e dele que vem o nome do\n   maior int e o nome do menor int desta maquina. Escreva a linha que falta. */\n\n/* oTetoEOPiso imprime o maior e o menor int que cabem nesta maquina,\n   um por linha, nessa ordem. Nao digite os numeros: use os dois nomes\n   que o inventario dos limites traz. */\nvoid oTetoEOPiso(void) {\n    /* 1) imprima o maior int, com %d e \\n */\n\n    /* 2) imprima o menor int, com %d e \\n */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-teto-e-o-piso — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece dentro do proprio cenario: freopen manda o\n   stdout para o arquivo temporario, o teste chama a funcao do aluno e le o\n   arquivo de volta (fflush sem fclose no stdout). Os numeros esperados sao\n   os medidos nesta maquina para o int de 4 bytes. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid oTetoEOPiso(void);\n\nSM_TEST(o_teto_e_o_piso_nesta_ordem) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    oTetoEOPiso();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha e o teto do int\", linha, \"2147483647\\n\",\n              \"o maior int que cabe nesta maquina vem do inventario dos limites\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha e o piso do int\", linha, \"-2147483648\\n\",\n              \"o menor int esta uma unidade mais longe do zero que o teto\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <limits.h>\n\nvoid oTetoEOPiso(void) {\n    printf(\"%d\\n\", INT_MAX);\n    printf(\"%d\\n\", INT_MIN);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_teto_e_o_piso_nesta_ordem",
+      "teste": "o_teto_e_o_piso_nesta_ordem",
+      "descricao": "a funcao oTetoEOPiso imprime o teto do int (2147483647) na primeira linha e o piso (-2147483648) na segunda, e a saida acaba ali — os tres checa_str conferem as duas linhas e o fim"
+    }
+  ]
+}

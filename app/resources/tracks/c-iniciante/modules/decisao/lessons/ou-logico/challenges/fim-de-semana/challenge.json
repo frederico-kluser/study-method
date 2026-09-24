@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "fim-de-semana",
+  "title": "Fim de semana",
+  "concept": "o_ou_logico",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Fim de semana\n\nA função `fimDeSemana` lê **o dia da semana** que a pessoa digita e imprime `folga` só quando esse dia é de fim de semana.\n\nNeste curso o dia vai de **1 (domingo) a 7 (sábado)** — então o fim de semana são os dois extremos: **1** e **7**.\n\nO `if` já confere o domingo. Falta o sábado. Repare que não há uma comparação única que acerte 1 e 7 e recuse 3 e 6: é exatamente para isso que existe o `||` — junte as duas comparações com ele.\n\nCom `1` ou com `7` digitado, a saída é:\n\n```text\nfolga\n```\n\nCom `3` (terça) ou `6` (sexta), a função não imprime **nada**.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* fimDeSemana le o dia digitado (1 = domingo ... 7 = sabado) e imprime\n   \"folga\" quando o dia e de fim de semana. O domingo ja esta conferido.\n   Falta o sabado: junte a segunda comparacao com || (dia == 7). */\nvoid fimDeSemana(void) {\n    int dia = 0;\n\n    scanf(\"%d\", &dia);\n\n    if (dia == 1) {\n        printf(\"folga\\n\");\n    }\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio fim-de-semana — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4).\n   Os quatro valores sao escolhidos para EXIGIR o ||: 1 e 7 imprimem, 3 e 6\n   nao — e nenhuma comparacao sozinha (>=, <=, ==) acerta esse recorte. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid fimDeSemana(void);\n\nSM_TEST(o_domingo_e_folga) {\n    /* o que a pessoa digita: 1 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    fimDeSemana();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o domingo e folga\", linha, \"folga\\n\",\n              \"1 e domingo: o lado esquerdo do || vale 1 e o bloco roda\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a folga, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(o_sabado_e_folga) {\n    /* o que a pessoa digita: 7 */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"7\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    fimDeSemana();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o sabado e folga\", linha, \"folga\\n\",\n              \"7 e sabado: o lado esquerdo vale 0, o direito vale 1, e um so basta\");\n    fclose(f);\n}\n\nSM_TEST(a_terca_nao_e_folga) {\n    /* o que a pessoa digita: 3 */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"3\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    fimDeSemana();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a terca nao e folga\", linha, \"(nada impresso)\",\n              \"3 nao e 1 nem 7: os dois lados valem 0 e o || vale 0\");\n    fclose(f);\n}\n\nSM_TEST(a_sexta_nao_e_folga) {\n    /* o que a pessoa digita: 6 */\n    FILE *e = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(e, \"6\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_4.tmp\", \"w\", stdout);\n    fimDeSemana();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_4.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a sexta nao e folga\", linha, \"(nada impresso)\",\n              \"6 e vizinho do 7 mas nao e fim de semana: os dois lados valem 0\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid fimDeSemana(void) {\n    int dia = 0;\n\n    scanf(\"%d\", &dia);\n\n    if (dia == 1 || dia == 7) {\n        printf(\"folga\\n\");\n    }\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_domingo_e_folga",
+      "teste": "o_domingo_e_folga",
+      "descricao": "com 1 (domingo) digitado no stdin, a funcao fimDeSemana imprime exatamente \"folga\" e mais nenhuma linha — o lado esquerdo do || vale 1"
+    },
+    {
+      "id": "o_sabado_e_folga",
+      "teste": "o_sabado_e_folga",
+      "descricao": "com 7 (sabado) digitado no stdin, a funcao imprime \"folga\": o lado esquerdo vale 0 e o direito vale 1 — e este cenario reprova quem conferiu so o domingo"
+    },
+    {
+      "id": "a_terca_nao_e_folga",
+      "teste": "a_terca_nao_e_folga",
+      "descricao": "com 3 (terca) digitado no stdin, a funcao nao imprime nada: os dois lados do || valem 0"
+    },
+    {
+      "id": "a_sexta_nao_e_folga",
+      "teste": "a_sexta_nao_e_folga",
+      "descricao": "com 6 (sexta) digitado no stdin, a funcao nao imprime nada — o cenario que reprova quem tentou resolver o recorte {1, 7} com uma comparacao de faixa como dia >= 6"
+    }
+  ]
+}

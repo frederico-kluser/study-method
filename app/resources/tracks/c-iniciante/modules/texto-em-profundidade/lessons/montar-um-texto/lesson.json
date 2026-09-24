@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "montar-um-texto",
   "title": "Montar um texto novo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A snprintf é o printf que escreve numa caixa de letras em vez da tela: mesmos buracos, mais um destino e um limite.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:snprintf",
+  "concepts": [
+    "montar_um_texto"
+  ],
   "prerequisites": [
     "buraco-na-frase",
     "a-string-e-o-zero"
   ],
+  "introduces": {
+    "productive": [
+      "api:snprintf",
+      "node:CallExpr"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:snprintf"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto formatado deixa de ter um destino único: a mesma montagem de frase que ia para a tela passa a poder ficar guardada numa caixa de letras, para o programa usar depois",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-printf-que-guarda",
+      "title": "O printf que não vai para a tela",
+      "markdown": "Às vezes a frase não é para a tela: é para guardar, para comparar depois, para virar uma etiqueta. A `snprintf` é o `printf` que escreve numa CAIXA de letras sua:\n\n```c\nchar etiqueta[60] = \"\";\nsnprintf(etiqueta, sizeof etiqueta, \"Nome: %s\", \"Ana\");\nprintf(\"%s\\n\", etiqueta);\n```\n\n```text\nNome: Ana\n```\n\nOs dois primeiros argumentos são os novos: para ONDE o texto vai e QUANTAS gavetas ele pode usar. Depois deles vem tudo o que o `printf` já pedia — o formato e os valores."
+    },
+    {
+      "id": "os-mesmos-buracos",
+      "title": "Os buracos são os mesmos",
+      "markdown": "Os buracos são exatamente os mesmos: `%s` para texto, `%d` para inteiro, na ordem em que aparecem.\n\n```c\nchar linha[60] = \"\";\nint idade = 20;\nsnprintf(linha, sizeof linha, \"%s tem %d anos\", \"Ana\", idade);\nprintf(\"%s\\n\", linha);\n```\n\n```text\nAna tem 20 anos\n```\n\nO valor pode ser literal, como o `\"Ana\"`, ou um nome, como o `idade`.\n\nE repare no que NÃO aconteceu: quando a `snprintf` rodou, nada apareceu na tela. A frase ficou guardada na caixa `linha`; quem a mostrou foi o `printf` da linha de baixo."
+    },
+    {
+      "id": "o-limite-e-a-placa",
+      "title": "O limite, e a placa que vem junto",
+      "markdown": "A caixa pequena também é atendida: a `snprintf` escreve no máximo o limite e — diferente da `strncpy` — **sempre** fecha o texto com a placa `\\0`.\n\n```c\nchar curta[10] = \"\";\nsnprintf(curta, sizeof curta, \"%s tem %d anos\", \"Ana\", 20);\nprintf(\"%s\\n\", curta);\n```\n\n```text\nAna tem 2\n```\n\nDez gavetas: nove para letras e a décima para a placa que ela mesma grava.\n\nOnde a analogia do `printf` quebra: `sizeof curta` conta a gaveta da placa, então o texto que cabe é sempre uma letra menos que o limite."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-destino-e-a-caixa",
+      "statement": "`snprintf(buffer, sizeof buffer, ...)` é o `printf` que escreve num buffer, com limite.",
+      "question": "O que muda de `printf(\"Nome: %s\", nome)` para `snprintf(etiqueta, sizeof etiqueta, \"Nome: %s\", nome)`?",
+      "options": [
+        "O destino: a frase vai para a caixa, e não para a tela.",
+        "O formato: a `snprintf` não aceita `%s` nem `%d`.",
+        "A ordem: na `snprintf` os valores vêm antes do formato.",
+        "Nada: as duas mostram a frase na tela do mesmo jeito."
+      ],
+      "answerIndex": 0,
+      "feedback": "Os dois argumentos novos da frente dizem para onde a frase vai e quanto ela pode ocupar. O formato e os valores continuam iguais aos do `printf`.",
+      "sectionId": "o-printf-que-guarda",
+      "optionRationales": [
+        "A frase montada fica guardada na caixa; mostrar é trabalho de outro comando.",
+        "Os buracos são os mesmos: `%s` para texto, `%d` para inteiro, na ordem.",
+        "O formato continua vindo antes dos valores — só ganhou dois vizinhos na frente.",
+        "A `snprintf` não imprime nada: quando ela roda, a tela não muda."
+      ]
+    },
+    {
+      "id": "o-limite-conta-a-placa",
+      "statement": "O segundo argumento é o tamanho da caixa, e a gaveta da placa está contada nele.",
+      "question": "Com `char curta[10] = \"\";` e `snprintf(curta, sizeof curta, \"%s tem %d anos\", \"Ana\", 20)`, o que fica na caixa?",
+      "options": [
+        "`Ana tem 2`: nove letras e a placa na décima gaveta.",
+        "`Ana tem 20 anos`: a caixa se ajusta à frase.",
+        "`Ana tem 20`: o limite de dez conta só as letras da frase.",
+        "Nada: a frase não cabe, então a montagem é cancelada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O limite é 10 e a placa mora dentro dele: nove letras entram e a décima gaveta fecha o texto. O que não cabe fica de fora, sem transbordar.",
+      "sectionId": "o-limite-e-a-placa",
+      "optionRationales": [
+        "Nove letras mais a placa dão as dez gavetas do limite: o resto fica de fora.",
+        "Caixa em C não cresce: o `[10]` foi decidido na declaração.",
+        "A placa também ocupa gaveta, então sobram nove para as letras, não dez.",
+        "A montagem acontece sim — o que ela faz é parar no limite."
+      ]
+    },
+    {
+      "id": "quem-grava-a-placa",
+      "statement": "Diferente da `strncpy`, a `snprintf` sempre grava a placa `\\0` no fim.",
+      "question": "Depois de uma `snprintf` cuja frase não cabia, quem gravou a placa do fim?",
+      "options": [
+        "A própria `snprintf`: ela sempre fecha o texto no fim.",
+        "Você, na última gaveta, como se faz depois da `strncpy`.",
+        "Ninguém: a caixa fica cheia de letras e sem placa.",
+        "O `printf`, na hora de mostrar a frase guardada."
+      ],
+      "answerIndex": 0,
+      "feedback": "É a diferença prática entre as duas: a `strncpy` pode deixar a caixa sem placa, e a `snprintf` nunca deixa. Uma linha de cuidado a menos.",
+      "sectionId": "o-limite-e-a-placa",
+      "optionRationales": [
+        "A `snprintf` reserva a última gaveta do limite para a placa, sempre.",
+        "Essa linha é a receita da `strncpy`; aqui ela não é necessária.",
+        "Sem placa o `%s` não teria onde parar — e é justo isso que ela evita.",
+        "O `printf` só lê a caixa; ele não escreve nada dentro dela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "printf, snprintf e a família — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fprintf",
+      "description": "A página oficial da família do printf: a snprintf com o buffer e o limite, e o terminador sempre escrito."
+    },
+    {
+      "title": "snprintf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/snprintf.3.html",
+      "description": "A man-page do sistema: o tamanho passado inclui o byte nulo, e a saída é truncada quando não cabe."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 7.21.6.5 define o limite da snprintf e o caractere nulo no fim."
+    }
+  ],
+  "challenges": [
+    "a-etiqueta"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

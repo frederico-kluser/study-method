@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "enderecos",
   "title": "O endereço das casas",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O & que a scanf sempre pediu ganha nome: é o operador endereço de — e o endereço, que muda a cada execução, tem tamanho fixo, o mesmo para qualquer tipo.",
   "difficulty": 1,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "op:unary:&",
+  "concepts": [
+    "o_endereco"
+  ],
   "prerequisites": [
     "quantos-bytes",
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "op:unary:&",
+      "node:UnaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryOperator",
+        "de": "op:unary:&"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a variável deixa de ser só um valor com nome: ela passa a ter LUGAR, e esse lugar é um valor que o programa pode obter com & e medir com sizeof",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-e-comercial-tem-nome",
+      "title": "O & já tinha nome",
+      "markdown": "Você usa o `&` desde a aula de ler do teclado:\n\n```c\nint idade = 0;\nscanf(\"%d\", &idade);\nprintf(\"%d\\n\", idade);\n```\n\nA `scanf` precisa ESCREVER em `idade`, e para isso precisa saber ONDE `idade` mora. É isso que o `&` entrega.\n\nO nome do operador é **endereço de**: `&idade` se lê \"endereço de idade\". Ele não lê nem muda `idade` — devolve o lugar dela na memória. Sem o `&`, a `scanf` receberia o valor e não teria onde escrever."
+    },
+    {
+      "id": "a-casa-e-o-papel",
+      "title": "A casa e o papel com o endereço",
+      "markdown": "A variável é uma **casa**: tem conteúdo (o valor) e tem lugar (o endereço). `idade` é o conteúdo; `&idade` é o papel com o endereço da casa.\n\nO buraco do `printf` que mostra endereço é o `%p`, e a saída é um número em hexadecimal:\n\n```text\nidade vale 30\nidade mora em 0x16f4e320c\n```\n\nRode de novo e esse número muda: o sistema entrega a casa que estiver livre. Endereço não se decora nem se escreve à mão — serve para dizer ONDE, não para guardar. (Mostrar um com `%p` ainda pede uma conversão que esta trilha vê mais à frente.)"
+    },
+    {
+      "id": "o-endereco-tambem-tem-tamanho",
+      "title": "O endereço também tem tamanho",
+      "markdown": "Endereço é um valor — e, como todo valor, tem tamanho. O `sizeof` da aula passada mede:\n\n```c\nint idade = 30;\ndouble altura = 1.75;\nint caixa = sizeof(idade);\nint papel = sizeof(&idade);\nint papelDoReal = sizeof(&altura);\nprintf(\"%d %d %d\\n\", caixa, papel, papelDoReal);\n```\n\n```text\n4 8 8\n```\n\nA casa do `int` ocupa 4 bytes e a do `double` 8 — mas o papel com o endereço ocupa 8 nos dois. Endereço é endereço: o tamanho dele não depende de quem mora lá.\n\nOnde a analogia quebra: o papel não é a casa. Ter o endereço não muda o conteúdo."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-e-comercial-e-o-endereco-de",
+      "statement": "`&x` devolve o endereço de `x` — o mesmo `&` que a `scanf` sempre pediu; agora com nome.",
+      "question": "O que `&idade` entrega para a `scanf`?",
+      "options": [
+        "O lugar onde `idade` mora na memória.",
+        "O valor que está guardado em `idade`.",
+        "Uma cópia de `idade`, para não estragar o original.",
+        "O tipo de `idade`, para a `scanf` saber ler `%d`."
+      ],
+      "answerIndex": 0,
+      "feedback": "`&` é o operador \"endereço de\": ele devolve o lugar da variável. A `scanf` precisa do lugar porque vai ESCREVER ali — com o valor, ela não teria onde escrever.",
+      "sectionId": "o-e-comercial-tem-nome",
+      "optionRationales": [
+        "É isso: `&idade` é o endereço da casa, e é por ele que a `scanf` escreve.",
+        "O valor é `idade` sem o `&` — e com ele a `scanf` não teria onde escrever.",
+        "Cópia nenhuma é feita: o `&` só informa o lugar do original.",
+        "O tipo quem informa é o `%d` do texto de formato, não o `&`."
+      ]
+    },
+    {
+      "id": "o-endereco-muda-a-cada-execucao",
+      "statement": "O endereço muda a cada execução — ele diz ONDE, não é um valor para guardar.",
+      "question": "Você imprime o endereço de `idade`, fecha o programa e roda de novo. O número sai igual?",
+      "options": [
+        "Não: o sistema dá a casa que estiver livre na hora.",
+        "Sim: cada variável tem um endereço fixo, do código.",
+        "Sim, desde que o valor de `idade` seja o mesmo.",
+        "Não, mas o tamanho do endereço também muda junto."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem escolhe o lugar é o sistema, a cada execução. Por isso um teste nunca compara o endereço em si — o que dá para conferir é o TAMANHO dele, que é sempre o mesmo.",
+      "sectionId": "a-casa-e-o-papel",
+      "optionRationales": [
+        "O lugar é escolhido na hora da execução, e na próxima vez pode ser outro.",
+        "O endereço não está escrito no código: ele é decidido quando o programa roda.",
+        "O conteúdo da casa não tem relação com o lugar dela.",
+        "O número muda, mas o tamanho do endereço é fixo: 8 bytes nesta máquina."
+      ]
+    },
+    {
+      "id": "todo-endereco-tem-o-mesmo-tamanho",
+      "statement": "`sizeof(idade)` é 4 e `sizeof(&idade)` é 8 — a casa e o papel têm tamanhos diferentes.",
+      "question": "Nesta máquina, `sizeof(&altura)` de um `double` devolve quanto?",
+      "options": [
+        "8 — todo endereço ocupa o mesmo.",
+        "8 — é o tamanho do próprio `double`.",
+        "4 — endereço é sempre do tamanho de um `int`.",
+        "12 — soma do endereço com o `double` apontado."
+      ],
+      "answerIndex": 0,
+      "feedback": "O tamanho do endereço não depende do que mora lá: `sizeof(&idade)` e `sizeof(&altura)` dão os mesmos 8 bytes, mesmo com as casas medindo 4 e 8.",
+      "sectionId": "o-endereco-tambem-tem-tamanho",
+      "optionRationales": [
+        "Endereço é endereço: o papel tem o mesmo tamanho para qualquer casa.",
+        "O número bate por coincidência: o `double` também mede 8, mas não é essa a razão.",
+        "O endereço de um `int` também ocupa 8, não 4: casa e papel são coisas diferentes.",
+        "Nada é somado: o `sizeof` mede só o que está entre os parênteses."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Address-of operator — a referência oficial dos operadores de ponteiro",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `&` unário e do `*`: o operador que devolve o endereço de um objeto."
+    },
+    {
+      "title": "Pointers — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/pointer",
+      "description": "A página oficial do endereço em C: o que um endereço é e o que se pode fazer com ele."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da `scanf`: por que os argumentos de conversão são endereços, e não valores."
+    }
+  ],
+  "challenges": [
+    "enderecos-na-tela"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

@@ -36,12 +36,12 @@ por **competência** — o que a pessoa consegue fazer sozinha —, nunca por r�
 
 | Slug | Título | Módulos | Aulas | Fronteira de SAÍDA (o que o aluno passa a conseguir) | `entryCriteria` (o que o curso presume ao entrar) |
 |---|---|---|---|---|---|
-| `rust-iniciante` | Da primeira função ao júnior-Rust | M1–M8 | **101** | **júnior-Rust** — escrever um crate inteiro sozinha: funções com parâmetro e retorno, decisão com `if`/`match`, laços, structs com métodos, enums que carregam valor, `Vec`/`HashMap`/`String`, e — o centro da linguagem — explicar e APLICAR dono, movimento e empréstimo (`&T`/`&mut T`) sem lutar contra o compilador (fim do M8) | **nada** — zero absoluto: estruturais + semente receptiva do harness (§"A semente receptiva do harness Rust") |
+| `rust-iniciante` | Da primeira função ao júnior-Rust | M1–M8 | **103** | **júnior-Rust** — escrever um crate inteiro sozinha: funções com parâmetro e retorno, decisão com `if`/`match`, laços, structs com métodos, enums que carregam valor, `Vec`/`HashMap`/`String`, e — o centro da linguagem — explicar e APLICAR dono, movimento e empréstimo (`&T`/`&mut T`) sem lutar contra o compilador (fim do M8) | **nada** — zero absoluto: estruturais + semente receptiva do harness (§"A semente receptiva do harness Rust") |
 | `rust-intermediario` | Do júnior-Rust ao pleno | `a-porta-dos-emprestimos` + I1–I7 | **14 + 86 = 100** (previstas) | **pleno** — usar a linguagem como ela é: traits e genéricos como contratos, closures e iteradores em vez de laços manuais, erros que PROPAGAM (`?`) em vez de `unwrap`, lifetime anotado, código em módulos, testes que a PRÓPRIA pessoa escreve (fim de I7) | a saída do iniciante — o júnior-Rust de M1–M8, com o empréstimo re-introduzido na porta |
 | `rust-avancado` | Do pleno ao sênior, medindo | `a-porta-da-medicao` + A1–A3 | **8 + 28 = 36** (previstas) | **sênior** — **medir** antes de decidir (a coleção certa, o `clone` que custa), empacotar e distribuir com o `cargo`, impor qualidade por ferramenta (clippy/rustfmt) | a saída do intermediário — o pleno de I1–I7 |
 | `rust-especialista` | Padrões de projeto e o capô da memória | `a-porta-dos-padron` + E1–E3 | **9 + 33 = 42** (previstas) | **sênior** — escolher (e recusar) padrão de projeto em Rust (newtype, builder, typestate, state machine com enum) e abrir o capô: `Box`, contagem de referência, interior mutability, `Drop` e `Send`/`Sync` | a saída do avançado — o sênior de A1–A3 |
 
-**Total da cadeia: 24 módulos · 279 aulas** — 101 medidas (o iniciante, §2) + 178 previstas (§1 e
+**Total da cadeia: 24 módulos · 281 aulas** — 103 medidas (o iniciante, §2) + 178 previstas (§1 e
 §3). O número de aulas do iniciante é **saída, não entrada** ([`16`](16-engine-de-trilha.md) §3.6):
 consequência de aplicar o teto de ≤2 construções produtivas novas por aula (pela regra do par,
 §"A regra do par") à progressão atômica. Nenhum dos números foi escolhido: foi contado sobre as
@@ -107,19 +107,26 @@ a raiz de uma crate só tem **itens**: função, struct, constante. O runner é 
 existe em Rust é, portanto, uma função:
 
 ```rust
-pub fn dobro(x: i32) -> i32 {
-    x * 2
-}
+pub fn dois() -> i32 { 2 }
 ```
 
-É a aula `a-primeira-funcao` — e ela já existe: é a fixture viva
-`app/tests/fixtures/tracks/trilha-rust-minima/modules/modulo-1/lessons/a-primeira-funcao/`. Este
-contrato a adota como aula 1 da cadeia, e a lesson.json da fixture é o `introduces` NORMATIVO da
-aula 1, com uma correção de leitura: as seis chaves que ela declara produtivas —
-`node:FunctionItem`, `node:Parameters`, `node:Parameter`, `node:IntegerLiteral`, `op:binary:*`,
-`node:BinaryExpression` — contam **dois** itens pela regra do par (§"A regra do par"): a assinatura
-(`node:FunctionItem` com `node:Parameters` + `node:Parameter`) e o `x * 2` do desafio
-(`node:IntegerLiteral` + `op:binary:*` com `node:BinaryExpression`).
+É a aula `a-primeira-funcao`, e ela ensina UMA construção: a função que devolve um número fixo. A
+forma de uma linha acima não é enfeite — é a demonstração que faz as quatro chaves que a MESMA
+construção produz (`node:Parameters`, `node:PrimitiveType`, `node:VisibilityModifier`,
+`node:IntegerLiteral`) ocorrerem na MESMA linha de `node:FunctionItem`, que é o que a regra do par
+exige do disco desde a barra A23 (§⚑ "A quebra da aula 1"). O `introduces` normativo da aula 1 é,
+por isso, o do disco — `app/resources/tracks/rust-iniciante/modules/a-tela/lessons/a-primeira-funcao/`
+—, e **não** mais o da fixture `trilha-rust-minima`, que segue sendo régua dos testes da engine e
+não currículo:
+
+| faixa | chaves | colapso |
+|---|---|---|
+| produtivas | `node:FunctionItem` + `node:Parameters`, `node:PrimitiveType`, `node:VisibilityModifier`, `node:IntegerLiteral` (derivadas) | **1 item** |
+| receptivas | `api:todo!` + `node:MacroInvocation`, `node:TokenTree` (derivadas) | **1 item** |
+
+O parâmetro (`node:Parameter`) é a aula 2, `o-valor-que-entra`; a multiplicação (`op:binary:*` com
+`node:BinaryExpression`) é a aula 3, `multiplicar` — que é também onde o número negativo entra como
+LEITURA (§⚑).
 
 ### A tela — e por que o canal é VALOR desde a aula 1
 
@@ -133,7 +140,7 @@ desafio é VALOR desde a aula 1**: o teste importa a função e assevera o que e
 
 A consequência pedagógica declarada: o par **imprimir × devolver** de Python vira aqui o par
 **`println!` × `format!`** — a tela e o valor que a tela recebe. A aula `a-mensagem-montada` (M1,
-aula 4) ensina `format!` (o VALOR, que o teste assevera) e a aula seguinte, `a-tela`, ensina
+aula 6, depois da quebra do §⚑) ensina `format!` (o VALOR, que o teste assevera) e a aula seguinte, `a-tela`, ensina
 `println!` (a TELA que o valor alimenta). A solução de `a-tela` imprime **e** devolve; o teste
 assevera o devolvido. Cláusula J5 honesta: o `println!` não é observável pelo teste — ele é forçado
 pela solução de referência e o `format!` é o que o teste força; a assimetria é declarada, como a
@@ -251,7 +258,7 @@ deste documento o implementa:
 | Chave listada em `Ensina` | Derivadas que a mesma construção produz |
 |---|---|
 | `op:binary:<qualquer>`, `op:compare:<qualquer>`, `op:logical:<qualquer>` | `node:BinaryExpression` |
-| `op:binary:<qualquer>` sobre operando literal (o `2` do `x * 2` da aula 1) | `node:IntegerLiteral` |
+| `op:binary:<qualquer>` sobre operando literal (o `2` do `x * 2` da aula 3) | `node:IntegerLiteral` |
 | `op:unary:!`, `op:unary:-`, `op:unary:*` | `node:UnaryExpression` |
 | `op:unary:&` | `node:ReferenceExpression` |
 | `op:assign:=` | `node:AssignmentExpression` |
@@ -261,7 +268,7 @@ deste documento o implementa:
 | `decl:let-mut` | `node:MutableSpecifier` |
 | `decl:const` | `node:ConstItem` |
 | `decl:static` | `node:StaticItem` |
-| `node:FunctionItem` | `node:Parameters` + `node:Parameter` — SÓ na aula-da-assinatura (a 1ª do curso); depois nada |
+| `node:FunctionItem` | `node:Parameters` + `node:PrimitiveType` + `node:VisibilityModifier` + `node:IntegerLiteral` — SÓ na aula-da-assinatura (a 1ª do curso), e só porque a teoria dela traz a forma de UMA LINHA `pub fn dois() -> i32 { 2 }`, em que as cinco chaves ocorrem na MESMA linha (o que A23 confere no disco); depois nada. `node:Parameter` **não** é derivada: tem aula própria (`o-valor-que-entra`) |
 | `node:StructItem` | `node:FieldDeclarationList` + `node:FieldDeclaration` |
 | `node:StructExpression` | `node:FieldInitializerList` + `node:FieldInitializer` + `node:FieldIdentifier` |
 | `node:EnumItem` | `node:EnumVariantList` + `node:EnumVariant` |
@@ -287,9 +294,11 @@ chave aparecer num `Ensina` o script exige que exista no inventário (VOCAB) e t
 consolidação legítima (CONS).
 
 `node:VisibilityModifier` (o `pub`) e `node:PrimitiveType` (os tipos primitivos na assinatura)
-**não têm aula**: acompanham o harness desde a aula 1 (o starter os lê e o aluno os copia) e entram
-no `introduces.receptive` da aula 1 — se o gate os cobrar do lado produtivo, é a aula 1 que os
-declara (decisão do disco; a tabela do contrato não muda).
+**não têm aula própria**: eles saem da MESMA linha da assinatura. Depois da quebra de 2026-09-22
+(§⚑) a aula 1 os declara no lado **produtivo** como derivadas de `node:FunctionItem` — porque o
+aluno os ESCREVE no desafio dela — e o colapso da regra do par mantém o passo em 1 item. Cada um
+tem, ainda assim, a sua seção de teoria na aula 1 (o `pub` e o `-> i32`), o que A18 exige: na
+primeira aula do curso não existe "o aluno só copia".
 
 **⚑ Limitação de medição conhecida — `api:.or_insert` nunca é emitida em cadeia.** O extrator
 para no receptor não-trivial: em `contagem.entry(palavra).or_insert(0)` (o desafio de
@@ -342,11 +351,15 @@ emite `op:unary:-` — a matéria da aula de negação — e NÃO entra na semen
 > aluno ESCREVE. `receptive` serve para a teoria: demonstração sem cobrança, em bloco cercado com
 > tag ```rust (`RS_THEORY_FENCE_TAGS`; bloco com tag é código, crase inline é prosa).
 >
-> **O exemplo vivo é a fixture `trilha-rust-minima`**: a negação `op:unary:-` ficou RECEPTIVA na
-> aula `a-primeira-funcao` — demonstrada em bloco ```rust na teoria (`dobro(-3)` devolve `-6`) — e
-> o desafio `dobre-o-numero` EVITA `-3`: os testes chamam `dobro(2)` e `dobro(10)`. Quando a trilha
-> quiser COBRAR a negação, a aula `o-negativo` (M2) a promove a produtiva — e a partir dela o teste
-> pode passar `-3` (o argumento, então, já tem aula). A mesma regra torna o starter padrão legal:
+> **O exemplo vivo no disco é a aula `multiplicar` (M1, aula 3)**: a negação `op:unary:-` é
+> RECEPTIVA nela — demonstrada em dois blocos ```rust da teoria (`dobro(-3)` devolve `-6`, e
+> `x * -2` no corpo de uma função que PARSEIA sozinha, para o gate A4 poder medi-la) — e o desafio
+> `dobre-o-numero` EVITA `-3`: os testes chamam `dobro(2)` e `dobro(10)`. Quando a trilha COBRA a
+> negação, a aula `o-negativo` (M2) a promove a produtiva — e o teste DELA pode então passar `-3`,
+> porque o argumento já foi lido. **Foi esta dependência que decidiu o lugar da negação na quebra
+> do §⚑**: tirá-la da aula 1 sem pôr a leitura em aula nenhuma reprovava
+> `decisao/o-negativo` em A3 (`testsCode:5:27 op:unary:-`, medido em 2026-09-22) — a aula 1 a
+> declarava havia meses e NUNCA a demonstrava. A mesma regra torna o starter padrão legal:
 > `api:todo!`, `pub` (`node:VisibilityModifier`) e `i32` (`node:PrimitiveType`) são RECEPTIVOS na
 > entrada da aula 1 — o starter os usa, e só o DIFF do aluno é checado contra o produtivo.
 
@@ -427,11 +440,11 @@ O que toda onda de conteúdo copia, aula por aula — o disco já impõe tudo is
    (`move`, `borrow`, `panic`, `lifetime`); os termos da prosa entram por `term:`.
 7. **Fontes fora do fluxo** — URLs em `sources[]` (§6), só no botão "Fontes".
 
-### Estrutura do iniciante — 8 módulos, 101 aulas
+### Estrutura do iniciante — 8 módulos, 103 aulas
 
 | # | Módulo | Aulas | cons. | O que ensina | Fronteira de saída |
 |---|---|---|---|---|---|
-| 1 | `a-tela` | 13 | 4 | função, operação, chamada, `format!`/`println!`, `let`/`let mut`/reatribuição/`+=`/`const`, o corpo-expressão, o erro de compilação | escreve uma função pública que recebe, calcula, monta texto e mostra na tela — e lê o erro do compilador |
+| 1 | `a-tela` | 15 | 4 | função, parâmetro, multiplicação, soma, chamada, `format!`/`println!`, `let`/`let mut`/reatribuição/`+=`/`const`, o corpo-expressão, o erro de compilação | escreve uma função pública que recebe, calcula, monta texto e mostra na tela — e lê o erro do compilador |
 | 2 | `decisao` | 12 | 4 | comparações, `&&`, negação unária, `!`, `if`/`else`/`else if` (inclusive como expressão) | decide com ramos, inclusive o `if` que devolve valor |
 | 3 | `repeticao` | 12 | 7 | `loop`/`while`/`for`, intervalos `..`/`..=`, `break` (inclusive devolvendo valor), acumulador mutável | repete com o laço certo e para com o `break` certo |
 | 4 | `o-dono-do-valor` | 13 | 8 | `String`, movimento, `clone`, função que consome/devolve o dono, o que copia, sombreamento, métodos de texto | explica E aplica move: diz ANTES se a linha move, copia ou empresta |
@@ -451,19 +464,23 @@ derivadas ficam no mapa, §"A regra do par") e `Presume` nomeia a aula anterior 
 construção pressuposta. "cons." marca consolidação declarada (com o degrau nomeado); "integration"
 marca aula de composição (`role: "integration"`, [`16`](16-engine-de-trilha.md) §3.7).
 
-#### Módulo 1 — `a-tela` (13 aulas)
+#### Módulo 1 — `a-tela` (15 aulas)
 
-A aula 1 adota a fixture viva `trilha-rust-minima` — a lesson.json dela é o `introduces` NORMATIVO
-da aula 1: seis produtivas (`node:FunctionItem`, `node:Parameters`, `node:Parameter`,
-`node:IntegerLiteral`, `op:binary:*`, `node:BinaryExpression` — 2 itens pela regra do par,
-§"A regra do par") e os receptivos dela: `node:VisibilityModifier`, `node:PrimitiveType`,
-`node:UnaryExpression`, `op:unary:-`, `api:todo!`.
+O `introduces` NORMATIVO da aula 1 é o do disco (§"A aula 1 é uma função"), depois da quebra de
+2026-09-22 (§⚑): cinco produtivas que colapsam em **1 item** (`node:FunctionItem` com
+`node:Parameters`, `node:PrimitiveType`, `node:VisibilityModifier` e `node:IntegerLiteral` como
+derivadas da MESMA linha) e três receptivas que colapsam em **1 item** (`api:todo!` com
+`node:MacroInvocation` e `node:TokenTree`). As três primeiras aulas são uma construção cada:
+a função (`a-primeira-funcao`), o parâmetro (`o-valor-que-entra`) e a multiplicação
+(`multiplicar`, onde o número negativo entra como LEITURA).
 
 | Aula | Ensina | Presume |
 |---|---|---|
-| `a-primeira-funcao` | `node:FunctionItem`, `op:binary:*` — 2 itens pela regra do par: a assinatura (fn + params) e o `x * 2` do desafio (literal inteiro + multiplicação); a lesson.json da fixture é o `introduces` NORMATIVO da aula 1 | nada |
-| `somar` | `op:binary:+` | `a-primeira-funcao` |
-| `chamar-a-funcao` | `node:CallExpression` | `a-primeira-funcao` |
+| `a-primeira-funcao` | `node:FunctionItem` — 1 item pela regra do par: os parênteses, o tipo do retorno, o `pub` e o literal do corpo saem TODOS da linha `pub fn dois() -> i32 { 2 }` e são derivadas declaradas; o `todo!()` do starter é receptivo, colapsado do mesmo jeito, e tem demonstração própria | nada |
+| `o-valor-que-entra` | `node:Parameter` | `a-primeira-funcao` |
+| `multiplicar` | `op:binary:*` — 1 item pela regra do par (a expressão binária sai da mesma linha `x * 2`); o número negativo entra aqui como LEITURA (receptivo, colapsado), e M2 o cobra | `o-valor-que-entra` |
+| `somar` | `op:binary:+` | `multiplicar` |
+| `chamar-a-funcao` | `node:CallExpression` | `multiplicar` |
 | `a-mensagem-montada` | `api:format!` | `chamar-a-funcao`, `somar` |
 | `a-tela` | `api:println!` | `a-mensagem-montada` |
 | `dar-nome-ao-valor` | cons. — `decl:let` em forma nova (a ligação local dentro da função; a semente já a lê no harness) | `a-mensagem-montada` |
@@ -471,7 +488,7 @@ da aula 1: seis produtivas (`node:FunctionItem`, `node:Parameters`, `node:Parame
 | `reatribuir` | `op:assign:=` | `mudar-o-valor` |
 | `somar-no-lugar` | `op:assign:+=` | `reatribuir` |
 | `fixar-uma-vez` | `decl:const` | `dar-nome-ao-valor` |
-| `o-corpo-e-uma-expressao` | cons. — `node:FunctionItem` em forma nova (a última expressão do bloco É o retorno; o `;` que mata o valor) | `a-primeira-funcao` |
+| `o-corpo-e-uma-expressao` | cons. — `node:FunctionItem` em forma nova (a última expressão do bloco É o retorno; o `;` que mata o valor) | `multiplicar` |
 | `o-erro-de-compilacao` | cons. — `node:FunctionItem` em forma nova (ler o erro do `rustc`: `term:compilação`, `term:rustc`) | `reatribuir` |
 | `a-saida-completa` | cons. — integration — `api:format!` em forma nova (recebe, calcula, monta e mostra no mesmo desafio) | `a-tela`, `somar-no-lugar` |
 
@@ -482,7 +499,7 @@ da aula 1: seis produtivas (`node:FunctionItem`, `node:Parameters`, `node:Parame
 | `comparar-numeros` | `op:compare:>`, `op:compare:<` | M1 `a-primeira-funcao` |
 | `igual` | `op:compare:==` | `comparar-numeros` |
 | `e-e` | `op:logical:&&` | `igual` |
-| `o-negativo` | `op:unary:-` (a negação receptiva da aula 1 vira cobrança — o teste pode passar `-3`) | M1 `somar` |
+| `o-negativo` | `op:unary:-` (a negação receptiva de M1 `multiplicar` vira cobrança — o teste pode passar `-3`) | M1 `multiplicar` |
 | `negar` | `op:unary:!` | `e-e` |
 | `se` | `node:IfExpression` | `comparar-numeros` |
 | `se-senao` | `node:ElseClause` | `se` |
@@ -728,11 +745,14 @@ sys.exit(1 if falhas else 0)
 EOF
 ```
 
-**Resultado desta versão (medido — ver o handoff da onda): `0 falhas`.** O que a verificação
-comprovou ao escrever este documento: nenhuma chave inventada (o corpus já mede todas as chaves de
-eixo fechado citadas), nenhum `Presume` órfão, nenhuma aula com 3+ construções, e a única origem
-dupla candidata (`api:.len`, `node:IndexExpression`, `node:ForExpression`, `api:format!`) ficou
-corretamente como consolidação com degrau nomeado.
+**Resultado desta versão (RODADO em 2026-09-22, depois da quebra da aula 1 — §⚑):
+`8 módulos · 103 aulas · 65 átomos com origem única · 24 chaves api: citadas · 0 falhas`.** O que a
+verificação comprovou: nenhuma chave inventada (o corpus já mede todas as chaves de eixo fechado
+citadas), nenhum `Presume` órfão, nenhuma aula com 3+ construções, e a única origem dupla candidata
+(`api:.len`, `node:IndexExpression`, `node:ForExpression`, `api:format!`) ficou corretamente como
+consolidação com degrau nomeado. A quebra acrescentou 2 aulas ao M1 e a contagem do script fechou
+com o disco: `find app/resources/tracks/rust-iniciante -name lesson.json | wc -l` = **103** e
+`-name challenge.json | wc -l` = **111** (103 de aula + 8 de módulo).
 
 ### Teste de proficiência (`proficiency.json`)
 
@@ -836,11 +856,11 @@ concorrência, não o FFI; declarar isso não é limitação escondida, é o con
 
 | Curso | Módulos | Aulas | Status |
 |---|---|---|---|
-| `rust-iniciante` | M1–M8 | 13+12+12+13+13+12+13+13 = **101** | **medidas** — contadas sobre as tabelas de §2 (verificação reexecutável: `0 falhas`) — e **ENTREGUE no disco** (ondas 3–7: `app/resources/tracks/rust-iniciante/`, 101 aulas + 109 desafios; o estado final, com os números medidos, está no [`18`](18-estado-da-fabricacao-dos-cursos.md) §8) |
+| `rust-iniciante` | M1–M8 | 15+12+12+13+13+12+13+13 = **103** | **medidas** — contadas sobre as tabelas de §2 (verificação reexecutável, rodada em 2026-09-22: `103 aulas · 0 falhas`) — e **ENTREGUE no disco** (ondas 3–7 + a quebra da aula 1 de 2026-09-22, §⚑: `app/resources/tracks/rust-iniciante/`, **103 aulas + 111 desafios** — 103 de aula + 8 de módulo; o estado final, com os números medidos, está no [`18`](18-estado-da-fabricacao-dos-cursos.md) §8) |
 | `rust-intermediario` | porta + 7 | 14 + 86 = **100** | previstas |
 | `rust-avancado` | porta + 3 | 8 + 28 = **36** | previstas |
 | `rust-especialista` | porta + 3 | 9 + 33 = **42** | previstas |
-| **cadeia** | 24 | **279** | 101 medidas + 178 previstas |
+| **cadeia** | 24 | **281** | 103 medidas + 178 previstas |
 
 ## 5. Split das ondas de conteúdo (ondas 3–7)
 
@@ -863,19 +883,94 @@ dividiria um módulo — a divisão que este contrato evita; a onda 6 leva 26 e 
 | **6** | M7 `variantes-e-match` (13) · M8 `colecoes` (13) | 26 | `onda6-mod-variantes-match-colecoes` |
 | **7** | desafios de módulo M1–M8 (4 por autor) + dívidas de conteúdo | 0 | `onda7-desafios-de-modulo` |
 
+**A tabela acima é HISTÓRICA: ela registra o que cada onda fez, com as contagens do dia.** O M1
+passou de 13 para **15 aulas** na quebra de 2026-09-22 (§⚑), depois da onda 7 — as contagens
+autoritativas são as do §4 e as do disco, nunca as desta tabela de planejamento.
+
 Cada onda roda o ciclo completo por módulo: escrever as aulas → `npm run engine -- audit
 rust-iniciante --limite 0` (0 violações) → `coverage` (0 lacunas) → `requirements` (bijação) →
 `track:validate` → `track:challenge:verify` (as quatro provas por desafio) → gates de repo
 (newline!) → squash-merge com gate em snapshot. **A trilha só existe como `rust-iniciante`
 quando a onda 7 fecha** — até lá, os autores trabalham em draft com `--dir`.
 
+## ⚑ A quebra da aula 1 — 2026-09-22
+
+> **Decisão arbitrada aqui, revogando o que este documento dizia antes.** A aula 1 do
+> `rust-iniciante` deixou de ser `pub fn dobro(x: i32) -> i32 { x * 2 }` e passou a ser
+> `pub fn dois() -> i32 { 2 }`. O M1 foi de 13 para 15 aulas; a trilha, de 101 para 103 aulas e de
+> 109 para 111 desafios.
+
+**O motivo, e ele é medido, não opinado.** O dono reclamou, textualmente, que "o curso de rust não
+está bom, porque presume muitos conhecimentos logo na primeira aula". A medição confirmou: a aula 1
+declarava **11 chaves novas** (6 produtivas + 5 receptivas) em **UMA** seção de teoria, para um
+aluno cujo `entryCriteria` é "zero absoluto — nunca programou" — e saía do `audit` com **0
+violações**, porque a bateria pedagógica A13–A16 é javascript-only e o próprio relatório declarava a
+limitação. A barra pedagógica A17–A23 (`app/electron/main/engine/quality/barra.ts`), construída na
+mesma execução e agnóstica de linguagem, reprovou a aula 1 em **cinco** achados:
+
+| regra | o que o disco mostrava |
+|---|---|
+| A17 | 6 construções produtivas novas depois do colapso (teto: 2) |
+| A18 | 6 produtivas novas na aula 1 do curso (teto: 1) |
+| A18 | `api:todo!` declarado e sem demonstração em bloco nenhum da aula — e ele está no starter |
+| A21 | 11 chaves novas colapsadas (teto: 4) |
+| A21 | 1 seção de teoria para 11 construções novas (mínimo exigido: 6) |
+
+**A quebra: uma construção por aula.**
+
+| aula | ensina | desafio |
+|---|---|---|
+| 1 `a-primeira-funcao` (reescrita) | `node:FunctionItem` — a função que devolve um número fixo; 4 seções (a forma, o `-> i32` e a última expressão sem `;`, o `pub`, o `todo!()`) | `devolva-dois` (NOVO) |
+| 2 `o-valor-que-entra` (NOVA) | `node:Parameter` — o nome e o tipo do valor que entra; 3 seções, com um e com dois parâmetros | `eco-do-numero` (NOVO, 2 casos divergentes: 7→7 e 0→0) |
+| 3 `multiplicar` (NOVA) | `op:binary:*`; 4 seções, com `x * 2` e `3 * x` — e o número negativo como LEITURA | `dobre-o-numero` (MUDOU DE CASA, conteúdo intacto) |
+
+**A negação unária foi a única decisão que o plano da quebra deixou aberta, e ela foi medida.**
+`op:unary:-` estava declarado RECEPTIVO na aula 1 e **nunca demonstrado** em bloco nenhum — a prosa
+`dobro(-3)` era a única aparição. Tirá-lo da aula 1 sem mais nada reprovou
+`decisao/o-negativo` em **A3** (`testsCode:5:27 op:unary:-` — o arquivo de teste é lido ANTES da
+aula, e por isso só pode usar o orçamento de ENTRADA; o teste dela chama `oposto(3) == -3`). Das
+duas saídas do plano — aula própria, ou a superfície perde o negativo — nenhuma servia: a primeira
+punha uma 16ª aula no M1 contra a lista fechada de 15, e a segunda mexia em módulo de outro dono.
+**A decisão foi a terceira, e é a que o contrato já prescrevia:** a leitura da negação passou para a
+aula 3 `multiplicar`, onde o SINAL do operando é conteúdo da conta que a aula ensina, com duas
+demonstrações — `dobro(-3)` e `x * -2` no corpo de uma função que parseia sozinha, para o gate A4
+poder medi-la — e com `node:UnaryExpression` declarada derivada de `op:unary:-`. `decisao/o-negativo`
+segue sendo a aula que a COBRA (produtiva), e o audit voltou a **0 violações**.
+
+**As provas de execução desta quebra** (de `app/`, com `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`):
+
+| comando | resultado |
+|---|---|
+| `npm run engine -- barra rust-iniciante` | 103 aulas · **0 erros** · 0 aulas com erro · 46 avisos A22 · **0 blocos que não parseiam** (era: 20 erros em 15 aulas, 64 avisos, 1 bloco que não parseia) |
+| `npm run engine -- audit rust-iniciante --limite 0` | 103 aulas · 103 desafios · **0 violações** · 0 lacunas de currículo |
+| `npm run track -- track:challenge:verify …` × 5 | `devolva-dois`, `eco-do-numero`, `dobre-o-numero`, `some-dois-numeros`, `a-etiqueta-do-pedido`: as 4 provas ✓ em cada |
+| `npx tsx --test tests/lessonTypewriterReadingSpeed.test.ts` | 15/15 ✓ — nenhuma seção acima de 21 s |
+| `npx tsx --test tests/rustTrilhaRoda.test.ts` | 4/4 ✓ — com `DESAFIO = 'devolva-dois'` (o teste lê a trilha REAL) |
+| `npm run track -- track:validate rust-iniciante` | **111 verificados · 0 reprovados** ✓ (era 109) |
+| `npm run engine -- requirements rust-iniciante` | 111 desafios · **bijeção completa 111** · 0 gaps · 0 requirements sem teste · 0 testes sem requirement |
+| `npm run engine -- coverage rust-iniciante` | 111 desafios · **111 passou (solução mínima)** · 0 sem-solução · **0 lacunas** · 1 excesso pré-existente (`api:.or_insert` em `colecoes/contar-as-palavras`) |
+
+**O que mais mudou por consequência, e está registrado:** o bloco de teoria de `somar` que **não
+parseava** (A19 — `a + b` e `a+b` na mesma cerca, duas expressões sem `;`) virou duas cercas de uma
+linha; `somar` perdeu `node:BinaryExpression` do `introduces` (já estava no orçamento, vindo de
+`multiplicar`) e passou a presumir `multiplicar`; `chamar-a-funcao` e `o-corpo-e-uma-expressao`
+presumem `multiplicar` em vez de `a-primeira-funcao`, porque os dois usam `x * 2` na teoria;
+`a-mensagem-montada` fechou o A17 declarando **uma só** derivada — `node:StringLiteral` de
+`api:format!`, que co-ocorrem na linha da macro (a macro CARREGA o literal). `node:TypeIdentifier`
+**não** foi declarada derivada e segue contando cheia: A17 mede 2 itens (`api:format!` +
+`node:TypeIdentifier`), dentro do teto. A aula ganhou também a forma curta de uma linha
+(`pub fn rotulo(pontos: i32) -> String { format!("…") }`) para dar a SEGUNDA forma sintática que A22
+pede — e o aviso A22 dela caiu a zero.
+
 ## ⚑ Dívidas de ENGINE registradas durante a fabricação
 
 > Registradas pela fabricação do `rust-iniciante` (ondas 3–8), cada uma com a PROVA que a sustenta.
 > Nenhuma é dívida de conteúdo: são limitações pré-existentes da engine ou rotas aguardando decisão
 > de engine — todas contornadas sem afrouxar gate, e o estado final fecha os números do §4 com o que
-> existe hoje (as provas de execução da onda 8: audit 0 · coverage 109/109 · bijeção 109 ·
-> validate 109 ✓).
+> existe hoje (as provas de execução da onda 8, sobre os 109 desafios daquele dia: audit 0 ·
+> coverage 109/109 · bijeção 109 · validate 109 ✓; **remedidas em 2026-09-22, depois da quebra da
+> aula 1: audit 0 violações · bijeção 111/111, 0 gaps · validate 111 verificados, 0 reprovados ·
+> coverage 111/111, 0 lacunas**).
 
 **(a) Multi-arquivo `files[]` para rust aguarda o validador multilíngue do produto.** O validador
 estrutural dos desafios (`content/trackTypes.ts`) testa `files[].path` contra

@@ -52,7 +52,7 @@
       "question": "O que a função `o_dobro_de` devolve quando o número não é positivo?",
       "options": [
         "None — a caixa vazia",
-        "Some(0)",
+        "Some(0), com zero no lugar do dobro",
         "Um número negativo",
         "Uma String de erro"
       ],
@@ -60,7 +60,7 @@
       "feedback": "Sem valor, a caixa vem vazia: None. Com valor, `Some(n * 2)`.",
       "optionRationales": [
         "Isso: `None` é a variante vazia — o \"não tem\" sem inventar número.",
-        "`Some(0)` seria uma caixa CHEIA com zero — não é ausência.",
+        "`Some(0)` é caixa CHEIA: afirma \"tem, e vale zero\" — inventar um número não é dizer que não há.",
         "Não há número: o tipo devolvido é `Option<i32>`, não `i32`.",
         "Texto é outro tipo: a caixa não transforma ausência em frase."
       ]
@@ -72,17 +72,17 @@
       "question": "O que falta no arquivo para escrever `Some(7)` com tipo `Option<i32>`?",
       "options": [
         "Nada — Some e Option já estão no escopo pelo prelude",
-        "use desafio::Option;",
-        "um import de crate externo",
-        "declarar o enum Option à mão"
+        "use std::option::Option; no topo do arquivo",
+        "um import de uma crate externa declarada no Cargo.toml",
+        "declarar o enum Option à mão, com as variantes Some e None"
       ],
       "answerIndex": 0,
       "feedback": "Prelude fechado: Some/None/Option (e Ok/Err) vêm prontos, como o String.",
       "optionRationales": [
         "Isso: prelude é o que a linguagem põe no escopo — escreva e use.",
-        "`desafio` é a SUA crate: Option não mora nela, mora no prelude.",
-        "Std-only: e mesmo assim Option nem precisa de use — é prelude.",
-        "Reescrever Option por cima da stdlib não compila: o conjunto já existe."
+        "`Option` mora em `std::option`, e esse `use` até compilaria — mas nada FALTA: o prelude já pôs o nome no escopo.",
+        "O curso é std-only, sem dependência no Cargo.toml — e `Option` nem precisaria: é prelude.",
+        "Declarar um `Option` seu por cima do da stdlib não ajuda: o conjunto já existe pronto."
       ]
     }
   ],

@@ -19,7 +19,17 @@
       "op:aug:+",
       "node:AugAssign"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "op:aug:+",
+        "de": "decl:aug"
+      },
+      {
+        "chave": "node:AugAssign",
+        "de": "decl:aug"
+      }
+    ]
   },
   "introducesTerms": [
     "acumulador"

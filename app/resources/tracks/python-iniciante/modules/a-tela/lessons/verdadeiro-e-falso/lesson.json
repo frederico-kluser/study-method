@@ -73,6 +73,11 @@
       "title": "bool() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#bool",
       "description": "A página oficial do verdadeiro e do falso."
+    },
+    {
+      "title": "Truth Value Testing — a regra oficial do falso",
+      "url": "https://docs.python.org/3/library/stdtypes.html#truth-value-testing",
+      "description": "A lista oficial do que o bool considera falso — o zero e o vazio — e a regra de que todo o resto é verdadeiro."
     }
   ],
   "challenges": [

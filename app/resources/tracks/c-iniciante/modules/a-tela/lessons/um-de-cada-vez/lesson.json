@@ -2,22 +2,136 @@
   "schemaVersion": 1,
   "slug": "um-de-cada-vez",
   "title": "De um em um",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O `++` soma um no próprio nome e o `--` tira um — o passo de um em um que todo contador dá.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:update:++",
+  "concepts": [
+    "de_um_em_um"
+  ],
   "prerequisites": [
     "somar-no-lugar"
   ],
+  "introduces": {
+    "productive": [
+      "op:update:++",
+      "op:update:--",
+      "node:UnaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:UnaryOperator",
+        "de": "op:update:++"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o passo do contador ganha nome e tamanho fixo: uma linha inteira passa a significar apenas \"ande uma casa\", e é essa linha que a repetição vai cobrar mais adiante",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-passo-de-um",
+      "title": "O passo de um",
+      "markdown": "Somar um é o passo mais comum de um programa — e ele tem sinal próprio: `++`, colado depois do nome.\n\n```c\nint ovos = 9;\novos++;\nprintf(\"%d\\n\", ovos);\n```\n\n```text\n10\n```\n\n`ovos++;` faz o mesmo que `ovos += 1;`: lê o valor de agora, soma um e guarda de volta no mesmo nome.\n\nRepare que não há número escrito nessa linha — o um mora dentro do próprio sinal."
+    },
+    {
+      "id": "um-passo-por-linha",
+      "title": "Um passo por linha",
+      "markdown": "Cada `++` é UM passo. Dois contadores, dois passos, cada um no seu nome:\n\n```c\nint ovos = 9;\nint passos = 0;\novos++;\npassos++;\nprintf(\"%d %d\\n\", ovos, passos);\n```\n\n```text\n10 1\n```\n\nO `ovos++` mexeu só em `ovos`; o `passos++` mexeu só em `passos`.\n\nPara andar três casas são três linhas de `++` — ou uma de `+= 3`. O `++` é o sinal do passo de UM; para qualquer outro tamanho de passo, quem serve é o `+=`."
+    },
+    {
+      "id": "o-que-tira-um",
+      "title": "O que tira um: o --",
+      "markdown": "O par do `++` é o `--`: ele tira um do próprio nome, com a mesma forma.\n\n```c\nint ovos = 12;\nint restantes = 3;\novos--;\nrestantes--;\nprintf(\"%d %d\\n\", ovos, restantes);\n```\n\n```text\n11 2\n```\n\n`restantes--;` é `restantes -= 1;`. É o sinal do contador que anda para trás: o que sobra na caixa, o que falta para acabar, o tempo que corre até zero."
+    },
+    {
+      "id": "o-passo-que-o-laco-cobra",
+      "title": "O passo que ninguém pode esquecer",
+      "markdown": "Um contador só chega ao fim se alguém der o passo. Sem a linha do `++`, o valor fica parado — e parado não chega a lugar nenhum.\n\nIsso volta no módulo da repetição: lá o programa pergunta *já cheguei?* e repete enquanto a resposta for não. Se o `++` não estiver dentro da repetição, a resposta nunca muda e o programa repete para sempre.\n\nFixe agora: `++` é uma ORDEM que muda o valor da variável, não um enfeite grudado no nome."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "mais-mais-soma-um",
+      "statement": "`x++;` sozinho soma um ao valor que já está lá.",
+      "question": "Com `int ovos = 9;`, quanto vale `ovos` depois da linha `ovos++;`?",
+      "options": [
+        "10 — o `++` soma um ao valor que já estava lá.",
+        "9 — o `++` anota o passo, mas o valor só muda na impressão.",
+        "1 — o `++` recomeça o contador em um.",
+        "0 — o `++` zera o nome antes de somar."
+      ],
+      "answerIndex": 0,
+      "feedback": "`ovos++;` é `ovos += 1;`: lê o 9, soma um, guarda o 10 no mesmo nome. A mudança acontece nessa linha, antes de qualquer `printf`.",
+      "sectionId": "o-passo-de-um",
+      "optionRationales": [
+        "O `++` soma exatamente um ao valor de agora: 9 vira 10.",
+        "Quem imprime é o `printf`; quem muda o valor é o `++`, na linha dele.",
+        "O `++` não recomeça nada: ele parte do valor que está lá e anda uma casa.",
+        "Zerar é `ovos = 0;`. O `++` nunca apaga o valor anterior — ele soma sobre ele."
+      ]
+    },
+    {
+      "id": "menos-menos-tira-um",
+      "statement": "O `--` tira um do próprio nome, com a mesma forma do `++`.",
+      "question": "Com `int restantes = 3;`, quanto vale `restantes` depois da linha `restantes--;`?",
+      "options": [
+        "2 — um saiu do valor que estava lá.",
+        "4 — o `--` soma um, e os dois sinais são só o desenho.",
+        "3 — o `--` só funciona dentro de uma repetição.",
+        "-3 — o `--` troca o sinal do número."
+      ],
+      "answerIndex": 0,
+      "feedback": "`restantes--;` é `restantes -= 1;`: 3 menos um são 2. É o contador andando para trás.",
+      "sectionId": "o-que-tira-um",
+      "optionRationales": [
+        "O `--` tira um do valor de agora: 3 vira 2.",
+        "Quem soma é o `++`; o `--` subtrai — os dois sinais indicam direções opostas.",
+        "O `--` é uma ordem como qualquer outra e funciona em qualquer linha, dentro ou fora de repetição.",
+        "Trocar o sinal seria `restantes = -restantes;`, outra conta; o `--` desconta um."
+      ]
+    },
+    {
+      "id": "o-passo-que-a-condicao-cobra",
+      "statement": "`x++;` sozinho soma um — e é por isso que a condição do laço nunca pode esquecer o passo.",
+      "question": "Um contador precisa ir de 1 até 5 numa repetição. Se a linha do passo (`contador++;`) não estiver lá, o que acontece?",
+      "options": [
+        "O contador fica parado no mesmo valor, e a resposta da pergunta nunca muda.",
+        "O C dá o passo sozinho, porque todo contador anda de um em um.",
+        "O contador pula direto para 5 e a repetição termina.",
+        "O programa não compila: falta uma linha obrigatória."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem anda é o `++`. Sem ele o valor não muda, a pergunta *já cheguei?* recebe sempre a mesma resposta e a repetição não termina — o programa fica preso.",
+      "sectionId": "o-passo-que-o-laco-cobra",
+      "optionRationales": [
+        "Sem a linha do passo nada muda o valor, e uma pergunta sobre um valor parado dá sempre a mesma resposta.",
+        "O C nunca faz conta que você não escreveu: o passo é uma ordem sua.",
+        "Pular para o fim exigiria uma ordem que dê esse salto; o `++` anda uma casa por vez, e sem ele não há salto nenhum.",
+        "O programa compila sem problema: a falta do passo não é erro de escrita, é erro de raciocínio — e ela só aparece quando o programa roda."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Increment/decrement operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_incdec",
+      "description": "A página oficial do `++` e do `--` em C: o que cada um faz com o valor da variável."
+    },
+    {
+      "title": "Assignment operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "O `+=` e o `-=` que o `++` e o `--` resumem quando o passo é de exatamente um."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.2.4 define o incremento e o decremento a partir da soma de um."
+    }
+  ],
+  "challenges": [
+    "ovos-na-cesta"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

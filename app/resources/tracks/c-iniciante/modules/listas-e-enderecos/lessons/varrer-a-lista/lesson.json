@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "varrer-a-lista",
   "title": "Varrer a lista",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O for que você já conhece ganha uma forma nova: o contador passa a ser o número da gaveta, e uma linha só passa pelas cinco — de 0 até n-1, nunca até n.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ForStmt",
+  "concepts": [
+    "varrer_a_lista"
+  ],
   "prerequisites": [
     "pegar-pela-gaveta",
     "para"
   ],
+  "introduces": {
+    "productive": [
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o contador do laço deixa de ser só um número que cresce: ele passa a ser o endereço da gaveta, e uma linha de código passa a alcançar a caixa inteira",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-for-que-anda-pelas-gavetas",
+      "title": "O for que anda pelas gavetas",
+      "markdown": "Cinco `printf` escritos à mão fazem o serviço — e cinco linhas quase iguais são o aviso de que falta um laço. O `for` que você já conhece anda pelas gavetas:\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nfor (int i = 0; i < 5; i++) {\n    printf(\"%d\\n\", notas[i]);\n}\n```\n\n```text\n7\n8\n6\n9\n10\n```\n\nO `i` do laço é o número da gaveta. Uma linha de `printf` imprime as cinco, porque a cada volta o `i` vale outra coisa."
+    },
+    {
+      "id": "de-zero-ate-n-menos-um",
+      "title": "De zero até n menos um",
+      "markdown": "Olhe as três partes do `for` com olhos de caixa: `int i = 0` começa na primeira gaveta; `i < 5` para antes da gaveta 5, que não existe; `i++` anda uma gaveta por volta.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint n = 5;\nfor (int i = 0; i < n; i++) {\n    printf(\"gaveta %d: %d\\n\", i, notas[i]);\n}\n```\n\nA condição é `i < 5`, **nunca** `i <= 5`: com `<=` o laço daria uma volta a mais, fora da caixa. Em `n` gavetas o laço vai de 0 a `n - 1`, e `i < n` é a forma de escrever isso sem errar a conta."
+    },
+    {
+      "id": "o-total-que-sobrevive-ao-laco",
+      "title": "O total que sobrevive ao laço",
+      "markdown": "Para somar as notas, o total precisa nascer FORA do laço — dentro, ele voltaria a zero a cada volta:\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint total = 0;\nfor (int i = 0; i < 5; i++) {\n    total += notas[i];\n}\nprintf(\"%d\\n\", total);\n```\n\n```text\n40\n```\n\nO gesto é sempre o mesmo: um nome que anda de 0 a `n - 1` e, dentro, uma linha que usa `notas[i]`. O que muda de problema para problema é o que essa linha faz — imprimir, somar, comparar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-condicao-e-menor-que-n",
+      "statement": "O laço anda de 0 até n-1: `i < 5`, nunca `<=`.",
+      "question": "Numa caixa de cinco gavetas, o que faz `for (int i = 0; i <= 5; i++)`?",
+      "options": [
+        "Dá uma volta a mais e abre a gaveta 5, que não existe.",
+        "Dá o número certo de voltas: são cinco gavetas.",
+        "Nem entra no laço, porque 0 não é menor que 5.",
+        "Abre só as gavetas de 1 a 5 e deixa a gaveta 0 de fora."
+      ],
+      "answerIndex": 0,
+      "feedback": "Com `<=` o `i` chega a valer 5, e `notas[5]` está fora da caixa de cinco gavetas. A condição que para na hora certa é `i < 5`.",
+      "sectionId": "de-zero-ate-n-menos-um",
+      "optionRationales": [
+        "Com `<=` o laço dá seis voltas, e a sexta abre uma gaveta que não existe.",
+        "Cinco voltas sairiam de `i < 5`; com `<=` são seis.",
+        "O laço entra: 0 é menor que 5, e a condição só falha depois.",
+        "O `i` começa em 0, então a primeira gaveta aberta é a 0."
+      ]
+    },
+    {
+      "id": "o-total-nasce-fora-do-laco",
+      "statement": "O total precisa nascer fora do laço para sobreviver às voltas.",
+      "question": "Onde `int total = 0;` tem de ficar para somar as cinco notas?",
+      "options": [
+        "Antes do `for`, para não voltar a zero a cada volta.",
+        "Dentro do `for`, na primeira linha do corpo.",
+        "Depois do `for`, junto com o `printf` do total.",
+        "Tanto faz: o valor de `total` não se perde no caminho."
+      ],
+      "answerIndex": 0,
+      "feedback": "Declarado dentro do laço, o `total` nasceria em zero a cada volta e guardaria só a última nota. Fora do laço, ele acumula as cinco.",
+      "sectionId": "o-total-que-sobrevive-ao-laco",
+      "optionRationales": [
+        "Nascendo antes do laço, o total atravessa as voltas e acumula.",
+        "Dentro do corpo ele renasce em zero a cada volta.",
+        "Depois do laço seria tarde: as somas já teriam acontecido sem ele.",
+        "Faz diferença: o lugar da declaração decide o tempo de vida do nome."
+      ]
+    },
+    {
+      "id": "o-i-e-o-numero-da-gaveta",
+      "statement": "O `i` do laço é o número da gaveta: uma linha de código alcança as cinco.",
+      "question": "Com `notas[i]` dentro do laço, o que muda de uma volta para a outra?",
+      "options": [
+        "O valor de `i`, e por isso a gaveta aberta.",
+        "A linha do `printf`, que é reescrita a cada volta.",
+        "O tamanho da caixa, que cresce uma gaveta por volta.",
+        "Nada: o laço repete a mesma gaveta."
+      ],
+      "answerIndex": 0,
+      "feedback": "A linha de dentro é uma só e nunca muda; o que muda é o `i`, e com ele a gaveta que `notas[i]` abre.",
+      "sectionId": "o-for-que-anda-pelas-gavetas",
+      "optionRationales": [
+        "O passo do laço muda o `i`, e o `i` escolhe a gaveta.",
+        "O código não se reescreve: ele é executado de novo, igual.",
+        "O tamanho da caixa é fixo desde a declaração.",
+        "Se a gaveta fosse a mesma, o laço imprimiria cinco vezes o mesmo valor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for` em C: a inicialização, a condição testada antes de cada volta e o passo que roda depois do corpo."
+    },
+    {
+      "title": "Arrays — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/array",
+      "description": "A página oficial do array: os índices válidos de um array de `n` elementos vão de 0 a `n - 1`."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.5.3 define a iteração do `for`, com a ordem entre condição, corpo e passo."
+    }
+  ],
+  "challenges": [
+    "soma-das-notas"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

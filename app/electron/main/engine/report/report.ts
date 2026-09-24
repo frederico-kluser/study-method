@@ -41,6 +41,20 @@
  * e isso é dito na justificativa — a omissão DECLARADA não é aprovação por
  * omissão (§9.3).
  *
+ * A BARRA A17–A23 NO RELATÓRIO (2026-09-22). O `auditTrack` passou a rodar a
+ * barra pedagógica (`engine/quality/barra.ts`) e a mesclar os achados dela em
+ * `violations` — então TUDO o que este módulo deriva do audit já a inclui, sem
+ * uma linha de cálculo aqui: `violacoes_orcamento` traz os achados A17–A23 (com
+ * a evidência no `trechoOfensor`), e o `veredito` reprova quando há erro de
+ * barra, pela MESMA regra de sempre (`audit.totals.violacoes > 0`).
+ *
+ * O que PRECISOU de código foi a justificativa. O `placar` do repositório conta
+ * DESAFIO (`N passou · N falhou · N pendente`, derivado de
+ * `desafiosComViolacao`), e o achado da barra é da AULA — uma trilha pode sair
+ * `reprovado` com `0 falhou`. Sem dizer de onde veio o veredito, esse par
+ * pareceria contradição; a seção da barra na justificativa (erros por regra,
+ * aulas com erro, avisos A22, o comando que reproduz) é o que o fecha.
+ *
  * PROTOCOLO INT-02 (P-30): o placar do G-AUDIT nunca piora sem declaração, e o
  * bump exige a declaração NO MESMO commit. Este módulo NÃO redigita número de
  * placar nenhum: ele DERIVA o placar do `AuditReport` que recebe.
@@ -65,6 +79,7 @@
 import { z } from 'zod';
 
 import type { AuditReport, Violation } from '../audit';
+import { REGRAS_DA_BARRA } from '../quality/barra';
 import { limiarDeFalsoPasse, type MedicaoDeFalsoPasse } from '../quality/judgeCalibration';
 import type { MedicaoSolubilidade } from '../quality/solvable';
 import type { Telemetria } from '../runtime/ledger';
@@ -318,6 +333,36 @@ function montarJustificativa(o: JustificativaOpts): string {
     `Trilha \`${audit.trackSlug}\`: placar ${formatarPlacar(placar)} — ${audit.totals.desafiosComViolacao} de ${audit.totals.desafios} desafio(s) com violação de orçamento (${pct}%), ${audit.totals.violacoes} violação(ões), das quais ${audit.totals.lacunasDeCurriculo} lacuna(s) de currículo. Números reproduzíveis por: \`${comando}\`.`,
     `Agrupamento das violações — por faixa: ${formatarGrupos(o.porFaixa)}; por superfície: ${formatarGrupos(o.porSuperficie)}.`,
   ];
+
+  // A BARRA A17–A23, quando o audit a mediu. GUARDADA por `!== undefined`
+  // porque `AuditReport.barra` é ADITIVO: um relatório montado à mão (fixture)
+  // não a tem, e escrever "0 erros de barra" sobre uma medição que não existe é
+  // a aprovação por omissão do §9.3. Só as regras COM achado entram na frase —
+  // as que deram zero estão no `audit.barra.porRegra`, e o comando abaixo as
+  // imprime todas.
+  if (o.audit.barra !== undefined) {
+    const b = o.audit.barra;
+    const porRegra = b.porRegra
+      .filter((r) => r.erros > 0)
+      .map((r) => `${r.regra} ${r.erros}`)
+      .join(' · ');
+    // A FAIXA sai do catálogo (`REGRAS_DA_BARRA`), nunca de uma string cravada:
+    // a barra ganhou A24 em 2026-09-22 e um texto fixo em "A17–A23" passaria a
+    // mentir sobre o que os números desta frase contam.
+    const avisos = b.porRegra.filter((r) => r.avisos > 0).map((r) => `${r.regra} ${r.avisos}`).join(' · ');
+    secoes.push(
+      `Barra pedagógica ${REGRAS_DA_BARRA[0]}–${REGRAS_DA_BARRA[REGRAS_DA_BARRA.length - 1]} ` +
+        `(agnóstica de linguagem, quality/barra.ts — teto do passo, primeira aula, ` +
+        `declarar-não-é-demonstrar, aula sem prova, carga de novidade, duas formas, regra do par): ` +
+        `${b.erros} erro(s)${porRegra === '' ? '' : ` (${porRegra})`} em ` +
+        `${b.aulasComErro} aula(s), ${b.avisos} aviso(s)${avisos === '' ? '' : ` (${avisos})`} e ` +
+        `${b.blocosQueNaoParseiam} bloco(s) de teoria que o parser recusa. Estes erros JÁ ESTÃO ` +
+        `contados em violações acima — não são um segundo placar. O par ` +
+        `"placar ${formatarPlacar(placar)}" × "veredito" não é contradição: o placar conta DESAFIO ` +
+        `(desafiosComViolacao) e o achado da barra é da AULA. Fonte da medição: ` +
+        `\`cd app && npm run engine -- barra ${audit.trackSlug} --limite 0\`.`,
+    );
+  }
 
   if (o.solubilidade !== null) {
     const s = o.solubilidade;

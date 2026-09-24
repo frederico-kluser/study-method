@@ -72,6 +72,11 @@
       "title": "Expressões — as contas da linguagem",
       "url": "https://docs.python.org/3/reference/expressions.html",
       "description": "A referência oficial dos operadores de conta do Python."
+    },
+    {
+      "title": "Numbers — a seção de números do tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#numbers",
+      "description": "A seção 3.1.1 do tutorial mostra `17 / 3`, `17 // 3` e `17 % 3` lado a lado — os três sinais desta aula — e a conta que confere o resto."
     }
   ],
   "challenges": [

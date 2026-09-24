@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "e-logico",
   "title": "Duas condições ao mesmo tempo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O && une dois testes numa condição só: ele devolve 1 quando os dois lados são verdadeiros e 0 em todos os outros casos.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:logical:&&",
+  "concepts": [
+    "o_e_logico"
+  ],
   "prerequisites": [
     "se",
     "comparacoes"
   ],
+  "introduces": {
+    "productive": [
+      "op:logical:&&",
+      "node:BinaryOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:logical:&&"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a condição deixa de ser uma comparação só: duas perguntas podem virar uma resposta, e essa resposta continua sendo um número (0 ou 1) que cabe num nome",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "dois-testes-numa-condicao",
+      "title": "Dois testes numa condição só",
+      "markdown": "\"Estar na faixa de 1 a 100\" são **dois** testes: chegar a 1 e não passar de 100. O `&&` — *e* — junta os dois numa condição só:\n\n```c\nint nota = 50;\nif (nota >= 1 && 100 >= nota) {\n    printf(\"ok\\n\");\n}\n```\n\n```text\nok\n```\n\nLeia `100 >= nota` como \"100 é maior ou igual à nota\": é o teste de \"a nota não passa de 100\". O bloco roda quando os DOIS lados são verdadeiros:\n\n```c\nprintf(\"%d\\n\", 101 >= 1 && 100 >= 101);\n```\n\n```text\n0\n```\n\nCom 101 o piso passa, o teto reprova, e um 0 derruba o `&&` inteiro."
+    },
+    {
+      "id": "a-tabela-do-e",
+      "title": "A tabela do &&",
+      "markdown": "O `&&` é uma conta, como o `+`: pega dois valores e devolve um número, sempre 0 ou 1.\n\n```c\nprintf(\"%d\\n\", 1 && 1);\nprintf(\"%d\\n\", 1 && 0);\nprintf(\"%d\\n\", 0 && 0);\n```\n\n```text\n1\n0\n0\n```\n\nSó a primeira linha dá 1. E o C é econômico: ele calcula o lado esquerdo primeiro e, se já for 0, nem olha o direito — o resultado do `&&` já está decidido em 0."
+    },
+    {
+      "id": "guardar-a-resposta-num-nome",
+      "title": "Guardar a resposta num nome",
+      "markdown": "Como o `&&` devolve um número, esse número cabe numa variável — e a condição passa a ter nome:\n\n```c\nint idade = 20;\nint temIngresso = 1;\nint pode = idade >= 18 && temIngresso == 1;\nprintf(\"%d\\n\", pode);\n```\n\n```text\n1\n```\n\n`pode` guarda 1, e mais adiante um `if (pode)` leria o mesmo teste por um nome curto. Cuidado com o irmão de uma letra só: o `&` sozinho é o da `scanf`, outra coisa inteiramente. O \"e\" de condição são sempre **dois**."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "um-e-zero-da-zero",
+      "statement": "`1 && 0` é 0: os dois lados precisam ser verdadeiros.",
+      "question": "Quanto vale `1 && 0`?",
+      "options": [
+        "0, porque o `&&` exige os DOIS lados verdadeiros.",
+        "1, porque um dos lados é verdadeiro.",
+        "1, porque o `&&` soma os dois lados.",
+        "Depende da ordem: escrito `0 && 1`, o resultado seria outro."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `&&` só devolve 1 quando os dois lados são verdadeiros. Com um lado valendo 0, o resultado é 0 — e o C nem precisa olhar o outro lado para saber.",
+      "sectionId": "a-tabela-do-e",
+      "optionRationales": [
+        "Um lado em 0 derruba o `&&` inteiro: o resultado é 0.",
+        "Um lado verdadeiro basta para o `||`, não para o `&&`.",
+        "O `&&` não soma: ele devolve 0 ou 1 conforme os dois lados forem verdadeiros ou não.",
+        "A ordem não muda a resposta: `0 && 1` também é 0."
+      ]
+    },
+    {
+      "id": "a-faixa-precisa-dos-dois-lados",
+      "statement": "Uma faixa precisa de dois testes unidos pelo `&&`: um para o piso e um para o teto.",
+      "question": "Com `n` valendo 101, o que faz `if (n >= 1 && 100 >= n) { printf(\"ok\\n\"); }`?",
+      "options": [
+        "Não imprime nada: o lado esquerdo vale 1 e o direito, 0.",
+        "Imprime `ok`: o lado esquerdo é verdadeiro, e isso já basta.",
+        "Não imprime nada: os dois lados valem 0.",
+        "Imprime `ok`, porque 101 está a um passo de 100."
+      ],
+      "answerIndex": 0,
+      "feedback": "`101 >= 1` vale 1, mas `100 >= 101` vale 0. Com um lado em 0 o `&&` dá 0, e o bloco é saltado — é assim que o teto da faixa é respeitado.",
+      "sectionId": "dois-testes-numa-condicao",
+      "optionRationales": [
+        "O teto reprovou: `100 >= 101` é 0, e um 0 derruba o `&&`.",
+        "Basta um lado é regra do `||`; o `&&` cobra os dois.",
+        "O piso passou (`101 >= 1` é 1): só o teto reprovou.",
+        "O C compara valores, não distâncias: 101 não está na faixa que termina em 100."
+      ]
+    },
+    {
+      "id": "o-resultado-do-e-cabe-num-nome",
+      "statement": "O resultado de `&&` é um número (0 ou 1) e pode ser guardado numa variável.",
+      "question": "O que a linha `int pode = idade >= 18 && temIngresso == 1;` guarda em `pode`?",
+      "options": [
+        "O número 0 ou 1: o resultado já calculado do `&&`.",
+        "As duas comparações, para serem calculadas depois.",
+        "O valor de `idade`, quando ela passa de 18.",
+        "Nada: condição só existe dentro dos parênteses de um `if`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `&&` é uma conta: ela roda ali, na hora da atribuição, e o que sobra é um número. `pode` guarda esse número — 1 neste caso — como qualquer outro `int`.",
+      "sectionId": "guardar-a-resposta-num-nome",
+      "optionRationales": [
+        "A conta é feita na hora e o que fica guardado é o resultado dela.",
+        "O C não guarda contas para depois: ele calcula e guarda o número.",
+        "O que sobra do `&&` é 0 ou 1, nunca a idade.",
+        "Condição é expressão: ela vale fora do `if` também, e o `if` só usa o número dela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Logical operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_logical",
+      "description": "A página oficial de `&&`, `||` e `!`: o resultado é sempre 0 ou 1, e o lado direito do `&&` só é calculado se o esquerdo não for 0."
+    },
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `==` e `>=`: cada comparação já é um `int` que vale 0 ou 1 — a matéria-prima que o `&&` une."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: §6.5.13 define o `&&`, o resultado `int` 0 ou 1 e a avaliação do lado esquerdo antes do direito."
+    }
+  ],
+  "challenges": [
+    "na-faixa"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

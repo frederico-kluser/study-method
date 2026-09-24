@@ -2,23 +2,130 @@
   "schemaVersion": 1,
   "slug": "ler-numeros-do-caderno",
   "title": "Ler números do caderno",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O fscanf lê do arquivo com o mesmo formato do scanf — e devolve quantos campos leu, o número que diz quando o caderno acabou.",
+  "difficulty": 2,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "api:fscanf",
+  "concepts": [
+    "ler_numeros_do_arquivo"
+  ],
   "prerequisites": [
     "o-caderno",
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "api:fscanf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o arquivo deixa de ser texto que so se escreve: o programa agora tira NUMEROS de dentro dele, e o valor devolvido pelo fscanf e o unico sinal de que o caderno acabou",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-scanf-do-caderno",
+      "title": "O scanf do caderno",
+      "markdown": "O `scanf` lê do teclado. Para ler de um arquivo existe o irmão dele: o `fscanf` — o mesmo formato, com o caderno na frente.\n\n```c\nFILE *f = fopen(\"numeros.txt\", \"r\");\nint n = 0;\nfscanf(f, \"%d\", &n);\nfclose(f);\n```\n\nTrês partes, nesta ordem: o caderno (`f`), o formato (`\"%d\"` = um inteiro) e o endereço onde guardar (`&n`). O `&` é o mesmo do `scanf`: sem ele o `fscanf` não sabe ONDE escrever o número que leu."
+    },
+    {
+      "id": "quantos-campos-ele-leu",
+      "title": "Quantos campos ele leu",
+      "markdown": "O `fscanf` também devolve um número: QUANTOS campos ele conseguiu ler.\n\n```c\nFILE *f = fopen(\"numeros.txt\", \"r\");\nint n = 0;\nint lidos = fscanf(f, \"%d\", &n);\nprintf(\"li %d campo(s)\\n\", lidos);\n```\n\nCom um `%d` só no formato, `lidos` vale 1 quando deu certo:\n\n```text\nli 1 campo(s)\n```\n\nQuando o caderno acaba não há campo nenhum para ler, e o valor devolvido vem menor que 1. É esse número que diz \"ainda tem\" ou \"acabou\" — o arquivo não avisa de outro jeito."
+    },
+    {
+      "id": "o-laco-que-para-no-fim",
+      "title": "O laço que para no fim do caderno",
+      "markdown": "Comparar o que o `fscanf` devolveu com o número de campos pedidos varre o caderno inteiro sem saber quantas linhas ele tem:\n\n```c\nFILE *f = fopen(\"numeros.txt\", \"r\");\nint n = 0;\nint soma = 0;\nwhile (fscanf(f, \"%d\", &n) == 1) {\n    soma = soma + n;\n}\nfclose(f);\n```\n\nEnquanto vier 1, um número novo entrou em `n` e a soma cresce. Quando o caderno acaba, o `fscanf` devolve outro valor, a condição fica falsa e o laço termina — na linha certa, sempre."
+    },
+    {
+      "id": "dois-campos-por-vez",
+      "title": "Dois campos por vez",
+      "markdown": "O formato pode pedir mais de um campo por vez. Aí o laço para quando o `fscanf` não lê mais os DOIS:\n\n```c\nFILE *f = fopen(\"datas.txt\", \"r\");\nint dia = 0;\nint mes = 0;\nwhile (fscanf(f, \"%d %d\", &dia, &mes) == 2) {\n    printf(\"%d/%d\\n\", dia, mes);\n}\nfclose(f);\n```\n\nUm `&` por campo, na ordem do formato. O espaço entre os `%d` combina com espaço E com quebra de linha: para o `fscanf`, os dois separam campos do mesmo jeito."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-fscanf-devolve-quantos-campos-leu",
+      "statement": "O `fscanf` devolve QUANTOS campos leu: o laço termina quando ele não lê mais (`!= 2`).",
+      "question": "O laço é `while (fscanf(f, \"%d %d\", &dia, &mes) == 2)`. Quando ele termina?",
+      "options": [
+        "Quando o `fscanf` não consegue mais ler os dois campos.",
+        "Quando o `fscanf` devolve 2 pela segunda vez seguida na mesma linha.",
+        "Quando o arquivo tiver exatamente duas linhas escritas dentro dele.",
+        "Nunca: quem para um laço de arquivo é sempre o `fclose` no fim."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço roda enquanto o `fscanf` devolver 2 (os dois campos pedidos). No fim do caderno ele devolve menos que isso, a condição fica falsa e o laço termina.",
+      "sectionId": "dois-campos-por-vez",
+      "optionRationales": [
+        "Exato: o valor devolvido é a contagem de campos lidos, e `== 2` só é verdade enquanto os dois entraram.",
+        "Devolver 2 é o caso de SUCESSO: ele mantém o laço rodando, nunca o termina.",
+        "O laço não conta linhas do arquivo: ele compara a contagem de campos de cada leitura.",
+        "O `fclose` fecha o caderno depois do laço; quem decide parar é a condição do `while`."
+      ]
+    },
+    {
+      "id": "o-e-comercial-diz-onde-guardar",
+      "statement": "O `&` de cada campo diz ao `fscanf` ONDE guardar o valor lido.",
+      "question": "Por que o `fscanf` pede `&n` no lugar de `n`?",
+      "options": [
+        "Porque ele precisa do endereço de `n` para escrever lá dentro.",
+        "Porque `n` sozinho seria lido como o nome do arquivo que ele vai abrir.",
+        "Porque o `&` converte o número lido do arquivo para inteiro.",
+        "Porque o `&` conta quantos campos o formato pediu desta vez."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `fscanf` não devolve o valor lido: ele o ESCREVE na variável. Para escrever numa variável, precisa do endereço dela — e o endereço é o que o `&` entrega, igual no `scanf`.",
+      "sectionId": "o-scanf-do-caderno",
+      "optionRationales": [
+        "O `fscanf` escreve na variável, e para isso precisa do endereço dela.",
+        "O arquivo já está aberto e chega como primeiro argumento (`f`); `n` é o destino.",
+        "Quem decide o tipo lido é o `%d` do formato, não o `&`.",
+        "A contagem de campos é o VALOR devolvido pelo `fscanf`, não o papel do `&`."
+      ]
+    },
+    {
+      "id": "o-caderno-vem-na-frente",
+      "statement": "O primeiro argumento do `fscanf` é o caderno; o resto é igual ao `scanf`.",
+      "question": "Qual chamada lê um inteiro do arquivo aberto em `f`?",
+      "options": [
+        "`fscanf(f, \"%d\", &n);`",
+        "`fscanf(\"%d\", &n, f);`",
+        "`fscanf(\"numeros.txt\", \"%d\", &n);`",
+        "`fscanf(f, &n);`"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem é fixa: o caderno primeiro, depois o formato, depois os endereços. Trocar a ordem não compila — o `fscanf` espera o `FILE *` na frente.",
+      "sectionId": "o-scanf-do-caderno",
+      "optionRationales": [
+        "Caderno, formato, endereço: a ordem que o `fscanf` espera.",
+        "O caderno não vai no fim: ele é o PRIMEIRO argumento.",
+        "O nome do arquivo serve ao `fopen`; o `fscanf` quer o `FILE *` que o `fopen` devolveu.",
+        "Sem formato o `fscanf` não sabe o que ler: o `\"%d\"` não é opcional."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "fscanf, scanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial do fscanf em C: o formato, os argumentos de destino e o valor devolvido (a contagem de campos atribuídos)."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da família scanf/fscanf: o que cada conversão consome e por que o espaço do formato casa com qualquer espaço em branco."
+    },
+    {
+      "title": "fopen — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fopen",
+      "description": "A página oficial do fopen: o modo \"r\" que abre o caderno para leitura e o ponteiro FILE que o fscanf recebe."
+    }
+  ],
+  "challenges": [
+    "a-soma-do-arquivo"
+  ],
   "autoria": {
     "modulo": "structs-e-arquivos",
     "moduloTitulo": "Structs e arquivos",

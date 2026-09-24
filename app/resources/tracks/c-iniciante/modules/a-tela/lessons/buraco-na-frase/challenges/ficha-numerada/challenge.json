@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "ficha-numerada",
+  "title": "A ficha numerada",
+  "concept": "o_buraco_do_numero",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A ficha numerada\n\nA função `fichaNumerada` já imprime o título da ficha. Falta a **segunda linha**, e ela tem dois buracos.\n\nEscreva UM `printf` com dois `%d` e, depois da vírgula, os números **3** e **12** — nesta ordem — para a saída ficar exatamente assim:\n\n```text\nficha da turma C1\n3 provas e 12 aulas\n```\n\nO texto da frase é `%d provas e %d aulas`, com `\\n` no fim. Os números não vão dentro das aspas: eles vêm depois da vírgula, e cada `%d` pega o seu, na ordem.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\nvoid fichaNumerada(void) {\n    printf(\"ficha da turma C1\\n\");\n    /* FALTA a segunda linha: UM printf com dois %d no texto e, depois\n       da virgula, os numeros 3 e 12 — nesta ordem. */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio ficha-numerada — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le de volta.\n   A frase e comparada INTEIRA: um %d na ordem errada muda a linha. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid fichaNumerada(void);\n\nSM_TEST(a_frase_com_os_dois_numeros) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    fichaNumerada();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o titulo da ficha\", linha, \"ficha da turma C1\\n\",\n              \"a ficha abre pelo titulo, que ja vinha escrito\");\n    fgets(linha, 80, f);\n    checa_str(\"a frase com os dois numeros\", linha, \"3 provas e 12 aulas\\n\",\n              \"cada %d consome um valor inteiro, na ordem: primeiro 3, depois 12\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid fichaNumerada(void) {\n    printf(\"ficha da turma C1\\n\");\n    printf(\"%d provas e %d aulas\\n\", 3, 12);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_frase_com_os_dois_numeros",
+      "teste": "a_frase_com_os_dois_numeros",
+      "descricao": "a funcao fichaNumerada imprime o titulo \"ficha da turma C1\" e, na segunda linha, a frase com os dois numeros interpolados na ordem — \"3 provas e 12 aulas\" —, e a saida acaba na segunda linha (o terceiro checa_str prova o fim contra o sentinel)"
+    }
+  ]
+}

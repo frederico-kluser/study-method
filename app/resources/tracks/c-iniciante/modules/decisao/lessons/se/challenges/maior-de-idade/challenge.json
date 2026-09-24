@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-de-idade",
+  "title": "Maior de idade",
+  "concept": "o_desvio",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Maior de idade\n\nA função `maiorDeIdade` lê **a idade** que a pessoa digita e imprime uma linha **só quando** ela já tem 18 anos ou mais.\n\nA leitura já está escrita no arquivo (a `scanf` com `%d` e o `&`). Hoje o `printf` roda sempre — e é isso que está errado. O que falta é o desvio: um `if` com a condição entre parênteses e o `printf` dentro das **chaves**.\n\nSe a pessoa digitar `21`, a saída é exatamente:\n\n```text\npode entrar\n```\n\nSe digitar `15`, a função não imprime **nada**: nenhuma linha, nem uma linha em branco.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* maiorDeIdade le a idade digitada e imprime \"pode entrar\" SO quando a\n   idade e 18 ou mais. A leitura ja esta escrita.\n   Hoje o printf roda sempre: falta o if para segurar essa linha. */\nvoid maiorDeIdade(void) {\n    int idade = 0;\n\n    scanf(\"%d\", &idade);\n\n    printf(\"pode entrar\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio maior-de-idade — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o segundo freopen ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid maiorDeIdade(void);\n\nSM_TEST(com_21_a_linha_sai) {\n    /* o que a pessoa digita: 21 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"21\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    maiorDeIdade();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"com 21 a linha sai\", linha, \"pode entrar\\n\",\n              \"21 e maior ou igual a 18: a condicao vale 1 e o bloco roda\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a linha de dentro do bloco do if\");\n    fclose(f);\n}\n\nSM_TEST(com_15_nada_sai) {\n    /* outra idade digitada: agora a condicao e falsa */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"15\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    maiorDeIdade();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"com 15 nada sai\", linha, \"(nada impresso)\",\n              \"15 nao chega a 18: a condicao vale 0 e o bloco inteiro e saltado\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid maiorDeIdade(void) {\n    int idade = 0;\n\n    scanf(\"%d\", &idade);\n\n    if (idade >= 18) {\n        printf(\"pode entrar\\n\");\n    }\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "com_21_a_linha_sai",
+      "teste": "com_21_a_linha_sai",
+      "descricao": "com 21 digitado no stdin, a funcao maiorDeIdade imprime exatamente a linha \"pode entrar\" e mais nenhuma — a condicao do if vale 1 e o bloco roda"
+    },
+    {
+      "id": "com_15_nada_sai",
+      "teste": "com_15_nada_sai",
+      "descricao": "com 15 digitado no stdin, a funcao nao imprime nada: a condicao do if vale 0 e o bloco inteiro e saltado (o sentinel prova que a saida ficou vazia)"
+    }
+  ]
+}

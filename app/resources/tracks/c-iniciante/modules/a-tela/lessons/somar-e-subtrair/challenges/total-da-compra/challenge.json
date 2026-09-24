@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "total-da-compra",
+  "title": "O total da compra",
+  "concept": "somar_e_subtrair",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O total da compra\n\nA função `totalDaCompra` já começa com três variáveis declaradas: `camisa` guardando **47**, `bone` guardando **28** e `desconto` guardando **15**. Faça as contas e imprima duas linhas:\n\n1. o total dos dois preços;\n2. o total já com o desconto tirado.\n\nA tela deve ficar exatamente assim:\n\n```text\ntotal: 75\ncom desconto: 60\n```\n\nOs números da tela têm de SAIR das contas com as variáveis — é isso que a aula cobra.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* o programa de fora chama totalDaCompra() pelo nome */\nvoid totalDaCompra(void) {\n    int camisa = 47;\n    int bone = 28;\n    int desconto = 15;\n\n    /* 1. some os dois precos numa variavel total\n       2. imprima \"total: %d\" com esse total\n       3. imprima \"com desconto: %d\" com o total menos o desconto */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio total-da-compra — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario faz a SUA captura: freopen para um arquivo proprio, chamada\n   da funcao do aluno, fflush (nunca fclose no stdout) e leitura de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid totalDaCompra(void);\n\nSM_TEST(o_total_somado) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    totalDaCompra();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do total\", linha, \"total: 75\\n\",\n              \"a primeira linha traz a soma dos dois precos: 47 + 28\");\n    fclose(f);\n}\n\nSM_TEST(o_total_com_desconto) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    totalDaCompra();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    fgets(linha, 80, f);\n    checa_str(\"a linha com desconto\", linha, \"com desconto: 60\\n\",\n              \"a segunda linha traz o total menos o desconto: 75 - 15\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na segunda linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid totalDaCompra(void) {\n    int camisa = 47;\n    int bone = 28;\n    int desconto = 15;\n\n    int total = camisa + bone;\n    printf(\"total: %d\\n\", total);\n    printf(\"com desconto: %d\\n\", total - desconto);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_total_somado",
+      "teste": "o_total_somado",
+      "descricao": "a funcao totalDaCompra soma os dois precos (47 + 28) e imprime \"total: 75\" na primeira linha"
+    },
+    {
+      "id": "o_total_com_desconto",
+      "teste": "o_total_com_desconto",
+      "descricao": "a segunda linha traz o total menos o desconto (75 - 15) como \"com desconto: 60\", e o ultimo checa_str prova que a saida termina ali"
+    }
+  ]
+}

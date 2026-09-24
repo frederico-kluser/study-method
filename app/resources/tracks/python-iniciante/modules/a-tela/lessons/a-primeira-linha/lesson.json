@@ -16,7 +16,17 @@
       "node:Call",
       "node:StrLiteral"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:Call",
+        "de": "global:print"
+      },
+      {
+        "chave": "node:StrLiteral",
+        "de": "global:print"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [
@@ -85,6 +95,11 @@
       "title": "print() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#print",
       "description": "A página oficial da instrução que mostra coisas na tela."
+    },
+    {
+      "title": "Literais de texto na Análise léxica da referência",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals",
+      "description": "A regra oficial das aspas: onde o texto começa, onde ele acaba e por que sai exatamente como você escreveu."
     }
   ],
   "challenges": [

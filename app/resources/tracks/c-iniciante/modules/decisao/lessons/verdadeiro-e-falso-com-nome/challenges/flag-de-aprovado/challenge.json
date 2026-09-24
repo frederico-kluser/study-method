@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "flag-de-aprovado",
+  "title": "Flag de aprovado",
+  "concept": "a_flag_verdadeiro_ou_falso",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Flag de aprovado\n\nA função `flagDeAprovado` lê a nota digitada pela pessoa e imprime a **flag** de aprovado: `1` quando a nota alcança 6, `0` quando não alcança.\n\nCom a nota `8` a saída é exatamente:\n\n```text\n1\n```\n\nE com a nota `4`:\n\n```text\n0\n```\n\nA leitura com `scanf` já está escrita. Faltam três coisas:\n\n1. o segundo bilhete no topo do arquivo, o que traz a palavra `bool`;\n2. a flag — um `bool` que recebe a comparação da nota com 6;\n3. o `printf` da flag com `%d`, numa linha só.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n/* falta AQUI o segundo bilhete: o que traz bool, true e false */\n\n/* flagDeAprovado le a nota digitada e imprime a flag de aprovado:\n   1 quando a nota alcanca 6, 0 quando nao alcanca. */\nvoid flagDeAprovado(void) {\n    int nota = 0;\n    scanf(\"%d\", &nota);\n\n    /* 1. declare a flag: um bool que recebe a comparacao da nota com 6 */\n\n    /* 2. imprima a flag com %d, numa linha so */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio flag-de-aprovado — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os arquivos temporarios sao POR CENARIO: um cenario nunca le a entrada\n   nem a captura do outro. Nunca ha fclose de stdin/stdout — so fflush —\n   para o freopen seguinte ficar legal (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid flagDeAprovado(void);\n\nSM_TEST(a_nota_8_levanta_a_flag) {\n    /* o que a pessoa digita: 8 */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"8\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    flagDeAprovado();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 8 levanta a flag\", linha, \"1\\n\",\n              \"8 alcanca 6: a comparacao devolve 1 e a flag guarda esse 1\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e a flag e nada mais: uma linha so\");\n    fclose(f);\n}\n\nSM_TEST(a_nota_4_baixa_a_flag) {\n    /* outra nota: a saida tem de MUDAR com a entrada */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"4\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    flagDeAprovado();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 4 baixa a flag\", linha, \"0\\n\",\n              \"4 nao alcanca 6: a comparacao devolve 0 e a flag guarda o 0\");\n    fclose(f);\n}\n\nSM_TEST(a_nota_6_ainda_aprova) {\n    /* a borda da faixa: 6 alcanca 6, porque o sinal e >= */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"6\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    flagDeAprovado();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a nota 6 ainda aprova\", linha, \"1\\n\",\n              \"o sinal >= aceita o igual: com 6 a flag continua levantada\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <stdbool.h>\n\nvoid flagDeAprovado(void) {\n    int nota = 0;\n    scanf(\"%d\", &nota);\n\n    bool aprovado = nota >= 6;\n    printf(\"%d\\n\", aprovado);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_nota_8_levanta_a_flag",
+      "teste": "a_nota_8_levanta_a_flag",
+      "descricao": "com 8 digitado no stdin, a funcao flagDeAprovado imprime 1 numa linha so, sem nenhuma linha extra — a flag guarda a resposta da comparacao"
+    },
+    {
+      "id": "a_nota_4_baixa_a_flag",
+      "teste": "a_nota_4_baixa_a_flag",
+      "descricao": "com 4 digitado no stdin, a mesma funcao imprime 0 — a saida muda com a nota, o que prova que a comparacao foi feita e nao escrita no codigo"
+    },
+    {
+      "id": "a_nota_6_ainda_aprova",
+      "teste": "a_nota_6_ainda_aprova",
+      "descricao": "com 6 digitado no stdin, a funcao imprime 1: a comparacao usa >= e aceita o valor igual ao limite"
+    }
+  ]
+}

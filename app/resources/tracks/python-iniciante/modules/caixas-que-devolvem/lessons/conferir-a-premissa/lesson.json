@@ -46,9 +46,9 @@
       "question": "O que a linha `assert preco > 0` faz na caixa?",
       "options": [
         "Confere que o preço é maior que 0 antes de seguir.",
-        "Transforma o preço em positivo.",
-        "Imprime a condição na tela.",
-        "Devolve o preço na hora."
+        "Transforma o preço em positivo antes de seguir.",
+        "Imprime a condição na tela para você conferir.",
+        "Devolve o preço na hora, sem conferir nada."
       ],
       "answerIndex": 0,
       "feedback": "O assert é a conferência: ele verifica a premissa e só deixa o corpo seguir se ela valer.",
@@ -66,9 +66,9 @@
       "question": "Com preço 10 na caixa `com_desconto`, o que acontece na linha do assert?",
       "options": [
         "A premissa vale, o assert passa e a caixa devolve 8.",
-        "A premissa não vale e a caixa para.",
-        "O assert devolve 10.",
-        "O assert mostra preco > 0 na tela."
+        "A premissa não vale, e por isso a caixa para ali.",
+        "O assert devolve 10, e a caixa entrega esse valor.",
+        "O assert mostra `preco > 0` na tela e segue."
       ],
       "answerIndex": 0,
       "feedback": "10 é maior que 0, a conferência passa, e o return devolve 10 - 2, que é 8.",
@@ -86,9 +86,9 @@
       "question": "O que acontece com `com_desconto(-3)`?",
       "options": [
         "O programa para: a premissa é falsa e o assert interrompe.",
-        "A caixa devolve -5.",
-        "A caixa devolve 0.",
-        "O assert corrige o -3 para positivo."
+        "A caixa devolve -5, porque foi o valor que entrou.",
+        "A caixa devolve 0, que é o valor seguro do preço.",
+        "O assert corrige o -3 para positivo e a caixa segue."
       ],
       "answerIndex": 0,
       "feedback": "-3 não é maior que 0: o assert interrompe o programa antes de o return rodar.",

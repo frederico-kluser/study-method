@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-movedor-de-verdade",
+  "title": "O movedor de verdade",
+  "concept": "o_campo_pela_flecha",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O movedor de verdade\n\nNa aula anterior o `mover` recebia a ficha **por valor** e devolvia um ponto novo. Agora a caixa vai mudar a ficha de quem chamou.\n\nEscreva a caixa `moverVia`, com a janela que recebe o ENDEREÇO da ficha:\n\n```text\nvoid moverVia(Ponto *p, int dx, int dy)\n```\n\nDentro dela, some `dx` no campo `x` e `dy` no campo `y` **da ficha apontada**, usando a flecha:\n\n```text\np->x += dx;\n```\n\nO molde `Ponto` já vem pronto no arquivo. A caixa **não devolve nada e não imprime nada**: o resultado dela é a ficha do original mudada — é isso que o teste confere, chamando `moverVia(&p, ...)` e olhando `p.x` e `p.y` depois.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "/* o molde da ficha, ja pronto — o apelido que a aula do typedef trouxe */\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* escreva AQUI a caixa moverVia, com as tres janelas:\n\n       void moverVia(Ponto *p, int dx, int dy)\n\n   A primeira janela recebe o ENDERECO de uma ficha. Dentro da caixa,\n   some dx no campo x e dy no campo y da ficha apontada, pela flecha\n   (p->x, p->y). Sem return, sem printf: o resultado e a ficha mudada. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-movedor-de-verdade — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: nao ha captura de stdout aqui. O molde da ficha e declarado no\n   proprio teste, com os MESMOS campos do molde do aluno, e cada cenario passa\n   o ENDERECO da sua ficha (&p) para a caixa. O que o teste confere e o estado\n   do ORIGINAL depois da chamada: uma caixa que mexesse na copia deixaria os\n   campos como estavam. */\n\ntypedef struct {\n    int x;\n    int y;\n} Ponto;\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid moverVia(Ponto *p, int dx, int dy);\n\nSM_TEST(a_ficha_do_original_anda) {\n    Ponto p = {3, 4};\n    moverVia(&p, 2, 5);\n    checa_int(\"o x do original\", p.x, 5,\n              \"moverVia soma o dx no campo x da ficha apontada: 3 + 2 da 5\");\n    checa_int(\"o y do original\", p.y, 9,\n              \"moverVia soma o dy no campo y da MESMA ficha: 4 + 5 da 9\");\n}\n\nSM_TEST(dois_passos_seguidos) {\n    Ponto p = {0, 0};\n    moverVia(&p, 1, 1);\n    moverVia(&p, 3, 4);\n    checa_int(\"o x depois de dois passos\", p.x, 4,\n              \"cada chamada soma na ficha que a anterior ja mudou: 0 + 1 + 3\");\n    checa_int(\"o y depois de dois passos\", p.y, 5,\n              \"0 + 1 + 4 da 5: o original guarda o que a caixa escreveu\");\n}\n\nSM_TEST(cada_ficha_anda_a_sua) {\n    Ponto a = {1, 1};\n    Ponto b = {10, 10};\n    moverVia(&a, 2, 0);\n    moverVia(&b, 0, 5);\n    checa_int(\"o x da ficha a\", a.x, 3,\n              \"o endereco passado escolhe a ficha: a ficha a andou 2 em x\");\n    checa_int(\"o y da ficha a\", a.y, 1,\n              \"com dy igual a 0 o campo y da ficha a fica como estava\");\n    checa_int(\"o y da ficha b\", b.y, 15,\n              \"a ficha b andou 5 em y na sua propria chamada: 10 + 5 da 15\");\n}\n",
+  "solutionCode": "typedef struct {\n    int x;\n    int y;\n} Ponto;\n\nvoid moverVia(Ponto *p, int dx, int dy) {\n    p->x += dx;\n    p->y += dy;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_ficha_do_original_anda",
+      "teste": "a_ficha_do_original_anda",
+      "descricao": "com a ficha em (3, 4) e a chamada moverVia(&p, 2, 5), os campos do ORIGINAL passam a valer 5 e 9 — a soma acontece na ficha apontada, nao numa copia"
+    },
+    {
+      "id": "dois_passos_seguidos",
+      "teste": "dois_passos_seguidos",
+      "descricao": "duas chamadas seguidas na mesma ficha acumulam: de (0, 0) para (4, 5), o que so vale se cada chamada escrever no original"
+    },
+    {
+      "id": "cada_ficha_anda_a_sua",
+      "teste": "cada_ficha_anda_a_sua",
+      "descricao": "duas fichas diferentes, cada uma movida pelo seu endereco: a ficha a anda 2 em x e fica com o y em 1, e a ficha b anda 5 em y"
+    }
+  ]
+}

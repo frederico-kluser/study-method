@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "fim-limpo",
+  "title": "Fim limpo",
+  "concept": "o_codigo_de_saida",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Fim limpo\n\nO `main` do programa é de fora (você só o lê): ele chama a função `tela` e, na última linha, executa `return 0;` — o código de saída de sucesso.\n\nA sua parte é a função **inteira**, da assinatura ao `}`. Escreva `tela` para imprimir, exatamente nesta ordem:\n\n```text\nrelatorio pronto\nnada deu errado\nfim: codigo 0\n```\n\nA terceira linha é só um **rótulo** para quem lê a tela. O código de saída de verdade é o `0` do `return 0;` do `main`, e esse número não aparece na tela: ele vai direto para o sistema.\n\nSão três `printf`, cada um com `\\n` no fim. **Nem uma linha a mais:** o teste confere que a saída acaba na terceira linha — e o programa só termina com código 0 quando todas as conferências passam.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI EMBAIXO a funcao tela inteira: a assinatura e o corpo.\n   o main do harness chama tela() e, depois, devolve 0 — o fim limpo.\n   voce nao escreve o main: ele e do programa de fora. */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio fim-limpo — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste: freopen manda o stdout\n   para o arquivo temporario, o teste chama a funcao do aluno e le de volta. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid tela(void);\n\nSM_TEST(o_relatorio_termina_no_fim) {\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    tela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a primeira linha\", linha, \"relatorio pronto\\n\",\n              \"o relatorio abre anunciando que esta pronto\");\n    fgets(linha, 80, f);\n    checa_str(\"a segunda linha\", linha, \"nada deu errado\\n\",\n              \"a segunda frase vem depois da quebra de linha da primeira\");\n    fgets(linha, 80, f);\n    checa_str(\"a terceira linha\", linha, \"fim: codigo 0\\n\",\n              \"a ultima frase anuncia o fim limpo do programa\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida acaba na terceira linha: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid tela(void) {\n    printf(\"relatorio pronto\\n\");\n    printf(\"nada deu errado\\n\");\n    printf(\"fim: codigo 0\\n\");\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_relatorio_termina_no_fim",
+      "teste": "o_relatorio_termina_no_fim",
+      "descricao": "a funcao tela, escrita inteira pelo aluno, imprime as tres linhas do relatorio nesta ordem — \"relatorio pronto\", \"nada deu errado\" e \"fim: codigo 0\" — e a saida ACABA na terceira linha (o quarto checa_str prova o fim contra o sentinel)"
+    }
+  ]
+}

@@ -19,7 +19,13 @@
       "op:bool:or",
       "node:BoolOp"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:BoolOp",
+        "de": "op:bool:and"
+      }
+    ]
   },
   "introducesTerms": [],
   "theory": [

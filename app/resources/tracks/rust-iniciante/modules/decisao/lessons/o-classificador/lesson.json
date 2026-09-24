@@ -44,18 +44,18 @@
       "question": "Para `o_rotulo_da_nota(7)`, qual ramo roda?",
       "options": [
         "o do else if — 7 > 8 falhou e 7 > 5 passou",
-        "o primeiro — 7 > 8",
-        "o else",
-        "nenhum dos três"
+        "o primeiro — 7 > 8 já basta para o excelente",
+        "o else — a nota 7 sobrou das duas perguntas",
+        "nenhum: 7 não passa em 7 > 8 nem em 7 > 5"
       ],
       "answerIndex": 0,
       "feedback": "A fila checa 7 > 8 (false), depois 7 > 5 (true) — o ramo do else if monta o texto da nota 7.",
       "sectionId": "tres-ramos-um-rotulo",
       "optionRationales": [
         "A primeira condição falhou e a segunda passou: o rótulo sai do ramo do else if.",
-        "7 não é maior que 8 — a primeira condição é false e o ramo dela não roda.",
-        "O else só recebe o que sobrou — e a 7 já foi classificada antes.",
-        "Uma das três condições sempre responde — aqui foi a segunda."
+        "7 não é maior que 8 — a primeira condição é false, e o ramo do excelente nem roda.",
+        "O else só recebe o que sobrou das duas perguntas — e a 7 já foi classificada na segunda.",
+        "7 > 5 é true: a segunda pergunta responde, e a fila para de perguntar ali."
       ]
     },
     {
@@ -64,18 +64,18 @@
       "question": "O que abre a vaga para o valor no texto do `format!`?",
       "options": [
         "as chaves {nota} dentro do texto",
-        "o sinal >",
-        "o let mut",
-        "o ponto e vírgula"
+        "o sinal > que compara a nota",
+        "o let mut que guarda a nota antes",
+        "o ponto e vírgula no fim do format!"
       ],
       "answerIndex": 0,
       "feedback": "O {nota} é a vaga no texto: dentro das chaves vai o nome, no texto sai o valor que ele guarda.",
       "sectionId": "cada-ramo-monta-o-seu-texto",
       "optionRationales": [
         "O {nota} no meio do texto é a vaga onde o valor da nota entra.",
-        "O sinal > decide o ramo — a vaga no texto é papel do {nota}.",
-        "let mut liga nome a valor — a vaga no texto é trabalho das chaves {nota}.",
-        "O ; fecha instruções — a montagem do texto é do {nota}."
+        "O sinal > decide qual ramo roda; a vaga no texto é papel das chaves {nota}.",
+        "let mut liga nome a valor antes do texto — abrir a vaga é das chaves {nota}.",
+        "O ; fecha instruções e não abre vaga nenhuma dentro do texto do format!"
       ]
     },
     {
@@ -84,18 +84,18 @@
       "question": "O que é NOVO no desafio `o-classificador`?",
       "options": [
         "nada — ele compõe o que o módulo ensinou",
-        "o else if",
-        "o format!",
-        "a comparação com >"
+        "o else if, que aparece aqui pela primeira vez",
+        "o format!, que monta o texto de cada ramo",
+        "a comparação com >, que nasce aqui"
       ],
       "answerIndex": 0,
       "feedback": "É o desafio de fechamento: a construção é a soma das aulas, não um conceito novo.",
       "sectionId": "o-fecho-do-modulo",
       "optionRationales": [
         "Tudo no desafio já tem aula: a prova é compor a fila com o format!.",
-        "else if veio na aula se-senao-se — aqui é revisão em serviço.",
-        "format! é da aula a-mensagem-montada, do módulo 1.",
-        "A comparação com > vem lá da primeira aula do módulo."
+        "O else if veio na aula se-senao-se; aqui ele só volta em serviço.",
+        "O format! é da aula a-mensagem-montada, no módulo 1 — ele chega pronto.",
+        "A comparação com > vem da primeira aula deste módulo, não do desafio."
       ]
     }
   ],

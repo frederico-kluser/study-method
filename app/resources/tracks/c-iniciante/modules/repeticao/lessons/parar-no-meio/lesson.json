@@ -2,23 +2,125 @@
   "schemaVersion": 1,
   "slug": "parar-no-meio",
   "title": "Parar no meio",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O break sai do laço na hora, sem esperar a condição virar falsa — e o que vinha depois dele no corpo não roda.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:BreakStmt",
+  "concepts": [
+    "sair_do_laco"
+  ],
   "prerequisites": [
     "para",
     "escolher-por-valor"
   ],
+  "introduces": {
+    "productive": [
+      "node:BreakStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o fim do laço deixa de ser só a condição do cabeçalho: uma ordem dentro do corpo passa a poder encerrá-lo no meio de uma volta, e o valor que o contador tinha nesse instante passa a ser a resposta",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "sair-antes-do-fim",
+      "title": "Sair antes do fim",
+      "markdown": "Às vezes o laço já achou o que procurava antes de a condição virar falsa. O `break` sai do laço na hora:\n\n```c\nfor (int i = 1; i <= 10; i++) {\n    if (i == 4) {\n        break;\n    }\n    printf(\"%d\\n\", i);\n}\n```\n\n```text\n1\n2\n3\n```\n\nO `for` iria até 10. Na volta em que `i` vale 4, o `break` corta: o laço acaba ali e a execução continua na linha DEPOIS do fecha-chaves. O `break` você já viu no `switch`, fechando cada `case`; aqui ele faz o mesmo gesto — sair — mas de um laço."
+    },
+    {
+      "id": "depois-do-break-nada-roda",
+      "title": "Depois do break, nada roda",
+      "markdown": "O `break` não termina só a volta: termina o laço. Nada do que estiver depois dele no corpo roda:\n\n```c\nfor (int i = 1; i <= 3; i++) {\n    printf(\"antes\\n\");\n    if (i == 2) {\n        break;\n    }\n    printf(\"depois\\n\");\n}\n```\n\n```text\nantes\ndepois\nantes\n```\n\nNa primeira volta as duas linhas saíram. Na segunda, o `antes` saiu, o `break` disparou — e o `depois` ficou sem rodar. O passo `i++` também não roda: não há próxima volta para preparar."
+    },
+    {
+      "id": "parar-no-primeiro-que-serve",
+      "title": "Parar no primeiro que serve",
+      "markdown": "O uso clássico é procurar: o laço percorre os candidatos e para no primeiro que serve. Para a resposta sobreviver ao laço, o contador nasce FORA dele:\n\n```c\nint k = 1;\nfor (k = 1; k <= 100; k++) {\n    if (k * k > 50) {\n        break;\n    }\n}\nprintf(\"%d\\n\", k);\n```\n\n```text\n8\n```\n\nO 7 ao quadrado dá 49 e não passa de 50; o 8 dá 64 e passa: o `break` sai com `k` valendo 8. Se `k` nascesse dentro do `for`, ele morreria no fecha-chaves e o `printf` não teria o que mostrar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-break-sai-na-hora",
+      "statement": "O break sai do laço mais interno na hora — o que veio depois dele no corpo não roda.",
+      "question": "O que `for (int i = 1; i <= 3; i++) { printf(\"antes\\n\"); if (i == 2) { break; } printf(\"depois\\n\"); }` imprime?",
+      "options": [
+        "antes, depois, antes, depois — o `break` só encerra a volta, e a seguinte roda inteira.",
+        "antes, depois — o `break` na primeira volta encerra tudo.",
+        "antes, antes, antes — o `break` pula o segundo printf de todas as voltas.",
+        "antes, depois, antes — na segunda volta o `break` corta antes do segundo printf."
+      ],
+      "answerIndex": 3,
+      "feedback": "A primeira volta roda inteira (antes e depois). Na segunda, o `antes` sai, o `break` dispara e o laço acaba ali mesmo: o segundo printf daquela volta e todas as voltas seguintes ficam sem rodar.",
+      "sectionId": "depois-do-break-nada-roda",
+      "optionRationales": [
+        "O `break` não devolve o controle ao laço: ele SAI do laço — não existe volta seguinte.",
+        "Na primeira volta `i` vale 1, e `i == 2` é falso: o `break` nem chega a rodar.",
+        "O `break` roda uma única vez, na volta em que a condição do `if` casou — e ali o laço termina.",
+        "Volta 1 imprime as duas linhas; volta 2 imprime `antes` e o `break` encerra o laço no meio dela."
+      ]
+    },
+    {
+      "id": "onde-a-execucao-continua",
+      "statement": "Depois do break, a execução continua na linha seguinte ao fecha-chaves do laço.",
+      "question": "Quando o `break` dispara dentro de um `for`, para onde a execução vai?",
+      "options": [
+        "Para o passo do `for` (`i++`), que ainda roda uma última vez.",
+        "Para a primeira linha que existe depois do fecha-chaves do laço.",
+        "Para o começo do laço, que recomeça a contagem do valor inicial.",
+        "Para o fim da função: o `break` encerra tudo o que estiver rodando."
+      ],
+      "answerIndex": 1,
+      "feedback": "O `break` encerra o laço e nada mais: a ordem seguinte é a primeira que está depois do bloco do laço. O passo não roda, porque não há próxima volta para preparar.",
+      "sectionId": "sair-antes-do-fim",
+      "optionRationales": [
+        "O passo prepara a próxima volta — e com o `break` não existe próxima volta.",
+        "É exatamente aí: o laço acabou, e o programa segue na ordem que vem depois dele.",
+        "Recomeçar do início seria outro laço; o `break` sai, não reinicia.",
+        "Quem encerra a função é o `return`. O `break` encerra só o laço em que está."
+      ]
+    },
+    {
+      "id": "o-contador-fora-do-laco",
+      "statement": "Para a resposta sobreviver ao laço, o contador precisa ser declarado fora dele.",
+      "question": "Por que, no laço que acha o primeiro número cujo quadrado passa de 50, o `int k` é declarado ANTES do `for`?",
+      "options": [
+        "Porque o `for` não aceita no cabeçalho um nome que já exista antes.",
+        "Porque o `break` só funciona quando o contador vem de fora do laço.",
+        "Porque um nome declarado no `for` deixa de existir no fecha-chaves.",
+        "Porque declarar o contador dentro do `for` deixaria o laço mais lento."
+      ],
+      "answerIndex": 2,
+      "feedback": "O valor que responde à pergunta é o que o contador tinha na hora do `break` — e ele só continua legível depois do laço se o nome tiver nascido fora dele.",
+      "sectionId": "parar-no-primeiro-que-serve",
+      "optionRationales": [
+        "O `for` aceita as duas formas — declarar ali ou só atribuir a um nome que já existe.",
+        "O `break` sai do laço do mesmo jeito; o que muda é se a resposta continua legível depois.",
+        "É a regra do bloco: o nome declarado no `for` vive só até o fecha-chaves dele.",
+        "Velocidade não tem nada a ver: a questão é até onde o nome existe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "break statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/break",
+      "description": "A página oficial do `break`: ele encerra o `for`, `while`, `do..while` ou `switch` que o contém mais de perto, e a execução segue depois dele."
+    },
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do `for`, com a regra de escopo que explica por que um nome declarado no cabeçalho não existe depois do laço."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.8.6.3 define o `break` como o salto para o fim da menor instrução de repetição ou `switch` que o envolve."
+    }
+  ],
+  "challenges": [
+    "primeiro-divisor"
+  ],
   "autoria": {
     "modulo": "repeticao",
     "moduloTitulo": "Repetição",

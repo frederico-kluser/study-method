@@ -302,8 +302,16 @@ describe('A INVARIANTE SAGRADA CONTINUA DE PÉ (a permutação não a afrouxa)',
   });
 
   it('o VEREDITO cai na pílula certa — o ✓ segue o TEXTO, não a posição', () => {
-    // O aluno marca a alternativa ORIGINAL 1 (errada, porque answerIndex é 0).
-    const quiz: QuizState = { answered: true, selected: 1, correct: false };
+    // O aluno marca uma alternativa ORIGINAL ERRADA — qualquer uma que não seja
+    // a resposta. Era `selected: 1` com o comentário "errada, porque answerIndex
+    // é 0", e isso quebrou em 2026-09-22: a fixture é `REAL[0]`, a PRIMEIRA
+    // afirmação que o `readdir` recursivo encontra no disco, e a autoria do
+    // `c-iniciante` (que varia o índice da resposta) mudou quem é essa primeira.
+    // Com uma afirmação de `answerIndex: 1`, marcar a 1 era ACERTAR e o ✗ não
+    // existia. Derivar o índice errado da própria fixture fecha a porta: o caso
+    // passa a valer para qualquer afirmação que caia em `REAL[0]`.
+    const erradaOriginal = [0, 1, 2, 3].find((i) => i !== ASSERTION.answerIndex)!;
+    const quiz: QuizState = { answered: true, selected: erradaOriginal, correct: false };
     const html = renderCard(ASSERTION, quiz);
     const pills = pillsOnScreen(html);
     const order = quizOptionOrder(KEY, 0, ASSERTION.options.length);
@@ -323,7 +331,11 @@ describe('A INVARIANTE SAGRADA CONTINUA DE PÉ (a permutação não a afrouxa)',
       (b) => b.includes('data-testid="CancelIcon"') && b.includes('aria-label="Opção '),
     );
     assert.equal(comCheck, displayDaCerta, 'o ✓ está na pílula da alternativa correta');
-    assert.equal(comCancel, order.indexOf(1), 'o ✗ está na pílula que o aluno marcou');
+    assert.equal(
+      comCancel,
+      order.indexOf(erradaOriginal),
+      'o ✗ está na pílula que o aluno marcou',
+    );
   });
 
   it('a fonte do card não voltou a ler answerIndex fora do submit', () => {

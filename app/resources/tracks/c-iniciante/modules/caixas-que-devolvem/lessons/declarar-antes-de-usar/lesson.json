@@ -2,22 +2,126 @@
   "schemaVersion": 1,
   "slug": "declarar-antes-de-usar",
   "title": "O cartaz na porta",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O protótipo é a primeira linha da caixa com `;` no lugar do corpo: com ele no topo do arquivo, uma caixa pode ser chamada antes de ser definida.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:func",
+  "concepts": [
+    "o_prototipo"
+  ],
   "prerequisites": [
     "uma-caixa-chama-outra"
   ],
+  "introduces": {
+    "productive": [
+      "decl:func"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [
+    "protótipo"
+  ],
+  "notionalMachineDelta": "o arquivo deixa de ser uma lista em que tudo tem de estar na ordem de uso: o protótipo separa apresentar de definir, e a ordem das definições passa a ser escolha de quem escreve",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "de-cima-para-baixo",
+      "title": "De cima para baixo",
+      "markdown": "O compilador lê o arquivo de cima para baixo, uma linha por vez. Aqui a chamada dá certo:\n\n```c\nint triplo(int lado) {\n    return lado * 3;\n}\n\nint perimetro(int lado) {\n    return triplo(lado);\n}\n```\n\nQuando ele chega em `triplo(lado)`, já passou pela definição — conhece o nome, o que entra e o que volta.\n\nTroque as duas caixas de lugar e a compilação para na linha da chamada: ali `triplo` ainda não tinha sido apresentado."
+    },
+    {
+      "id": "o-cartaz-na-porta",
+      "title": "O cartaz na porta",
+      "markdown": "Para apresentar uma caixa sem defini-la ainda, escreva a primeira linha dela com `;` no lugar do corpo. Isso é um **protótipo**:\n\n```c\nint triplo(int lado);\n\nint perimetro(int lado) {\n    return triplo(lado);\n}\n\nint triplo(int lado) {\n    return lado * 3;\n}\n```\n\nO cartaz na porta diz o nome, o que entra e o que volta — e é só disso que o compilador precisa para aceitar a chamada.\n\nCom o cartaz no topo, a ordem das definições deixa de importar."
+    },
+    {
+      "id": "o-cartaz-promete-o-corpo-cumpre",
+      "title": "O cartaz promete, o corpo cumpre",
+      "markdown": "Os cartazes ficam juntos no topo do arquivo, um por caixa:\n\n```c\nint menor(int a, int b);\nint maior(int a, int b);\n```\n\nDepois deles, as definições podem vir em qualquer ordem, e cada caixa pode chamar qualquer outra.\n\nOnde a analogia quebra: o cartaz não roda nada, e não vale como corpo. Se a definição não existir em lugar nenhum, a compilação passa e a **ligação** falha — \"símbolo indefinido\" é o nome dessa promessa sem ninguém para cumprir."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "sem-cartaz-a-chamada-antes-nao-compila",
+      "statement": "O compilador lê de cima para baixo: sem protótipo, chamar antes de definir não compila.",
+      "question": "No arquivo, `perimetro` vem antes de `triplo` e chama `triplo`. Sem nenhum cartaz no topo, o que acontece?",
+      "options": [
+        "A compilação para na linha da chamada a `triplo`.",
+        "Compila: o compilador procura o nome no resto do arquivo antes de reclamar.",
+        "Compila, e nessa chamada `triplo` devolve 0.",
+        "Compila, desde que as duas caixas devolvam o mesmo tipo."
+      ],
+      "answerIndex": 0,
+      "feedback": "Na linha da chamada o nome ainda não foi apresentado, e o compilador não adivinha o que vem depois. É para isso que existe o protótipo.",
+      "sectionId": "de-cima-para-baixo",
+      "optionRationales": [
+        "O compilador lê em ordem: na linha da chamada esse nome ainda não existe para ele.",
+        "Ele não volta atrás nem olha para a frente: decide com o que já leu.",
+        "Valor nenhum é inventado — o erro acontece antes de o programa rodar.",
+        "O tipo devolvido não tem papel nisso: o que falta é a apresentação do nome."
+      ]
+    },
+    {
+      "id": "o-que-e-um-prototipo",
+      "statement": "O protótipo é a primeira linha da caixa com `;` no lugar do corpo.",
+      "question": "A caixa é `int triplo(int lado) { return lado * 3; }`. Qual destes é o protótipo dela?",
+      "options": [
+        "`int triplo(int lado);` — a mesma linha, com `;`.",
+        "`int triplo(int lado) { }`, um corpo vazio para depois.",
+        "`triplo(lado);`, a chamada escrita no topo.",
+        "`int triplo;`, só o tipo e o nome da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "O cartaz repete a primeira linha da caixa e troca o `{` por `;`: tipo devolvido, nome e o que entra pela janela. Nada de corpo.",
+      "sectionId": "o-cartaz-na-porta",
+      "optionRationales": [
+        "É a primeira linha da caixa com `;` no lugar do corpo — nome, janela e retorno.",
+        "Chaves, mesmo vazias, são corpo: isso define a caixa, não a apresenta.",
+        "Uma chamada roda a caixa; o cartaz só a apresenta ao compilador.",
+        "Sem os parênteses da janela não há função nenhuma nessa linha."
+      ]
+    },
+    {
+      "id": "cartaz-sem-corpo-reprova-na-ligacao",
+      "statement": "O protótipo promete; o corpo é que cumpre.",
+      "question": "Um arquivo tem o cartaz de `triplo` no topo, a chamada no meio e nenhum corpo de `triplo`. O que falha?",
+      "options": [
+        "A ligação do programa: falta o corpo prometido.",
+        "A compilação, logo na linha do próprio cartaz.",
+        "Nada falha: o cartaz já serve de corpo vazio.",
+        "A execução, que devolve 0 em cada chamada de `triplo`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador aceita a promessa e segue. Quem cobra é a ligação, que procura o corpo para juntar ao programa e não acha: símbolo indefinido.",
+      "sectionId": "o-cartaz-promete-o-corpo-cumpre",
+      "optionRationales": [
+        "A compilação passa com a promessa; a ligação é que procura o corpo e não acha.",
+        "O cartaz é uma linha legal de C: por si só não causa erro de compilação.",
+        "Cartaz não é corpo: sem definição em lugar nenhum, o programa não se monta.",
+        "O programa não chega a rodar — falta o corpo para montar o executável."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial da declaração de função: o protótipo declara o nome, os parâmetros e o tipo devolvido, sem corpo."
+    },
+    {
+      "title": "Declarations — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/declarations",
+      "description": "A página oficial das declarações: um nome só pode ser usado depois de declarado, e declarar não é definir."
+    },
+    {
+      "title": "ISO/IEC 9899 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.2.1 define o escopo de um identificador a partir do ponto da sua declaração."
+    }
+  ],
+  "challenges": [
+    "ordem-invertida"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "contar-ate-dez",
+  "title": "Contar até dez",
+  "concept": "o_laco_enquanto",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Contar até dez\n\nA função `contarAteDez` precisa imprimir os números de 1 a 10, **um por linha**, exatamente assim:\n\n```text\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n```\n\nO contador já nasceu com 1 no arquivo. Falta o laço: enquanto `i` for menor ou igual a 10, imprima `i` com `%d` e depois faça `i` andar uma casa.\n\nNada de dez `printf` copiados: o programa tem UM `printf`, e é o laço que o faz rodar dez vezes.\n\nA saída termina no 10 — nenhuma linha depois dele.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "#include <stdio.h>\n\n/* contarAteDez imprime os numeros de 1 a 10, um por linha.\n   O contador i ja nasceu valendo 1. Falta o laco: enquanto i for menor\n   ou igual a 10, imprima i e faca i andar uma casa. */\nvoid contarAteDez(void) {\n    int i = 1;\n\n    /* escreva aqui o while: a condicao entre parenteses e, dentro das\n       chaves, o printf do i e o passo do contador */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio contar-ate-dez — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste (modelo cenario-do-harness):\n   freopen manda o stdout para o arquivo temporario, o teste chama a funcao\n   do aluno e le o arquivo de volta, linha a linha. Nunca ha fclose de\n   stdout — so fflush (C11 7.21.4). */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid contarAteDez(void);\n\nSM_TEST(a_sequencia_de_um_a_dez) {\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    contarAteDez();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 1\", linha, \"1\\n\",\n              \"a contagem comeca no valor com que o contador nasceu\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 2\", linha, \"2\\n\",\n              \"cada volta do laco imprime o numero seguinte\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 3\", linha, \"3\\n\",\n              \"o passo do contador anda de um em um\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 4\", linha, \"4\\n\",\n              \"o mesmo printf, na quarta volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 5\", linha, \"5\\n\",\n              \"o mesmo printf, na quinta volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 6\", linha, \"6\\n\",\n              \"o mesmo printf, na sexta volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 7\", linha, \"7\\n\",\n              \"o mesmo printf, na setima volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 8\", linha, \"8\\n\",\n              \"o mesmo printf, na oitava volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 9\", linha, \"9\\n\",\n              \"o mesmo printf, na nona volta\");\n    fgets(linha, 80, f);\n    checa_str(\"a linha do 10\", linha, \"10\\n\",\n              \"a condicao i <= 10 deixa o proprio 10 entrar na contagem\");\n\n    /* a saida TERMINA no 10 — buffer NOVO com sentinel e um fgets a mais */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"quando i vira 11 a condicao responde 0 e o laco para: nada e impresso depois do 10\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid contarAteDez(void) {\n    int i = 1;\n    while (i <= 10) {\n        printf(\"%d\\n\", i);\n        i++;\n    }\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_sequencia_de_um_a_dez",
+      "teste": "a_sequencia_de_um_a_dez",
+      "descricao": "a funcao contarAteDez imprime dez linhas, de 1 a 10 na ordem crescente, uma por linha — cada checa_str confere uma volta do laco, e o ultimo confere que a saida acaba no 10, sem nenhuma linha extra"
+    }
+  ]
+}

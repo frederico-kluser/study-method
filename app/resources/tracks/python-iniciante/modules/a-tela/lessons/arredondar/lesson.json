@@ -73,6 +73,11 @@
       "title": "round() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#round",
       "description": "A página oficial do arredondamento."
+    },
+    {
+      "title": "Floating-Point Arithmetic: Issues and Limitations",
+      "url": "https://docs.python.org/3/tutorial/floatingpoint.html",
+      "description": "Por que a divisão devolve um decimal comprido como 617.2857142857143 — e, na mesma página, até onde o round consegue ajudar."
     }
   ],
   "challenges": [

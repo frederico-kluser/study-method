@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-ate-sentinela",
+  "title": "Soma até a sentinela",
+  "concept": "o_retorno_do_scanf",
+  "difficulty": 2,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Soma até a sentinela\n\nA função `somaAteSentinela` lê **inteiros digitados** e imprime a soma deles, numa linha só.\n\nVocê não sabe quantos números vêm. O que você sabe é como a lista termina: o último valor digitado é sempre **`-1`** — e ele é só o aviso de fim, não entra na soma.\n\nCom `5 7 3 -1` digitados, a saída é exatamente:\n\n```text\n15\n```\n\nEscreva o laço que lê com `scanf` **enquanto a leitura der certo E o número não for negativo**, somando cada número lido em `soma`. As duas condições no mesmo `while`, ligadas por `&&`:\n\n- `scanf(\"%d\", &n) == 1` — ainda veio número;\n- `n >= 0` — o número não é o `-1` do fim.\n\nA linha que imprime a soma já está escrita. Se a lista começar com `-1`, a soma é `0`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* somaAteSentinela le inteiros digitados e imprime a soma.\n   A lista sempre termina com -1, e o -1 NAO entra na soma.\n   O printf do fim ja esta escrito — falta o laco que le e soma. */\nvoid somaAteSentinela(void) {\n    int n = 0;\n    int soma = 0;\n\n    /* escreva aqui o while: leia com scanf enquanto a leitura der certo\n       (== 1) E o numero nao for negativo (n >= 0), somando n em soma */\n\n    printf(\"%d\\n\", soma);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio soma-ate-sentinela — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo os numeros que a pessoa \"digitaria\",\n   aponta o stdin para esse arquivo (freopen), captura o stdout no proprio\n   teste e le a linha de volta. Os nomes dos arquivos temporarios sao POR\n   CENARIO. Nunca ha fclose de stdin/stdout — so fflush — para o proximo\n   freopen ficar legal (C11 7.21.4). As tres listas sao diferentes: uma soma\n   escrita a mao reprova em pelo menos duas delas. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid somaAteSentinela(void);\n\nSM_TEST(a_soma_de_cinco_sete_tres) {\n    /* o que a pessoa digita nesta rodada */\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"5 7 3 -1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_1.tmp */\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    somaAteSentinela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de 5, 7 e 3\", linha, \"15\\n\",\n              \"o -1 avisa o fim: entram na soma so os tres numeros antes dele\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (a soma de 5, 7 e 3)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a soma, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(outra_lista_outra_soma) {\n    /* o que a pessoa digita nesta rodada */\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"10 20 -1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_2.tmp */\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    somaAteSentinela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de 10 e 20\", linha, \"30\\n\",\n              \"a resposta muda com a lista digitada, o que prova que ela vem do laco\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (a soma de 10 e 20)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a soma, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(lista_vazia_soma_zero) {\n    /* o que a pessoa digita nesta rodada */\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"-1\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    /* captura: o stdout vira o arquivo sm_saida_3.tmp */\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    somaAteSentinela();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a soma de lista nenhuma\", linha, \"0\\n\",\n              \"quando o -1 vem de primeira o corpo do laco nao roda e a soma fica em 0\");\n    /* a saida TERMINA na primeira linha — buffer NOVO com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais (a soma de lista nenhuma)\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a soma, e nada mais\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid somaAteSentinela(void) {\n    int n = 0;\n    int soma = 0;\n\n    while (scanf(\"%d\", &n) == 1 && n >= 0) {\n        soma += n;\n    }\n\n    printf(\"%d\\n\", soma);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "a_soma_de_cinco_sete_tres",
+      "teste": "a_soma_de_cinco_sete_tres",
+      "descricao": "com 5 7 3 -1 no stdin a funcao le enquanto scanf devolve 1 e o numero nao e negativo, e imprime 15 numa linha so — o -1 fica de fora da soma"
+    },
+    {
+      "id": "outra_lista_outra_soma",
+      "teste": "outra_lista_outra_soma",
+      "descricao": "com 10 20 -1 no stdin a mesma funcao imprime 30: a resposta acompanha a lista digitada, o que prova que a soma vem do laco e nao de um numero escrito no codigo"
+    },
+    {
+      "id": "lista_vazia_soma_zero",
+      "teste": "lista_vazia_soma_zero",
+      "descricao": "com apenas -1 no stdin o corpo do laco nao roda nenhuma vez e a funcao imprime 0 — o caso de borda em que a condicao ja nasce falsa"
+    }
+  ]
+}

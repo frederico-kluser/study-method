@@ -83,6 +83,7 @@ import {
 } from '../electron/main/engine/atomKeys';
 import { exigirAdaptadorComCaminhada, extractAtoms } from '../electron/main/engine/extract';
 import { auditTrack } from '../electron/main/engine/audit';
+import { REGRAS_DA_BARRA } from '../electron/main/engine/quality/barra';
 import { loadTrack } from '../electron/main/content/trackLoader';
 import {
   derivarRequirements,
@@ -1245,14 +1246,27 @@ describe('rust — a trilha fixture passa na própria auditoria (o gate que a me
     // mede nada. Este teste é a anti-podridão: qualquer edição na
     // lesson.json/challenge.json que introduza construção fora do orçamento
     // reprova AQUI, sem precisar rodar o CLI na mão.
+    //
+    // ESCOPO (2026-09-22): o `auditTrack` passou a rodar a BARRA A17–A23
+    // (`quality/barra.ts`, agnóstica de linguagem), que mede o TAMANHO DO PASSO
+    // de um CURSO. Esta fixture é UMA aula que ensina função + parâmetro +
+    // multiplicação + literal de uma vez, com uma seção de teoria — o mínimo
+    // para exercitar o ADAPTADOR, e um penhasco como aula 1 de curso (A17/A18/
+    // A21 acham exatamente isso, e o `api:todo!` do starter está declarado sem
+    // demonstração → A19/A18). A anti-podridão que este pin guarda é o
+    // ORÇAMENTO (A1–A4): é ele que continua tendo de sair vazio. A barra tem
+    // suíte própria: `tests/engineBarra.test.ts`.
+    const daBarra = new Set<string>(REGRAS_DA_BARRA);
     const track = await loadTrack(path.join(__dirname, 'fixtures', 'tracks', 'trilha-rust-minima'));
     const report = auditTrack(track);
     assert.deepEqual(
-      report.violations.map((v) => `${v.regra} ${v.campo} ${v.construcao ?? ''}`.trim()),
+      report.violations
+        .filter((v) => !daBarra.has(v.regra))
+        .map((v) => `${v.regra} ${v.campo} ${v.construcao ?? ''}`.trim()),
       [],
       `a fixture voltou a violar a própria engine: ${JSON.stringify(report.violations)}`,
     );
-    assert.equal(report.totals.violacoes, 0);
+    assert.equal(report.totals.violacoes, report.totals.errosDaBarra, 'todo erro que sobra é da barra');
     assert.equal(report.totals.aulas, 1);
     assert.equal(report.totals.desafios, 1);
   });

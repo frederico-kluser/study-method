@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "classificar-imc",
+  "title": "Classificar o IMC",
+  "concept": "as_faixas_em_ordem",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Classificar o IMC\n\nEscreva a cascata da função `classificarImc`. Ela lê **dois inteiros** digitados na mesma linha — o peso em quilos e a altura em **centímetros** — e imprime a faixa do IMC, numa linha só.\n\nA leitura e a conta do IMC já estão no arquivo. Falta a cascata, com estas quatro faixas:\n\n| faixa | imprime |\n|---|---|\n| `imc` de 30.0 para cima | `obesidade` |\n| `imc` de 25.0 a 30.0 | `sobrepeso` |\n| `imc` de 18.5 a 25.0 | `normal` |\n| o resto | `abaixo do peso` |\n\nOs limites de baixo são `>=` e os de cima são `<`. Com `82 175` digitado, a saída é exatamente:\n\n```text\nsobrepeso\n```\n\nEscreva os degraus do mais ALTO para o mais baixo, e feche as duas faixas do meio pelos dois lados com `&&`.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* classificarImc le o peso (kg, inteiro) e a altura (cm, inteiro) digitados,\n   calcula o IMC e imprime a faixa numa linha so.\n   A leitura e a conta do IMC ja estao escritas.\n   Falta a cascata de quatro degraus, do mais ALTO para o mais baixo:\n     obesidade      -> imc de 30.0 para cima\n     sobrepeso      -> imc de 25.0 a 30.0   (faixa fechada, com &&)\n     normal         -> imc de 18.5 a 25.0   (faixa fechada, com &&)\n     abaixo do peso -> o resto (o else) */\nvoid classificarImc(void) {\n    int peso = 0;\n    int altura = 0;\n\n    scanf(\"%d %d\", &peso, &altura);\n\n    double metros = (double)altura / 100;\n    double imc = peso / (metros * metros);\n\n    /* escreva a cascata aqui, no lugar desta linha */\n    printf(\"faixa\\n\");\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio classificar-imc — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   Cada cenario escreve num arquivo o que a pessoa \"digitaria\", aponta o\n   stdin para esse arquivo (freopen) e captura o stdout no proprio teste.\n   Os nomes dos arquivos temporarios sao POR CENARIO: um cenario nunca le a\n   entrada nem a captura do outro. Nunca ha fclose de stdin/stdout — so\n   fflush — para o proximo freopen ficar legal (C11 7.21.4).\n   A altura e sempre 175 cm (1.75 m, quadrado 3.0625) e os quatro pesos caem\n   um em cada faixa, longe das bordas:\n     50 -> 16.32  ·  68 -> 22.20  ·  82 -> 26.77  ·  95 -> 31.02\n   As quatro saidas esperadas sao DIFERENTES: nenhum printf de texto fixo\n   passa nos quatro cenarios. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid classificarImc(void);\n\nSM_TEST(abaixo_do_peso) {\n    FILE *e = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(e, \"50 175\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    classificarImc();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"50 kg e 175 cm dao abaixo do peso\", linha, \"abaixo do peso\\n\",\n              \"o imc 16.32 nao alcanca 18.5, entao nenhum degrau casou e sobrou o else\");\n    /* a saida TERMINA na primeira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: a faixa, e nada mais\");\n    fclose(f);\n}\n\nSM_TEST(faixa_normal) {\n    FILE *e = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(e, \"68 175\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    classificarImc();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"68 kg e 175 cm dao normal\", linha, \"normal\\n\",\n              \"o imc 22.20 esta na faixa fechada de 18.5 a 25.0\");\n    fclose(f);\n}\n\nSM_TEST(faixa_sobrepeso) {\n    FILE *e = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(e, \"82 175\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    classificarImc();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"82 kg e 175 cm dao sobrepeso\", linha, \"sobrepeso\\n\",\n              \"o imc 26.77 esta na faixa fechada de 25.0 a 30.0\");\n    fclose(f);\n}\n\nSM_TEST(faixa_obesidade) {\n    FILE *e = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(e, \"95 175\\n\");\n    fclose(e);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_4.tmp\", \"w\", stdout);\n    classificarImc();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_4.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"95 kg e 175 cm dao obesidade\", linha, \"obesidade\\n\",\n              \"o imc 31.02 passa de 30.0, e esse e o primeiro degrau da cascata\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid classificarImc(void) {\n    int peso = 0;\n    int altura = 0;\n\n    scanf(\"%d %d\", &peso, &altura);\n\n    double metros = (double)altura / 100;\n    double imc = peso / (metros * metros);\n\n    if (imc >= 30.0) {\n        printf(\"obesidade\\n\");\n    } else if (imc >= 25.0 && imc < 30.0) {\n        printf(\"sobrepeso\\n\");\n    } else if (imc >= 18.5 && imc < 25.0) {\n        printf(\"normal\\n\");\n    } else {\n        printf(\"abaixo do peso\\n\");\n    }\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "abaixo_do_peso",
+      "teste": "abaixo_do_peso",
+      "descricao": "com 50 e 175 digitados, o imc 16.32 nao casa em nenhum degrau e a funcao imprime abaixo do peso numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "faixa_normal",
+      "teste": "faixa_normal",
+      "descricao": "com 68 e 175 digitados, o imc 22.20 cai na faixa fechada de 18.5 a 25.0 e a funcao imprime normal"
+    },
+    {
+      "id": "faixa_sobrepeso",
+      "teste": "faixa_sobrepeso",
+      "descricao": "com 82 e 175 digitados, o imc 26.77 cai na faixa fechada de 25.0 a 30.0 e a funcao imprime sobrepeso"
+    },
+    {
+      "id": "faixa_obesidade",
+      "teste": "faixa_obesidade",
+      "descricao": "com 95 e 175 digitados, o imc 31.02 passa de 30.0 e a funcao imprime obesidade — o degrau mais alto tem de vir primeiro na cascata"
+    }
+  ]
+}

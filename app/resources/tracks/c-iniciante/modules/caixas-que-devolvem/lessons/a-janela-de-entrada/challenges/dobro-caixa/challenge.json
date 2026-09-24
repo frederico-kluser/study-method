@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobro-caixa",
+  "title": "A caixa do dobro",
+  "concept": "o_parametro",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A caixa do dobro\n\nEscreva a caixa `dobroCaixa` — é o nome que o programa de fora chama — com uma **janela de entrada**: ela recebe um inteiro e imprime uma linha com o valor que entrou e o dobro dele.\n\nA assinatura é esta, com o nome exato: `void dobroCaixa(int n)`. Com a chamada `dobroCaixa(2);` a tela mostra\n\n```text\no dobro de 2 e 4\n```\n\ne com `dobroCaixa(7);`\n\n```text\no dobro de 7 e 14\n```\n\ne com `dobroCaixa(-3);`\n\n```text\no dobro de -3 e -6\n```\n\nOu seja: um `printf` com **dois buracos** `%d` — o primeiro recebe o valor que entrou, o segundo recebe a conta do dobro. Nada de número fixo no texto entre aspas: o teste chama a sua caixa com três valores diferentes, um deles negativo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* escreva AQUI a caixa dobroCaixa, com a janela de entrada:\n   void dobroCaixa(int n), e dentro UM printf com dois %d —\n   o valor que entrou e o dobro dele */\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio dobro-caixa — counter_protocol (03-tdd 3.9.3).\n   Tres cenarios com valores diferentes (2, 7 e -3): nenhum texto fixo no\n   printf do aluno passa nos tres, e o negativo prova que a conta e a conta.\n   Cada cenario manda o stdout para o SEU arquivo com freopen, chama a caixa\n   do aluno e le o arquivo de volta; o fflush descarrega sem fechar, deixando\n   o stdout legal para o proximo freopen. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid dobroCaixa(int n);\n\nSM_TEST(o_dobro_de_2) {\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    dobroCaixa(2);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do dobro de 2\", linha, \"o dobro de 2 e 4\\n\",\n              \"o argumento 2 entrou pela janela e a conta deu 4\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"uma chamada, uma linha\", fim, \"(nada impresso)\",\n              \"cada chamada imprime uma linha so\");\n    fclose(f);\n}\n\nSM_TEST(o_dobro_de_7) {\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    dobroCaixa(7);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do dobro de 7\", linha, \"o dobro de 7 e 14\\n\",\n              \"a MESMA caixa, agora com 7 na janela: a conta deu 14\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"uma chamada, uma linha\", fim, \"(nada impresso)\",\n              \"cada chamada imprime uma linha so\");\n    fclose(f);\n}\n\nSM_TEST(o_dobro_de_menos_3) {\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    dobroCaixa(-3);\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a linha do dobro de -3\", linha, \"o dobro de -3 e -6\\n\",\n              \"com um valor negativo a caixa faz a MESMA conta: -3 vezes 2 da -6\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"uma chamada, uma linha\", fim, \"(nada impresso)\",\n              \"cada chamada imprime uma linha so\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid dobroCaixa(int n) {\n    printf(\"o dobro de %d e %d\\n\", n, n * 2);\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_dobro_de_2",
+      "teste": "o_dobro_de_2",
+      "descricao": "a caixa dobroCaixa recebe 2 pela janela de entrada e imprime uma unica linha: o dobro de 2 e 4"
+    },
+    {
+      "id": "o_dobro_de_7",
+      "teste": "o_dobro_de_7",
+      "descricao": "a MESMA caixa recebe 7 e imprime o dobro de 7 e 14 — dois valores diferentes provam que a linha sai do parametro e da conta, nao de um texto fixo"
+    },
+    {
+      "id": "o_dobro_de_menos_3",
+      "teste": "o_dobro_de_menos_3",
+      "descricao": "a MESMA caixa recebe -3 e imprime o dobro de -3 e -6 — o cenario negativo do contrato, que fecha a porta para qualquer numero escrito a mao"
+    }
+  ]
+}

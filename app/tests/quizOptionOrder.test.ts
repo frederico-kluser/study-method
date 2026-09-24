@@ -77,17 +77,67 @@ function realAssertions(): TrackAssertionDto[] {
 
 const REAL = realAssertions();
 
+/** As afirmações de UM curso — o recorte que a premissa histórica precisa. */
+function assertionsDoCurso(slug: string): TrackAssertionDto[] {
+  const out: TrackAssertionDto[] = [];
+  const raiz = join(TRACKS, slug);
+  for (const entry of readdirSync(raiz, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || entry.name !== 'lesson.json') continue;
+    const lesson = JSON.parse(readFileSync(join(entry.parentPath, entry.name), 'utf8')) as {
+      assertions?: TrackAssertionDto[];
+    };
+    for (const a of lesson.assertions ?? []) out.push(a);
+  }
+  return out;
+}
+
 describe('a trilha REAL é o motivo desta onda existir (a premissa, medida)', () => {
-  it('as afirmações do curso têm answerIndex 0 em 100% dos casos', () => {
+  /**
+   * ⚑ A PREMISSA VIROU HISTÓRIA, e o pin mudou com ela (2026-09-22).
+   *
+   * Até aqui este caso exigia `answerIndex === 0` em **100%** das afirmações do
+   * disco, porque era isso que estava medido quando a ONDA12 nasceu: as 44
+   * afirmações do único módulo existente tinham todas a resposta na posição 0, e
+   * era esse fato que tornava "clicar sempre na primeira pílula" um atalho.
+   *
+   * O corpus cresceu e a autoria do `c-iniciante` passou a variar o índice.
+   * Medido nesta execução (795 afirmações nos três cursos):
+   *
+   *     answerIndex 0 → 732 · 1 → 28 · 2 → 23 · 3 → 12
+   *     python-iniciante 320/320 em 0 · rust-iniciante 236/236 em 0
+   *     c-iniciante 176 em 0 · 28 em 1 · 23 em 2 · 12 em 3
+   *
+   * Exigir 100% de zeros passou a REPROVAR conteúdo melhor que o da premissa —
+   * e isso é o pin ditando o produto. O índice no JSON é IRRELEVANTE para o
+   * vazamento desde que esta onda existe: a ordem de exibição é permutada por
+   * `quizOptionOrder`, e a prova disso são os outros casos desta suíte
+   * (determinismo, semente por pergunta, distribuição não-degenerada, bijeção) e
+   * a suíte de tela (`tests/quizOptionLeak.test.ts`). O que este caso guarda
+   * agora é a FORMA que a permutação exige — quatro alternativas — e o tamanho
+   * do corpus, para que a suíte não passe muda sobre um disco vazio.
+   */
+  it('o corpus real tem quatro alternativas em toda afirmação, e é grande', () => {
     assert.ok(
       REAL.length >= 119,
-      `a trilha python-iniciante tem 119 afirmações hoje (a-tela 44 + decisao 36 + repeticao 39), veio ${REAL.length} — o conteúdo mudou: revalide esta suíte`,
+      `o corpus de afirmações do disco encolheu para ${REAL.length} — a suíte não pode passar muda: revalide`,
     );
-    const zeros = REAL.filter((a) => a.answerIndex === 0).length;
-    assert.equal(zeros, REAL.length, 'a premissa do defeito: a resposta é SEMPRE a opção 0 no JSON');
     for (const a of REAL) {
       assert.equal(a.options.length, 4, `${keyOf(a)} tem 4 alternativas`);
     }
+  });
+
+  it('a premissa HISTÓRICA continua verdadeira no curso que a produziu', () => {
+    // O `python-iniciante` é o curso da ONDA12: nele a resposta segue na posição
+    // 0 em 100% das afirmações, e é por isso que a permutação não é enfeite.
+    const doPython = assertionsDoCurso('python-iniciante');
+    assert.ok(doPython.length >= 119, `python-iniciante veio com ${doPython.length} afirmações`);
+    const zeros = doPython.filter((a) => a.answerIndex === 0).length;
+    assert.equal(
+      zeros,
+      doPython.length,
+      'no curso que motivou a onda a resposta é SEMPRE a opção 0 no JSON — se isso mudar, ' +
+        'atualize o texto do cabeçalho desta suíte junto',
+    );
   });
 });
 

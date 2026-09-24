@@ -2,23 +2,111 @@
   "schemaVersion": 1,
   "slug": "preencher-lendo",
   "title": "Preencher lendo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa deixa de nascer pronta: `&v[i]` dá à `scanf` o endereço de uma gaveta, e o laço preenche a lista com o que a pessoa digita — quantas gavetas, o `n` lido decide.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "preencher_a_lista_lendo"
+  ],
   "prerequisites": [
     "a-lista-como-parametro",
     "perguntar-ao-usuario"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr",
+      "op:unary:&"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a lista deixa de ser escrita no código: as gavetas passam a receber o que a pessoa digita, e quantas gavetas valem passa a ser um número lido em tempo de execução",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-gaveta-tem-endereco",
+      "title": "A gaveta também tem endereço",
+      "markdown": "A `scanf` sempre pediu o `&`: ela precisa saber ONDE escrever o número que foi digitado. Uma gaveta da caixa é um `int` como outro qualquer — então ela também tem endereço:\n\n```c\nint notas[5] = {0};\nscanf(\"%d\", &notas[2]);\n```\n\nLeia de dentro para fora: `notas[2]` é a gaveta 2; o `&` na frente pega o endereço DELA. O número digitado cai na gaveta 2, e em nenhuma outra."
+    },
+    {
+      "id": "a-gaveta-que-o-laco-escolhe",
+      "title": "A gaveta que o laço escolhe",
+      "markdown": "Trocar o `2` pelo contador do laço preenche a caixa inteira:\n\n```c\nint notas[5] = {0};\nfor (int i = 0; i < 5; i++) {\n    scanf(\"%d\", &notas[i]);\n}\n```\n\nDentro de `&notas[i]` o `i` faz o trabalho de sempre: escolhe a gaveta. Cada volta lê UM número para uma gaveta diferente — cinco voltas, cinco números, guardados na ordem em que foram digitados."
+    },
+    {
+      "id": "quantas-notas",
+      "title": "Quantas notas vêm?",
+      "markdown": "Quase nunca se sabe de antemão quantas notas virão. Então o programa pergunta isso primeiro:\n\n```c\nint notas[50] = {0};\nint n = 0;\nscanf(\"%d\", &n);\nfor (int i = 0; i < n; i++) {\n    scanf(\"%d\", &notas[i]);\n}\n```\n\nA caixa nasce com 50 gavetas: o tamanho é decidido quando o programa é escrito. Quantas gavetas serão USADAS, só o `n` digitado diz — o laço para em `n`, não em 50."
+    },
+    {
+      "id": "o-freio-de-mao",
+      "title": "O freio de mão",
+      "markdown": "A caixa de 50 tem as gavetas 0 a 49. Se o `n` digitado for 80, o laço chega em `notas[50]`, que não existe — e C não avisa: o programa escreve na memória do vizinho. Por isso um programa de verdade freia o `n` antes:\n\n```c\nint n = 0;\nscanf(\"%d\", &n);\nif (n > 50) {\n    n = 50;\n}\n```\n\nOnde a analogia da caixa quebra: ninguém confere se a gaveta existe — nem a caixa, nem a `scanf`. Quem segura o `n` é quem escreve o código."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-e-comercial-pega-o-endereco-da-gaveta",
+      "statement": "`scanf(\"%d\", &v[i])` preenche a gaveta `i` pelo endereço dela.",
+      "question": "Por que a `scanf` precisa do `&` na frente de `notas[i]`?",
+      "options": [
+        "Porque ela escreve onde mandarem, e o `&` dá o endereço da gaveta `i`.",
+        "Porque é o `&` que transforma o número digitado no índice da gaveta certa.",
+        "Porque sem o `&` a `scanf` leria a gaveta em vez de escrever nela.",
+        "Porque o `&` reserva a gaveta `i` antes de a pessoa digitar o número."
+      ],
+      "answerIndex": 0,
+      "feedback": "A `scanf` não devolve o número: ela escreve no endereço que recebeu. `notas[i]` é a gaveta; `&notas[i]` é o endereço dela — o mesmo `&` que a `scanf` pediu desde a primeira leitura de teclado.",
+      "sectionId": "a-gaveta-tem-endereco",
+      "optionRationales": [
+        "O `&` de `&notas[i]` entrega o endereço daquela gaveta, e é lá que a `scanf` escreve.",
+        "O índice é o `i` entre colchetes; o `&` não mexe no valor digitado nem no índice.",
+        "Sem o `&` a `scanf` receberia o VALOR da gaveta e não teria onde escrever — o programa quebraria, não leria.",
+        "Gaveta não se reserva: as 5 (ou 50) já existem desde a declaração da caixa."
+      ]
+    },
+    {
+      "id": "o-laco-le-uma-nota-por-volta",
+      "statement": "O laço lê uma nota por volta, e o `i` dentro de `&notas[i]` decide em qual gaveta cada uma cai.",
+      "question": "Com `n` valendo 3, o laço `for (int i = 0; i < n; i++)` chamando `scanf(\"%d\", &notas[i])` faz o quê?",
+      "options": [
+        "Lê três números: um para `notas[0]`, um para `notas[1]` e um para `notas[2]`.",
+        "Lê um número só e depois copia esse mesmo valor para as três primeiras gavetas.",
+        "Lê três números e guarda os três em `notas[3]`, a última gaveta usada.",
+        "Lê 50 números, porque o laço sempre vai até o fim da caixa declarada."
+      ],
+      "answerIndex": 0,
+      "feedback": "Três voltas, três leituras, três gavetas: o `i` vale 0, 1 e 2. Quem manda no número de voltas é o `n` — a caixa pode ter 50 gavetas e só as três primeiras serem usadas.",
+      "sectionId": "quantas-notas",
+      "optionRationales": [
+        "Cada volta tem a sua `scanf` e o seu `i`: três voltas preenchem as gavetas 0, 1 e 2.",
+        "Cada volta lê um número NOVO do teclado; nada é copiado de uma gaveta para outra.",
+        "O `i` muda a cada volta, então o destino muda também; e `notas[3]` seria a quarta gaveta.",
+        "O laço para quando a condição `i < n` fica falsa: com `n` valendo 3, na quarta conferência."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "scanf, fscanf, sscanf — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/io/fscanf",
+      "description": "A página oficial da `scanf` em C: cada especificador do formato recebe o ENDEREÇO de onde o valor lido será escrito."
+    },
+    {
+      "title": "Array subscript e o operador de endereço — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do `[]` e do `&`: como o índice escolhe o elemento e como o endereço de um elemento é obtido."
+    },
+    {
+      "title": "scanf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/scanf.3.html",
+      "description": "A man-page da `scanf`: o que ela devolve, como o espaço em branco é tratado e por que o argumento é um ponteiro."
+    }
+  ],
+  "challenges": [
+    "leitor-de-notas"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

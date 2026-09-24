@@ -11,6 +11,9 @@
   "entryCriteria": [
     "zero absoluto — nunca programou"
   ],
+  "cadeia": "python",
+  "nivel": 1,
+  "cursoAnterior": null,
   "modules": [
     "a-tela",
     "decisao",

@@ -124,6 +124,28 @@
  * analisado VERBATIM, byte a byte, como sempre foi. JavaScript, TypeScript e
  * Python não mudam nem uma ocorrência.
  *
+ * ── O ENVELOPE DE FRAGMENTO (onda da bateria PED) ───────────────────────────
+ *
+ * O MESMO defeito, do outro lado do artefato: a TEORIA de C demonstra em
+ * FRAGMENTO. `printf("oi\n");` sozinho não é unidade de tradução — medido, o
+ * clang reprova em `1:8` ("expected parameter declarator") — e a consequência
+ * era que a engine via ZERO demonstração na teoria de C: a única aula C
+ * autorada (`primeira-tela`) tem quatro blocos `c` e nenhum deles produzia
+ * ocorrência. Uma bateria que exige "toda construção nova DEMONSTRADA em
+ * bloco de código" (A13/A13d e a bateria PED) reprovaria, por defeito do
+ * extrator, toda aula de C escrita como a pedagogia manda escrever — a aula 1
+ * não pode mostrar `main` nem função, porque `decl:func` é a aula 2.
+ *
+ * A saída é a MESMA da ante-sala, na forma de SEGUNDA TENTATIVA: o fonte é
+ * analisado VERBATIM primeiro (nada muda para quem já parseia) e, só quando o
+ * parse FALHA, o fragmento é embrulhado em `envelopeDeFragmento` — includes da
+ * biblioteca padrão + um corpo de função — e re-parseado. As ocorrências do
+ * ENVELOPE (prefixo e sufixo) são descartadas por OFFSET, exatamente como as
+ * da ante-sala, e as do autor voltam ao referencial do fragmento. Falhando as
+ * duas, o `PARSE_ERROR` devolvido é o da PRIMEIRA (o do fonte do autor,
+ * verbatim) — um erro medido no fonte embrulhado citaria coluna de um texto
+ * que o autor não escreveu.
+ *
  * Referência: `docs/16-engine-de-trilha.md` §5.3.
  */
 
@@ -814,6 +836,96 @@ function anteSalaDoTestsCode(surface: ExtractSurface | undefined, adapterId: str
 }
 
 /**
+ * O ENVELOPE DE FRAGMENTO — a SEGUNDA tentativa de parse (ver o cabeçalho).
+ *
+ * Diferente da ante-sala em dois pontos, e os dois são deliberados:
+ *
+ *  1. ele só entra quando o parse VERBATIM falhou (a ante-sala entra sempre,
+ *     para a superfície dela) — logo nenhum fonte que já parseia muda de
+ *     resultado, em nenhuma linguagem;
+ *  2. ele tem SUFIXO (a ante-sala é só prefixo), porque o que falta a um
+ *     fragmento de corpo de função é o `}` do fim. O corte das ocorrências do
+ *     envelope é por OFFSET nas DUAS pontas: `start < prefixo.length` é
+ *     prefixo, `start >= prefixo.length + |fragmento|` é sufixo.
+ *
+ * Os três includes existem para que a chamada de biblioteca padrão do
+ * fragmento RESOLVA (`api:printf` sai do `ApiRef` que o extrator de C
+ * sintetiza a partir da declaração; sem `<stdio.h>` o `printf` seria
+ * declaração implícita) — e eles ficam no PREFIXO, logo o
+ * `node:IncludeDirective` deles nunca é atribuído ao autor.
+ */
+interface EnvelopeFragmento {
+  /** o texto que entra NA FRENTE do fragmento (termina em '\n'). */
+  prefixo: string;
+  /** o texto que entra DEPOIS do fragmento (fecha o corpo). */
+  sufixo: string;
+  /** nº de linhas do prefixo — o rebase de `line` (1-based). */
+  linhas: number;
+}
+
+/** O prefixo do envelope de fragmento de C — includes + abertura do corpo. */
+const C_FRAGMENTO_PREFIXO =
+  '#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\nvoid sm_fragmento_de_teoria(void) {\n';
+
+/**
+ * O prefixo do envelope de fragmento de Rust — abertura de um corpo de função.
+ *
+ * Rust tem o MESMO defeito de C na teoria, e medido: o parser (tree-sitter)
+ * reprova `dobro(-3)` e `let x = 5;` soltos ("falta ;", "construção não
+ * reconhecida"), porque fora de um corpo só valem ITENS. Trinta e um blocos da
+ * teoria do `rust-iniciante` caíam nisso — e cada um deles era uma
+ * demonstração que a bateria não via.
+ */
+const RUST_FRAGMENTO_PREFIXO = 'fn sm_fragmento_de_teoria() {\n';
+
+/** A tabela de envelopes por (superfície, adaptador). `null` = sem 2ª tentativa. */
+const ENVELOPE_DE_FRAGMENTO: Readonly<Record<string, { prefixo: string; sufixo: string }>> = {
+  c: { prefixo: C_FRAGMENTO_PREFIXO, sufixo: '\n}\n' },
+  rust: { prefixo: RUST_FRAGMENTO_PREFIXO, sufixo: '\n}\n' },
+};
+
+/** O envelope por (superfície, adaptador). `null` = sem segunda tentativa. */
+function envelopeDeFragmento(
+  surface: ExtractSurface | undefined,
+  adapterId: string,
+): EnvelopeFragmento | null {
+  if (surface !== 'theory') return null;
+  const envelope = ENVELOPE_DE_FRAGMENTO[adapterId];
+  if (envelope === undefined) return null;
+  return {
+    prefixo: envelope.prefixo,
+    sufixo: envelope.sufixo,
+    // o prefixo termina em '\n': o nº de '\n' é o nº de linhas ANTES do
+    // fragmento, e é exatamente o que sai de `line` no rebase.
+    linhas: envelope.prefixo.split('\n').length - 1,
+  };
+}
+
+/**
+ * Rebase das ocorrências do fonte EMBRULHADO para o referencial do FRAGMENTO.
+ * Mesma aritmética da ante-sala, com o corte nas DUAS pontas (ver
+ * `EnvelopeFragmento`).
+ */
+function rebasarFragmento(
+  todas: AtomOccurrence[],
+  envelope: EnvelopeFragmento,
+  tamanhoDoFragmento: number,
+): void {
+  const inicio = envelope.prefixo.length;
+  const fim = inicio + tamanhoDoFragmento;
+  const doAutor = todas.filter((o) => o.start >= inicio && o.start < fim);
+  todas.length = 0;
+  for (const o of doAutor) {
+    todas.push({
+      ...o,
+      line: o.line - envelope.linhas,
+      start: o.start - inicio,
+      end: o.end - inicio,
+    });
+  }
+}
+
+/**
  * Rebase das ocorrências do fonte COMBINADO (ante-sala + autor) para o
  * referencial do AUTOR: `line` − nº de linhas da ante-sala, `start`/`end` −
  * bytes da emenda (o preâmbulo é ASCII puro, byte = caractere). Ocorrências
@@ -906,6 +1018,29 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
     dialect: options.dialect,
   });
   if (!parsed.ok) {
+    // SEGUNDA TENTATIVA — o envelope de fragmento (ver o cabeçalho). Só existe
+    // fora da ante-sala (as duas superfícies são disjuntas por construção: a
+    // ante-sala é testsCode, o envelope é theory) e só quando o verbatim já
+    // falhou. Falhando as duas, devolve-se o erro do VERBATIM.
+    const envelope = anteSala === null ? envelopeDeFragmento(options.surface, adapter.id) : null;
+    if (envelope !== null) {
+      const embrulhado = `${envelope.prefixo}${code}${envelope.sufixo}`;
+      const reparsed = adapter.parse(embrulhado, {
+        fileName: options.fileName ?? (caminhada === 'ts-node' ? 'trecho.mjs' : undefined),
+        dialect: options.dialect,
+      });
+      if (reparsed.ok) {
+        const doFragmento: AtomOccurrence[] = [];
+        if (caminhada === 'ts-node') caminharTsNode(embrulhado, adapter, reparsed, doFragmento);
+        else caminharLangNode(embrulhado, adapter, reparsed, doFragmento);
+        rebasarFragmento(doFragmento, envelope, code.length);
+        return {
+          ok: true,
+          occurrences: doFragmento,
+          keys: [...new Set(doFragmento.map((o) => o.key))].sort(),
+        };
+      }
+    }
     if (anteSala === null) return { ok: false, error: parsed.error };
     return { ok: false, error: erroRebasado(parsed.error, anteSala) };
   }

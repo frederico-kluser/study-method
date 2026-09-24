@@ -41,17 +41,17 @@
       "question": "Em `fatia: &str`, o que o `&` promete?",
       "options": [
         "Um texto emprestado: a função só lê",
-        "Um texto dono",
-        "Uma cópia",
-        "O número de bytes"
+        "Um texto dono, com caixa própria",
+        "Uma cópia nova do texto, feita na entrada",
+        "Um texto entregue de vez: o dono perde o que passou"
       ],
       "answerIndex": 0,
       "feedback": "O & marca o empréstimo: o texto passa, mas não pertence à função.",
       "optionRationales": [
         "&str é o texto emprestado — a função lê e devolve.",
-        "Dono é o String; o &str empresta.",
-        "Não há cópia no empréstimo: é o próprio texto, emprestado.",
-        "Bytes é papel do len; o & fala de dono."
+        "Dono é o String; o &str só empresta o texto de quem já é dono.",
+        "Não há cópia no empréstimo: é o próprio texto do dono, emprestado.",
+        "O empréstimo não tira nada do dono: a fatia continua com quem a emprestou."
       ]
     },
     {
@@ -61,17 +61,17 @@
       "question": "O que `fatia.to_string()` devolve?",
       "options": [
         "Um String DONO com o mesmo conteúdo",
-        "A mesma fatia",
-        "A fatia em maiúsculas",
-        "O tamanho da fatia"
+        "A mesma fatia emprestada que entrou",
+        "Um String emprestado, que morre com a fatia",
+        "O tamanho da fatia em bytes"
       ],
       "answerIndex": 0,
       "feedback": "O to_string dá casa ao texto: nasce a caixa dona.",
       "optionRationales": [
         "A caixa nova é String dona, com o conteúdo da fatia.",
-        "O retorno é outro valor: uma caixa nova, não a fatia.",
-        "to_string não transforma letras — só dá dono ao texto.",
-        "Tamanho é o len; o to_string devolve texto."
+        "O retorno é outro valor: uma caixa nova e dona, não a fatia emprestada.",
+        "A caixa nova é dona e vive por si: ela não depende da fatia que a originou.",
+        "Tamanho é o len; o to_string devolve texto, não número."
       ]
     }
   ],

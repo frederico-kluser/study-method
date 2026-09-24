@@ -2,22 +2,129 @@
   "schemaVersion": 1,
   "slug": "o-limite-do-int",
   "title": "O maior número que cabe",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A casa int tem tamanho fixo, logo tem teto e piso — e o #include <limits.h> traz os nomes INT_MAX e INT_MIN para você imprimir os dois em vez de decorá-los.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IncludeDirective",
+  "concepts": [
+    "o_limite_do_int"
+  ],
   "prerequisites": [
     "comparacoes"
   ],
+  "introduces": {
+    "productive": [
+      "node:IncludeDirective"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a casa deixa de ser infinita: o int tem teto e piso conhecidos, o topo do arquivo pode pedir mais de um inventario (o <limits.h> ao lado do <stdio.h>), e passar do teto nao e erro de compilacao — e comportamento indefinido, que se evita comparando antes",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-casa-do-int-tem-fim",
+      "title": "A casa do int tem fim",
+      "markdown": "Uma casa `int` ocupa um espaço fixo na memória — nesta máquina, 4 bytes. Espaço fixo quer dizer que existe um **maior número** e um **menor número** que cabem lá dentro. A casa não cresce quando o valor aperta.\n\nE esses dois números não são para decorar. Quem sabe quais são é o compilador desta máquina, e ele entrega os dois de graça — desde que você peça o inventário certo no topo do arquivo."
+    },
+    {
+      "id": "o-inventario-dos-limites",
+      "title": "O inventário dos limites",
+      "markdown": "Você já pede um inventário no topo do arquivo: o `#include <stdio.h>` é o que traz o `printf`. Os limites moram em outro, o `<limits.h>` — e o topo aceita os dois:\n\n```c\n#include <stdio.h>\n#include <limits.h>\n\nprintf(\"%d\\n\", INT_MAX);\n```\n\n```text\n2147483647\n```\n\n`INT_MAX` é o maior `int` que cabe nesta máquina (medido). Ele não é uma casa: é um **nome** que o compilador troca pelo número antes de compilar. Por isso não leva `&` e ninguém muda o valor dele."
+    },
+    {
+      "id": "o-piso-e-um-a-mais",
+      "title": "O piso, e o negativo a mais",
+      "markdown": "O menor `int` tem nome próprio no mesmo inventário:\n\n```c\n#include <stdio.h>\n#include <limits.h>\n\nprintf(\"%d\\n\", INT_MIN);\n```\n\n```text\n-2147483648\n```\n\nRepare que o piso está uma unidade mais longe do zero que o teto: a fileira dos negativos tem um número a mais, porque o zero ocupa um lugar do lado positivo. Somando os dois dá exatamente `-1` (medido) — não é erro de conta, é o formato da casa."
+    },
+    {
+      "id": "passar-do-teto",
+      "title": "Passar do teto não é erro de compilação",
+      "markdown": "Somar 1 em `INT_MAX` **não é erro de compilação**: o programa compila e roda. Com o número escrito no código o compilador até avisa (`overflow in expression`, medido); com um valor que só aparece ao rodar, ele não tem como avisar. E o padrão do C não diz o que acontece — é *comportamento indefinido*, e este curso nunca o testa.\n\nA defesa é comparar ANTES de somar:\n\n```c\n#include <stdio.h>\n#include <limits.h>\n\nint n = 2147483000;\nprintf(\"%d\\n\", n >= INT_MAX);\n```\n\n```text\n0\n```\n\nO `0` diz \"ainda não chegou no teto\": aqui cabe somar."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "passar-do-teto-e-indefinido",
+      "statement": "`INT_MAX` é 2147483647 nesta máquina; passar dele não é erro de compilação — é comportamento indefinido.",
+      "question": "Um programa faz `printf(\"%d\\n\", INT_MAX + 1);`. O que o C garante sobre o resultado?",
+      "options": [
+        "Nada: compila e roda, com aviso no máximo, e o resultado é indefinido.",
+        "Que o compilador acusa erro de compilação e o programa não chega a rodar.",
+        "Que o resultado é `INT_MIN`, porque a conta volta para o começo da casa.",
+        "Que o resultado é 2147483648, porque o `int` cresce quando o valor não cabe."
+      ],
+      "answerIndex": 0,
+      "feedback": "Passar do teto do `int` é comportamento indefinido: o compilador não é obrigado a impedir nada — no máximo avisa — e o programa pode imprimir qualquer coisa. A defesa é comparar com `INT_MAX` antes de somar.",
+      "sectionId": "passar-do-teto",
+      "optionRationales": [
+        "O padrão não define o que acontece ao passar do teto — e programa sem garantia é programa que não se escreve.",
+        "Aviso não é erro: com `INT_MAX + 1` escrito no código o compilador avisa, e mesmo assim gera o programa.",
+        "Muitas máquinas até fazem isso, mas nada obriga: contar com esse resultado é contar com sorte.",
+        "A casa `int` tem tamanho fixo nesta máquina, 4 bytes: ela não cresce para caber o valor."
+      ]
+    },
+    {
+      "id": "os-limites-vem-do-include",
+      "statement": "`INT_MAX` e `INT_MIN` vêm do `#include <limits.h>`: são nomes que o compilador troca pelo número.",
+      "question": "O que acontece se você usar `INT_MAX` sem o `#include <limits.h>` no topo do arquivo?",
+      "options": [
+        "O compilador não conhece o nome e reclama: é esse inventário que o traz.",
+        "Funciona igual: `INT_MAX` é palavra da linguagem e não precisa de inventário.",
+        "Funciona, mas o valor chega zerado, por falta de quem o defina.",
+        "Funciona, porque o `#include <stdio.h>` já traz `INT_MAX` junto com o `printf`."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada inventário traz os seus nomes: o `<stdio.h>` traz o `printf`; o `<limits.h>` traz `INT_MAX` e `INT_MIN`. Sem o include certo, o nome simplesmente não existe para o compilador.",
+      "sectionId": "o-inventario-dos-limites",
+      "optionRationales": [
+        "Sem o `<limits.h>` o nome não existe para o compilador, e ele para na linha que o usa.",
+        "As palavras da linguagem são poucas (`int`, `return`, `char`); `INT_MAX` é um nome que vem de um inventário.",
+        "Nome que não existe não vale zero: o compilador nem chega a produzir o programa.",
+        "Cada inventário tem o seu conteúdo — o `<stdio.h>` cuida da tela e dos arquivos, não dos limites."
+      ]
+    },
+    {
+      "id": "o-piso-tem-um-a-mais",
+      "statement": "O piso está uma unidade mais longe do zero que o teto: `INT_MAX + INT_MIN` é -1.",
+      "question": "Nesta máquina `INT_MAX` é 2147483647. Quanto vale `INT_MIN`?",
+      "options": [
+        "-2147483648: a fileira dos negativos tem um número a mais.",
+        "-2147483647: é o mesmo número com o sinal trocado.",
+        "0: o menor `int` que cabe numa casa é o zero.",
+        "-2147483646: um número a menos que o teto, por causa do sinal."
+      ],
+      "answerIndex": 0,
+      "feedback": "O zero ocupa um lugar do lado positivo, então sobra um negativo a mais: o piso é -2147483648, e somar teto com piso dá exatamente -1 (medido).",
+      "sectionId": "o-piso-e-um-a-mais",
+      "optionRationales": [
+        "Com o zero contando do lado positivo, os negativos ganham um lugar a mais.",
+        "Seria o espelho exato, mas aí um dos lugares da casa ficaria sem uso.",
+        "O `int` guarda negativos também — o zero está no meio da fileira, não no fim.",
+        "Não há dois lugares de diferença: a diferença entre teto e piso é de uma unidade só."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Limits of integer types — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/types/limits",
+      "description": "A página oficial do <limits.h>: os nomes INT_MAX e INT_MIN e o mínimo que o padrão exige de cada um."
+    },
+    {
+      "title": "limits.h — o cabeçalho na especificação POSIX",
+      "url": "https://man7.org/linux/man-pages/man0/limits.h.0p.html",
+      "description": "O cabeçalho descrito pelo sistema: a lista dos limites que ele publica para os tipos inteiros."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 5.2.4.2.1 define os limites dos tipos inteiros, e a 6.5 declara que passar deles é comportamento indefinido."
+    }
+  ],
+  "challenges": [
+    "o-teto-e-o-piso"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

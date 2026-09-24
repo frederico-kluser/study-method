@@ -37,6 +37,15 @@
 #      missing × install_failed × no_privilege no bloco ensure
 #   2  uso incorreto
 #
+# O veredito é UMA função (sm_verdict) e ela é FAIL-CLOSED em dois eixos: prova das
+# linguagens pedidas E bloco ensure.failed vazio. Falha de prova DEPOIS de instalar é
+# FALHA — `ensure.failed` não-vazio sai 1, nunca 0 (0 com failed não-vazio seria
+# aprovação por omissão, o pecado que o P-PROVA proíbe). Medido nesta máquina em
+# 2026-09-22 antes de qualquer conserto: `--ensure --language rust --json` com
+# ensure.failed=[{label rust, reason install_failed}] saiu EXIT=1 — o contrato já estava
+# certo, e o auto-teste 5c passou a travá-lo em 3 direções (verde + failed não-vazio -> 1;
+# verde + failed vazio -> 0; prova reprovada + failed vazio -> 1).
+#
 # Semântica do bloco ensure do JSON: missing = componentes que não passaram na prova e
 # dispararam instalação (ou, em --check, os que faltariam); installed = blocos efetivamente
 # instalados; failed = entradas {label, reason, detail} dos blocos que não conseguiram;
@@ -45,6 +54,30 @@
 # LIMITAÇÃO v1: este script NÃO lê STUDY_METHOD_CARGO_BIN (a engine honra — rust.ts:257-259):
 # um --check pode dar falso negativo numa máquina que resolve cargo por esse env de override.
 # O remédio operacional está citado na mensagem de falha do rust, em prosa.
+#
+# macOS/Homebrew — o formula `rustup` é KEG-ONLY, e isso reprovava a própria instalação que o
+# --ensure acabava de fazer. `brew info rustup` (medido, Homebrew 7.0.6): "rustup is keg-only,
+# which means it was not symlinked into /opt/homebrew, because it conflicts with rust" +
+# "To use rustup, ensure you have \"$(brew --prefix rustup)/bin\" in your $PATH". Medido nesta
+# máquina (2026-09-22, Apple Silicon) depois de `brew install rustup` + `rustup default stable`:
+# cargo 1.98.1 e rustc 1.98.1 RODAM de /opt/homebrew/opt/rustup/bin e o sysroot resolve
+# (~/.rustup/toolchains/stable-aarch64-apple-darwin), mas NENHUM dos dois está no PATH default —
+# e o shim do cargo despacha o rustc PELO PATH, então `cargo test --offline` chamado por caminho
+# absoluto SEM esse bin no PATH morre em `could not execute process \`rustc -vV\` (never
+# executed)`, com código de saída 101 (medido). Por isso a prova do rust (1) descobre esse bin por
+# (A perífrase "código de saída 101" não é estilo: o gate I-18/I-22 de `tests/validate.sh`
+# varre o literal `exit <n>` SEM olhar se a linha é comentário, e o regex de I-22
+# (`(exit|sm_die) +10`) casa o prefixo de 101 — citar o código do cargo com a palavra
+# `exit` pinta os dois checks de vermelho por uma frase de documentação.)
+# `brew --prefix rustup` — NUNCA caminho fixo: em Intel o prefix é /usr/local — e (2) o põe na
+# frente do PATH DA PRÓPRIA PROVA. Este script continua NÃO editando o PATH do operador nem
+# arquivo de shell nenhum (contrato do README): quando a prova só fecha por esse bin, o stderr e
+# o `proof.detail` entregam o comando literal que o operador tem de rodar no shell DELE, porque
+# os gates de cargo (npm run track) resolvem o cargo pelo PATH do operador, não pelo PATH da
+# prova — e o override STUDY_METHOD_CARGO_BIN NÃO substitui esse PATH: medido em 2026-09-22,
+# `track:challenge:verify` com o override e sem o export reprova com o mesmo `rustc -vV (never
+# executed)`, porque o runner do CLI herda process.env sem o pin de RUSTC
+# (services/challengeExec.ts:160) — quem pina é o caminho da engine (rust.ts, decisão 6).
 #
 # Cache: $STUDY_METHOD_HOME/toolchain-ensure.json — default
 # ${XDG_DATA_HOME:-$HOME/.local/share}/study-method (as mesmas 2 variáveis de §4.4; nenhuma
@@ -95,6 +128,14 @@ SM_JQ_FOUND="false"; SM_JQ_VER=""; SM_JQ_OK="false"
 SM_ENS_SKIPPED=""
 SM_DOC=""
 
+# Estado da descoberta do cargo (preenchido por sm_rust_resolve): o binário resolvido, o bin
+# keg-only usado (vazio quando o cargo já estava no PATH) e o PATH que a prova do rust leva.
+SM_RS_CARGO=""; SM_RS_KEG=""; SM_RS_PROOF_PATH=""
+# A dica ao operador é o comando LITERAL do caveat do brew — em aspas simples de propósito:
+# `$(brew --prefix rustup)` tem de chegar ao operador SEM expandir (em Intel o prefix é
+# /usr/local, em Apple Silicon /opt/homebrew; quem resolve é o shell dele, não este script).
+SM_KEG_HINT='export PATH="$(brew --prefix rustup)/bin:$PATH"'
+
 sm_err() { printf '%s: %s\n' "$SM_SELF" "$*" >&2; }
 sm_die() {
     local c="$1"
@@ -110,7 +151,21 @@ sm_home() {
 }
 
 sm_now_iso() {
-    date +%Y-%m-%dT%H:%M:%S%:z 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ
+    # `%:z` (o offset com dois-pontos) é EXTENSÃO GNU: o date do BSD, que é o do macOS, não o
+    # conhece e imprime ":z" LITERAL, sem falhar — medido nesta máquina antes do conserto:
+    # "generated_at": "2026-09-22T01:52:33:z", que não é ISO-8601 e nenhum parser aceita (o
+    # fallback nunca disparava porque o exit era 0). A forma portável é `%z` (+0000, POSIX) com
+    # os dois-pontos postos por sed; sem offset reconhecível, cai no UTC com Z.
+    local t
+    t="$(date +%Y-%m-%dT%H:%M:%S%z 2>/dev/null || true)"
+    case "$t" in
+        *[+-][0-9][0-9][0-9][0-9])
+            printf '%s' "$t" | sed -e 's/\([+-][0-9][0-9]\)\([0-9][0-9]\)$/\1:\2/'
+            ;;
+        *)
+            date -u +%Y-%m-%dT%H:%M:%SZ
+            ;;
+    esac
 }
 
 sm_json_escape() {
@@ -345,10 +400,60 @@ sm_run_python_proof() {
         "$2" -B -m unittest discover -s tests -t . -p "test_*.py" -v
 }
 
+# Bin de um formula KEG-ONLY do Homebrew. $1 = formula; stdout = "<prefix>/bin" quando o
+# diretório existe, vazio fora de macOS/brew. O prefix sai SEMPRE de `brew --prefix <formula>`
+# (medido: 0,03s) — nunca caminho fixo, porque ele muda por arquitetura: /opt/homebrew em Apple
+# Silicon, /usr/local em Intel.
+sm_brew_keg_bin() {
+    [ "$(uname -s 2>/dev/null)" = "Darwin" ] || return 0
+    command -v brew >/dev/null 2>&1 || return 0
+    local pfx
+    pfx="$(brew --prefix "$1" 2>/dev/null || true)"
+    [ -n "$pfx" ] || return 0
+    [ -d "$pfx/bin" ] || return 0
+    printf '%s' "$pfx/bin"
+    return 0
+}
+
+# Descoberta do cargo que a prova do rust vai usar. Ordem: PATH primeiro (o caso normal de
+# toda distro); faltando, o bin keg-only do rustup do Homebrew (o caso macOS medido no
+# cabeçalho). Preenche SM_RS_CARGO (binário), SM_RS_KEG (o bin keg-only, vazio quando o cargo
+# veio do PATH) e SM_RS_PROOF_PATH (o PATH da prova, com o keg na frente quando houve keg — o
+# shim do cargo despacha o rustc PELO PATH, então sem isso o `cargo test` sai 101).
+sm_rust_resolve() {
+    SM_RS_CARGO=""; SM_RS_KEG=""; SM_RS_PROOF_PATH="${SM_PATH:-$PATH}"
+    local w keg
+    w="$(command -v cargo 2>/dev/null || true)"
+    if [ -n "$w" ]; then
+        SM_RS_CARGO="$w"
+        return 0
+    fi
+    keg="$(sm_brew_keg_bin rustup)"
+    if [ -n "$keg" ] && [ -x "$keg/cargo" ]; then
+        SM_RS_CARGO="$keg/cargo"
+        SM_RS_KEG="$keg"
+        SM_RS_PROOF_PATH="$keg:$SM_RS_PROOF_PATH"
+    fi
+    return 0
+}
+
+# Nota acrescentada ao detail quando NENHUM cargo foi encontrado numa máquina com brew: o
+# operador precisa saber que o formula é keg-only ANTES de achar que a instalação falhou.
+sm_rust_keg_nota() {
+    local keg
+    keg="$(sm_brew_keg_bin rustup)"
+    [ -n "$keg" ] || return 0
+    printf '%s' ". No macOS o formula 'rustup' do Homebrew é KEG-ONLY e os shims NÃO entram no PATH (o bin é $keg): se o rustup já está instalado, rode 'rustup default stable' e depois, no seu shell, $SM_KEG_HINT"
+    return 0
+}
+
 # A prova do rust com as variáveis fixas da engine (rust.ts, política de env).
+# $1 = diretório da fixture; $2 = PATH da prova (o keg-only entra na frente quando existe);
+# $3 = binário do cargo (caminho resolvido — com o keg-only, o NOME 'cargo' não existe no PATH).
 sm_run_rust_proof() {
-    sm_run_in "$1" env CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 CARGO_TERM_COLOR=never \
-        RUST_BACKTRACE=0 cargo test --offline
+    local dir="$1" ppath="${2:-${SM_PATH:-$PATH}}" cargobin="${3:-cargo}"
+    sm_run_in "$dir" env "PATH=$ppath" CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 \
+        CARGO_TERM_COLOR=never RUST_BACKTRACE=0 "$cargobin" test --offline
 }
 
 # ---------------------------------------------------------------------------
@@ -402,18 +507,28 @@ sm_proof_python() {
 sm_proof_rust() {
     SM_RS_AVAIL="false"; SM_RS_VER=""; SM_RS_CMD=""; SM_RS_PATH=""
     SM_RS_OK="false"; SM_RS_ARGV=""; SM_RS_EXIT=""; SM_RS_DETAIL=""
-    local wpath
-    wpath="$(command -v cargo 2>/dev/null || true)"
+    sm_rust_resolve
+    local wpath="$SM_RS_CARGO" keg="$SM_RS_KEG" ppath="$SM_RS_PROOF_PATH"
     if [ -z "$wpath" ]; then
-        SM_RS_DETAIL="nenhum cargo no PATH — nenhum desafio rust roda; instale pela receita da família da distro (--ensure instala)"
+        SM_RS_DETAIL="nenhum cargo no PATH — nenhum desafio rust roda; instale pela receita da família da distro (--ensure instala)$(sm_rust_keg_nota)"
         return 0
     fi
-    SM_RS_AVAIL="true"; SM_RS_CMD="cargo"; SM_RS_PATH="$wpath"
-    # nível 1 — a sonda de versão
-    sm_run cargo --version
-    if [ "$SM_RC" -eq 0 ]; then
-        SM_RS_VER="$(sm_extract_version rust "$SM_OUT")"
+    if [ -n "$keg" ]; then
+        sm_err "rust: cargo ausente do PATH e ENCONTRADO no bin keg-only do Homebrew ($keg) — a prova roda com esse bin na frente do PATH dela"
     fi
+    SM_RS_AVAIL="true"; SM_RS_CMD="cargo"; SM_RS_PATH="$wpath"
+    # nível 1 — a sonda de versão, no binário RESOLVIDO (com o keg-only o nome 'cargo' não
+    # existe no PATH, então sondar o nome daria 127 e mentiria sobre a máquina)
+    sm_run "$wpath" --version
+    if [ "$SM_RC" -ne 0 ]; then
+        # ENDURECIMENTO: um cargo que não responde a --version não pode cair no detail do
+        # nível 2 ("cargo responde a --version mas o rustc..."), que seria diagnóstico falso.
+        # O caso típico é rustup instalado SEM toolchain default — a armadilha nº 1 da família.
+        SM_RS_EXIT="$SM_RC"
+        SM_RS_DETAIL="o cargo encontrado ($wpath) não respondeu a --version (status $SM_RC): $(sm_snip "$(sm_last_line "$SM_OUT")") — o caso típico é rustup instalado sem toolchain default: rode 'rustup default stable' e re-execute (o --ensure roda isso no pós-install da receita macos:rust)"
+        return 0
+    fi
+    SM_RS_VER="$(sm_extract_version rust "$SM_OUT")"
     if [ -z "$SM_RS_VER" ]; then
         SM_RS_VER="desconhecida"
     fi
@@ -439,7 +554,7 @@ sm_proof_rust() {
         SM_RS_DETAIL="sysroot resolvido ($sysroot) mas sem bin/cargo dentro — instalação rust incompleta"
         return 0
     fi
-    sm_run env -i "PATH=$SM_PATH" "HOME=$SM_HOME" LC_ALL=C.UTF-8 TZ=UTC "$cargo_real" --version
+    sm_run env -i "PATH=$ppath" "HOME=$SM_HOME" LC_ALL=C.UTF-8 TZ=UTC "$cargo_real" --version
     if [ "$SM_RC" -ne 0 ]; then
         SM_RS_EXIT="$SM_RC"
         SM_RS_DETAIL="o cargo REAL de <sysroot>/bin não respondeu sob o ambiente scrubado (sem RUSTUP_HOME/CARGO_HOME) — proxy rustup morto, exatamente o caso que rust.ts:195-234 pega. Remédio: usar o cargo REAL da toolchain (a engine aceita o env de override STUDY_METHOD_CARGO_BIN; este auxiliar v1 não lê esse env)"
@@ -448,8 +563,14 @@ sm_proof_rust() {
     # nível 3 — a prova de execução: teste de integração passando, offline, na árvore mínima
     local fx="$SM_TMP/fx-rust"
     sm_fixture_rust "$fx" ok
-    SM_RS_ARGV="env CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 CARGO_TERM_COLOR=never RUST_BACKTRACE=0 cargo test --offline"
-    sm_run_rust_proof "$fx"
+    # O argv do JSON registra a FORMA do comando (o PATH real não vai para o relatório; com o
+    # keg-only a forma mostra de onde o bin extra saiu, que é o fato acionável).
+    if [ -n "$keg" ]; then
+        SM_RS_ARGV="env PATH=\$(brew --prefix rustup)/bin:<PATH> CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 CARGO_TERM_COLOR=never RUST_BACKTRACE=0 cargo test --offline"
+    else
+        SM_RS_ARGV="env PATH=<PATH> CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0 CARGO_TERM_COLOR=never RUST_BACKTRACE=0 cargo test --offline"
+    fi
+    sm_run_rust_proof "$fx" "$ppath" "$wpath"
     SM_RS_EXIT="$SM_RC"
     if [ "$SM_RC" -ne 0 ]; then
         SM_RS_DETAIL="cargo test saiu com status de falha do cargo ($SM_RC — o §5.3 de docs/00 registra os status observados do cargo): $(sm_snip "$(sm_last_line "$SM_OUT")")"
@@ -461,6 +582,13 @@ sm_proof_rust() {
     fi
     SM_RS_OK="true"
     SM_RS_DETAIL="rust provou em 3 níveis: cargo --version; o cargo REAL do sysroot responde sob env scrubado; teste de integração passou offline"
+    if [ -n "$keg" ]; then
+        # Prontidão CONDICIONAL: a toolchain existe e roda (provado por execução), mas só com o
+        # bin keg-only no PATH — e os gates de cargo resolvem o cargo pelo PATH do OPERADOR
+        # (rust.ts:255-262). O script não edita o shell de ninguém: entrega o comando literal.
+        SM_RS_DETAIL="$SM_RS_DETAIL. PRONTIDÃO CONDICIONAL AO PATH DO OPERADOR: o cargo mora no bin keg-only do Homebrew ($keg) e NÃO está no PATH desta sessão; este script não edita PATH nem arquivo de shell, então rode no SEU shell antes dos gates: $SM_KEG_HINT. Sem isso os gates de cargo reprovam por ambiente — e o override STUDY_METHOD_CARGO_BIN NÃO substitui o PATH (medido em 2026-09-22: com o override e sem o PATH, track:challenge:verify reprova em 'could not execute process rustc -vV' — o runner do CLI herda process.env sem o pin de RUSTC, challengeExec.ts:160)"
+        sm_err "rust: ATENÇÃO — a prova fechou verde SÓ com o bin keg-only no PATH da prova. Antes dos gates, rode no SEU shell: $SM_KEG_HINT"
+    fi
     return 0
 }
 
@@ -842,7 +970,7 @@ sm_needs_c() {
 # Fluxo --ensure: prova falhou → instala pela receita → RE-PROVA.
 # ---------------------------------------------------------------------------
 sm_ensure_flow() {
-    local only="$1" l ok b b2 blocks detail cmdline
+    local only="$1" l ok b b2 blocks detail cmdline rustupbin keg
     # 1) quem passou de primeira entra em skipped; quem falhou deriva os blocos
     for l in python rust c; do
         if [ -n "$only" ] && [ "$l" != "$only" ]; then continue; fi
@@ -936,18 +1064,29 @@ sm_ensure_flow() {
         # pós-install da receita rust do macOS: o brew entrega o rustup, que precisa da
         # toolchain estável escolhida (a armadilha nº 1 da família, §3.4 da referência)
         if [ "$SM_FAMILY" = "macos" ] && [ "$b2" = "rust" ]; then
-            if command -v rustup >/dev/null 2>&1; then
-                sm_err "selecionando a toolchain stable do rustup (o formula não traz toolchain por si)"
+            # O formula é KEG-ONLY (cabeçalho): medido nesta máquina, o brew LINKA o binário
+            # `rustup` em /opt/homebrew/bin mas NÃO linka cargo/rustc. Procurar só no PATH
+            # funciona hoje e quebraria numa instalação em que nem o rustup esteja linkado —
+            # então o fallback é o bin keg-only descoberto por `brew --prefix rustup`.
+            rustupbin="$(command -v rustup 2>/dev/null || true)"
+            if [ -z "$rustupbin" ]; then
+                keg="$(sm_brew_keg_bin rustup)"
+                if [ -n "$keg" ] && [ -x "$keg/rustup" ]; then
+                    rustupbin="$keg/rustup"
+                fi
+            fi
+            if [ -n "$rustupbin" ]; then
+                sm_err "selecionando a toolchain stable do rustup ($rustupbin — o formula não traz toolchain por si)"
                 set +e
                 # stdout do rustup vai para o stderr — o stdout do script é SEMPRE o JSON
                 if command -v timeout >/dev/null 2>&1; then
-                    timeout -s KILL -k 2 900 rustup default stable </dev/null >&2
+                    timeout -s KILL -k 2 900 "$rustupbin" default stable </dev/null >&2
                 else
-                    rustup default stable </dev/null >&2
+                    "$rustupbin" default stable </dev/null >&2
                 fi
                 set -e
             else
-                sm_err "aviso: brew instalou o formula rustup mas o binário rustup não está no PATH — rode 'rustup default stable' e re-execute"
+                sm_err "aviso: brew instalou o formula rustup mas nenhum binário rustup foi encontrado (nem no PATH, nem no bin keg-only de \$(brew --prefix rustup)/bin) — rode 'rustup default stable' e re-execute"
             fi
         fi
     done
@@ -1052,6 +1191,11 @@ sm_stderr_summary() {
         sm_err "harness: node+npm+jq ok"
     else
         sm_err "harness: node/npm/jq incompleto (node=$SM_NODE_OK npm=$SM_NPM_OK jq=$SM_JQ_OK)"
+    fi
+    # A prontidão condicional ao PATH é a ÚLTIMA linha do resumo de propósito: é a única ação
+    # que sobra para o operador, e os gates de cargo reprovam por ambiente sem ela.
+    if [ "$SM_RS_OK" = "true" ] && [ -n "$SM_RS_KEG" ]; then
+        sm_err "rust: FALTA UM PASSO SEU — o cargo provado mora no bin keg-only do Homebrew ($SM_RS_KEG) e não no PATH. Rode no seu shell antes dos gates: $SM_KEG_HINT"
     fi
     return 0
 }
@@ -1172,6 +1316,18 @@ sm_build_doc() {
     return 0
 }
 
+# O VEREDITO, numa função só (o auto-teste 5c o exercita em 3 direções): fail-closed em
+# dois eixos — prova de todas as linguagens pedidas E `ensure.failed` vazio. Instalar e a
+# re-prova falhar é FALHA (exit 1): sair 0 com failed não-vazio seria aprovação por omissão.
+sm_verdict() {
+    if sm_all_requested_ok && [ ! -s "$SM_TMP/failed.txt" ]; then
+        printf '0'
+    else
+        printf '1'
+    fi
+    return 0
+}
+
 sm_all_requested_ok() {
     local l ok
     for l in python rust c; do
@@ -1252,11 +1408,7 @@ sm_main_run() {
     doc="$(sm_build_doc "$mode" "$SM_ONLY")"
     printf '%s\n' "$doc"
 
-    if sm_all_requested_ok && [ ! -s "$SM_TMP/failed.txt" ]; then
-        verdict=0
-    else
-        verdict=1
-    fi
+    verdict="$(sm_verdict)"
 
     # cache: documento COMPLETO da máquina (sem --language), só para --check/--ensure
     if [ -z "$SM_ONLY" ]; then
@@ -1341,23 +1493,37 @@ sm_self_test() {
         sm_err "auto-teste: anfitrião sem python — prova python exercida no modo degradado"
     fi
 
-    # 3) prova do rust: os 3 níveis na fixture ok; a doente não passa
-    if command -v cargo >/dev/null 2>&1; then
-        sm_run_rust_proof "$fx/rs"
+    # 3) prova do rust: os 3 níveis na fixture ok; a doente não passa. A descoberta do cargo
+    #    é a MESMA da prova (PATH primeiro; no macOS, o bin keg-only de `brew --prefix rustup`).
+    sm_rust_resolve
+    if [ -n "$SM_RS_CARGO" ]; then
+        sm_run_rust_proof "$fx/rs" "$SM_RS_PROOF_PATH" "$SM_RS_CARGO"
         if [ "$SM_RC" -eq 0 ] && printf '%s\n' "$SM_OUT" | grep -qE 'test result: ok\. [1-9][0-9]* passed'; then
-            sm_st_ok "prova rust: cargo test offline passa com teste passado >= 1"
+            sm_st_ok "prova rust: cargo test offline passa com teste passado >= 1 (cargo: $SM_RS_CARGO)"
         else
             sm_st_bad "prova rust: cargo test não passou no anfitrião (status $SM_RC)"
         fi
         d="$fx/rs-bad"; sm_fixture_rust "$d" falha
-        sm_run_rust_proof "$d"
+        sm_run_rust_proof "$d" "$SM_RS_PROOF_PATH" "$SM_RS_CARGO"
         if [ "$SM_RC" -ne 0 ]; then
             sm_st_ok "prova rust: fixture doente NÃO passa (status de falha do cargo $SM_RC — docs/00 §5.3)"
         else
             sm_st_bad "prova rust: fixture doente passou — o guard de resultado está frouxo"
         fi
+        # 3b) REGRESSÃO do keg-only (só quando o cargo veio do keg): sem o bin do keg no PATH
+        #     da prova, o shim não acha o rustc e o cargo test MORRE — medido nesta máquina em
+        #     2026-09-22: código de saída 101, "could not execute process `rustc -vV`".
+        #     É o que prova que o PATH da prova é CARGA, não enfeite.
+        if [ -n "$SM_RS_KEG" ]; then
+            sm_run_rust_proof "$fx/rs" "${SM_PATH:-$PATH}" "$SM_RS_CARGO"
+            if [ "$SM_RC" -ne 0 ]; then
+                sm_st_ok "prova rust keg-only: SEM o bin keg-only no PATH da prova o cargo test falha (status $SM_RC — o shim despacha o rustc pelo PATH)"
+            else
+                sm_st_bad "prova rust keg-only: cargo test passou sem o bin keg-only no PATH — a descoberta do keg não está sendo exercida"
+            fi
+        fi
     else
-        sm_err "auto-teste: anfitrião sem cargo — prova rust exercida no modo degradado"
+        sm_err "auto-teste: anfitrião sem cargo (nem no PATH, nem no bin keg-only do Homebrew) — prova rust exercida no modo degradado"
     fi
 
     # 4) prova do C: compila+roda e o clang de parse na fixture ok; a doente aborta
@@ -1435,6 +1601,32 @@ sm_self_test() {
         sm_st_ok "contrato de uso: --check --self-test (nessa ordem) sai com o código 2 (não re-entra no auto-teste)"
     else
         sm_st_bad "contrato de uso: --check --self-test saiu com o código $rc (esperado 2)"
+    fi
+
+    # 5c) contrato do EXIT (o defeito medido em 2026-09-22 no macOS: o --ensure instalou o
+    #     formula rustup keg-only, a re-prova falhou e o JSON saiu com ensure.failed não-vazio;
+    #     exit 0 nesse estado seria aprovação por omissão). O veredito é sm_verdict e ele é
+    #     exercido nas DUAS direções, sem instalar nada.
+    mkdir -p "$fx/vd"
+    printf 'rust\tinstall_failed\tinstalado e a re-prova ainda falha\n' > "$fx/vd/failed.txt"
+    rc="$( SM_TMP="$fx/vd"; SM_ONLY="python"; SM_PY_OK="true"; sm_verdict )"
+    if [ "$rc" = "1" ]; then
+        sm_st_ok "contrato do exit: prova verde + ensure.failed não-vazio sai 1 (falha depois de instalar é FALHA)"
+    else
+        sm_st_bad "contrato do exit: ensure.failed não-vazio saiu $rc (esperado 1 — exit 0 aqui é aprovação por omissão)"
+    fi
+    : > "$fx/vd/failed.txt"
+    rc="$( SM_TMP="$fx/vd"; SM_ONLY="python"; SM_PY_OK="true"; sm_verdict )"
+    if [ "$rc" = "0" ]; then
+        sm_st_ok "contrato do exit: prova verde + ensure.failed vazio sai 0"
+    else
+        sm_st_bad "contrato do exit: prova verde com failed vazio saiu $rc (esperado 0)"
+    fi
+    rc="$( SM_TMP="$fx/vd"; SM_ONLY="rust"; SM_RS_OK="false"; sm_verdict )"
+    if [ "$rc" = "1" ]; then
+        sm_st_ok "contrato do exit: prova da linguagem pedida reprovada sai 1 mesmo com failed vazio"
+    else
+        sm_st_bad "contrato do exit: prova reprovada saiu $rc (esperado 1)"
     fi
 
     # 6) contrato do JSON e do cache — um sub-run completo, com HOME de estado no tmp

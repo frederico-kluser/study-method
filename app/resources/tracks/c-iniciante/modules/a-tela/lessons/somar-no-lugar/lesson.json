@@ -2,23 +2,137 @@
   "schemaVersion": 1,
   "slug": "somar-no-lugar",
   "title": "Somar no próprio nome",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "O `+=` acrescenta no próprio nome — `visitas += 3;` é a forma curta de `visitas = visitas + 3;` — e o `-=` desconta do mesmo jeito.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:assign:+=",
+  "concepts": [
+    "somar_no_lugar"
+  ],
   "prerequisites": [
     "mudar-o-valor",
     "somar-e-subtrair"
   ],
+  "introduces": {
+    "productive": [
+      "op:assign:+=",
+      "op:assign:-=",
+      "node:CompoundAssignOperator"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CompoundAssignOperator",
+        "de": "op:assign:+="
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a variável deixa de ser só um lugar que recebe um valor pronto: ela passa a ser um acumulador — o valor de agora entra na conta que produz o valor seguinte, num gesto só",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-nome-nos-dois-lados",
+      "title": "O nome nos dois lados da conta",
+      "markdown": "Somar 3 ao que a variável já tem exige o nome nos DOIS lados da conta:\n\n```c\nint visitas = 10;\nvisitas = visitas + 3;\nprintf(\"%d\\n\", visitas);\n```\n\n```text\n13\n```\n\nO C resolve primeiro o lado direito — `visitas + 3` vira 13 — e só então guarda esse resultado no nome da esquerda. O 10 antigo se perde ali.\n\nEscrever o mesmo nome duas vezes na mesma linha é tão comum que o C ganhou um atalho para isso."
+    },
+    {
+      "id": "o-atalho-de-somar",
+      "title": "O atalho: somar no próprio nome",
+      "markdown": "O atalho é o `+=`: ele acrescenta no próprio nome, sem repetir o nome à direita.\n\n```c\nint visitas = 10;\nvisitas += 3;\nprintf(\"%d\\n\", visitas);\n```\n\n```text\n13\n```\n\nLeia `visitas += 3;` como *acrescente 3 em visitas*. É a MESMA conta da seção anterior, com menos peças: somar e guardar num gesto só — e o resultado é o mesmo 13.\n\nO `+` vem antes do `=`, nessa ordem, e sem espaço entre os dois sinais."
+    },
+    {
+      "id": "acumular-aos-poucos",
+      "title": "Acumular aos poucos",
+      "markdown": "O `+=` serve para ir juntando. O acumulador nasce com um valor pelo `=`, e cada `+=` acrescenta mais um pedaço:\n\n```c\nint total = 0;\nint bonus = 5;\ntotal += bonus;\ntotal += bonus * 2;\nprintf(\"%d\\n\", total);\n```\n\n```text\n15\n```\n\nÀ direita do `+=` cabe qualquer conta, e ela acontece INTEIRA primeiro: `bonus * 2` vira 10, e é o 10 que se junta ao total.\n\nO `=` do nascimento é obrigatório: o `+=` LÊ o valor de agora para somar, e um nome que nasceu sem valor não tem o que ler."
+    },
+    {
+      "id": "o-que-desconta",
+      "title": "O que desconta: o -=",
+      "markdown": "Toda conta tem o par que desfaz. O `-=` desconta do próprio nome, com a mesma forma:\n\n```c\nint estoque = 20;\nint vendidos = 5;\nestoque -= vendidos;\nestoque -= 3;\nprintf(\"%d\\n\", estoque);\n```\n\n```text\n12\n```\n\n`estoque -= vendidos;` é `estoque = estoque - vendidos;`: 20 menos 5 são 15, e o `-= 3` leva a 12.\n\nCuidado com a ordem dos sinais: `-=` desconta; `=-` seria um `=` comum recebendo um número negativo. O igual vem sempre em último."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "mais-igual-soma-no-proprio-nome",
+      "statement": "`x += 3` é o mesmo que `x = x + 3;` (medido: 10 → 13).",
+      "question": "A variável `visitas` vale 10. O que a linha `visitas += 3;` deixa em `visitas`?",
+      "options": [
+        "13 — o `+=` soma 3 ao valor que já estava lá.",
+        "3 — o `+=` troca o valor antigo pelo número da direita.",
+        "10 — o `+=` só anota a soma; o valor muda na impressão.",
+        "103 — o `+=` encosta o 3 no fim do 10."
+      ],
+      "answerIndex": 0,
+      "feedback": "`visitas += 3;` é a forma curta de `visitas = visitas + 3;`: o C lê o valor de agora (10), soma 3 e guarda o 13 no mesmo nome.",
+      "sectionId": "o-atalho-de-somar",
+      "optionRationales": [
+        "O `+=` lê o valor de agora, soma o da direita e guarda de volta: 10 + 3 = 13.",
+        "Trocar o valor por 3 é o que `visitas = 3;` faria — sem o `+`, não há soma.",
+        "A conta acontece na linha do `+=`, não na impressão: quando o `printf` chega, o valor já é 13.",
+        "O `+=` soma números; colar texto lado a lado é outro assunto, e não é isso que o `+` faz com inteiros."
+      ]
+    },
+    {
+      "id": "menos-igual-desconta",
+      "statement": "O `-=` desconta do próprio nome, e à direita dele cabe outra variável ou uma conta.",
+      "question": "Com `int estoque = 20;` e `int vendidos = 5;`, quanto vale `estoque` depois de `estoque -= vendidos;`?",
+      "options": [
+        "15 — o valor de `vendidos` saiu de `estoque`.",
+        "5 — `estoque` passa a valer o mesmo que `vendidos`.",
+        "20 — o `-=` só aceita número escrito na própria linha.",
+        "25 — o `-=` soma, e o sinal aparece só na impressão."
+      ],
+      "answerIndex": 0,
+      "feedback": "`estoque -= vendidos;` é `estoque = estoque - vendidos;`: 20 menos 5 são 15. À direita do `-=` cabe qualquer valor — número, variável ou conta.",
+      "sectionId": "o-que-desconta",
+      "optionRationales": [
+        "O `-=` tira da esquerda o valor da direita: 20 − 5 = 15.",
+        "Copiar o valor de `vendidos` para `estoque` seria `estoque = vendidos;`, sem o `-`.",
+        "O lado direito é uma conta como qualquer outra: `vendidos` vale 5 e é isso que sai.",
+        "O `-=` subtrai; quem soma é o `+=`, e a impressão só mostra o que já foi calculado."
+      ]
+    },
+    {
+      "id": "o-acumulador-nasce-com-igual",
+      "statement": "O `+=` soma AO valor que já está lá — então o acumulador precisa nascer com um valor pelo `=`.",
+      "question": "Qual linha dá o primeiro valor a um acumulador novo?",
+      "options": [
+        "`int total = 0;` — na linha em que o nome nasce, quem dá o valor é o `=`.",
+        "`int total += 0;` — o `+=` serve para o nome nascer valendo zero.",
+        "`total += 0;` escrito antes de o nome existir.",
+        "Nenhuma: todo nome novo já nasce valendo zero sozinho."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `+=` LÊ o valor de agora para somar. Por isso o acumulador nasce com `=` (`int total = 0;`) e só depois recebe os `+=`.",
+      "sectionId": "acumular-aos-poucos",
+      "optionRationales": [
+        "O valor inicial é dado na declaração, com `=`: é o que o `+=` vai ler na primeira soma.",
+        "O `+=` precisa de um valor anterior para somar — ele não serve para dar o primeiro valor.",
+        "Um nome só existe depois de declarado: antes disso não há casa nenhuma para somar.",
+        "Em C uma variável local sem valor inicial não vale zero: ela não tem valor definido, e ler isso é proibido nesta trilha."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Assignment operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_assignment",
+      "description": "A página oficial do `=` e dos operadores compostos `+=` e `-=`: a forma curta e o que ela faz com o valor de agora."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "A soma e a subtração que o `+=` e o `-=` resumem, com as regras de tipo de cada conta."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.16.2 define a atribuição composta `E1 += E2` a partir de `E1 = E1 + E2`."
+    }
+  ],
+  "challenges": [
+    "contador-de-visitas"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

@@ -19,7 +19,17 @@
       "node:MatchArm",
       "node:MatchPattern"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:MatchBlock",
+        "de": "node:MatchExpression"
+      },
+      {
+        "chave": "node:MatchPattern",
+        "de": "node:MatchArm"
+      }
+    ]
   },
   "introducesTerms": [
     "term:match",
@@ -34,7 +44,7 @@
     {
       "id": "o-match-e-exaustivo",
       "title": "O match é exaustivo",
-      "markdown": "O compilador NÃO deixa um caso de fora: se o conjunto tem três variantes e o match responde a só duas, ele reprova a compilação com `non-exhaustive patterns`. Faltou um braço, o programa não existe.\n\nÉ a mesma exaustividade do `if`/`else` — mas aqui a cobrança é pelo CONJUNTO: cada variante declarada merece a sua resposta, e uma variante nova no enum cobra braços novos em todo match que a usa."
+      "markdown": "O compilador NÃO deixa um caso de fora: se o conjunto tem três variantes e o match responde a só duas, ele reprova a compilação com `non-exhaustive patterns`.\n\nCada variante declarada merece a sua resposta — e, com poucas variantes, o match inteiro cabe numa linha:\n\n```rust\npub fn o_numero_da(cor: Cor) -> i32 {\n    match cor { Cor::Vermelho => 0, Cor::Verde => 1, Cor::Amarelo => 2 }\n}\n```\n\nUma variante nova no enum cobra braço novo em todo match que a usa."
     },
     {
       "id": "o-braco-e-uma-expressao",
@@ -50,17 +60,17 @@
       "question": "No match de `cor`, o que o braço `Cor::Vermelho => String::from(\"pare\")` faz?",
       "options": [
         "Se a cor for Vermelho, o match devolve \"pare\"",
-        "Pinta a variante Vermelho de \"pare\"",
-        "Compara Vermelho com a string \"pare\"",
-        "Guarda \"pare\" dentro da variante"
+        "Compara Vermelho com a string \"pare\" e devolve true",
+        "Guarda \"pare\" dentro da variante Vermelho do enum",
+        "Imprime \"pare\" na tela se a cor for Vermelho"
       ],
       "answerIndex": 0,
       "feedback": "Braço é pergunta e resposta: se casou com Vermelho, o valor do braço sai do match.",
       "optionRationales": [
         "Isso: `=>` separa a pergunta (o padrão) da resposta (o valor do braço).",
-        "Variantes não ganham cor: o braço só ESCOLHE o que devolver.",
-        "A comparação de variante é o `==`; no braço o `=>` é o separador pergunta→resposta.",
-        "O enum guarda o valor da variante; o braço devolve OUTRO valor (a resposta)."
+        "`=>` não compara nem produz booleano: à esquerda vai a pergunta, à direita a String que sai do match.",
+        "Quem guarda valor é a variante que carrega algo; aqui o braço devolve OUTRO valor, a resposta.",
+        "Imprimir é outra coisa: o braço PRODUZ o valor que SAI do match — aqui nada vai à tela."
       ]
     },
     {
@@ -70,17 +80,17 @@
       "question": "O conjunto tem três variantes e o match responde a duas. O que acontece?",
       "options": [
         "A compilação reprova: faltou um braço (non-exhaustive patterns)",
-        "A variante sem braço devolve vazio",
-        "O compilador escolhe a primeira resposta",
-        "O programa roda e para na variante sem braço"
+        "A variante sem braço devolve um valor vazio por padrão",
+        "O compilador completa sozinho com a primeira resposta",
+        "O programa compila e só quebra quando a variante sem braço chegar"
       ],
       "answerIndex": 0,
       "feedback": "O compilador cobra a resposta de TODAS as variantes — é a exaustividade do match.",
       "optionRationales": [
         "Isso: `non-exhaustive patterns` — o compilador nomeia o caso que faltou.",
-        "Não existe valor \"vazio\" aqui: ou o braço responde, ou não compila.",
-        "O compilador não adivinha: a exaustividade é regra, não escolha.",
-        "O programa nem chega a rodar: o erro é na compilação."
+        "Não existe valor \"vazio\" para cair: ou o braço responde àquela variante, ou o código não compila.",
+        "O compilador não adivinha resposta: ele nomeia o caso que faltou e para — exaustividade é regra, não escolha.",
+        "O erro é de compilação, não de execução: sem o braço que falta o programa nem chega a rodar."
       ]
     }
   ],

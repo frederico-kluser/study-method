@@ -48,7 +48,7 @@
         "6 — o push pôs o 6 no fim, na posição 2",
         "4 — o push pôs o 6 no começo",
         "2 — o push trocou o primeiro",
-        "Panica — a posição 2 não existe"
+        "Panica — a posição 2 não existe nessa fila"
       ],
       "answerIndex": 0,
       "feedback": "O push acrescenta no fim: a fila ficou [2, 4, 6] — a posição 2 é o 6.",
@@ -56,7 +56,7 @@
         "A fila cresceu para [2, 4, 6]: a posição 2 é a última, com o 6.",
         "O push nunca põe no começo — ele cresce pelo fim.",
         "O push não troca nada: ele acrescenta.",
-        "Depois do push a fila tem três posições — 0, 1 e 2."
+        "Depois do push a fila tem três posições — 0, 1 e 2 —, e o índice 2 é válido."
       ]
     },
     {
@@ -66,17 +66,17 @@
       "question": "Por que a lista do push precisa de `let mut` (ou chegar por `&mut`)?",
       "options": [
         "Porque o push MUDA a lista — e mudar exige mut",
-        "Porque toda lista nasce mutável por padrão",
-        "Porque o push devolve a lista nova",
+        "Porque o mut reserva o espaço que o push vai usar",
+        "Porque o push devolve uma lista nova, sem tocar na antiga",
         "Porque o compilador exige const"
       ],
       "answerIndex": 0,
       "feedback": "Mudar é o evento: quem recebe push muda no lugar — e a permissão para mudar é o mut.",
       "optionRationales": [
         "A regra do M1 vale aqui: quem muda, precisa de mut explícito.",
-        "Em Rust o padrão é IMUTÁVEL — o mut é você quem pede.",
-        "const é para valores fixos — o oposto do que o push faz.",
-        "const é a forma que NÃO muda — o contrário do push."
+        "`mut` é permissão para MUDAR, não reserva de espaço: quem acha lugar para o valor novo é o próprio `Vec`.",
+        "O push não devolve lista nova: ele muda no lugar a lista que já existe.",
+        "`const` é a forma que NÃO muda — o contrário do que o push faz."
       ]
     }
   ],

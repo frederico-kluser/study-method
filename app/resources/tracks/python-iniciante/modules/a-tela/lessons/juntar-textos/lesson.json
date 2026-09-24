@@ -72,6 +72,11 @@
       "title": "Uma introdução informal ao Python",
       "url": "https://docs.python.org/3/tutorial/introduction.html",
       "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    },
+    {
+      "title": "Common Sequence Operations — as operações comuns de sequência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#common-sequence-operations",
+      "description": "A tabela oficial define `s + t` como a concatenação de s e t, e avisa que esse `+` tem a mesma prioridade do `+` que soma números."
     }
   ],
   "challenges": [

@@ -2,22 +2,138 @@
   "schemaVersion": 1,
   "slug": "comparacoes",
   "title": "Comparar devolve 0 ou 1",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
+  "summary": "Em C uma comparação é uma conta: `==` e `>=` devolvem 1 quando a resposta é sim e 0 quando é não — e esse número pode ser guardado ou impresso com `%d`.",
   "difficulty": 1,
   "role": "regular",
-  "concepts": [],
+  "targetAtom": "op:binary:==",
+  "concepts": [
+    "comparar_devolve_numero"
+  ],
   "prerequisites": [
     "multiplicar-e-dividir"
   ],
+  "introduces": {
+    "productive": [
+      "op:binary:==",
+      "op:binary:>=",
+      "node:BinaryOperator"
+    ],
+    "receptive": [
+      "op:binary:>"
+    ],
+    "derived": [
+      {
+        "chave": "node:BinaryOperator",
+        "de": "op:binary:=="
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a pergunta entra no mundo das contas: comparar deixa de ser algo que o programa \"sabe\" e passa a ser uma expressão que produz 0 ou 1, um valor como qualquer outro",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "comparar-e-uma-conta",
+      "title": "Comparar é uma conta",
+      "markdown": "Perguntar se dois números são iguais é uma CONTA em C. O `==` compara os dois lados e devolve um número: `1` quando a resposta é sim, `0` quando é não.\n\n```c\nint iguais = 4 == 4;\nprintf(\"%d\\n\", iguais);\n```\n\n```text\n1\n```\n\nNada de mágica: `4 == 4` vale 1 do mesmo jeito que `2 + 2` vale 4. E, sendo um número, ele cabe direto num `%d`:\n\n```c\nprintf(\"%d\\n\", 10 == 3);\n```\n\n```text\n0\n```"
+    },
+    {
+      "id": "dois-sinais-de-igual",
+      "title": "Dois sinais de igual, e por quê",
+      "markdown": "Um `=` MANDA: guarda um valor no nome. Dois `==` PERGUNTAM: comparam e devolvem 0 ou 1. São gestos diferentes, com sinais diferentes.\n\n```c\nint placar = 7;\nint empatou = placar == 7;\nprintf(\"%d\\n\", empatou);\n```\n\n```text\n1\n```\n\nNa linha do meio os dois aparecem juntos: o `==` compara `placar` com 7 e devolve 1; o `=` guarda esse 1 em `empatou`.\n\nTrocar um pelo outro é o erro clássico do C — e o compilador costuma ficar CALADO: o programa compila, roda e responde outra pergunta. Conferir os dois sinais é com você."
+    },
+    {
+      "id": "maior-ou-igual",
+      "title": "Maior ou igual",
+      "markdown": "A família toda tem a mesma forma. O `>=` pergunta *é maior ou igual?*:\n\n```c\nint nota = 7;\nint passou = nota >= 6;\nprintf(\"%d\\n\", passou);\n```\n\n```text\n1\n```\n\nE, como qualquer conta, a comparação cabe dentro do `printf` sem passar por nome nenhum:\n\n```c\nprintf(\"%d\\n\", 5 >= 9);\n```\n\n```text\n0\n```\n\nO `>=` é um sinal só, escrito em dois caracteres e sempre nessa ordem: primeiro o `>`, depois o `=`."
+    },
+    {
+      "id": "a-familia-inteira",
+      "title": "A família inteira",
+      "markdown": "São seis perguntas, todas com a mesma forma e todas devolvendo 0 ou 1:\n\n- `==` igual a · `!=` diferente de\n- `<` menor que · `<=` menor ou igual\n- `>` maior que · `>=` maior ou igual\n\nO `>` pergunta *é maior?* e NÃO aceita o empate — quem aceita é o `>=`:\n\n```c\nprintf(\"%d\\n\", 3 > 2);\nprintf(\"%d\\n\", 2 > 2);\n```\n\n```text\n1\n0\n```\n\nNenhuma delas \"acha\" nada: cada uma faz a conta e devolve o número. Guardar esse número num nome ou imprimi-lo com `%d` é escolha sua."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-comparacao-e-um-numero",
+      "statement": "`printf(\"%d\", 3 > 2)` imprime 1: em C a comparação É um número.",
+      "question": "O que a linha `printf(\"%d\\n\", 10 == 3);` imprime?",
+      "options": [
+        "`0` — dez e três não são iguais, e a comparação devolve 0.",
+        "`1` — toda comparação devolve 1 quando está escrita corretamente.",
+        "`10 == 3` — o `%d` mostra a conta do jeito que foi escrita.",
+        "Nada — comparação não é número e não cabe num `%d`."
+      ],
+      "answerIndex": 0,
+      "feedback": "A comparação é uma conta: ela devolve 1 quando a resposta é sim e 0 quando é não. Como 10 não é igual a 3, sai 0 — e o `%d` imprime esse número.",
+      "sectionId": "comparar-e-uma-conta",
+      "optionRationales": [
+        "O `==` compara e devolve 0 porque os dois lados são diferentes; é esse 0 que o `%d` mostra.",
+        "O resultado depende dos valores comparados: 1 quando são iguais, 0 quando não são.",
+        "O `%d` recebe o RESULTADO da conta, não o texto da conta — o C calcula antes de imprimir.",
+        "Em C a comparação é um inteiro (0 ou 1), e o `%d` é exatamente o buraco de inteiro."
+      ]
+    },
+    {
+      "id": "um-igual-manda-dois-perguntam",
+      "statement": "Um `=` guarda um valor no nome; dois `==` comparam e devolvem 0 ou 1.",
+      "question": "Qual linha PERGUNTA se `placar` vale 7, guardando a resposta em `empatou`?",
+      "options": [
+        "`int empatou = placar == 7;`",
+        "`int empatou = placar = 7;`",
+        "`int empatou == placar == 7;`",
+        "`int placar = empatou == 7;`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `==` da direita compara `placar` com 7 e devolve 0 ou 1; o `=` guarda essa resposta em `empatou`. Um sinal manda, dois perguntam.",
+      "sectionId": "dois-sinais-de-igual",
+      "optionRationales": [
+        "O `==` faz a pergunta e o `=` guarda a resposta: cada sinal no seu papel.",
+        "Aqui não há pergunta nenhuma: o `=` do meio guardaria 7 em `placar`, e a resposta se perde.",
+        "O `==` do começo compara em vez de guardar — e uma variável nova precisa receber o valor com `=`.",
+        "Esta linha guarda a resposta em `placar` e compara `empatou`: os dois nomes trocados de lugar."
+      ]
+    },
+    {
+      "id": "maior-ou-igual-aceita-o-igual",
+      "statement": "O `>=` devolve 1 quando o lado esquerdo é maior OU igual ao direito.",
+      "question": "Com `int nota = 6;`, o que `nota >= 6` devolve?",
+      "options": [
+        "1 — seis é igual a seis, e o `>=` aceita o igual.",
+        "0 — o `>=` devolve 1 só quando o esquerdo é maior.",
+        "6 — a comparação devolve o próprio valor comparado.",
+        "Nada — para comparar igualdade seria preciso um `==`."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `>=` é *maior ou igual*: basta uma das duas coisas ser verdade. Com 6 e 6 o \"igual\" já garante a resposta 1.",
+      "sectionId": "maior-ou-igual",
+      "optionRationales": [
+        "O `=` do `>=` é justamente o que faz o empate contar como sim.",
+        "Quem exige \"maior de verdade\" é o `>` sozinho, sem o `=` do lado.",
+        "Comparação nunca devolve o valor comparado: ela devolve 0 ou 1.",
+        "O `>=` cobre o caso de igualdade também; o `==` seria necessário se a pergunta fosse só sobre ser igual."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Comparison operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_comparison",
+      "description": "A página oficial de `==`, `!=`, `<`, `<=`, `>` e `>=` em C, com o resultado inteiro 0 ou 1 de cada um."
+    },
+    {
+      "title": "printf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/printf.3.html",
+      "description": "O `%d` que imprime o inteiro devolvido pela comparação, descrito pelo próprio sistema."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: as seções 6.5.8 e 6.5.9 dizem que cada operador de comparação devolve `int` valendo 1 ou 0."
+    }
+  ],
+  "challenges": [
+    "tabela-de-comparacoes"
+  ],
   "autoria": {
     "modulo": "a-tela",
     "moduloTitulo": "A tela",

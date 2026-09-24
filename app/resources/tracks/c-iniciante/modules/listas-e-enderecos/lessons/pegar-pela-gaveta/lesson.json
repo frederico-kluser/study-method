@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "pegar-pela-gaveta",
   "title": "Pegar pela gaveta",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
-  "role": "regular",
-  "concepts": [],
+  "summary": "O número entre colchetes vale nos dois sentidos — lê o valor da gaveta e, do lado esquerdo do igual, escolhe a gaveta que vai receber —, e pode ser um nome ou uma conta.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "node:ArraySubscriptExpr",
+  "concepts": [
+    "pegar_pela_gaveta"
+  ],
   "prerequisites": [
     "a-caixa-com-gavetas"
   ],
+  "introduces": {
+    "productive": [
+      "node:ArraySubscriptExpr"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a gaveta deixa de ser só leitura: o mesmo `notas[i]` passa a ser DESTINO de atribuição, e o número da gaveta passa a poder vir de um nome que muda",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "a-mesma-porta-nos-dois-sentidos",
+      "title": "A mesma porta, nos dois sentidos",
+      "markdown": "Você já leu uma gaveta. O mesmo `notas[2]` também funciona do lado ESQUERDO do `=`: ali ele não é o valor, é o destino.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nnotas[2] = 10;\nprintf(\"%d\\n\", notas[2]);\n```\n\n```text\n10\n```\n\nO 6 que estava na gaveta 2 foi embora — como em qualquer atribuição, o valor antigo se perde. À esquerda do `=`, `notas[2]` diz ONDE guardar; à direita, diz QUAL valor usar."
+    },
+    {
+      "id": "o-numero-da-gaveta-pode-ser-um-nome",
+      "title": "O número da gaveta pode ser um nome",
+      "markdown": "O número entre colchetes não precisa estar escrito à mão: vale qualquer conta que dê um `int`.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nint gaveta = 3;\nprintf(\"%d\\n\", notas[gaveta]);\nprintf(\"%d\\n\", notas[gaveta - 1]);\nnotas[gaveta + 1] = 5;\n```\n\n```text\n9\n6\n```\n\nÉ por isso que a caixa combina com repetição: um nome que muda de valor a cada volta abre uma gaveta diferente com a MESMA linha de código."
+    },
+    {
+      "id": "fora-da-caixa-ninguem-avisa",
+      "title": "Fora da caixa, ninguém avisa",
+      "markdown": "E se o número não existir? Numa caixa de cinco gavetas, `notas[5]` ou `notas[7]` **compilam** — o compilador não reclama — e o programa mexe na memória vizinha, que não é sua. O nome disso é *comportamento indefinido*: pode dar lixo, pode travar, pode parecer certo hoje e quebrar amanhã.\n\n```c\nint notas[5] = {7, 8, 6, 9, 10};\nnotas[0] = notas[0] + 1;\nnotas[4] = notas[4] * 2;\n```\n\nA caixa não se defende. O cuidado com o intervalo 0..4 é seu, em cada linha que você escreve."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-gaveta-do-lado-esquerdo-recebe",
+      "statement": "`notas[i]` lê E escreve: do lado esquerdo do `=` ele é o destino.",
+      "question": "Na caixa `int notas[5] = {7, 8, 6, 9, 10};`, o que `notas[2] = 10;` faz?",
+      "options": [
+        "Guarda 10 na gaveta 2, no lugar do 6.",
+        "Compara a gaveta 2 com o valor 10.",
+        "Cria uma gaveta nova, a de número 10.",
+        "Nada: só o lado direito do `=` pode ter gaveta."
+      ],
+      "answerIndex": 0,
+      "feedback": "À esquerda do `=`, `notas[2]` é o destino: a gaveta passa a guardar 10 e o 6 se perde. À direita, o mesmo `notas[2]` seria o valor guardado nela.",
+      "sectionId": "a-mesma-porta-nos-dois-sentidos",
+      "optionRationales": [
+        "O lado esquerdo do `=` é o destino da atribuição, e aqui o destino é a gaveta 2.",
+        "Comparar é `==`; um `=` sozinho guarda valor.",
+        "A caixa nasce com cinco gavetas e não ganha mais nenhuma depois.",
+        "A gaveta vale nos dois lados do `=` — é justamente o que esta aula mostra."
+      ]
+    },
+    {
+      "id": "fora-do-intervalo-e-indefinido",
+      "statement": "Fora do intervalo 0..4 é comportamento indefinido — e o compilador não avisa.",
+      "question": "O programa escreve em `notas[7]` numa caixa de cinco gavetas. O que acontece?",
+      "options": [
+        "Compila sem reclamar e mexe na memória vizinha.",
+        "O compilador recusa o programa com erro de índice.",
+        "O valor vai para a gaveta 2, dando a volta na caixa.",
+        "A caixa cresce para caber sete gavetas."
+      ],
+      "answerIndex": 0,
+      "feedback": "O compilador não confere índice: o programa escreve fora da caixa, em memória que não é dela. É comportamento indefinido — nada garante nem o erro nem o acerto.",
+      "sectionId": "fora-da-caixa-ninguem-avisa",
+      "optionRationales": [
+        "Não há checagem de índice em C: o acesso fora do intervalo compila e mexe onde não devia.",
+        "Erro de índice em tempo de compilação não existe aqui; o índice pode até vir de um nome.",
+        "Não existe volta na caixa: isso é invenção de outras linguagens, não de C.",
+        "O tamanho da caixa é fixo desde a declaração e nunca cresce sozinho."
+      ]
+    },
+    {
+      "id": "o-indice-pode-ser-conta",
+      "statement": "O número da gaveta pode ser um nome ou uma conta.",
+      "question": "Com `int gaveta = 3;`, qual gaveta `notas[gaveta - 1]` abre?",
+      "options": [
+        "A 2, porque a conta `3 - 1` dá 2.",
+        "A 3, porque o nome vale 3.",
+        "A 1, porque é o que está escrito lá.",
+        "Nenhuma: entre colchetes só vale número escrito."
+      ],
+      "answerIndex": 0,
+      "feedback": "O programa resolve a conta primeiro — `3 - 1` dá 2 — e só então abre a gaveta 2. Entre colchetes cabe qualquer expressão que resulte num `int`.",
+      "sectionId": "o-numero-da-gaveta-pode-ser-um-nome",
+      "optionRationales": [
+        "A conta entre colchetes é resolvida antes: `3 - 1` é 2.",
+        "O nome vale 3, mas o que está entre colchetes é `gaveta - 1`.",
+        "O 1 é parte da conta, não o número da gaveta.",
+        "Um nome ou uma conta valem como número de gaveta — é o que a seção demonstra."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array subscript — a referência oficial do operador",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A página oficial do operador de índice em C: o que `v[i]` significa dos dois lados do igual."
+    },
+    {
+      "title": "Undefined behavior — a referência oficial",
+      "url": "https://en.cppreference.com/w/c/language/behavior",
+      "description": "O que a linguagem diz quando o programa sai do combinado: nada é garantido, nem o erro."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 — o rascunho público do padrão (N1570)",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C por dentro: a seção 6.5.2.1 define o índice, e o anexo J.2 lista o acesso fora do array como comportamento indefinido."
+    }
+  ],
+  "challenges": [
+    "dobra-as-notas"
+  ],
   "autoria": {
     "modulo": "listas-e-enderecos",
     "moduloTitulo": "Listas e endereços",

@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "em-cascata",
   "title": "Vários caminhos em ordem",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Colando um `if` no `else` nasce a cascata `else if`: várias faixas em ordem, das quais roda exatamente uma — a primeira que casou.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:IfStmt",
+  "concepts": [
+    "a_cascata_de_faixas"
+  ],
   "prerequisites": [
     "se-senao"
   ],
+  "introduces": {
+    "productive": [
+      "node:IfStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a decisão deixa de ser de dois caminhos: o programa passa a descer uma lista de perguntas na ordem escrita, entra no primeiro bloco que casa e ABANDONA todo o resto da cascata",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "um-caminho-depois-do-outro",
+      "title": "Um caminho depois do outro",
+      "markdown": "O `else` guarda o caminho que sobra. Quando esse caminho tem uma pergunta própria, cola-se outro `if` nele — `else if`:\n\n```c\nint nota = 7;\nif (nota >= 9) {\n    printf(\"A\\n\");\n} else if (nota >= 7) {\n    printf(\"B\\n\");\n}\n```\n\n```text\nB\n```\n\nCom 7 a primeira pergunta responde não, e só então o programa desce para a segunda, que responde sim.\n\nCada pergunta da cascata é feita apenas quando todas as de cima falharam."
+    },
+    {
+      "id": "so-a-primeira-que-casa",
+      "title": "Só a primeira que casa",
+      "markdown": "Numa cascata mais de uma pergunta pode ser verdadeira — e ainda assim roda **um bloco só**: o da primeira que casou.\n\n```c\nint nota = 10;\nif (nota >= 9) {\n    printf(\"A\\n\");\n} else if (nota >= 7) {\n    printf(\"B\\n\");\n}\n```\n\n```text\nA\n```\n\n10 alcança 9 e também alcança 7. A segunda pergunta nem chega a ser feita: ao entrar num bloco, a cascata pula todo o resto.\n\nPor isso a ORDEM importa: da faixa mais exigente para a menos exigente."
+    },
+    {
+      "id": "o-else-que-pega-o-resto",
+      "title": "O else que pega o resto",
+      "markdown": "O último `else` vem sem pergunta: é o caminho de quem não casou com nenhuma faixa.\n\n```c\nint nota = 3;\nif (nota >= 9) {\n    printf(\"A\\n\");\n} else if (nota >= 5) {\n    printf(\"C\\n\");\n} else {\n    printf(\"D\\n\");\n}\n```\n\n```text\nD\n```\n\nA cascata é uma escada de peneiras: o número desce e para na primeira que o segura; o `else` final é o balde embaixo da última.\n\nOnde a peneira engana: nada é peneirado duas vezes — depois de parar, o número não volta."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "roda-so-a-primeira-que-casou",
+      "statement": "Quando duas condições são verdadeiras, roda só a PRIMEIRA que casou.",
+      "question": "Com `nota` valendo 10 na cascata `if (nota >= 9) { A } else if (nota >= 7) { B }`, o que aparece na tela?",
+      "options": [
+        "Só `A`: a primeira faixa casou e a cascata parou ali.",
+        "Só `B`: entre as faixas verdadeiras vale a última.",
+        "`A` e `B`, uma linha para cada faixa verdadeira.",
+        "Nada: com duas faixas verdadeiras a cascata não decide."
+      ],
+      "answerIndex": 0,
+      "feedback": "10 casa com a primeira faixa, o bloco do `A` roda e o resto da cascata é abandonado — a segunda pergunta nem é feita.",
+      "sectionId": "so-a-primeira-que-casa",
+      "optionRationales": [
+        "A primeira faixa casou: o bloco dela roda e a cascata abandona o resto.",
+        "A cascata lê de cima para baixo e para na primeira que casa, não na última.",
+        "Uma cascata roda um bloco só; duas linhas sairiam de dois `if` separados, sem `else`.",
+        "Não há empate a resolver: a ordem escrita já decide qual faixa vale."
+      ]
+    },
+    {
+      "id": "o-else-if-so-e-testado-depois",
+      "statement": "O `else if` só é testado quando todas as perguntas acima dele responderam não.",
+      "question": "Com `nota` valendo 7 na mesma cascata A/B, quais perguntas o programa chega a fazer?",
+      "options": [
+        "Só `nota >= 7`, porque é a faixa certa para o 7.",
+        "As duas, em ordem: `nota >= 9` responde não e `nota >= 7`, sim.",
+        "Só `nota >= 9`, e o `B` sai como consolação.",
+        "Nenhuma: o programa compara a nota com as duas faixas de uma vez."
+      ],
+      "answerIndex": 1,
+      "feedback": "A cascata desce na ordem escrita. A pergunta de baixo só existe porque a de cima falhou — e é essa dependência que a torna uma cascata, não dois `if`.",
+      "sectionId": "um-caminho-depois-do-outro",
+      "optionRationales": [
+        "O programa não adivinha a faixa certa: ele faz a pergunta de cima primeiro.",
+        "A de cima falha, e só então a de baixo é feita — é a ordem da cascata.",
+        "Se apenas a primeira fosse feita e falhasse, nada seria impresso.",
+        "Cada pergunta é uma conta separada, feita na sua vez, de cima para baixo."
+      ]
+    },
+    {
+      "id": "o-else-final-pega-o-resto",
+      "statement": "O último `else`, sem pergunta nenhuma, pega tudo o que não casou com faixa nenhuma.",
+      "question": "Na cascata `9 -> A`, `5 -> C`, `else -> D`, o que sai com `nota` valendo 3?",
+      "options": [
+        "Nada, porque 3 não alcança 9 nem 5.",
+        "`C`, porque é a última faixa com pergunta.",
+        "`A`, porque a cascata volta ao começo quando ninguém casa.",
+        "`D`, o bloco do `else` que não tem pergunta."
+      ],
+      "answerIndex": 3,
+      "feedback": "As duas faixas com pergunta falham; o `else` final não pergunta nada e por isso sempre pega quem sobrou. Sem ele, o 3 sairia sem conceito.",
+      "sectionId": "o-else-que-pega-o-resto",
+      "optionRationales": [
+        "Nada sairia se a cascata terminasse no último `else if` — mas há um `else` final.",
+        "A faixa do `C` exige alcançar 5, e o 3 não alcança.",
+        "Cascata não volta ao começo: ela desce uma vez e para.",
+        "O `else` final é o caminho de quem não casou com nenhuma faixa: sai `D`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "if statement — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/if",
+      "description": "A página oficial do `if` e do `else`: o `else` recebe uma ordem qualquer — inclusive outro `if`, que é a cascata."
+    },
+    {
+      "title": "Statements — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/statements",
+      "description": "A página das ordens de C: mostra que um `if` inteiro é uma ordem só, e por isso cabe dentro do `else`."
+    },
+    {
+      "title": "ISO/IEC 9899:2011 (C11) — o rascunho público N1570",
+      "url": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+      "description": "O padrão do C que esta trilha usa: a seção 6.8.4.1 define a seleção `if`/`else` e a ordem em que a condição é avaliada."
+    }
+  ],
+  "challenges": [
+    "conceito-da-nota"
+  ],
   "autoria": {
     "modulo": "decisao",
     "moduloTitulo": "Decisão",

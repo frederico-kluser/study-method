@@ -105,6 +105,11 @@
       "title": "enumerate() — a documentação oficial",
       "url": "https://docs.python.org/3/library/functions.html#enumerate",
       "description": "A função que devolve posição e item juntos, na ordem da sequência."
+    },
+    {
+      "title": "Técnicas de laço — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#looping-techniques",
+      "description": "A seção do tutorial que mostra o `enumerate` dentro do `for`, entregando posição e item na mesma volta."
     }
   ],
   "challenges": [

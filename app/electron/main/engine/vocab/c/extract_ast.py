@@ -367,6 +367,22 @@ def _pos_do_no(nativo: dict, off: _Offsets) -> dict | None:
     }
 
 
+# Os kinds que NÃO são emitidos quando nascem da EXPANSÃO de uma macro: o que
+# o aluno escreveu foi o NOME da macro, não a construção que mora no corpo dela
+# (a justificativa completa e a fronteira estão no guard que consome esta
+# tabela, em `_no_normalizado`).
+_NAO_EMITIDOS_QUANDO_DE_MACRO = frozenset({
+    "CStyleCastExpr",           # `NULL` → `((void*)0)`
+    "UnaryOperator",            # `INT_MIN` → `(-2147483647-1)`
+    "BinaryOperator",           # idem
+    "CompoundAssignOperator",
+    "ConditionalOperator",
+    "IntegerLiteral",           # `INT_MAX` → `2147483647`
+    "FloatingLiteral",
+    "CharacterLiteral",
+})
+
+
 def _e_expansao_de_macro(nativo: dict) -> bool:
     """O nó nasce da EXPANSÃO de uma macro (o corpo dela mora em outro lugar)?
 
@@ -528,9 +544,30 @@ def _converter(nativo: dict, off: _Offsets, ctx: dict) -> list[dict]:
     # `__stdoutp` em vez do `stdout` (o que o aluno ESCREVEU é `NULL`, não um
     # cast). O cast REAL (`(int)3.7`) começa num offset PLANO, sem
     # `expansionLoc` — medido: `castKind: "FloatingToIntegral"`, begin direto.
-    # O guard é SÓ para o cast: a expansão de `SM_TEST` produz `FunctionDecl`
-    # com `expansionLoc` e PRECISA emergir (a dupla-igualdade conta por ela).
-    if kind == "CStyleCastExpr" and _e_expansao_de_macro(nativo):
+    # O guard NÃO é só para o cast (onda da autoria do M1, 2026-09-22): a MESMA
+    # razão vale para os nós de OPERADOR e de LITERAL que nascem da expansão.
+    # Medido, Apple clang 17: `INT_MIN` é `#define INT_MIN (-2147483647-1)`, e
+    # `printf("%d\n", INT_MIN)` emitia `op:unary:-`, `op:binary:-`,
+    # `node:UnaryOperator` e `node:BinaryOperator` — quatro eventos de currículo
+    # por um token que o aluno escreveu como `INT_MIN`. O `op:unary:-` não tem
+    # origem em NENHUMA das 115 aulas do contrato, então o `audit` acusava
+    # LACUNA DE CURRÍCULO num desafio que o próprio contrato manda escrever
+    # (`o-teto-e-o-piso`: "imprime INT_MAX e INT_MIN"), e não havia conteúdo
+    # capaz de fechá-la: declarar a chave seria mentir (o sinal de menos vive
+    # dentro do `limits.h`). O `docs/20-trilha-c.md` §8.2 afirmava que
+    # INT_MAX/INT_MIN "não emitem chave" — era verdade para INT_MAX (só
+    # `IntegerLiteral`) e falsa para INT_MIN.
+    #
+    # A FRONTEIRA do guard, e por que ela é esta: só caem os nós cujo valor
+    # didático é a CONSTRUÇÃO ESCRITA (operador, literal). Continuam emergindo
+    # os nós cuja função é IDENTIFICAR o que o aluno escreveu — `FunctionDecl`
+    # (a expansão de `SM_TEST`, de que a dupla-igualdade depende), `DeclRefExpr`
+    # (`stdout` é `#define stdout __stdoutp` e o nome honesto é o token do
+    # fonte) e o `ApiRef` derivado dele. `StringLiteral` fica FORA do guard de
+    # propósito: nenhuma aula desta trilha usa macro que expanda para texto, e
+    # derrubá-lo cegamente esconderia o literal de um `#define MSG "..."` que
+    # uma trilha futura talvez queira ensinar.
+    if _e_expansao_de_macro(nativo) and kind in _NAO_EMITIDOS_QUANDO_DE_MACRO:
         return filhos
 
     pos = _pos_do_no(nativo, off)

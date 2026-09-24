@@ -71,6 +71,11 @@
       "title": "Uma introdução informal ao Python",
       "url": "https://docs.python.org/3/tutorial/introduction.html",
       "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    },
+    {
+      "title": "print() em Funções embutidas",
+      "url": "https://docs.python.org/3/library/functions.html#print",
+      "description": "A entrada oficial do print, onde aparece o end padrão — a quebra de linha que joga a próxima mensagem para a linha de baixo."
     }
   ],
   "challenges": [

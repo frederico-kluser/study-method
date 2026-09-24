@@ -59,15 +59,15 @@
       "question": "Depois de `texto.len();`, o que acontece com `texto`?",
       "options": [
         "Continua igual: o len só lê",
-        "Fica vazio",
-        "Morre (move)",
-        "Vira número"
+        "Fica vazio: o len consumiu o texto",
+        "Morre: o len moveu a caixa",
+        "Vira número: a caixa agora é 4"
       ],
       "answerIndex": 0,
       "feedback": "O len é leitura pura: a caixa segue com o texto dela.",
       "optionRationales": [
         "Ler o tamanho não mexe no conteúdo nem no dono.",
-        "Nada esvazia a caixa: len não consome.",
+        "Nada esvazia a caixa: o len lê sem consumir o texto.",
         "Leitura não move — movimento é o let e a passagem por valor.",
         "A resposta do len é um número NOVO; o texto segue texto."
       ]

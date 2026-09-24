@@ -18,24 +18,37 @@
       "node:FieldExpression",
       "node:FieldIdentifier"
     ],
-    "receptive": []
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:FieldExpression",
+        "de": "api:.step_by"
+      },
+      {
+        "chave": "node:FieldIdentifier",
+        "de": "api:.step_by"
+      }
+    ]
   },
-  "introducesTerms": [],
+  "introducesTerms": [
+    "term:metodo",
+    "term:receptor"
+  ],
   "theory": [
     {
       "id": "o-metodo-que-muda-o-passo",
       "title": "O método que muda o passo",
-      "markdown": "O `.step_by(2)` é um MÉTODO do intervalo: o intervalo é o dono, e o método muda o passo do laço. Primeiro o intervalo ganha nome, depois o método é chamado nele:\n\n```rust\npub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    let intervalo = 0..limite;\n    let mut soma = 0;\n    for n in intervalo.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n```\n\nO `let intervalo = 0..limite;` dá o nome ao dono; o `.step_by(2)` entrega os números de 2 em 2. `soma_de_dois_em_dois(10)` devolve `20`: `0 + 2 + 4 + 6 + 8`."
+      "markdown": "Um MÉTODO é uma função chamada COLADA num valor, com um ponto no meio. O `.step_by(2)` é o método do intervalo: ele muda o passo do laço. Primeiro o intervalo ganha nome, depois o método é chamado nele:\n\n```rust\npub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    let intervalo = 0..limite;\n    let mut soma = 0;\n    for n in intervalo.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n```\n\nO `let intervalo = 0..limite;` dá o nome; o `.step_by(2)` entrega os números de 2 em 2. `soma_de_dois_em_dois(10)` devolve `20`: `0 + 2 + 4 + 6 + 8`."
     },
     {
       "id": "o-receptor-vem-antes-do-ponto",
       "title": "O receptor vem antes do ponto",
-      "markdown": "Numa chamada de método, quem vem ANTES do ponto é o dono (o receptor), e o método é o que vem depois — com os parâmetros entre parênteses:\n\n```rust\npub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    let intervalo = 0..limite;\n    let mut soma = 0;\n    for n in intervalo.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n```\n\nEm `intervalo.step_by(2)`, o receptor é o `intervalo` e o método é o `step_by` com o passo `2`. Um passo `3` pega de 3 em 3; um passo `2`, de 2 em 2 — o passo é o parâmetro, o resto é do dono."
+      "markdown": "Numa chamada de método, quem vem ANTES do ponto é quem RECEBE a chamada — o receptor. O método vem depois, com o passo entre parênteses:\n\n```rust\npub fn soma_de_tres_em_tres(limite: i32) -> i32 {\n    let contagem = 0..limite;\n    let mut soma = 0;\n    for n in contagem.step_by(3) {\n        soma += n;\n    }\n    soma\n}\n```\n\nAqui o receptor se chama `contagem` e o passo é `3`: o nome do receptor e o número do passo mudam, o método é o mesmo. `soma_de_tres_em_tres(10)` devolve `18` — `0 + 3 + 6 + 9`."
     },
     {
       "id": "o-passo-na-conta",
       "title": "O passo na conta",
-      "markdown": "Com o passo `2`, o intervalo `0..5` — que tinha os números `0`, `1`, `2`, `3`, `4` — entrega só os números de 2 em 2: `0`, `2`, `4`:\n\n```rust\npub fn soma_de_dois_em_dois(limite: i32) -> i32 {\n    let intervalo = 0..limite;\n    let mut soma = 0;\n    for n in intervalo.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n```\n\n`soma_de_dois_em_dois(5)` devolve `6` — `0 + 2 + 4`. E `soma_de_dois_em_dois(1)` devolve `0`: do intervalo `0..1` de 2 em 2 só resta o `0`."
+      "markdown": "Com o passo `2`, o intervalo `0..5` — que tinha os números `0`, `1`, `2`, `3`, `4` — entrega só os números de 2 em 2: `0`, `2`, `4`:\n\n```rust\npub fn soma_ate_cinco() -> i32 {\n    let cinco = 0..5;\n    let mut soma = 0;\n    for n in cinco.step_by(2) {\n        soma += n;\n    }\n    soma\n}\n```\n\n`soma_ate_cinco()` devolve `6` — `0 + 2 + 4`. O `5` é o fim e não entra; os ímpares o passo pulou. Num intervalo `0..1`, de 2 em 2, sobra só o `0` — e a soma é `0`."
     }
   ],
   "assertions": [
@@ -61,21 +74,21 @@
     },
     {
       "id": "o-receptor-vem-antes",
-      "statement": "Numa chamada de método, o dono vem antes do ponto e o método depois: intervalo.step_by(2).",
-      "question": "Em `intervalo.step_by(2)`, quem é o dono do método?",
+      "statement": "Numa chamada de método, o receptor vem antes do ponto e o método depois: contagem.step_by(3).",
+      "question": "Em `contagem.step_by(3)`, quem é o receptor da chamada?",
       "options": [
-        "o `intervalo` — o que vem antes do ponto",
-        "o `2` — o parâmetro",
+        "o `contagem` — o que vem antes do ponto",
+        "o `3` — o parâmetro",
         "o `for` — quem pede a chamada",
         "o `soma` — quem recebe o resultado"
       ],
       "answerIndex": 0,
-      "feedback": "O receptor vem antes do ponto: o `intervalo` é o dono, e `.step_by(2)` é o método chamado NELE.",
+      "feedback": "O receptor vem antes do ponto: o `contagem` é quem recebe a chamada, e `.step_by(3)` é o método chamado NELE.",
       "sectionId": "o-receptor-vem-antes-do-ponto",
       "optionRationales": [
-        "Antes do ponto está o dono — o método é chamado NELE.",
-        "O `2` é o parâmetro do método — o passo, não o dono.",
-        "O `for` usa o resultado do método — ele não é o dono dele.",
+        "Antes do ponto está o receptor — o método é chamado NELE.",
+        "O `3` é o parâmetro do método — o passo, não o receptor.",
+        "O `for` usa o resultado do método — ele não é o receptor.",
         "O `soma` é o acumulador do corpo — nada a ver com a chamada."
       ]
     },
@@ -104,7 +117,7 @@
     {
       "title": "std — o Range, o intervalo de um laço",
       "url": "https://doc.rust-lang.org/std/ops/struct.Range.html",
-      "description": "O intervalo — o dono do método step_by."
+      "description": "O intervalo — o receptor do método step_by."
     },
     {
       "title": "std — o StepBy, o intervalo com o passo mudado",

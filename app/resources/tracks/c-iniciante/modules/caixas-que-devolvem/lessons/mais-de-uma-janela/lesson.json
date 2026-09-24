@@ -2,22 +2,124 @@
   "schemaVersion": 1,
   "slug": "mais-de-uma-janela",
   "title": "Mais de uma janela",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "A caixa pode ter duas janelas de entrada, cada uma com o seu tipo e o seu nome — e a ordem dos argumentos na chamada é a ordem dos parâmetros.",
+  "difficulty": 2,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "node:ParmVarDecl",
+  "concepts": [
+    "dois_parametros"
+  ],
   "prerequisites": [
     "a-janela-de-entrada"
   ],
+  "introduces": {
+    "productive": [
+      "node:ParmVarDecl"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a entrada da caixa deixa de ser um valor e passa a ser uma LISTA posicional: cada janela tem tipo e nome próprios, e é a posição do argumento na chamada que decide em qual janela ele entra",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "duas-janelas",
+      "title": "Duas janelas na mesma caixa",
+      "markdown": "Uma caixa pode ter mais de uma janela de entrada. Os parâmetros ficam entre os parênteses, separados por vírgula:\n\n```c\nint area(int largura, int altura) {\n    return largura * altura;\n}\n```\n\n`largura` e `altura` são dois nomes locais, cada um com o seu valor, prontos para usar no corpo.\n\nCada janela repete o tipo. `int area(int largura, altura)` não compila: falta o tipo da segunda, e o compilador para com *type specifier missing*."
+    },
+    {
+      "id": "a-ordem-e-a-ordem",
+      "title": "A ordem é a ordem",
+      "markdown": "Na chamada, o primeiro argumento entra na primeira janela; o segundo, na segunda. A ordem não é negociável:\n\n```c\nvoid mostrarPlacar(int casa, int visitante) {\n    printf(\"%d x %d\\n\", casa, visitante);\n}\n\nvoid usar(void) {\n    mostrarPlacar(3, 1);\n    mostrarPlacar(1, 3);\n}\n```\n\n```text\n3 x 1\n1 x 3\n```\n\nO mesmo par de números, trocado de lugar, é outro placar. E o compilador não reclama: os dois são `int`, então a troca é legal — e errada."
+    },
+    {
+      "id": "o-mesmo-par",
+      "title": "O mesmo par, dois trabalhos",
+      "markdown": "Duas caixas diferentes podem pedir exatamente as **mesmas** duas janelas:\n\n```c\nint perimetro(int largura, int altura) {\n    return 2 * (largura + altura);\n}\n```\n\nCom o mesmo par de números, `area(3, 5)` devolve 15 e `perimetro(3, 5)` devolve 16: as janelas são iguais, o trabalho de dentro é outro.\n\nOs nomes das janelas são **da caixa**. Quem chama não precisa saber que elas se chamam `largura` e `altura` — precisa saber a ordem: primeiro a largura, depois a altura."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-ordem-dos-argumentos",
+      "statement": "A ordem dos argumentos é a ordem dos parâmetros.",
+      "question": "A caixa é `void mostrarPlacar(int casa, int visitante)`. O que `mostrarPlacar(1, 3)` imprime?",
+      "options": [
+        "`1 x 3`: o 1 entrou em `casa` e o 3 em `visitante`.",
+        "`3 x 1`, porque o maior número sempre vai na frente.",
+        "Erro de compilação: os nomes dos argumentos não foram ditos.",
+        "`casa x visitante`, os nomes dos parâmetros."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada argumento entra na janela da sua posição: o primeiro em `casa`, o segundo em `visitante`. Trocar a ordem na chamada troca o placar, e o compilador não avisa nada.",
+      "sectionId": "a-ordem-e-a-ordem",
+      "optionRationales": [
+        "A posição decide: primeiro argumento na primeira janela, segundo na segunda.",
+        "Nada ordena os valores por tamanho: o lugar de cada um é a posição em que foi escrito.",
+        "Na chamada só vão os valores; os nomes das janelas são assunto de dentro da caixa.",
+        "O `%d` mostra o valor que chegou na janela, nunca o nome dela."
+      ]
+    },
+    {
+      "id": "cada-janela-tem-tipo",
+      "statement": "Cada parâmetro declara o seu próprio tipo, mesmo quando os dois são iguais.",
+      "question": "Por que `int area(int largura, altura)` não compila?",
+      "options": [
+        "Porque uma caixa só aceita um parâmetro.",
+        "Porque os dois parâmetros precisam ter nomes diferentes.",
+        "Porque falta o tipo da segunda janela: o C não deduz o `int`.",
+        "Porque a vírgula separa argumentos na chamada e nunca parâmetros na declaração."
+      ],
+      "answerIndex": 2,
+      "feedback": "Cada janela é declarada inteira: tipo e nome. O C não repete o tipo anterior por conta própria, e para com *type specifier missing*.",
+      "sectionId": "duas-janelas",
+      "optionRationales": [
+        "Duas janelas são permitidas: `int area(int largura, int altura)` compila sem reclamação.",
+        "Os nomes já são diferentes; o que falta é o tipo da segunda.",
+        "É isso: sem `int` na frente de `altura`, o compilador não tem o tipo da janela.",
+        "A vírgula separa os dois: na declaração, parâmetros; na chamada, argumentos."
+      ]
+    },
+    {
+      "id": "mesmas-janelas-trabalhos-diferentes",
+      "statement": "Duas caixas podem pedir as mesmas duas janelas e fazer contas diferentes com elas.",
+      "question": "Com `area(3, 5)` valendo 15, quanto devolve `perimetro(3, 5)`, que calcula `2 * (largura + altura)`?",
+      "options": [
+        "15, o mesmo valor: as janelas são as mesmas.",
+        "16: o mesmo par de números, outra conta.",
+        "8, a soma da largura com a altura.",
+        "30, o dobro da área."
+      ],
+      "answerIndex": 1,
+      "feedback": "As janelas iguais entregam os mesmos dois valores; o que muda é a conta de dentro. `2 * (3 + 5)` é 16, enquanto `3 * 5` é 15.",
+      "sectionId": "o-mesmo-par",
+      "optionRationales": [
+        "Janelas iguais não obrigam a resultados iguais: cada caixa faz o seu trabalho.",
+        "`2 * (3 + 5)` é 16 — o contorno do retângulo, não a superfície.",
+        "8 é só a soma dos lados; o contorno tem dois de cada lado, por isso o `2 *`.",
+        "Dobrar a área não é o contorno: as duas contas partem dos mesmos números por caminhos diferentes."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Function declaration — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_declaration",
+      "description": "A página oficial da lista de parâmetros: cada parâmetro declara o seu tipo, e a correspondência com os argumentos é posicional."
+    },
+    {
+      "title": "Function definition — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/function_definition",
+      "description": "A definição de função em C, com a lista de parâmetros entre os parênteses e o corpo que os usa como nomes locais."
+    },
+    {
+      "title": "Arithmetic operators — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_arithmetic",
+      "description": "As contas que as duas janelas alimentam: a multiplicação da área e a soma do perímetro."
+    }
+  ],
+  "challenges": [
+    "area-e-perimetro"
+  ],
   "autoria": {
     "modulo": "caixas-que-devolvem",
     "moduloTitulo": "Caixas que devolvem",

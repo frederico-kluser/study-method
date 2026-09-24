@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-de-visitas",
+  "title": "Contador de visitas",
+  "concept": "somar_no_lugar",
+  "difficulty": 1,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# Contador de visitas\n\nA função `contadorDeVisitas` acompanha as visitas da semana. O contador começa em **0** e cresce três vezes, sempre com `+=`:\n\n- segunda: **12** visitas\n- terça: **7** visitas\n- quarta: **23** visitas\n\nDepois de CADA soma, o total de agora é impresso no formato `visitas: <total>` — três linhas, uma por dia. Os três `printf` já estão no arquivo, na ordem certa: o que falta é o `+=` antes de cada um.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n\n/* contadorDeVisitas acompanha as visitas da semana. O contador nasce em 0\n   e cresce tres vezes; os tres printf ja estao na ordem certa.\n   Escreva, antes de cada printf, o += que acrescenta as visitas do dia. */\nvoid contadorDeVisitas(void) {\n    int visitas = 0;\n\n    /* segunda: acrescente 12 visitas */\n    printf(\"visitas: %d\\n\", visitas);\n\n    /* terca: acrescente 7 visitas */\n    printf(\"visitas: %d\\n\", visitas);\n\n    /* quarta: acrescente 23 visitas */\n    printf(\"visitas: %d\\n\", visitas);\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio contador-de-visitas — counter_protocol (03-tdd 3.9.3).\n   O main e o relatorio sao do harness; aqui so existem cenarios SM_TEST.\n   A captura do stdout acontece DENTRO do teste (modelo cenario-do-harness):\n   freopen manda o stdout para o arquivo temporario, o teste chama a funcao\n   do aluno e le o arquivo de volta — stdlib puro, sem runner proprio. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid contadorDeVisitas(void);\n\nSM_TEST(o_total_de_cada_dia) {\n    /* captura: o stdout vira o arquivo sm_saida.tmp */\n    freopen(\"sm_saida.tmp\", \"w\", stdout);\n    contadorDeVisitas();\n    fflush(stdout);\n\n    /* leitura linha a linha: uma linha por dia, na ordem da semana */\n    FILE *f = fopen(\"sm_saida.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o total da segunda\", linha, \"visitas: 12\\n\",\n              \"o contador nasce em 0 e a segunda acrescenta 12\");\n    fgets(linha, 80, f);\n    checa_str(\"o total da terca\", linha, \"visitas: 19\\n\",\n              \"o += soma sobre o total de agora: 12 mais 7 sao 19\");\n    fgets(linha, 80, f);\n    checa_str(\"o total da quarta\", linha, \"visitas: 42\\n\",\n              \"19 mais as 23 visitas da quarta sao 42\");\n    /* a saida TERMINA na terceira linha — buffer novo com sentinel */\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"sao tres dias: nenhuma quarta linha e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n\nvoid contadorDeVisitas(void) {\n    int visitas = 0;\n    visitas += 12;\n    printf(\"visitas: %d\\n\", visitas);\n    visitas += 7;\n    printf(\"visitas: %d\\n\", visitas);\n    visitas += 23;\n    printf(\"visitas: %d\\n\", visitas);\n}\n",
+  "expectedTestCount": 1,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "o_total_de_cada_dia",
+      "teste": "o_total_de_cada_dia",
+      "descricao": "a funcao contadorDeVisitas acumula 12, 7 e 23 com += sobre um contador que nasce em 0 e imprime o total depois de cada soma: visitas: 12, visitas: 19 e visitas: 42, e nada alem disso"
+    }
+  ]
+}
