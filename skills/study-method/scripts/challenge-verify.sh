@@ -651,6 +651,21 @@ cv_build_request_payload() {
       reference_excerpt:$exc, survivors:$survivors}'
 }
 
+# `setup_id` do envelope do §6.1 e preenchido PELO CHAMADOR: `sm_request`
+# (lib/json.sh) o le de $SM_SETUP_ID e so emite `null` quando a variavel falta.
+# O desafio mora em `challenges/<NNNN>-<slug>/` do setup (§3.2), entao o id real e o
+# do setup dono da arvore; sem `setup.json` legivel em ancestral, nao ha id real e o
+# envelope nasce `null` (a leitura e so de disco — RA-1 segue intacta).
+cv_export_setup_id() {
+  local root="" sid=""
+  root="$(sm_setup_root "$CV_DIR" 2>/dev/null)" || root=""
+  if [ -n "$root" ]; then
+    sid="$(sm_json_get "$root/setup.json" '.setup_id // empty' 2>/dev/null)" || sid=""
+  fi
+  [[ "$sid" =~ ^[0-9a-f]{12}$ ]] || sid=""
+  export SM_SETUP_ID="$sid"
+}
+
 # `sm_request` calcula o request_id do sha256 do payload canonico. O payload NAO
 # carrega `generated_at` de proposito: se carregasse, o id mudaria a cada segundo e
 # o `--apply` nunca reconheceria o proprio pedido. O carimbo vive no envelope, e o
@@ -660,6 +675,7 @@ cv_emit_request() {
   local payload; payload="$(cv_build_request_payload)"
   local instr
   instr="Classifique CADA mutante sobrevivente como 'equivalent' (comportamentalmente identico a referencia para toda entrada valida — nenhum teste poderia mata-lo) ou 'not_equivalent' (existe entrada que distingue: e um buraco no teste). A justificativa e OBRIGATORIA e tem no minimo ${CV_MIN_JUSTIFICATION} caracteres. Na duvida responda not_equivalent: classificar como equivalent o que e buraco entrega ao aluno um teste que aprova codigo errado."
+  cv_export_setup_id
   local env rc=0
   env="$(sm_request "$CV_HARNESS" "$CV_KIND" "$CV_RESPONSE_SCHEMA" "$instr" "$payload")" || rc=$?
   if [ "$rc" -ne 10 ]; then
@@ -672,6 +688,7 @@ cv_emit_request() {
 
 cv_request_id() {
   local payload; payload="$(cv_build_request_payload)"
+  cv_export_setup_id
   local env rc=0
   env="$(sm_request "$CV_HARNESS" "$CV_KIND" "$CV_RESPONSE_SCHEMA" "-" "$payload")" || rc=$?
   [ "$rc" -eq 10 ] || { sm_log error "sm_request devolveu $rc; esperado 10"; exit 1; }

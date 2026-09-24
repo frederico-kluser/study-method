@@ -160,6 +160,7 @@ describe('docs-index.sh — indexação determinística do docs/ do setup (§8)'
     await fsp.mkdir(path.join(sb.setup, 'docs'), { recursive: true });
     await fsp.writeFile(path.join(sb.setup, 'docs', 'limites.md'), '# Limites\n\nTexto teorico do aluno sobre limites.\n', 'utf8');
 
+    const antes = await listarArquivos(sb.dir);
     const r = sb.script('docs-index.sh', [sb.setup, '--select']);
     assert.equal(r.status, 10);
     const envelope = JSON.parse(r.stdout) as Record<string, unknown>;
@@ -171,14 +172,28 @@ describe('docs-index.sh — indexação determinística do docs/ do setup (§8)'
     assert.match(String(envelope.response_schema), /^urn:study-method:schema:/);
     assert.equal(await sb.exists(path.join('setup', 'memory', 'docs-index.json')), false, 'RA-1: a fase de PEDIDO não escreve');
 
-    // BUG: <sintoma> — <arquivo:linha>: o envelope do PEDIDO sai com `setup_id: null`
-    // em vez do `setup_id` do setup, que docs/00-contratos.md §6.1 mostra preenchido
-    // ("setup_id": "9f2c41ab77e0") e que memory-compact.sh preenche de fato.
-    // Causa: `sm_request` (skills/study-method/scripts/lib/json.sh:157) lê
-    // `${SM_SETUP_ID:-}` e docs-index.sh:622 chama `sm_request` sem exportar a
-    // variável. O comportamento ATUAL está pinado aqui; a correção é do refactor
-    // (exportar SM_SETUP_ID ou passar o id como parâmetro de sm_request).
-    assert.equal(envelope.setup_id, null);
+    // §6.1: o envelope do PEDIDO carrega o `setup_id` do setup — preenchido pelo
+    // CHAMADOR (docs-index.sh exporta SM_SETUP_ID antes de sm_request; lib/json.sh
+    // o lê e só emite `null` quando a variável falta).
+    assert.equal(envelope.setup_id, '0123456789ab');
+
+    // RA-1: nada escrito em disco — nem lock, nem tmp, nem log: a árvore INTEIRA
+    // de arquivos do sandbox está idêntica antes e depois da fase de PEDIDO
+    // (padrão de cx-scripts-memory.test.ts:277).
+    assert.deepEqual(await listarArquivos(sb.dir), antes, 'RA-1: nada escrito na fase de PEDIDO');
     await sb.rm();
   });
 });
+
+async function listarArquivos(raiz: string): Promise<string[]> {
+  const achados: string[] = [];
+  async function walk(dir: string): Promise<void> {
+    for (const e of await fsp.readdir(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) await walk(p);
+      else achados.push(path.relative(raiz, p));
+    }
+  }
+  await walk(raiz);
+  return achados.sort();
+}

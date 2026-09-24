@@ -225,6 +225,9 @@ sc_emit_request() {   # $1 = payload JSON — sai 10, sem tocar em disco (RA-1)
   if ! sm_json_validate <(printf '%s\n' "$payload") "$SM_REQUEST_SCHEMA_FILE"; then
     sm_die 5 "o PEDIDO montado não valida contra session-close.request.schema.json (bug do script)."
   fi
+  # §6.1: o `setup_id` do envelope é preenchido PELO CHAMADOR — `sm_request`
+  # (lib/json.sh) o lê de $SM_SETUP_ID e só emite `null` quando a variável falta.
+  export SM_SETUP_ID="$SC_SETUP_ID"
   sm_request "session-close.sh" "$SM_REQUEST_KIND" "$SM_RESPONSE_SCHEMA" \
     "Preencha SÓ os campos listados em missing_fields, em pt-BR, com o que a sessão sustenta. Não invente o que não aconteceu: campo sem base vai para unfilled[] com o motivo." \
     "$payload" || exit "$?"

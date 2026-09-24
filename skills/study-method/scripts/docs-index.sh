@@ -619,6 +619,9 @@ if [[ -n "$di_select" ]]; then
   DI_PAYLOAD="$(di_payload)"
   sm_json_validate <(printf '%s\n' "$DI_PAYLOAD") "$SM_REQ_SCHEMA" \
     || sm_die 5 "o PEDIDO montado não valida contra docs-index.request.schema.json (bug do script)."
+  # §6.1: o `setup_id` do envelope é preenchido PELO CHAMADOR — `sm_request`
+  # (lib/json.sh) o lê de $SM_SETUP_ID e só emite `null` quando a variável falta.
+  export SM_SETUP_ID="$DI_SETUP_ID"
   sm_request "docs-index.sh" "$SM_REQUEST_KIND" "$SM_RESPONSE_SCHEMA_URN" \
     "Escolha, entre as candidatas, as seções que sustentam ESTE tópico. A soma dos bytes não pode passar de remaining_bytes; cada escolha vem com um motivo concreto, porque é ele que vira a frase dita ao aluno sobre o que ficou de fora." \
     "$DI_PAYLOAD" || exit "$?"

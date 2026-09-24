@@ -327,6 +327,13 @@ motivo: sem elas o gate não consegue comparar duas execuções byte a byte.
 
 Códigos 6–9 e 11+ são **reservados**. Nenhum script pode inventar significado para eles.
 
+**Exceção nomeada — `challenge-verify.sh` sem `<challenge_dir>`.** ⚑ Na letra desta tabela,
+argumento faltando seria **2** ("uso incorreto"); na prática o posicional é opcional: ausente, o
+script usa `$PWD` como `<challenge_dir>` e só falha depois, com **3** — a raiz escolhida não tem
+`meta.json` legível, isto é, "desafio não encontrado" (o mesmo **3** de diretório de desafio
+inexistente). É o comportamento pinado pelos testes: registrado aqui como exceção nomeada, não
+como desvio. A linha do script na tabela do §8 já lista o **3**.
+
 ### 5.2 Exceções nomeadas (são exceção, não desvio)
 
 | Programa | Códigos | Razão |
@@ -625,7 +632,7 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 | `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime a lista de conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · **4** · 5 (evento sem artefato correspondente **também** é 5). ⚑ **Sai 4**: tem lock próprio, `memory/.progress.lock` (diretório, `mkdir` atômico, mesma disciplina de `sm_registry_lock`), porque duas escritas concorrentes em `progress.json` corrompem o estado de proficiência. O lock é **do arquivo**, não da sessão: é ortogonal a `memory/.session.lock`, e um não substitui o outro. |
 | `readme-sync.sh` | `<setup_root> [--init]` | O número de linhas geradas | 0 · 1 · 2 · 3. **Idempotente**: duas execuções seguidas produzem o mesmo arquivo. |
 | `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho relativo de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 |
-| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--threshold X] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
+| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--threshold X] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · **3** (desafio não encontrado) · 5 (schema do `meta.json`) · **10** (`classify_survivor`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. ⚑ **Exceção nomeada (§5.1):** sem `<challenge_dir>` o script usa `$PWD` e sai **3** quando ali não há desafio — nunca 2. |
 | `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 |
 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§5.2): 0 · 1 · 2 · 3 |
 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}`. Aceita também `<setup_root> <fase>` posicional, `--record <id> <opcao> [--value] [--note] [--session]`, `--defaults <fase>` e `--catalog-only <fase>` (`docs/08` §1.4) | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
