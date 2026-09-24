@@ -333,6 +333,12 @@ export async function buildTrackLesson(
       // à seção de teoria que demonstra a assertion. OPCIONAL: ausente =
       // afirmação sem âncora (o renderer cai no FALLBACK_QUIZ_SECTION).
       sectionId: a.sectionId,
+      // ADITIVO (onda1-contrato-quiz): UM RACIONAL POR OPÇÃO — material ancorado
+      // que o tutor usa quando o aluno erra (a explicação do distrator escolhido).
+      // Espelha TrackAssertion.optionRationales (content/trackTypes.ts) e o
+      // TrackAssertionDto.optionRationales (shared/ipc-contract.ts). Copia
+      // VERBATIM: ausente ou [] = sem racionais declarados.
+      optionRationales: a.optionRationales,
     })),
     sources: lesson.meta.sources.map((s) => ({ title: s.title, url: s.url, description: s.description })),
     challenges: challengeSummaries,

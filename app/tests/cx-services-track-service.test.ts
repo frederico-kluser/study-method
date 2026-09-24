@@ -408,6 +408,7 @@ describe('cx/trackService: buildTrackLesson (payload de UMA aula)', () => {
         answerIndex: 0,
         feedback: 'f',
         sectionId: 'sec-a2',
+        optionRationales: ['r0', 'r1', 'r2', 'r3'],
       },
     ]);
     assert.deepEqual(payload.challenges, [
@@ -664,10 +665,10 @@ describe('cx/trackService: findLessonInTrack', () => {
   });
 });
 
-// ─── BUG marcado (não corrigido aqui) ───────────────────────────────────────
+// ─── REGRESSÃO (bug G): assertion.optionRationales atravessa o payload ───────
 
-describe('cx/trackService: defeitos nomeados (NÃO corrigidos — apenas registrados)', () => {
-  it('caracterização atual: o payload da aula NASCE SEM optionRationales', async () => {
+describe('cx/trackService: bug G — assertion.optionRationales chega ao payload (regressão)', () => {
+  it('o payload CARREGA optionRationales quando a aula o declara (campo incluído)', async () => {
     const track = trackDe([
       moduleOf('m1', 1, [
         lesson(
@@ -692,19 +693,21 @@ describe('cx/trackService: defeitos nomeados (NÃO corrigidos — apenas registr
     assert.ok(payload?.assertions);
     assert.equal(
       'optionRationales' in payload.assertions[0],
-      false,
-      'comportamento ATUAL: o campo declarado na aula não atravessa o payload',
+      true,
+      'campo incluído: optionRationales faz parte da assertion do payload',
+    );
+    assert.deepEqual(
+      payload.assertions[0].optionRationales,
+      ['r0', 'r1', 'r2', 'r3'],
+      'o racional autoral declarado atravessa o payload',
     );
   });
 
   it(
-    'BUG: buildTrackLesson descarta assertion.optionRationales — trackService.ts:325-336',
-    {
-      todo: 'BUG: buildTrackLesson não copia assertion.optionRationales para o payload — o material de racional autoral (trackTypes.ts "material ancorado que o tutor usa quando o aluno erra") morre na fronteira IPC e o prompt de explicação fica sem ele — trackService.ts:325-336',
-    },
+    'regressão (bug G): buildTrackLesson COPIA assertion.optionRationales para o payload — trackService.ts:325-336',
     async () => {
       // Comportamento CORRETO: o DTO TrackAssertionDto DECLARA optionRationales
-      // (shared/ipc-contract.ts) — o mapping deveria atravessá-lo quando presente.
+      // (shared/ipc-contract.ts) — o mapping atravessa-o quando presente.
       const track = trackDe([
         moduleOf('m1', 1, [
           lesson(
