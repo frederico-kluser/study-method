@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "GUI Electron para o tutor study-method — LLM local (node-llama-cpp), editor de código sem autocomplete, pesquisa Brave e pi coding agent (GLM 5.3 Flash via OpenRouter).",
   "author": "study-method",
+  "homepage": "https://github.com/frederico-kluser/study-method#readme",
   "main": "./out/main/index.js",
   "engines": {
     "node": ">=22.13"
