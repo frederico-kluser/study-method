@@ -15,9 +15,11 @@
  *
  * ─── O CONTEÚDO EMPILHOU, NÃO MUDOU ────────────────────────────────────────
  * De cima para baixo: título do app → [slot da view ativa — vazio fora da
- * aula] → poço de estado (assunto, fase) → controles (tema, idioma). Mesmos
- * dados, mesmos alvos de onboarding, mesma hierarquia — só a orientação do
- * arranjo virou coluna.
+ * aula] → poço de estado (assunto, fase) → controles (tema e idioma, AGORA na
+ * mesma linha — pedido do dono "quero tudo na mesma linha"; ver
+ * ONDA-CONTROLES-NA-MESMA-LINHA no pé do componente). Mesmos dados, mesmos
+ * alvos de onboarding, mesma hierarquia — só a orientação do arranjo virou
+ * coluna.
  *
  * ─── O SLOT DA VIEW ATIVA (onda1-sidebar-slot) ─────────────────────────────
  * Queixa do dono sobre esta coluna, verbatim: *"a informação dele nunca
@@ -83,6 +85,7 @@ import { effectsTransition } from '../../theme';
 import ThemeModeSelector from '../theme/ThemeModeSelector';
 import { SHELL_SIDEBAR_SLOT_ID } from './ShellSidebarSlot';
 import LanguageSwitcher from '../../i18n/LanguageSwitcher';
+import { TutorialHelpButton } from '../../features/onboarding/components/TutorialHelpButton';
 
 /**
  * Um campo do quadro: rótulo miúdo em cima, valor embaixo. Quando o valor é o
@@ -323,14 +326,37 @@ export default function SessionFrame({
       </Box>
 
       {/* Os controles descem para o pé da coluna (VSCode: ações de view no
-          fundo da sidebar). PRESERVADOS: os dois alvos de onboarding. */}
+          fundo da sidebar) — e agora NUMA MESMA LINHA.
+
+          ONDA-CONTROLES-NA-MESMA-LINHA (pedido do dono, verbatim: *"nao
+          gostei de a bandeira do idioma ficar embaixo e os seletornes de theme
+          ficarem em cima, quero tudo na mesma linha"*): tema e idioma eram
+          empilhados (segmentado em cima, bandeira embaixo); passam a dividir
+          a MESMA fileira, lado a lado — o segmentado claro/sistema/escuro à
+          esquerda e a bandeira do idioma ao seu lado, como os controles de
+          canto do VS Code.
+
+          POR QUE `flexWrap: 'wrap'` (e não um nowrap que "garante" a linha):
+          no PISO da divisória (180px — `minPanePx` de SHELL_SPLIT_CONSTRAINTS)
+          a coluna tem ~156px de conteúdo e o segmentado ocupa 132px sozinho;
+          com a bandeira (~34px) a linha passaria do limite e o SC 1.4.12
+          reprovava por overflow (a política do sidebar é "quebra, nunca
+          recorta"). Com wrap, nas larguras normais (≥ ~210px de coluna) os
+          dois cabem na MESMA linha — o pedido do dono — e só no piso extremo
+          a bandeira quebra para a linha de baixo em vez de estourar a coluna.
+
+          PRESERVADOS: os dois alvos de onboarding nos wrappers
+          `display:contents` (guardas de fonte em shellSidebar/shellSplitUi/
+          shellSidebarSlot — e o slot do e2e que espera os alvos aqui). */}
       <Box
         sx={(theme) => ({
           marginTop: 'auto',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: theme.spacing(0.5),
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: theme.spacing(1),
+          minWidth: 0,
         })}
       >
         {/* ONDA-TEMA-SELETOR: o toggle que ciclava virou SELEÇÃO DIRETA — o
@@ -349,6 +375,12 @@ export default function SessionFrame({
         >
           <LanguageSwitcher variant="menu" />
         </Box>
+        {/* ONDA-BOTAO-AJUDA: o botão de ajuda fecha a linha de controles — é ele
+            que cumpre a promessa do tutorial ("reabra pelo botão de ajuda").
+            Abre o modal de seleção de tutorial via `tutorialLauncherService`
+            (o dono do estado é o OnboardingHost, irmão do Shell — ver o
+            serviço). Alvo `help-button` no catálogo do onboarding. */}
+        <TutorialHelpButton />
       </Box>
     </AppBar>
   );

@@ -65,7 +65,7 @@ test('e2e-onboarding: modal com 2 opções → overlay no alvo → concluir/skip
 
   // Reload: o app re-monta, mas o modal/overlay NÃO reaparece (já oferecido/pulado).
   await page.reload();
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });

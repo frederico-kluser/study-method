@@ -34,24 +34,45 @@ export interface TerminalBannerInput {
   output: string;
 }
 
+/**
+ * S4 (auditoria de UX): as LINHAS de texto do banner chegam TRADUZIDAS por
+ * argumento — quem chama tem `t()`, este módulo continua puro e sem i18n.
+ * Antes as quatro frases viviam aqui em pt-BR cru (o utilizador via
+ * "TESTES (fase determinística)" / "TESTS_RUN=… ESPERADOS=…" — jargão
+ * interno + EN/PT na mesma linha). `counts` já vem interpolado pelo chamador
+ * ("{{n}} de {{m}} testes" → "3 de 5 testes"): a terminologia é ÚNICA, a do
+ * `partialCount` ("N de M testes").
+ */
+export interface TerminalBannerLabels {
+  /** Linha de título (ex.: "=== TESTES ==="). */
+  title: string;
+  /** Linha de SUCESSO (ex.: "PASSOU"). */
+  passed: string;
+  /** Linha de FALHA (ex.: "NÃO PASSOU"). */
+  failed: string;
+  /** Contagens já interpoladas (ex.: "3 de 5 testes"). */
+  counts: string;
+}
+
 const RULE_MUTED: TerminalBannerLine = { text: '──────────────────────────────────────────', color: 'muted' };
 
 /**
  * Monta a sequência de linhas do banner (cabeçalho + PASS/FAIL + contagens +
- * saída real). Linhas com texto vazio são descartadas. Mantém a MESMA ordem e
- * conteúdo exibidos pelo AnswerTerminal histórico.
+ * saída real). Linhas com texto vazio são descartadas. A ORDEM e a estrutura
+ * são as do AnswerTerminal histórico; os TEXTOS vêm todos em `labels`
+ * (traduzidos pelo chamador — ver `TerminalBannerLabels`).
  */
-export function buildTestBannerLines(input: TerminalBannerInput): TerminalBannerLine[] {
+export function buildTestBannerLines(
+  input: TerminalBannerInput,
+  labels: TerminalBannerLabels,
+): TerminalBannerLine[] {
   const lines: TerminalBannerLine[] = [
-    { text: '=== TESTES (fase determinística) ===', color: 'muted' },
+    { text: labels.title, color: 'muted' },
     {
-      text: input.passed ? 'PASSOU' : 'NÃO PASSOU',
+      text: input.passed ? labels.passed : labels.failed,
       color: input.passed ? 'green' : 'red',
     },
-    {
-      text: `TESTS_RUN=${input.testsRun} ESPERADOS=${input.expectedTests}`,
-      color: 'muted',
-    },
+    { text: labels.counts, color: 'muted' },
   ];
 
   const out = (input.output ?? '').trim();

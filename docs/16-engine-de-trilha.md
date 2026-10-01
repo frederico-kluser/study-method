@@ -1513,10 +1513,32 @@ leitura que o gate determinístico ganhou depois e que não chamam LLM nenhuma.
 | `audit <slug>` | não | o orçamento cumulativo × as violações, com arquivo, linha e coluna | 0 · 1 · 2 |
 | `coverage <slug>` | não | sintetiza o código MÍNIMO que passa em cada teste e compara com o orçamento (LACUNA × EXCESSO) | 0 · 1 · 2 |
 | `requirements <slug>` | não | bijeção `requirements[]` declarados ↔ `test('...')` do desafio | 0 · 1 · 2 |
+| `pratica <slug>` | não | a PREMISSA DE REVISÃO ACUMULADA: cada desafio mistura ≥1 conceito de aulas anteriores (`SEM_REVISAO` reprova) e todo o conhecimento produtivo acaba praticado por módulo e por curso | 0 · 1 · 2 |
 | `revise <slug>` | não | a revisão progressiva: varre da 1ª à última aula até o hash do relatório estabilizar | 0 · 1 · 2 |
 | `generate <slug> --assunto` | **sim** | F0 a F12; retomável por `--from <fase>`, depurável por `--only <slug>` | 0 · 1 · 2 |
 | `repair <slug>` | dry-run **não**, `--aplicar` **sim** | o laço revisor → plano → correção sobre trilha existente | 0 · 1 · 2 |
 | `lint-schemas` | não | preflight de INV-04 (ordem de campo) e INV-05 (nada opcional) sobre o `SCHEMA_REGISTRY` real | 0 · 2 |
+
+**O `pratica` é a segunda regra dura do produto.** A primeira — "um desafio nunca cobra o que não
+foi ensinado" (A1–A4, o `audit`) — é a negativa; a premissa do dono é a positiva: *"os desafios
+finais da aula englobem conteúdos das aulas anteriores, misturando na prova conhecimentos que ele já
+possui — claro, não precisamos LITERALMENTE colocar tudo, mas ter um controle de modo que o aluno
+sempre pratique num desafio de aula ou de módulo todo o conhecimento anterior daquele curso"*. O
+controle existe duas vezes: em RUNTIME (`services/reviewSelection.ts` →
+`engine/coverage/practiceLedger.ts`, que seleciona o que revisar por nunca-praticado → espaçamento →
+intercalação) e, desde 2026-09-27, EM AUTORIA, sobre o curso já escrito
+(`engine/coverage/praticaAcumulada.ts`, comando `pratica`):
+
+- **MISTURA** — a solução de referência pratica ≥1 átomo-conceito (`decl/op/global/api/term`) de
+  aula estritamente anterior. `node:`/`form:` não contam como conceito — contar `node:Call` como
+  revisão aprovaria todo desafio que imprime algo — e `api:todo!` (stub do starter) nunca conta.
+  Isento por vacuidade nas primeiras aulas. `SEM_REVISAO` reprova (exit 1).
+- **FECHAMENTO** — `faltantesDoModulo` (do `practiceLedger`): todo átomo produtivo do módulo
+  praticado até ao desafio do módulo, e nenhum nunca-praticado no curso.
+
+O `--json` por desafio traz `atoms`/`ensinadosAntes`/`revisaoContavel`/`novos`/`sugestao` — a lista
+de trabalho de quem autora. Flags: `--so-falhas` (só as violações), `--eixos a,b` (sobrepõe os eixos
+que contam como conceito).
 
 Flags comuns de leitura: `--dir DIR` (carrega a trilha de fora de `resources/tracks/`), `--limite N`,
 `--json`; `audit` acrescenta `--modo declared|inferred`, `--harness receptive-seed|none` e

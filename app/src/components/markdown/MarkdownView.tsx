@@ -20,14 +20,14 @@
  *     módulo (arrays com identidade estável — array novo por render tem o mesmo
  *     efeito de remontagem do item 1).
  *
- * ─── GFM: DEPENDÊNCIA PENDENTE, DECLARADA ─────────────────────────────────
+ * ─── GFM: INSTALADO E LIGADO (S1 da auditoria de UX) ──────────────────────
  * Tabela, task list, autolink e strikethrough do GitHub Flavored Markdown
- * exigem `remark-gfm`, que **não está instalado nem é dependência transitiva**
- * (`ls app/node_modules | grep gfm` não retorna nada). A onda proíbe instalar
- * dependência, então o GFM fica FORA e a limitação é declarada aqui em vez de
- * silenciada (CONTRIBUTING.md, "Limitação escondida"). Quando entrar, o único
- * ponto de mudança é `REMARK_PLUGINS` abaixo.
- *   deps pendentes: remark-gfm@^4.0.0
+ * exigem `remark-gfm`. Antes ele **não estava instalado nem era dependência
+ * transitiva** e as tabelas/listas do tutor saíam CRUAS na aula (pipes e
+ * asteriscos à vista) — a limitação ficava declarada aqui. A dependência
+ * (`remark-gfm@^4`) entrou no app/ e o plugin passou a fazer parte de
+ * `REMARK_PLUGINS` abaixo (primeiro da lista: as extensões de bloco do GFM
+ * resolvem-se antes do remark-math processar os `$…$`/`$$…$$`).
  *
  * ─── TIPOGRAFIA ───────────────────────────────────────────────────────────
  * `text-align: left` explícito: a F88 do WCAG é falha DOCUMENTADA por
@@ -37,6 +37,7 @@
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { Box } from '@mui/material';
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
+import remarkGfm from 'remark-gfm';
 import type { PluggableList } from 'unified';
 
 import {
@@ -49,8 +50,12 @@ import { SHAPE } from '../../lib/designTokens';
 import { normalizeFenceLang } from '../../lib/typewriterSegments';
 import { CodeBlock } from './CodeBlock';
 
-/** Plugins com identidade ESTÁVEL — ver defeito 3 no cabeçalho. */
-const REMARK_PLUGINS: PluggableList = katexRemarkPlugins();
+/**
+ * Plugins com identidade ESTÁVEL — ver defeito 3 no cabeçalho. `remarkGfm`
+ * PRIMEIRO (S1): tabelas/tasklists/autolinks do GFM são extensões de bloco e
+ * assentam antes do remark-math reivindicar os delimitadores de matemática.
+ */
+const REMARK_PLUGINS: PluggableList = [remarkGfm, ...katexRemarkPlugins()];
 const REHYPE_PLUGINS: PluggableList = katexRehypePlugins();
 
 /** Junta o texto de uma árvore de children do react-markdown. */

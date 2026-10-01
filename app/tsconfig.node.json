@@ -71,6 +71,9 @@
     "src/features/onboarding/logic/onboardingSignals.ts",
     "src/features/onboarding/logic/stepTargetPresence.ts",
     "src/features/onboarding/services/onboardingStorage.service.ts",
+    // ONDA-BOTAO-AJUDA: lançador global do tutorial (registo do host ↔ botão de
+    // ajuda do shell). PURO (sem DOM/React) — testado de tests/tutorialLauncher.test.ts.
+    "src/features/onboarding/services/tutorialLauncher.service.ts",
     "src/features/onboarding/utils/onboardingPositioning.utils.ts",
     "src/features/onboarding/components/tutorialSelectionHelpers.ts",
     "src/features/onboarding/hooks/firstRunTutorial.rule.ts",

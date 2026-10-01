@@ -231,6 +231,33 @@ entrada"):
    impresso (J5; ver `qualidade-aula.md`).
 4. O teste usa só o orçamento de ENTRADA (A3) — releia o teste com os olhos do aluno pré-aula.
 5. 2–3 `sources[]` oficiais e verificáveis.
+6. A solução do desafio **mistura ≥1 conceito de aulas anteriores** (§8 — a premissa de revisão
+   acumulada); o gate é `npm run engine -- pratica <slug>`.
+
+## 8. A premissa de revisão acumulada — misturar o que já foi ensinado
+
+A segunda regra dura do produto (a primeira é "nunca cobrar o que não foi ensinado"): *"os desafios
+finais da aula englobem conteúdos das aulas anteriores, misturando na prova conhecimentos que ele já
+possui — claro, não precisamos LITERALMENTE colocar tudo, mas ter um controle de modo que o aluno
+sempre pratique num desafio de aula ou de módulo todo o conhecimento anterior daquele curso"*.
+
+- **Por desafio**: a solução de referência pratica ≥1 **átomo-conceito** ensinado numa aula
+  estritamente anterior. Conceito = eixo `decl:`/`op:`/`global:`/`api:`/`term:`; `node:` e `form:`
+  são estrutura e não contam (senão `node:Call` aprovaria todo desafio que imprime algo), e
+  `api:todo!` (stub do starter) nunca conta. Isento por vacuidade nas primeiras aulas.
+- **Sem esticar**: 1–2 conceitos anteriores chegam. O alvo novo da aula continua a ser o núcleo do
+  desafio (J5 continua valendo: quem não escreve a construção nova tem de reprovar).
+- **Fonte do que misturar**: `npm run engine -- pratica <slug> --json` — o campo `sugestao` de cada
+  desafio lista o que revisar primeiro (nunca-praticado antes, depois a prática mais antiga,
+  intercalando aulas de origem) e `ensinadosAntes` lista tudo o que já foi ensinado. Preferir o que
+  a sugestão aponta faz o curso fechar a cobertura sem repetir o mesmo conceito sempre.
+- **Por módulo**: o desafio de MÓDULO é a vassoura — compõe o módulo inteiro e garante o fechamento
+  ("todo o conhecimento anterior acaba praticado num desafio de aula ou de módulo"). Todo átomo
+  produtivo do módulo tem de ser praticado até ao desafio do módulo (`pratica` reporta
+  `faltantesDeModulo`), e nenhum conhecimento produtivo do curso fica nunca-praticado.
+- **Onde vive a régua**: `app/electron/main/engine/coverage/praticaAcumulada.ts` (pura, sobre o
+  `practiceLedger.ts` do runtime) e o comando `pratica` do CLI da engine. `references/validacao.md`
+  §1.1 tem o contrato completo do gate.
 
 ## Medições das ondas 1–5 (2026-09-11) — regras obrigatórias
 

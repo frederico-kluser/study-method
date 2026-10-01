@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-etiqueta-da-prateleira",
+  "title": "A etiqueta da prateleira",
+  "concept": "composicao_do_texto",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A etiqueta da prateleira\n\nA loja de materiais da esquina acabou de organizar o almoxarifado: dez peças por prateleira, dez prateleiras por coluna. As etiquetas saem à mão e com nomes diferentes para a mesma peça; a impressora nova chegou e quem as monta é você.\n\nEscreva a função `montar_etiqueta`. Ela recebe a **descrição da peça como foi digitada** e a **posição** dela na prateleira — como texto, que é como o leitor de código de barras manda — e devolve a etiqueta pronta:\n\n```python\ndef montar_etiqueta(descricao, posicao):\n    # devolva a etiqueta da peca na posicao pedida\n```\n\n## As regras da casa\n\n- **O nome da peça** sai sem os espaços das pontas, em MAIÚSCULAS e com as palavras coladas por hífen: `  parafuso sextavado ` vira `PARAFUSO-SEXTAVADO` — `strip`, `upper`, `split` e `join`.\n- **O cadastro do fornecedor não vai para a etiqueta.** Ele vem depois de um `#` (`porca 8mm#ACME`): ache a marca com o `find` e fatie antes dela.\n- **Peça frágil.** Se o nome tiver `*` (`*tela sensivel`), a etiqueta ganha o prefixo `FRAGIL-` e o `*` some — o `in` encontra a marca e o `replace` a apaga.\n- **A prateleira** tem letras: as dez primeiras posições são a `A` (`A-01` a `A-10`), as dez seguintes a `B`. A letra vem do número com o `chr`/`ord` da última aula e as contas de divisão do primeiro módulo: a posição 45 está na quinta dezena, prateleira `E`, lugar `05`.\n- **O lugar** sai sempre com dois dígitos: `3` vira `03`, `10` fica `10` — `str` e `zfill`.\n\nNo formato `NOME | LETRA-LUGAR`:\n\n```text\nmontar_etiqueta(\"  parafuso sextavado \", \"45\")  ->  \"PARAFUSO-SEXTAVADO | E-05\"\nmontar_etiqueta(\"porca 8mm#ACME\", \"11\")  ->  \"PORCA-8MM | B-01\"\nmontar_etiqueta(\"*tela sensivel\", \"3\")  ->  \"FRAGIL-TELA-SENSIVEL | A-03\"\nmontar_etiqueta(\"arruela\", \"10\")  ->  \"ARRUELA | A-10\"\n```\n\nNada aqui é construção nova: o módulo ensinou tudo — limpar, cortar, juntar e formatar texto, `chr`/`ord`. O desafio é fazê-las trabalharem juntas. A função devolve a etiqueta — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao montar_etiqueta(descricao, posicao)\n",
+  "testsCode": "import unittest\n\nfrom solucao import montar_etiqueta\n\n\nclass TestAEtiquetaDaPrateleira(unittest.TestCase):\n    def test_monta_a_etiqueta(self):\n        \"\"\"montar_etiqueta limpa o nome e monta a etiqueta da posicao 45\"\"\"\n        self.assertEqual(montar_etiqueta(\"  parafuso sextavado \", \"45\"), \"PARAFUSO-SEXTAVADO | E-05\")\n\n    def test_corta_o_cadastro_do_fornecedor(self):\n        \"\"\"montar_etiqueta corta o cadastro depois do jogo da velha e muda de prateleira\"\"\"\n        self.assertEqual(montar_etiqueta(\"porca 8mm#ACME\", \"11\"), \"PORCA-8MM | B-01\")\n\n    def test_peca_fragil(self):\n        \"\"\"montar_etiqueta poe o prefixo FRAGIL e apaga o asterisco do nome\"\"\"\n        self.assertEqual(montar_etiqueta(\"*tela sensivel\", \"3\"), \"FRAGIL-TELA-SENSIVEL | A-03\")\n\n    def test_fim_da_prateleira(self):\n        \"\"\"montar_etiqueta mantem a letra no fim da prateleira e o lugar com dois digitos\"\"\"\n        self.assertEqual(montar_etiqueta(\"arruela\", \"10\"), \"ARRUELA | A-10\")\n",
+  "solutionCode": "def montar_etiqueta(descricao, posicao):\n    texto = descricao.strip()\n    corte = texto.find(\"#\")\n    if corte != -1:\n        texto = texto[:corte]\n    fragil = \"\"\n    if \"*\" in texto:\n        fragil = \"FRAGIL-\"\n        texto = texto.replace(\"*\", \"\")\n    hifen = \"-\"\n    nome = fragil + hifen.join(texto.upper().split())\n    numero = int(posicao)\n    letra = chr(ord(\"A\") + (numero - 1) // 10)\n    lugar = str((numero - 1) % 10 + 1).zfill(2)\n    return f\"{nome} | {letra}-{lugar}\"\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_monta_a_etiqueta",
+      "teste": "test_monta_a_etiqueta",
+      "descricao": "montar_etiqueta limpa o nome e monta a etiqueta da posicao 45"
+    },
+    {
+      "id": "test_corta_o_cadastro_do_fornecedor",
+      "teste": "test_corta_o_cadastro_do_fornecedor",
+      "descricao": "montar_etiqueta corta o cadastro depois do jogo da velha e muda de prateleira"
+    },
+    {
+      "id": "test_peca_fragil",
+      "teste": "test_peca_fragil",
+      "descricao": "montar_etiqueta poe o prefixo FRAGIL e apaga o asterisco do nome"
+    },
+    {
+      "id": "test_fim_da_prateleira",
+      "teste": "test_fim_da_prateleira",
+      "descricao": "montar_etiqueta mantem a letra no fim da prateleira e o lugar com dois digitos"
+    }
+  ]
+}

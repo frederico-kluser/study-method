@@ -16,10 +16,12 @@ import {
 } from '../src/lib/shellNav';
 
 describe('NAV_ITEMS — ordem canônica do rail', () => {
-  it('tem exatamente 4 abas na ordem Início→Settings→Aula→Trilha (Desafio SAIU do rail)', () => {
+  it('tem exatamente 4 abas na ordem Início→Aula→Trilha→Configurações (Desafio SAIU do rail)', () => {
+    // ONDA-ORDEM-DO-RAIL (pedido do dono: "settings quero por ultimo e nao
+    // embaixo de inicio, mas embaixo de trilha"): o Settings é o ÚLTIMO item.
     assert.deepEqual(
       NAV_ITEMS.map((n) => n.key),
-      ['home', 'settings', 'lesson', 'roadmap'],
+      ['home', 'lesson', 'roadmap', 'settings'],
     );
   });
 
@@ -28,9 +30,9 @@ describe('NAV_ITEMS — ordem canônica do rail', () => {
       NAV_ITEMS.map((n) => n.i18nKey),
       [
         'translation:nav.home',
-        'translation:nav.settings',
         'translation:nav.lesson',
         'translation:nav.roadmap',
+        'translation:nav.settings',
       ],
     );
   });
@@ -48,7 +50,7 @@ describe('NAV_ITEMS — ordem canônica do rail', () => {
     // ONDA-SEM-DESAFIO-NO-RAIL: o Desafio continua sendo PAINEL do shell
     // (PanelKey), mas não tem tab — logo não tem índice no rail.
     assert.equal(navIndexOf('challenge'), -1);
-    assert.equal(navIndexOf('roadmap'), 3);
+    assert.equal(navIndexOf('roadmap'), 2);
     // @ts-expect-error chave inválida de propósito
     assert.equal(navIndexOf('bogus'), -1);
   });

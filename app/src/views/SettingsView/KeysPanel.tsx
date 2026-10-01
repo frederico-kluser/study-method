@@ -48,6 +48,14 @@ import { readCached, writeCached } from './panelCache';
 
 type Provider = 'openrouter' | 'brave';
 
+/**
+ * Piso de alvo de toque (px) — W21 (onda-ux): o piso de 44 da casa estava a ser
+ * aplicado de forma desigual (o `size="small"` do IconButton nasce 30×30 e os
+ * botões default ~36px). Mesmo valor/constante de LocalAiPanel e
+ * placeholders.tsx.
+ */
+const TOUCH_TARGET_PX = 44;
+
 const PROVIDER_META: Record<
   Provider,
   {
@@ -113,6 +121,12 @@ export function KeysPanel(): ReactElement {
   const [initialStatus, setInitialStatus] = useState<KeysStatus | null>(
     () => readCached<KeysStatus>('keys.status') ?? null,
   );
+  // W2 (onda-ux): falha do CANAL ≠ "não configurado". Quando `keys.getStatus()`
+  // rejeita, ninguém pode inferir o estado das chaves — o terceiro estado
+  // ("Não foi possível verificar") é o único honesto, e o "Tentar de novo"
+  // re-executa a leitura (reloadToken re-dispara o efeito abaixo).
+  const [statusError, setStatusError] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // ACHADO-5: chaves ALREADY configuradas no store (status/gate do KeysPanel) —
   // exposto como sinal DOM p/ o onboarding considerar o passo `settings-keys-filled`
@@ -129,22 +143,23 @@ export function KeysPanel(): ReactElement {
         if (!cancelled) {
           setInitialStatus(status);
           writeCached('keys.status', status);
+          setStatusError(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setInitialStatus({
-            llmConfigured: false,
-            braveConfigured: false,
-            llmValidated: false,
-            braveValidated: false,
-          });
+          // W2: rejeição do canal — NÃO se escreve "não configurada" no lugar
+          // do que não foi possível verificar (e o cache antigo, se existir,
+          // também não é apagado).
+          setStatusError(true);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+    // W2: o "Tentar de novo" incrementa `reloadToken` e re-executa a leitura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadToken]);
 
   const patch = useCallback(
     (provider: Provider, fn: (s: ProviderState) => ProviderState) => {
@@ -177,6 +192,18 @@ export function KeysPanel(): ReactElement {
         uiState: 'valid',
         message: t('translation:keys.saved'),
       }));
+      // W3 (onda-ux): os chips acompanham o save NO MESMO commit — antes o
+      // "Configurada" só aparecia na próxima montagem, quando a revalidação
+      // do getStatus chegava.
+      setInitialStatus((previous) => ({
+        ...(previous ?? {
+          llmConfigured: false,
+          braveConfigured: false,
+          llmValidated: false,
+          braveValidated: false,
+        }),
+        [provider === 'openrouter' ? 'llmConfigured' : 'braveConfigured']: true,
+      }));
       // Cache acompanha a escrita real: a próxima visita não mostra o chip
       // "não configurada" por um instante antes da revalidação.
       const prev = readCached<KeysStatus>('keys.status');
@@ -201,12 +228,27 @@ export function KeysPanel(): ReactElement {
     }
   };
 
-  const handleValidate = async (provider: Provider): Promise<void> => {
+  /**
+   * W5 (onda-ux): com o campo VAZIO o guard diz "Digite a chave antes de
+   * validar" — nunca se valida às escondidas a chave guardada. Validar a chave
+   * JÁ GUARDADA continua possível, mas só pela ação de rótulo explícito
+   * ("Validar chave salva" → useSavedKey=true).
+   */
+  const handleValidate = async (provider: Provider, useSavedKey = false): Promise<void> => {
     const typed = providers[provider].value.trim();
     const validate =
       provider === 'openrouter'
         ? getApi().keys.validateLlm
         : getApi().keys.validateBrave;
+
+    if (!useSavedKey && !isNonEmpty(typed)) {
+      patch(provider, (s) => ({
+        ...s,
+        uiState: 'invalid',
+        message: t('translation:keys.needKeyBeforeValidate'),
+      }));
+      return;
+    }
 
     patch(provider, (s) => ({
       ...s,
@@ -217,7 +259,8 @@ export function KeysPanel(): ReactElement {
     let result: ValidationResult;
     try {
       result = await withTimeout(
-        validate(typed.length > 0 ? typed : (undefined as unknown as string)),
+        // Sem chave digitada (useSavedKey) o main valida a chave guardada.
+        validate(useSavedKey ? (undefined as unknown as string) : typed),
         ACTION_TIMEOUTS.keysValidate,
         `keys.validate:${provider}`,
       );
@@ -278,12 +321,18 @@ export function KeysPanel(): ReactElement {
                 ) : null}
               </Box>
               <Stack direction="row" spacing={0.5}>
-                <Chip
-                  size="small"
-                  color={configured ? 'success' : 'default'}
-                  label={configured ? t('translation:keys.configured') : t('translation:keys.notConfigured')}
-                />
-                {validated ? (
+                {statusError ? (
+                  // W2 (onda-ux): terceiro estado — o CANAL falhou e nada se
+                  // pode dizer sobre as chaves ("Não foi possível verificar").
+                  <Chip size="small" color="warning" label={t('translation:keys.statusUnknown')} />
+                ) : (
+                  <Chip
+                    size="small"
+                    color={configured ? 'success' : 'default'}
+                    label={configured ? t('translation:keys.configured') : t('translation:keys.notConfigured')}
+                  />
+                )}
+                {!statusError && validated ? (
                   <Chip size="small" color="success" label={t('translation:keys.valid')} />
                 ) : null}
               </Stack>
@@ -314,6 +363,9 @@ export function KeysPanel(): ReactElement {
                         }
                         edge="end"
                         size="small"
+                        // W21 (onda-ux): piso de alvo de toque — caixa 44×44,
+                        // ícone intacto (mesmo padrão do LocalAiPanel).
+                        sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
                       >
                         {st.visible ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -323,23 +375,40 @@ export function KeysPanel(): ReactElement {
               }}
             />
 
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+              {/* W4 (onda-ux): "Salvar" é a AÇÃO PRIMÁRIA (contained) — antes
+                  "Validar" levava o contained e o salvar ficava secundário.
+                  W21: minHeight = piso de alvo de toque nos três. */}
               <Button
-                variant="outlined"
+                variant="contained"
                 disabled={st.saving}
                 onClick={() => void handleSave(provider)}
+                sx={{ minHeight: TOUCH_TARGET_PX }}
               >
                 {st.saving ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
                 {st.saving ? t('translation:common.loading') : t('translation:keys.save')}
               </Button>
               <Button
-                variant="contained"
+                variant="outlined"
                 disabled={validating}
                 onClick={() => void handleValidate(provider)}
+                sx={{ minHeight: TOUCH_TARGET_PX }}
               >
                 {validating ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
                 {validating ? t('translation:keys.validating') : t('translation:keys.validate')}
               </Button>
+              {/* W5 (onda-ux): validar a chave JÁ GUARDADA só por ação de
+                  rótulo explícito — nunca por engano ao deixar o campo vazio. */}
+              {!isNonEmpty(st.value) && configured ? (
+                <Button
+                  variant="text"
+                  disabled={validating || st.saving}
+                  onClick={() => void handleValidate(provider, true)}
+                  sx={{ minHeight: TOUCH_TARGET_PX }}
+                >
+                  {t('translation:keys.validateSaved')}
+                </Button>
+              ) : null}
             </Stack>
 
             {st.message ? (
@@ -354,14 +423,30 @@ export function KeysPanel(): ReactElement {
   };
 
   return (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      spacing={2}
-      useFlexGap
-      data-onboarding-signal={`keys-configured:${keysConfigured}`}
-    >
-      {renderProvider('openrouter')}
-      {renderProvider('brave')}
+    <Stack spacing={1.5}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={2}
+        useFlexGap
+        data-onboarding-signal={`keys-configured:${keysConfigured}`}
+      >
+        {renderProvider('openrouter')}
+        {renderProvider('brave')}
+      </Stack>
+      {/* W2 (onda-ux): falha do canal — única saída honesta é tentar ler de
+          novo (nunca pintar "não configurada" por engano). */}
+      {statusError ? (
+        <Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setReloadToken((n) => n + 1)}
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+          >
+            {t('translation:common.tryAgain')}
+          </Button>
+        </Box>
+      ) : null}
     </Stack>
   );
 }

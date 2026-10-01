@@ -5,21 +5,26 @@
   "concept": "to_string",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# A fatia que vira dono\n\nA função `para_dono` recebe o texto EMPRESTADO — a assinatura é `fatia: &str` — e devolve um `String` DONO com o mesmo conteúdo, criado com `.to_string`:\n\n- `para_dono(\"Ana\")` devolve `Ana`;\n- `para_dono(\"sol\")` devolve `sol`.\n\nA fatia só passa pela função; a caixa nova é a dona que sai.",
-  "starterCode": "pub fn para_dono(fatia: &str) -> String {\n    todo!()\n}\n",
-  "solutionCode": "pub fn para_dono(fatia: &str) -> String {\n    fatia.to_string()\n}\n",
-  "testsCode": "use desafio::para_dono;\n\n#[test]\nfn testa_a_fatia_da_ana() {\n    assert_eq!(para_dono(\"Ana\"), \"Ana\");\n}\n\n#[test]\nfn testa_a_fatia_do_sol() {\n    assert_eq!(para_dono(\"sol\"), \"sol\");\n}\n",
+  "statement": "# A fatia que vira dono\n\nA função `para_dono` recebe o texto EMPRESTADO — a assinatura é `fatia: &str` — e também a marca emprestada (`marca: &str`). Ela devolve um `String` DONO com o mesmo conteúdo, criado com `.to_string`, já com a marca acumulada no fim com `+=`:\n\n- `para_dono(\"Ana\", \"!\")` devolve `Ana!`;\n- `para_dono(\"sol\", \"?\")` devolve `sol?`;\n- `para_dono(\"fim\", \"\")` devolve `fim`.\n\nA fatia só passa pela função; a caixa nova é a dona que sai. Guarde-a em `dono` mutável, acumule a marca com `+=` e devolva o `dono`.",
+  "starterCode": "pub fn para_dono(fatia: &str, marca: &str) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn para_dono(fatia: &str, marca: &str) -> String {\n    let mut dono = fatia.to_string();\n    dono += marca;\n    dono\n}\n",
+  "testsCode": "use desafio::para_dono;\n\n#[test]\nfn testa_a_fatia_da_ana() {\n    assert_eq!(para_dono(\"Ana\", \"!\"), \"Ana!\");\n}\n\n#[test]\nfn testa_a_fatia_do_sol() {\n    assert_eq!(para_dono(\"sol\", \"?\"), \"sol?\");\n}\n\n#[test]\nfn testa_a_fatia_sem_marca() {\n    assert_eq!(para_dono(\"fim\", \"\"), \"fim\");\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "para_dono deve devolver o String dono \"Ana\" a partir da fatia emprestada, com .to_string.",
+      "descricao": "para_dono(\"Ana\", \"!\") deve devolver o String dono \"Ana!\" — a fatia emprestada virada dona com .to_string e a marca acumulada com +=.",
       "teste": "testa_a_fatia_da_ana"
     },
     {
       "id": "REQ-2",
-      "descricao": "para_dono deve devolver o String dono \"sol\" a partir da fatia emprestada, com .to_string.",
+      "descricao": "para_dono(\"sol\", \"?\") deve devolver o String dono \"sol?\" — a fatia emprestada virada dona com .to_string e a marca acumulada com +=.",
       "teste": "testa_a_fatia_do_sol"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "para_dono(\"fim\", \"\") deve devolver o String dono \"fim\" — o dono sem nenhuma marca acumulada.",
+      "teste": "testa_a_fatia_sem_marca"
     }
   ],
-  "expectedTestCount": 2
+  "expectedTestCount": 3
 }

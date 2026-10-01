@@ -5,13 +5,14 @@
   "concept": "mensagem_montada",
   "difficulty": 2,
   "language": "rust",
-  "statement": "# A etiqueta do pedido\n\nEscreva uma função `etiqueta` que recebe dois números — o código do pedido e a quantidade — e monta a etiqueta dele.\n\nA etiqueta tem este formato exato: primeiro o código, depois a quantidade, separados por ` x `:\n\n`pedido 7 x 3`\n\nMonte o texto com `format!` e devolva ele — a etiqueta é um valor.",
-  "starterCode": "pub fn etiqueta(pedido: i32, qtd: i32) -> String {\n    todo!()\n}\n",
-  "solutionCode": "pub fn etiqueta(pedido: i32, qtd: i32) -> String {\n    format!(\"pedido {pedido} x {qtd}\")\n}\n",
-  "testsCode": "use desafio::etiqueta;\n\n#[test]\nfn testa_a_etiqueta_do_pedido_sete() {\n    assert_eq!(etiqueta(7, 3), \"pedido 7 x 3\");\n}\n\n#[test]\nfn testa_a_etiqueta_do_pedido_doze() {\n    assert_eq!(etiqueta(12, 1), \"pedido 12 x 1\");\n}\n",
+  "statement": "# A etiqueta do pedido\n\nEscreva uma função `etiqueta` que recebe as duas parcelas do pedido e monta a etiqueta dele.\n\nA etiqueta tem este formato exato: a primeira parcela, depois a segunda, separadas por ` + `, e depois de ` = ` o total já somado:\n\n`pedido 7 + 3 = 10`\n\nMonte o texto com `format!` e devolva ele — a etiqueta é um valor. O total entra no mesmo `format!` como mais um valor depois da vírgula, num buraco `{}` sem nome.",
+  "starterCode": "pub fn etiqueta(a: i32, b: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn etiqueta(a: i32, b: i32) -> String {\n    format!(\"pedido {a} + {b} = {}\", a + b)\n}\n",
+  "testsCode": "use desafio::etiqueta;\n\n// a etiqueta de 7 e 3 mostra a conta e o total 10\n#[test]\nfn testa_a_etiqueta_de_sete_e_tres() {\n    assert_eq!(etiqueta(7, 3), \"pedido 7 + 3 = 10\");\n}\n\n// a etiqueta de 12 e 1 mostra a conta e o total 13\n#[test]\nfn testa_a_etiqueta_de_doze_e_um() {\n    assert_eq!(etiqueta(12, 1), \"pedido 12 + 1 = 13\");\n}\n\n// a etiqueta com parcela zero: 0 e 5 dão total 5\n#[test]\nfn testa_a_etiqueta_com_parcela_zero() {\n    assert_eq!(etiqueta(0, 5), \"pedido 0 + 5 = 5\");\n}\n",
   "requirements": [
-    { "id": "REQ-1", "descricao": "A função etiqueta(7, 3) deve devolver o texto \"pedido 7 x 3\".", "teste": "testa_a_etiqueta_do_pedido_sete" },
-    { "id": "REQ-2", "descricao": "A função etiqueta(12, 1) deve devolver o texto \"pedido 12 x 1\".", "teste": "testa_a_etiqueta_do_pedido_doze" }
+    { "id": "REQ-1", "descricao": "A função etiqueta(7, 3) deve devolver o texto \"pedido 7 + 3 = 10\".", "teste": "testa_a_etiqueta_de_sete_e_tres" },
+    { "id": "REQ-2", "descricao": "A função etiqueta(12, 1) deve devolver o texto \"pedido 12 + 1 = 13\".", "teste": "testa_a_etiqueta_de_doze_e_um" },
+    { "id": "REQ-3", "descricao": "A função etiqueta(0, 5) deve devolver o texto \"pedido 0 + 5 = 5\".", "teste": "testa_a_etiqueta_com_parcela_zero" }
   ],
-  "expectedTestCount": 2
+  "expectedTestCount": 3
 }

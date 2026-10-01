@@ -26,8 +26,8 @@ test('e2e-gate: sem chaves → SetupView bloqueada (não entra no App)', async (
   // Botão de salvar visível (mesmo desabilitado enquanto nada válido).
   await expect(page.getByRole('button', { name: 'Salvar' })).toBeVisible();
 
-  // O App NÃO montou: sem AppBar "Study Method — Tutor" nem abas de navegação.
-  await expect(page.getByText('Study Method — Tutor', { exact: false })).toHaveCount(0);
+  // O App NÃO montou: sem AppBar "Study Method: Tutor" nem abas de navegação.
+  await expect(page.getByText('Study Method: Tutor', { exact: false })).toHaveCount(0);
 });
 
 test('e2e-gate: chaves inválidas no boot → bloqueada com alerta de inválido', async () => {

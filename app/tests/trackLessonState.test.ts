@@ -52,10 +52,19 @@
  *      completa no locale (label com o ano).
  *  17. isLessonFinishBlocked → sem desafios libera; todos passed libera;
  *      pendente (null/failed) bloqueia.
+ *
+ * ONDA-SKIP-1S (pular a digitação em ~1 s — o texto NÃO estoura mais):
+ *  18. `SKIP_SWEEP_MS`/`skipSweepDelayPerChar`/`skipSweepCut` — a varredura
+ *      do pulo do aluno ("acelerar"/"mostrar tudo"): o texto RESTANTE
+ *      distribuído uniformemente pelos ~1 s, a conta literal do dono
+ *      ("calculamos a quantidade de caracteres … com mesmo tempo ate dar um
+ *      segundo"). 0ms → cutAtSkip; 1000ms → total; monotônica; clampada; com
+ *      resto zero devolve total. O relógio de digitação (item 14) NÃO mudou.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  SKIP_SWEEP_MS,
   applyTutorReply,
   buildErrorReport,
   chatDaySeparator,
@@ -69,6 +78,8 @@ import {
   presentedCount,
   pushUserMessage,
   seedChallengeError,
+  skipSweepCut,
+  skipSweepDelayPerChar,
   tutorNextAction,
   typewriterCut,
   typewriterDelayPerChar,
@@ -528,6 +539,75 @@ describe('trackLessonState — onda1 typewriter (streaming puro)', () => {
     assert.equal(typewriterIsDone(text, 5000, 50), true, 'tps=50 → 200 chars/s → 5s cobre');
     assert.equal(typewriterIsDone(text, 4000, 50), false, 'tps=50 → 4s cobre só 800 chars');
     assert.equal(typewriterIsDone('', 0), true, 'texto vazio já está "digitado"');
+  });
+});
+
+describe('trackLessonState — onda-skip-1s (a varredura do PULO do aluno)', () => {
+  // O pedido do dono, literal: "ela termina de mostrar tudo em 1s ai
+  // calculamos a quantidade de caracteres para saber como mostramos eles com
+  // mesmo tempo ate dar um segundo". Estes helpers são a CONTA dessa fala: o
+  // relógio de digitação acima (typewriterCut/TYPEWRITER_TPS) não foi tocado —
+  // a varredura do `skip` é um segundo relógio, só do pulo.
+  it('SKIP_SWEEP_MS = 1000 e skipSweepDelayPerChar = 1000/restantes (a conta do dono)', () => {
+    assert.equal(SKIP_SWEEP_MS, 1000, 'o orçamento do pulo é ~1 s');
+    assert.equal(skipSweepDelayPerChar(1), 1000, '1 char restante → o segundo inteiro é dele');
+    assert.equal(skipSweepDelayPerChar(2), 500);
+    assert.equal(skipSweepDelayPerChar(10), 100);
+    assert.equal(skipSweepDelayPerChar(250), 4);
+    assert.equal(skipSweepDelayPerChar(0), 0, 'sem resto não há o que agendar');
+    assert.equal(skipSweepDelayPerChar(-5), 0, 'restante negativo também é "nada a revelar"');
+  });
+
+  it('skipSweepCut: 0ms → cutAtSkip; 1000ms → total; fórmula floor(restantes × t / 1000)', () => {
+    const total = 500;
+    const cutAtSkip = 200; // 300 caracteres restantes
+    assert.equal(skipSweepCut(total, cutAtSkip, 0), 200, '0ms → o corte do pulo (nada pisca p/ trás)');
+    assert.equal(skipSweepCut(total, cutAtSkip, 1000), 500, '1000ms → o texto inteiro, sem sobra');
+    // A fórmula, verificada contra a conta explícita.
+    for (const t of [0, 33, 250, 500, 777, 999, 1000]) {
+      assert.equal(
+        skipSweepCut(total, cutAtSkip, t),
+        200 + Math.floor((300 * t) / 1000),
+        `t=${t}: cutAtSkip + floor(restantes × t / 1000)`,
+      );
+    }
+  });
+
+  it('distribuição UNIFORME: o passo entre um caractere e o seguinte é sempre igual', () => {
+    // 10 chars restantes → um caractere a cada 100 ms do segundo do pulo,
+    // seja qual for o instante consultado (é a varredura "com mesmo tempo").
+    const cuts = [0, 99, 100, 199, 200, 500, 900, 1000].map((t) => skipSweepCut(10, 0, t));
+    assert.deepEqual(cuts, [0, 0, 1, 1, 2, 5, 9, 10]);
+  });
+
+  it('monotônica em elapsedMs — o texto só CRESCE durante a varredura', () => {
+    for (const [total, cutAtSkip] of [
+      [10, 0],
+      [564, 100],
+      [1000, 999],
+    ]) {
+      let anterior = -1;
+      for (let t = 0; t <= 1000; t += 7) {
+        const cut = skipSweepCut(total, cutAtSkip, t);
+        assert.ok(cut >= anterior, `cut(${t}) = ${cut} veio depois de ${anterior}`);
+        anterior = cut;
+      }
+    }
+  });
+
+  it('clamps: t negativo → cutAtSkip; t > 1000 → total; cutAtSkip fora de [0, total] entra', () => {
+    assert.equal(skipSweepCut(300, 120, -50), 120, 'tempo negativo clampa no começo da varredura');
+    assert.equal(skipSweepCut(300, 120, 5000), 300, 'tempo além do orçamento já terminou');
+    assert.equal(skipSweepCut(300, -20, 0), 0, 'cutAtSkip negativo clampa em 0');
+    assert.equal(skipSweepCut(300, 1e9, 0), 300, 'cutAtSkip absurdo clampa em total');
+  });
+
+  it('resto zero (texto JÁ inteiro, ou vazio) devolve total — nada a varrer', () => {
+    assert.equal(skipSweepCut(100, 100, 0), 100, 'cutAtSkip == total → total');
+    assert.equal(skipSweepCut(100, 100, 500), 100);
+    assert.equal(skipSweepCut(100, 150, 500), 100);
+    assert.equal(skipSweepCut(0, 0, 0), 0, 'texto vazio: corte 0, sem NaN');
+    assert.equal(skipSweepCut(0, 0, 1000), 0);
   });
 });
 

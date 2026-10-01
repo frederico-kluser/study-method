@@ -6,11 +6,11 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Juntando dois dicionários\n\nEscreva a função `juntar(d, outro)` que junta os pares do `outro` dentro do `d`, usando o método `.update` como na aula. A função altera o `d` que recebe — ela não devolve nada:\n\n```python\ndef juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1}\njuntar(d, {\"b\": 2})\nd  ->  {'a': 1, 'b': 2}\n\nd = {\"a\": 1}\njuntar(d, {\"a\": 9})\nd  ->  {'a': 9}\n```",
-  "starterCode": "def juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import juntar\n\n\nclass TestJuntarDicionarios(unittest.TestCase):\n    def test_junta_as_chaves_novas(self):\n        \"\"\"juntar acrescenta as chaves do segundo dicionario\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"b\": 2})\n        self.assertEqual(d, {\"a\": 1, \"b\": 2})\n\n    def test_chave_repetida_fica_com_o_valor_novo(self):\n        \"\"\"juntar troca o valor das chaves repetidas\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"a\": 9})\n        self.assertEqual(d, {\"a\": 9})\n\n    def test_junta_com_o_dicionario_vazio(self):\n        \"\"\"juntar com o dicionario vazio nao muda nada\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {})\n        self.assertEqual(d, {\"a\": 1})\n",
-  "solutionCode": "def juntar(d, outro):\n    d.update(outro)\n",
-  "expectedTestCount": 3,
+  "statement": "# Juntando dois dicionários\n\nEscreva duas funções que usam o método `.update` como na aula. Elas alteram o `d` que recebem:\n\n```python\ndef juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n\n\ndef juntar_e_somar(d, outro):\n    # junte os pares e devolva a soma de todos os valores de d\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1}\njuntar(d, {\"b\": 2})\nd  ->  {'a': 1, 'b': 2}\n\nd = {\"a\": 1}\njuntar(d, {\"a\": 9})\nd  ->  {'a': 9}\n\njuntar_e_somar({\"a\": 1}, {\"b\": 2})   ->  3\njuntar_e_somar({\"a\": 1}, {\"a\": 9})   ->  9\n```\n\n`juntar` só altera o dicionário — ela não devolve nada. `juntar_e_somar` altera o dicionário e devolve a soma dos valores que ficaram em `d`, com `sum` e `.values()`.",
+  "starterCode": "def juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n\n\ndef juntar_e_somar(d, outro):\n    # junte os pares e devolva a soma de todos os valores de d\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import juntar\nfrom solucao import juntar_e_somar\n\n\nclass TestJuntarDicionarios(unittest.TestCase):\n    def test_junta_as_chaves_novas(self):\n        \"\"\"juntar acrescenta as chaves do segundo dicionario\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"b\": 2})\n        self.assertEqual(d, {\"a\": 1, \"b\": 2})\n\n    def test_chave_repetida_fica_com_o_valor_novo(self):\n        \"\"\"juntar troca o valor das chaves repetidas\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"a\": 9})\n        self.assertEqual(d, {\"a\": 9})\n\n    def test_soma_os_valores_depois_de_juntar(self):\n        \"\"\"juntar_e_somar devolve a soma dos valores depois de juntar\"\"\"\n        self.assertEqual(juntar_e_somar({\"a\": 1}, {\"b\": 2}), 3)\n\n    def test_soma_com_chave_repetida(self):\n        \"\"\"juntar_e_somar soma os valores finais quando uma chave se repete\"\"\"\n        self.assertEqual(juntar_e_somar({\"a\": 1}, {\"a\": 9}), 9)\n",
+  "solutionCode": "def juntar(d, outro):\n    d.update(outro)\n\n\ndef juntar_e_somar(d, outro):\n    d.update(outro)\n    return sum(d.values())\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_junta_as_chaves_novas",
@@ -23,9 +23,14 @@
       "descricao": "juntar troca o valor das chaves repetidas"
     },
     {
-      "id": "test_junta_com_o_dicionario_vazio",
-      "teste": "test_junta_com_o_dicionario_vazio",
-      "descricao": "juntar com o dicionario vazio nao muda nada"
+      "id": "test_soma_os_valores_depois_de_juntar",
+      "teste": "test_soma_os_valores_depois_de_juntar",
+      "descricao": "juntar_e_somar devolve a soma dos valores depois de juntar"
+    },
+    {
+      "id": "test_soma_com_chave_repetida",
+      "teste": "test_soma_com_chave_repetida",
+      "descricao": "juntar_e_somar soma os valores finais quando uma chave se repete"
     }
   ]
 }

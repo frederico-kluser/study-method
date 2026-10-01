@@ -38,6 +38,6 @@ test('e2e-settings: preencher OpenRouter+Brave no Setup destrava o app', async (
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   // App montou: AppBar + tab de navegação.
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
 });

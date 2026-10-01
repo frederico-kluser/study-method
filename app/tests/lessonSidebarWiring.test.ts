@@ -256,6 +256,11 @@ describe('1. a LessonView publica o cabeçalho da aula no SIDEBAR (portal)', () 
     const props = jsxProps(VIEW, VIEW.indexOf('<LessonSidebarHeader'));
     const esperado: Record<string, string> = {
       title: 'lesson.title',
+      // ONDA-CURSO-NO-SIDEBAR (pedido do dono: "o left sidebar deve dizer qual
+      // é o curso que estamos fazendo"): o nome do curso vem do payload da
+      // aula — é o ÚNICO dado novo da migração, e é o que o sobretítulo do
+      // sidebar desenha (LessonSidebarHeader.courseTitle).
+      courseTitle: 'lesson.trackTitle',
       summary: 'lesson.summary',
       challengeCount: 'lesson.challenges.length',
       pendingChallengeCount: 'pendingChallengeCount',

@@ -6,11 +6,11 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Meu primeiro dicionário\n\nCrie três funções que devolvem dicionários:\n\n- `anotacao()` devolve `{\"nome\": \"Ana\"}`;\n- `vazia()` devolve o dicionário vazio;\n- `cardapio()` devolve `{\"pao\": 4}`.\n\n```text\nanotacao()  ->  {'nome': 'Ana'}\nvazia()  ->  {}\ncardapio()  ->  {'pao': 4}\n```\n\nAs funções devolvem o dicionário — elas não imprimem nada.",
-  "starterCode": "def anotacao():\n    # devolva o dicionario com a chave nome valendo Ana\n    pass\n\n\ndef vazia():\n    # devolva o dicionario vazio\n    pass\n\n\ndef cardapio():\n    # devolva o dicionario com a chave pao valendo 4\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import anotacao\nfrom solucao import vazia\nfrom solucao import cardapio\n\n\nclass TestCriarUmDicionario(unittest.TestCase):\n    def test_anotacao_guarda_um_par(self):\n        \"\"\"anotacao devolve o dicionario com a chave nome valendo Ana\"\"\"\n        self.assertEqual(str(anotacao()), \"{'nome': 'Ana'}\")\n\n    def test_vazia_nao_guarda_nada(self):\n        \"\"\"vazia devolve o dicionario vazio\"\"\"\n        self.assertEqual(str(vazia()), \"{}\")\n\n    def test_cardapio_guarda_o_preco_do_pao(self):\n        \"\"\"cardapio devolve o dicionario com a chave pao valendo 4\"\"\"\n        self.assertEqual(str(cardapio()), \"{'pao': 4}\")\n",
-  "solutionCode": "def anotacao():\n    return {\"nome\": \"Ana\"}\n\n\ndef vazia():\n    return {}\n\n\ndef cardapio():\n    return {\"pao\": 4}\n",
-  "expectedTestCount": 3,
+  "statement": "# Meu primeiro dicionário\n\nCrie quatro funções que devolvem dicionários:\n\n- `anotacao()` devolve `{\"nome\": \"Ana\"}`;\n- `vazia()` devolve o dicionário vazio;\n- `cardapio()` devolve `{\"pao\": 4}`;\n- `conta(pao, cafe)` devolve o dicionário com a chave `total` valendo a soma dos dois preços, com `+`.\n\n```text\nanotacao()      ->  {'nome': 'Ana'}\nvazia()         ->  {}\ncardapio()      ->  {'pao': 4}\nconta(2, 3)     ->  {'total': 5}\nconta(10, 4)    ->  {'total': 14}\n```\n\nAs funções devolvem o dicionário — elas não imprimem nada.",
+  "starterCode": "def anotacao():\n    # devolva o dicionario com a chave nome valendo Ana\n    pass\n\n\ndef vazia():\n    # devolva o dicionario vazio\n    pass\n\n\ndef cardapio():\n    # devolva o dicionario com a chave pao valendo 4\n    pass\n\n\ndef conta(pao, cafe):\n    # devolva o dicionario com a chave total valendo a soma dos precos\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import anotacao\nfrom solucao import vazia\nfrom solucao import cardapio\nfrom solucao import conta\n\n\nclass TestCriarUmDicionario(unittest.TestCase):\n    def test_anotacao_guarda_um_par(self):\n        \"\"\"anotacao devolve o dicionario com a chave nome valendo Ana\"\"\"\n        self.assertEqual(str(anotacao()), \"{'nome': 'Ana'}\")\n\n    def test_vazia_nao_guarda_nada(self):\n        \"\"\"vazia devolve o dicionario vazio\"\"\"\n        self.assertEqual(str(vazia()), \"{}\")\n\n    def test_conta_soma_os_dois_precos(self):\n        \"\"\"conta devolve o dicionario com o total da soma dos precos\"\"\"\n        self.assertEqual(str(conta(2, 3)), \"{'total': 5}\")\n\n    def test_conta_soma_outros_precos(self):\n        \"\"\"conta soma os precos de cada chamada\"\"\"\n        self.assertEqual(str(conta(10, 4)), \"{'total': 14}\")\n",
+  "solutionCode": "def anotacao():\n    return {\"nome\": \"Ana\"}\n\n\ndef vazia():\n    return {}\n\n\ndef cardapio():\n    return {\"pao\": 4}\n\n\ndef conta(pao, cafe):\n    return {\"total\": pao + cafe}\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_anotacao_guarda_um_par",
@@ -23,9 +23,14 @@
       "descricao": "vazia devolve o dicionario vazio"
     },
     {
-      "id": "test_cardapio_guarda_o_preco_do_pao",
-      "teste": "test_cardapio_guarda_o_preco_do_pao",
-      "descricao": "cardapio devolve o dicionario com a chave pao valendo 4"
+      "id": "test_conta_soma_os_dois_precos",
+      "teste": "test_conta_soma_os_dois_precos",
+      "descricao": "conta devolve o dicionario com o total da soma dos precos"
+    },
+    {
+      "id": "test_conta_soma_outros_precos",
+      "teste": "test_conta_soma_outros_precos",
+      "descricao": "conta soma os precos de cada chamada"
     }
   ]
 }

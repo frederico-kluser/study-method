@@ -6,31 +6,31 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# A letra vira número\n\nEscreva duas funções:\n\n- `codigo_da_letra(letra)` devolve o número da letra;\n- `letra_do_numero(numero)` devolve a letra do número.\n\n```python\ndef codigo_da_letra(letra):\n    # devolva o numero da letra\n\n\ndef letra_do_numero(numero):\n    # devolva a letra do numero\n```\n\nUse as funções da aula. Exemplos:\n\n```text\ncodigo_da_letra(\"A\")  ->  65\ncodigo_da_letra(\"a\")  ->  97\nletra_do_numero(65)  ->  \"A\"\nletra_do_numero(97)  ->  \"a\"\n```\n\nAs duas funções devolvem o valor — elas não imprimem nada.",
-  "starterCode": "# escreva aqui as funcoes codigo_da_letra e letra_do_numero\n",
-  "testsCode": "import unittest\n\nfrom solucao import codigo_da_letra\nfrom solucao import letra_do_numero\n\n\nclass TestALetraEUmNumero(unittest.TestCase):\n    def test_a_maisculo_e_65(self):\n        \"\"\"codigo_da_letra devolve o numero do A maisculo\"\"\"\n        self.assertEqual(codigo_da_letra(\"A\"), 65)\n\n    def test_a_minusculo_e_97(self):\n        \"\"\"codigo_da_letra devolve o numero do a minusculo\"\"\"\n        self.assertEqual(codigo_da_letra(\"a\"), 97)\n\n    def test_65_e_o_a_maisculo(self):\n        \"\"\"letra_do_numero devolve o A maisculo para 65\"\"\"\n        self.assertEqual(letra_do_numero(65), \"A\")\n\n    def test_97_e_o_a_minusculo(self):\n        \"\"\"letra_do_numero devolve o a minusculo para 97\"\"\"\n        self.assertEqual(letra_do_numero(97), \"a\")\n",
-  "solutionCode": "def codigo_da_letra(letra):\n    return ord(letra)\n\n\ndef letra_do_numero(numero):\n    return chr(numero)\n",
+  "statement": "# A letra vira número\n\nAs fileiras do auditório são letras — A, B, C… — e o sistema de reservas trabalha com o **número** de cada letra (o `A` é o 65). Escreva duas funções:\n\n- `letra_seguinte(letra)` devolve a letra da fileira seguinte;\n- `distancia_entre(inicio, fim)` devolve quantas fileiras há do `inicio` ao `fim` — negativo quando o `fim` vem antes.\n\n```python\ndef letra_seguinte(letra):\n    # devolva a letra da fileira seguinte\n\n\ndef distancia_entre(inicio, fim):\n    # devolva quantas fileiras ha do inicio ao fim\n```\n\nUse o `ord` e o `chr`, como na aula. Exemplos:\n\n```text\nletra_seguinte(\"A\")  ->  \"B\"\nletra_seguinte(\"y\")  ->  \"z\"\ndistancia_entre(\"a\", \"d\")  ->  3\ndistancia_entre(\"d\", \"a\")  ->  -3\n```\n\nAs duas funções devolvem o valor — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes letra_seguinte e distancia_entre\n",
+  "testsCode": "import unittest\n\nfrom solucao import distancia_entre\nfrom solucao import letra_seguinte\n\n\nclass TestALetraEUmNumero(unittest.TestCase):\n    def test_fileira_seguinte_maiscula(self):\n        \"\"\"letra_seguinte devolve a fileira depois do A maisculo\"\"\"\n        self.assertEqual(letra_seguinte(\"A\"), \"B\")\n\n    def test_fileira_seguinte_minuscula(self):\n        \"\"\"letra_seguinte devolve a fileira depois do y minusculo\"\"\"\n        self.assertEqual(letra_seguinte(\"y\"), \"z\")\n\n    def test_distancia_para_frente(self):\n        \"\"\"distancia_entre conta as fileiras do a ate o d\"\"\"\n        self.assertEqual(distancia_entre(\"a\", \"d\"), 3)\n\n    def test_distancia_para_tras(self):\n        \"\"\"distancia_entre devolve negativo quando o fim vem antes\"\"\"\n        self.assertEqual(distancia_entre(\"d\", \"a\"), -3)\n",
+  "solutionCode": "def letra_seguinte(letra):\n    return chr(ord(letra) + 1)\n\n\ndef distancia_entre(inicio, fim):\n    return ord(fim) - ord(inicio)\n",
   "expectedTestCount": 4,
   "requirements": [
     {
-      "id": "test_a_maisculo_e_65",
-      "teste": "test_a_maisculo_e_65",
-      "descricao": "codigo_da_letra devolve o numero do A maisculo"
+      "id": "test_fileira_seguinte_maiscula",
+      "teste": "test_fileira_seguinte_maiscula",
+      "descricao": "letra_seguinte devolve a fileira depois do A maisculo"
     },
     {
-      "id": "test_a_minusculo_e_97",
-      "teste": "test_a_minusculo_e_97",
-      "descricao": "codigo_da_letra devolve o numero do a minusculo"
+      "id": "test_fileira_seguinte_minuscula",
+      "teste": "test_fileira_seguinte_minuscula",
+      "descricao": "letra_seguinte devolve a fileira depois do y minusculo"
     },
     {
-      "id": "test_65_e_o_a_maisculo",
-      "teste": "test_65_e_o_a_maisculo",
-      "descricao": "letra_do_numero devolve o A maisculo para 65"
+      "id": "test_distancia_para_frente",
+      "teste": "test_distancia_para_frente",
+      "descricao": "distancia_entre conta as fileiras do a ate o d"
     },
     {
-      "id": "test_97_e_o_a_minusculo",
-      "teste": "test_97_e_o_a_minusculo",
-      "descricao": "letra_do_numero devolve o a minusculo para 97"
+      "id": "test_distancia_para_tras",
+      "teste": "test_distancia_para_tras",
+      "descricao": "distancia_entre devolve negativo quando o fim vem antes"
     }
   ]
 }

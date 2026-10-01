@@ -36,7 +36,7 @@
     {
       "id": "a-guarda-que-devolve",
       "title": "A guarda que devolve",
-      "markdown": "A guarda trata o caso ruim **primeiro**, com um valor de saída combinado:\n\n```c\nint repartir(int total, int pessoas) {\n    if (pessoas == 0) {\n        return -1;\n    }\n    return total / pessoas;\n}\n```\n\nDividir por zero não é conta: o C não define o que sai dali — medido aqui, o programa nem quebra, devolve um número sem sentido e sem aviso. Com `pessoas` igual a 0 o `return -1;` encerra a caixa antes, e a divisão **nunca acontece**.\n\nO `-1` é combinado por você: escolha um que a conta normal não produza."
+      "markdown": "A guarda trata o caso ruim **primeiro**, com um valor de saída combinado:\n\n```c\nint repartir(int total, int pessoas) {\n    if (pessoas == 0) {\n        return 9999;\n    }\n    return total / pessoas;\n}\n```\n\nDividir por zero não é conta: o C não define o que sai dali — medido aqui, o programa nem quebra, devolve um número sem sentido e sem aviso. Com `pessoas` igual a 0 o `return 9999;` encerra a caixa antes, e a divisão **nunca acontece**.\n\nO `9999` é combinado por você: escolha um que a conta normal não produza."
     }
   ],
   "assertions": [
@@ -63,20 +63,20 @@
     {
       "id": "a-guarda-sai-antes-do-problema",
       "statement": "A guarda trata o caso ruim primeiro e sai antes do trabalho perigoso.",
-      "question": "Em `repartir`, com a guarda `if (pessoas == 0) { return -1; }` no alto, o que acontece quando `pessoas` vale 0?",
+      "question": "Em `repartir`, com a guarda `if (pessoas == 0) { return 9999; }` no alto, o que acontece quando `pessoas` vale 0?",
       "options": [
-        "A caixa devolve -1 e a divisão nem é executada.",
-        "A caixa faz a divisão e devolve -1 no fim.",
+        "A caixa devolve 9999 e a divisão nem é executada.",
+        "A caixa faz a divisão e devolve 9999 no fim.",
         "A caixa devolve `total`, porque não havia por quanto dividir.",
-        "A caixa devolve -1 e depois imprime um aviso na tela."
+        "A caixa devolve 9999 e depois imprime um aviso na tela."
       ],
       "answerIndex": 0,
-      "feedback": "A guarda é verdadeira, o `return -1;` encerra a caixa ali e a linha da divisão fica atrás — que é justamente o ponto: dividir por zero nunca chega a acontecer.",
+      "feedback": "A guarda é verdadeira, o `return 9999;` encerra a caixa ali e a linha da divisão fica atrás — que é justamente o ponto: dividir por zero nunca chega a acontecer.",
       "sectionId": "a-guarda-que-devolve",
       "optionRationales": [
-        "O `return -1;` sai antes: a divisão fica numa linha que a execução não alcança.",
+        "O `return 9999;` sai antes: a divisão fica numa linha que a execução não alcança.",
         "Se a divisão rodasse, a guarda não teria servido para nada — ela existe para evitá-la.",
-        "O valor de saída do caso ruim é combinado no código: aqui, -1.",
+        "O valor de saída do caso ruim é combinado no código: aqui, 9999.",
         "Esta caixa não imprime nada: devolver e imprimir são canais diferentes."
       ]
     },
@@ -128,6 +128,6 @@
     "ensina": "cons. — node:ReturnStmt em forma nova (um return por ramo)",
     "presume": "devolver-em-vez-de-mostrar, se-senao",
     "quiz": "Depois do return, nada mais da caixa roda.",
-    "desafio": "divisao-segura — divisaoSegura(a, b) devolve -1 se b == 0 (a guarda); teste com (7, 2) → 3 e (7, 0) → -1. O -1 (e não 0) é o que discrimina a guarda: medido, a divisão por zero devolve 0 nesta máquina."
+    "desafio": "divisao-segura — divisaoSegura(a, b) devolve 9999 se b == 0 (a guarda); teste com (7, 2) → 3 e (7, 0) → 9999. O 9999 (e não 0) é o que discrimina a guarda: medido, a divisão por zero devolve 0 nesta máquina."
   }
 }

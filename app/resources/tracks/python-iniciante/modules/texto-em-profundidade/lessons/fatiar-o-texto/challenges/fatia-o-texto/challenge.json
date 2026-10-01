@@ -6,31 +6,31 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Fatie o texto\n\nEscreva a função `pedaco` que devolve o pedaço do texto do início até antes do fim:\n\n```python\ndef pedaco(texto, inicio, fim):\n    # devolva o pedaco do texto entre inicio e fim\n```\n\nUse os dois pontos, como na aula. Exemplos:\n\n```text\npedaco(\"banana\", 2, 5)  ->  \"nan\"\npedaco(\"banana\", 0, 3)  ->  \"ban\"\npedaco(\"ola\", 1, 2)  ->  \"l\"\n```\n\nA função devolve o texto — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao pedaco(texto, inicio, fim)\n",
-  "testsCode": "import unittest\n\nfrom solucao import pedaco\n\n\nclass TestFatiarOTexto(unittest.TestCase):\n    def test_pega_do_meio(self):\n        \"\"\"pedaco devolve o trecho do meio do texto\"\"\"\n        self.assertEqual(pedaco(\"banana\", 2, 5), \"nan\")\n\n    def test_pega_do_comeco(self):\n        \"\"\"pedaco devolve o trecho do comeco do texto\"\"\"\n        self.assertEqual(pedaco(\"banana\", 0, 3), \"ban\")\n\n    def test_pega_uma_letra_so(self):\n        \"\"\"pedaco devolve uma letra quando o trecho tem tamanho um\"\"\"\n        self.assertEqual(pedaco(\"ola\", 1, 2), \"l\")\n\n    def test_ate_o_fim_sem_incluir_o_fim(self):\n        \"\"\"pedaco devolve ate antes do fim pedido\"\"\"\n        self.assertEqual(pedaco(\"banana\", 1, 6), \"anana\")\n",
-  "solutionCode": "def pedaco(texto, inicio, fim):\n    return texto[inicio:fim]\n",
+  "statement": "# Fatie o texto\n\nOs códigos do depósito chegam montados como `PEDIDO-4321-URGENTE`, e o que interessa ao sistema é o pedaço do meio — o que vem depois da primeira marca e antes da segunda. Escreva a função `campo_do_meio` que devolve esse pedaço:\n\n```python\ndef campo_do_meio(texto, marca):\n    # devolva o que vem depois da primeira marca e antes da segunda\n```\n\nUse o `find` e os dois pontos, como nas aulas. Exemplos:\n\n```text\ncampo_do_meio(\"PEDIDO-4321-URGENTE\", \"-\")  ->  \"4321\"\ncampo_do_meio(\"A-1-B\", \"-\")  ->  \"1\"\ncampo_do_meio(\"12/34/56\", \"/\")  ->  \"34\"\n```\n\nQuando o texto tem uma marca só, não existe meio: a função devolve o que vem depois dela — `campo_do_meio(\"abc-def\", \"-\")` devolve `\"def\"`. A função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao campo_do_meio(texto, marca)\n",
+  "testsCode": "import unittest\n\nfrom solucao import campo_do_meio\n\n\nclass TestFatiarOTexto(unittest.TestCase):\n    def test_pega_o_campo_do_meio(self):\n        \"\"\"campo_do_meio devolve o pedaco entre a primeira e a segunda marca\"\"\"\n        self.assertEqual(campo_do_meio(\"PEDIDO-4321-URGENTE\", \"-\"), \"4321\")\n\n    def test_pega_um_caractere_so(self):\n        \"\"\"campo_do_meio devolve o campo mesmo quando ele tem um caractere\"\"\"\n        self.assertEqual(campo_do_meio(\"A-1-B\", \"-\"), \"1\")\n\n    def test_aceita_outra_marca(self):\n        \"\"\"campo_do_meio funciona com qualquer marca pedida\"\"\"\n        self.assertEqual(campo_do_meio(\"12/34/56\", \"/\"), \"34\")\n\n    def test_uma_marca_so_devolve_o_resto(self):\n        \"\"\"campo_do_meio devolve tudo depois da marca quando so ha uma\"\"\"\n        self.assertEqual(campo_do_meio(\"abc-def\", \"-\"), \"def\")\n",
+  "solutionCode": "def campo_do_meio(texto, marca):\n    depois = texto[texto.find(marca) + 1:]\n    fim = depois.find(marca)\n    if fim == -1:\n        return depois\n    return depois[:fim]\n",
   "expectedTestCount": 4,
   "requirements": [
     {
-      "id": "test_pega_do_meio",
-      "teste": "test_pega_do_meio",
-      "descricao": "pedaco devolve o trecho do meio do texto"
+      "id": "test_pega_o_campo_do_meio",
+      "teste": "test_pega_o_campo_do_meio",
+      "descricao": "campo_do_meio devolve o pedaco entre a primeira e a segunda marca"
     },
     {
-      "id": "test_pega_do_comeco",
-      "teste": "test_pega_do_comeco",
-      "descricao": "pedaco devolve o trecho do comeco do texto"
+      "id": "test_pega_um_caractere_so",
+      "teste": "test_pega_um_caractere_so",
+      "descricao": "campo_do_meio devolve o campo mesmo quando ele tem um caractere"
     },
     {
-      "id": "test_pega_uma_letra_so",
-      "teste": "test_pega_uma_letra_so",
-      "descricao": "pedaco devolve uma letra quando o trecho tem tamanho um"
+      "id": "test_aceita_outra_marca",
+      "teste": "test_aceita_outra_marca",
+      "descricao": "campo_do_meio funciona com qualquer marca pedida"
     },
     {
-      "id": "test_ate_o_fim_sem_incluir_o_fim",
-      "teste": "test_ate_o_fim_sem_incluir_o_fim",
-      "descricao": "pedaco devolve ate antes do fim pedido"
+      "id": "test_uma_marca_so_devolve_o_resto",
+      "teste": "test_uma_marca_so_devolve_o_resto",
+      "descricao": "campo_do_meio devolve tudo depois da marca quando so ha uma"
     }
   ]
 }

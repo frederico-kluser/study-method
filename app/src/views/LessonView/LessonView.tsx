@@ -275,6 +275,11 @@ import {
   type TrackLessonUiState,
   type VisibleQuiz,
 } from '../../lib/trackLessonState';
+// W6 + S8 (auditoria de UX da Aula): a decisão PURA "este gesto pula a
+// digitação?" — tecla no campo de pergunta, clique em "Copiar"/link/botão na
+// bolha e teclas modificadoras/navegação NÃO são pedido de revelar (o atalho
+// deixou de roubar digitação). Testável sem DOM: `src/lib/skipTypingKeys.ts`.
+import { shouldSkipTyping, type SkipTypingTriggerLike } from '../../lib/skipTypingKeys';
 // ONDA2-QUIZ-OVERLAY: a FASE do overlay (sobre-a-tela / minimizado-no-chat /
 // fechado) é de outra máquina, module-level, que sobrevive à desmontagem da
 // view. Esta view CONSOME — nunca escreve `setState` cru de fase.
@@ -521,7 +526,14 @@ export interface LessonComposerProps {
   /** Liga/desliga a transcrição por voz (o hook vive na view). */
   onMicToggle: () => void;
   micTranscribing: boolean;
-  /** Aula ocupada: trava mic, campo e enviar (nada de pergunta em voo dupla). */
+  /**
+   * Aula ocupada (turno em voo): trava mic e enviar (nada de pergunta em voo
+   * dupla). W2 (auditoria de UX — versão mínima honesta): o CAMPO continua
+   * UTILIZÁVEL durante o turno — o aluno pode já digitar a próxima pergunta
+   * enquanto espera (até 70s, o teto de `answer` em ipcTimeout); só o ENVIO
+   * (botão e Enter) fica para depois. "Cancelar turno" exigiria um canal de
+   * abort no main (NEEDS_IPC) e fica para depois.
+   */
   disabled: boolean;
   /**
    * ONDA-AVANCAR-COMPOSER — existe avanço nesta aula AGORA? Falso no passo
@@ -541,6 +553,16 @@ export interface LessonComposerProps {
   onAdvance: () => void;
   /** tooltip do avanço ('' quando não há — o passo 'proximo' não pede dica). */
   advanceTooltip: string;
+  /**
+   * W3 (auditoria de UX — "um botão, um significado"): o rótulo do botão
+   * quando ele REVELA (passo 'revelar' — a seção está sendo escrita e o
+   * clique mostra tudo). Omitido → o rótulo de sempre
+   * (`lesson.advanceButton`, "Avançar"). Com a seção em digitação o botão
+   * NÃO pode chamar-se "Avançar": ali ele revela, e o nome passa a ser o do
+   * gesto ("Mostrar tudo" — `lesson.skipTypingButton`). O default "Avançar"
+   * preserva o contrato dos testes do composer, que o montam sem o prop.
+   */
+  advanceLabel?: string;
 }
 
 export function LessonComposer({
@@ -555,6 +577,7 @@ export function LessonComposer({
   advanceDisabled,
   onAdvance,
   advanceTooltip,
+  advanceLabel,
 }: LessonComposerProps): ReactElement {
   const { t } = useTranslation();
   const tI = useMemo(
@@ -649,9 +672,10 @@ export function LessonComposer({
         value={draft}
         onChange={(e) => onDraftChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) onSend();
+          // W2: o Enter segue o ENVIO (travado em turno em voo), não a
+          // digitação — o campo está livre para já escrever a próxima pergunta.
+          if (e.key === 'Enter' && !e.shiftKey && !disabled) onSend();
         }}
-        disabled={disabled}
         slotProps={{
           htmlInput: { 'aria-label': askLabel },
           input: {
@@ -727,7 +751,11 @@ export function LessonComposer({
                 startIcon={advanceLocked ? <LockIcon /> : <ArrowForwardIcon />}
                 sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
               >
-                {t('translation:lesson.advanceButton')}
+                {/* W3 ("um botão, um significado"): o rótulo diz o que o clique
+                    FAZ. Com a seção em digitação o clique revela, e o botão se
+                    chama "Mostrar tudo" (`advanceLabel` da view); fora dela,
+                    "Avançar". */}
+                {advanceLabel ?? t('translation:lesson.advanceButton')}
               </Button>
             </motion.span>
           </span>
@@ -899,7 +927,8 @@ export function lessonActionStep(input: LessonActionStepInput): LessonActionStep
  * O que o clique no botão de AVANÇO faz, por passo. PURA — e existe para que
  * "revelar não avança" seja uma afirmação verificável, não uma promessa de
  * comentário:
- *   - 'revelar' → completa a digitação (`requestSkipTyping`);
+ *   - 'revelar' → pula a digitação (`requestSkipTyping` — ONDA-SKIP-1S: o
+ *     texto restante é revelado em ~1 s, não instantâneo);
  *   - 'avancar' → pede a próxima seção (`sendNext`);
  *   - 'nada'    → o botão está travado (quiz sem acerto) — nenhum caminho,
  *                 nem por atalho, chama `sendNext` a partir daqui.
@@ -1164,7 +1193,12 @@ export function LessonActionRow(props: LessonActionRowProps): ReactElement {
                   // ONDA10: quiz sem acerto bloqueia igual — a explicação
                   // visível está acima, porque hover não existe em botão morto.
                   disabled={busy || finishBlocked}
-                  startIcon={<LockIcon />}
+                  /* W4 (auditoria de UX): o cadeado é CONDICIONAL — ele diz
+                     "isto está TRAVADO" e não pode acompanhar um "Concluir
+                     aula" livre (cadeado incondicional era ruído que
+                     contradizia o botão pronto). Só o passo bloqueado
+                     ('quiz-aula'/'desafio') o veste. */
+                  startIcon={finishBlocked ? <LockIcon /> : undefined}
                   sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
                 >
                   {t('translation:lesson.finishButton')}
@@ -1437,12 +1471,21 @@ export const QUIZ_VERDICT_MS = 1600;
  * posição de onde "estar longe do fim" possa impedir o puxão. O estado
  * esperado durante a aula passou a ser: o painel está SEMPRE no fim.
  *
+ * ─── A ÚNICA EXCEÇÃO, MEDIDA E SANCCIONADA (W7 da auditoria de UX) ────────
+ * O "SEMPRE" tem um custo apontado pela auditoria de UX (W7): quem rola para
+ * cima para RELER é arrastado para o fim a cada tick (~28 puxões/s durante a
+ * digitação). A auditoria propunha suspender o puxão enquanto o aluno está
+ * longe do fim — mas isso CONTRARIA o pedido explícito do dono (ONDA15,
+ * verbatim: "durante a aula quero auto scroll do conteúdo sempre pro final da
+ * tela"), e por decisão de 2026-09-27 o contrato do DONO MANDA: o puxão
+ * continua INCONDICIONAL. A suspensão de releitura fica registada como
+ * PENDÊNCIA DE DECISÃO (ver memória `ux-pendencias-decisao-dono`) — se o dono
+ * a aprovar, é adicionar o termómetro (sensor `onScroll` → ref) numa entrada
+ * só, do lado de fora dos helpers puros.
+ *
  * ─── QUEM DISPARA (e quem NÃO dispara) ────────────────────────────────────
  * O gatilho é CONTEÚDO NOVO: o step da digitação (`onStreamTick` → o tick) e a
- * mudança de histórico/digitação (o nudge). Não existe listener de `scroll`
- * nesta view de propósito: um listener reagiria à ROLAGEM do aluno e brigaria
- * com ele a cada evento — o que o dono pediu é o painel acompanhando o fim,
- * não uma disputa com quem está lendo.
+ * mudança de histórico/digitação (o nudge).
  *
  * ─── AS DUAS FÍSICAS, INALTERADAS (só o guard saiu) ───────────────────────
  *   instantâneo (`pinLogToBottom`) — o tick do typewriter, um por step: a
@@ -1464,6 +1507,19 @@ export function pinLogToBottom(el: Pick<HTMLElement, 'scrollTop' | 'scrollHeight
 export function nudgeLogToBottom(el: Pick<HTMLElement, 'scrollHeight' | 'scrollTo'>): void {
   el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
 }
+
+/**
+ * W1 (auditoria de UX — "String(err) nunca na UI"): o que o botão "Tentar de
+ * novo" do Alert de erro REPETE. É uma RECEITA e não uma closure de propósito:
+ * o retry chama sempre o handler MAIS recente da view (nada de callback
+ * congelado no momento da falha, que é o que fazia o retry chamar um
+ * `sendAnswer` com o rascunho vazio). `null` = sem erro (ou erro sem retry).
+ */
+type LessonRetryAction =
+  | { kind: 'next' }
+  | { kind: 'answer'; text: string }
+  | { kind: 'regenerate' }
+  | { kind: 'done' };
 
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
@@ -1601,6 +1657,18 @@ export function LessonView(props: ViewProps): ReactElement {
   const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
   /**
+   * W1 (auditoria de UX): a AÇÃO "Tentar de novo" do Alert de erro fechável —
+   * a receita do que falhou (`LessonRetryAction`). Nasce `null` e é limpa
+   * junto com o `chat.lastError` (fechar o Alert dispensa o retry).
+   *
+   * REF e não `useState`: a escrita anda SEMPRE junto do `setChat({lastError})`
+   * que a desenha — o render que mostra o Alert lê sempre a receita fresca, e
+   * a assinatura de hooks da view (guardada em
+   * tests/cx-views-gap-lesson-view.test.ts) não ganha um slot por um valor que
+   * nunca renderiza sozinho.
+   */
+  const lastErrorRetryRef = useRef<LessonRetryAction | null>(null);
+  /**
    * ONDA2-QUIZ-OVERLAY — o aviso de CANAL do ciclo do quiz (fail-closed).
    *
    * Ele é do CANAL, nunca do ciclo: a máquina pura (`trackLessonState`) não
@@ -1686,7 +1754,15 @@ export function LessonView(props: ViewProps): ReactElement {
   // ─── ONDA10 (bug 3, parte 2): PULAR a digitação ───────────────────────────
   // Com a teoria em velocidade de LEITURA (7 tps), quem lê rápido não pode
   // ficar esperando: um CLIQUE no painel, QUALQUER tecla ou o botão "Mostrar
-  // tudo" completam as bolhas que estão digitando AGORA.
+  // tudo" pulam as bolhas que estão digitando AGORA.
+  //
+  // ONDA-SKIP-1S (o pulo deixou de estourar o texto — pedido do dono: "ela
+  // termina de mostrar tudo em 1s ai calculamos a quantidade de caracteres
+  // para saber como mostramos eles com mesmo tempo ate dar um segundo"): o
+  // `skip` NÃO revela mais tudo num frame. O TypewriterText recebe o sinal e
+  // VARRE o restante em ~1 s, com os caracteres restantes distribuídos
+  // uniformemente (`skipSweepCut` — trackLessonState.ts). Aqui nada mudou: o
+  // sinal continua o mesmo para clique/tecla/botão/"Avançar".
   //
   // O pedido é guardado como o TAMANHO do histórico no momento do pedido, e
   // não como um booleano: assim ele EXPIRA sozinho, no RENDER, quando uma
@@ -1695,7 +1771,27 @@ export function LessonView(props: ViewProps): ReactElement {
   // rodam ANTES dos do pai, então a bolha nova nasceria já pulada.
   const [skipAtLen, setSkipAtLen] = useState<number | null>(null);
   const skipTyping = skipAtLen !== null && skipAtLen === chat.history.length;
-  const requestSkipTyping = useCallback((): void => {
+  /**
+   * O pedido de revelar — e a porta ÚNICA por onde ele passa (clique no
+   * painel, tecla, botão "Mostrar tudo" e o avanço que revela).
+   *
+   * W6 + S8 (auditoria de UX da Aula): o gatilho CHEGA AQUI com o evento e a
+   * decisão "é mesmo um pedido de revelar?" é da função PURA
+   * `shouldSkipTyping` (`src/lib/skipTypingKeys.ts`, testada sem DOM):
+   *   - tecla com o foco em superfície de digitação (input/textarea/
+   *     contentEditable) NÃO pula — era o roubo de digitação do campo de
+   *     pergunta (o listener é capture e via tudo);
+   *   - clique em "Copiar"/link/botão dentro da bolha
+   *     (`closest('button, a, [role="button"]')`) NÃO pula — o gesto é do
+   *     controle, não do painel;
+   *   - teclas modificadoras (Ctrl/Meta/Alt, Shift, …) e de navegação
+   *     (Tab/setas/Escape/Home/End/PgUp/PgDn) NÃO pulam — Tab navega, Esc
+   *     fecha, as setas movem o cursor.
+   * Quem chama SEM evento (o botão "Mostrar tudo", o avanço no passo
+   * 'revelar') tem um pedido sempre legítimo.
+   */
+  const requestSkipTyping = useCallback((event?: SkipTypingTriggerLike): void => {
+    if (!shouldSkipTyping(event)) return;
     setSkipAtLen(chat.history.length);
   }, [chat.history.length]);
   // Tecla: só escuta ENQUANTO alguma bolha digita (nenhum listener global
@@ -1703,6 +1799,23 @@ export function LessonView(props: ViewProps): ReactElement {
   // campo de pergunta — quem já está fazendo outra coisa não deve esperar a
   // animação. `keydown` cobre teclado; o clique vem do onClick do painel.
   const typingNow = streamingIds.size > 0;
+  /**
+   * W8 (auditoria de UX) — o anúncio do que foi digitado, no momento certo.
+   * Enquanto o typewriter escreve, a região viva do chat está `aria-live="off"`
+   * (ver o `role="log"` no render): com "polite", o leitor de ecrã anunciava o
+   * texto PARCIAL a cada passo (~28 mutações/s). Quando a digitação TERMINA, o
+   * resultado é anunciado UMA vez aqui, pelo mecanismo pronto da casa
+   * (`announceStatus` — a mesma região viva do veredito e do confete). A
+   * transição é detectada por REF: sem `useState` novo (a assinatura de estado
+   * da view é guardada por tests/cx-views-gap-lesson-view.test.ts).
+   */
+  const wasTypingRef = useRef(false);
+  useEffect(() => {
+    if (wasTypingRef.current && !typingNow) {
+      announceStatus(tI('lesson.messagePresented'));
+    }
+    wasTypingRef.current = typingNow;
+  }, [typingNow, tI]);
   /**
    * ONDA14: uma SEÇÃO DE TEORIA está sendo escrita agora?
    *
@@ -1720,7 +1833,9 @@ export function LessonView(props: ViewProps): ReactElement {
   );
   useEffect(() => {
     if (!typingNow) return;
-    const onKey = (): void => requestSkipTyping();
+    // W6: o evento segue para a decisão PURA (`shouldSkipTyping`) — tecla no
+    // campo de pergunta e teclas modificadoras/navegação não são skip.
+    const onKey = (event: KeyboardEvent): void => requestSkipTyping(event);
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, [typingNow, requestSkipTyping]);
@@ -1730,12 +1845,16 @@ export function LessonView(props: ViewProps): ReactElement {
   // ONDA15 (auto-scroll SEMPRE — pedido do dono: "durante a aula quero auto
   // scroll do conteúdo sempre pro final da tela"): o guard de posição da
   // ONDA2-CHAT-NINTENDO ("só puxa se o usuário está no fim; se ele rolou para
-  // cima para reler, NADA o puxa de volta") está REVOGADO. O tick abaixo não
-  // consulta posição nenhuma — detalhe e porquê em `pinLogToBottom`/
-  // `nudgeLogToBottom` (módulo, exportadas para teste).
+  // cima para reler, NADA o puxa de volta") está REVOGADO.
+  //
+  // W7 (auditoria de UX — suspender o puxão durante a releitura) CONTRARIA a
+  // ONDA15 e ficou como PENDÊNCIA DE DECISÃO do dono (memória
+  // `ux-pendencias-decisao-dono`): a implementação experimental (sensor
+  // `onScroll` → ref, guard nas duas portas) foi retirada de propósito —
+  // contrato do dono manda, e o e2e (e2e-autoscroll-fim) mede o "SEMPRE".
   //
   // Auto-scroll DURANTE a digitação: a cada step do typewriter
-  // (onStreamTick) o painel acompanha o fim, SEMPRE. A física não mudou: o
+  // (onStreamTick) o painel acompanha o fim. A física não mudou: o
   // tick usa scroll INSTANTÂNEO (scrollTop = scrollHeight), NUNCA smooth — a
   // ~2.5ms por step a 100 tps o smooth não completaria e o streaming
   // "pularia" (o tick é o que mantém a digitação visível).
@@ -1772,6 +1891,8 @@ export function LessonView(props: ViewProps): ReactElement {
   // mais largo que o fato que importa. O slug muda exatamente quando a Box
   // (re)monta: `undefined` (aula fora da tela: null, loading, erro, vazio) →
   // `<slug>` (aula na tela), e A → B na troca de aula.
+  // W7 (pendência de decisão): a reserva "não arrastar quem relê" ficou fora
+  // de propósito — ver o bloco acima (ONDA15 manda: SEMPRE pro fim).
   useEffect(() => {
     const el = logScrollRef.current;
     if (!el) return;
@@ -2088,6 +2209,9 @@ export function LessonView(props: ViewProps): ReactElement {
               filesTitle: tIRef.current('lesson.errorBubbleFilesTitle'),
               checksTitle: tIRef.current('challenge.checksTitle'),
               outputTitle: tIRef.current('challenge.output'),
+              // W8 (onda-ux): a bolha EXPLICA a transição — o painel do
+              // desafio fechou e a discussão segue aqui (última linha).
+              movedToChat: tIRef.current('challenge.errorMovedToChat'),
             },
             seedNow,
           );
@@ -2183,18 +2307,30 @@ export function LessonView(props: ViewProps): ReactElement {
       setChat((s) => clearChallengeError(applyTutorReply(s, res)));
       markNew(nextIndex);
     } catch (err) {
+      // W1 (auditoria de UX — "String(err) nunca na UI"): timeout tem mensagem
+      // própria; QUALQUER outra falha vira `lesson.nextFailed` e o Alert
+      // ganha o "Tentar de novo" que repete ESTE envio. Nada de mensagem crua
+      // de exceção na tela (ela é interna, do canal — não é para o aluno).
       setChat((s) => ({
         ...s,
-        lastError: isTimeoutError(err) ? tI('lesson.nextTimeout') : String(err),
+        lastError: isTimeoutError(err) ? tI('lesson.nextTimeout') : tI('lesson.nextFailed'),
       }));
+      lastErrorRetryRef.current = { kind: 'next' };
     } finally {
       setBusy(false);
       setPendingAction(null);
     }
   }, [trackLesson, busy, nextBlockedByQuiz, chat.presentedSections, chat.history, tI, markNew]);
 
-  const sendAnswer = useCallback(async (): Promise<void> => {
-    const text = draft.trim();
+  /**
+   * Envia a pergunta do aluno. `retryText` é a RETOMA de um envio que falhou
+   * (W1 — o "Tentar de novo" do Alert): a pergunta JÁ está no histórico, então
+   * o retry NÃO reempurra a bolha nem mexe no rascunho — repete o pedido ao
+   * tutor com o MESMO texto e o mesmo contexto, e nada duplica na conversa.
+   */
+  const sendAnswer = useCallback(async (retryText?: string): Promise<void> => {
+    const isRetry = retryText !== undefined;
+    const text = (isRetry ? retryText : draft).trim();
     if (!trackLesson || !text || busy) return;
     // ONDA2 (error-flow, A5): gravação em andamento + envio → CANCELA o mic
     // (o turno em voo desabilita o botão; sem o cancel, a gravação ficaria
@@ -2202,10 +2338,13 @@ export function LessonView(props: ViewProps): ReactElement {
     if (mic.transcribing) void mic.cancel();
     // ONDA2-IMESSAGE: a pergunta entra no índice `nextIndex` e a resposta do
     // tutor logo em seguida (`nextIndex + 1`) — marca a RESPOSTA para
-    // DIGITAR (a pergunta do aluno é instantânea — ele mesmo digitou).
+    // DIGITAR (a pergunta do aluno é instantânea — ele mesmo digitou). No
+    // retry a pergunta JÁ está no histórico e a resposta cai em `nextIndex`.
     const nextIndex = chat.history.length;
-    setDraft('');
-    setChat((s) => pushUserMessage(s, text));
+    if (!isRetry) {
+      setDraft('');
+      setChat((s) => pushUserMessage(s, text));
+    }
     setBusy(true);
     setPendingAction('answer');
     try {
@@ -2216,8 +2355,11 @@ export function LessonView(props: ViewProps): ReactElement {
           presentedSections: chat.presentedSections,
           // chatHistory STRIPA o kind das bolhas (texto puro ao main); o
           // challengeError (se em discussão) acompanha o turno — o main o usa
-          // na análise da hipótese do aluno em 'answer'.
-          history: [...chatHistory(chat), { role: 'user', content: text }],
+          // na análise da hipótese do aluno em 'answer'. No retry a pergunta já
+          // é o ÚLTIMO turno do histórico — anexá-la de novo duplicaria.
+          history: isRetry
+            ? chatHistory(chat)
+            : [...chatHistory(chat), { role: 'user', content: text }],
           action: 'answer',
           ...(chat.challengeError ? { challengeError: chat.challengeError } : {}),
         }),
@@ -2225,13 +2367,16 @@ export function LessonView(props: ViewProps): ReactElement {
         'track.tutorChat:answer',
       );
       setChat((s) => applyTutorReply(s, res));
-      markNew(nextIndex + 1);
+      markNew(isRetry ? nextIndex : nextIndex + 1);
     } catch (err) {
-      // Timeout → mensagem clara; o "digitando…" (pendingAction) desliga no finally.
+      // Timeout → mensagem clara; W1: `String(err)` nunca na UI — as outras
+      // falhas viram `lesson.answerFailed`, com "Tentar de novo" que repete
+      // ESTE texto (o texto não se perde: ele vive na receita do retry).
       setChat((s) => ({
         ...s,
-        lastError: isTimeoutError(err) ? tI('lesson.answerTimeout') : String(err),
+        lastError: isTimeoutError(err) ? tI('lesson.answerTimeout') : tI('lesson.answerFailed'),
       }));
+      lastErrorRetryRef.current = { kind: 'answer', text };
     } finally {
       setBusy(false);
       setPendingAction(null);
@@ -2286,11 +2431,21 @@ export function LessonView(props: ViewProps): ReactElement {
         fraction: 1,
       });
     } catch (err) {
-      // Timeout do canal MUDO → aviso visível; falha de persistência comum
-      // continua silenciosa (o botão permanece disponível — retry honesto).
-      if (isTimeoutError(err)) {
-        setChat((s) => ({ ...s, lastError: tI('lesson.doneTimeout') }));
-      }
+      // CRÍTICO-1 (auditoria de UX) — a promessa do comentário acima,
+      // finalmente cumprida por inteiro: o catch DESCARTAVA as falhas que não
+      // fossem timeout ("falha de persistência comum continua silenciosa"), e
+      // o aluno ficava a ver "Concluída ✓"... não — ficava sem SINAL nenhum de
+      // que a aula não gravou, contrariando o fail-closed que a linha acima
+      // jura. Agora QUALQUER falha publica erro VISÍVEL no Alert fechável
+      // existente (`chat.lastError`) e o retry fica à mão: `doneMarked` só é
+      // marcado no SUCESSO, então o botão "Concluir aula" continua vivo e
+      // clicável (e o "Tentar de novo" repete este envio). Timeout mantém a
+      // mensagem própria; o resto cai em `lesson.doneFailed`.
+      setChat((s) => ({
+        ...s,
+        lastError: isTimeoutError(err) ? tI('lesson.doneTimeout') : tI('lesson.doneFailed'),
+      }));
+      lastErrorRetryRef.current = { kind: 'done' };
     } finally {
       setBusy(false);
     }
@@ -2397,13 +2552,62 @@ export function LessonView(props: ViewProps): ReactElement {
       }
     } catch (err) {
       if (mountedRef.current === false) return;
-      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err);
+      // W1 (auditoria de UX — "String(err) nunca na UI"): timeout mantém a
+      // mensagem própria; QUALQUER outra falha vira `lesson.regenerateFailed`
+      // (a chave que já existia) — nunca a mensagem crua do canal.
+      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : tI('lesson.regenerateFailed');
       failChallengeGenerate(msg, generationId);
       setChat((s) => ({ ...s, lastError: msg }));
+      lastErrorRetryRef.current = { kind: 'regenerate' };
     } finally {
       if (mountedRef.current !== false) setBusy(false);
     }
   }, [trackLesson, busy, generateRunning, tI]);
+
+  /**
+   * ONDA-REFAZER — "Refazer desafio" NA BOLHA de erro (pedido do dono,
+   * verbatim: "se eu erro um desafio eu não posso fazer ele de novo").
+   *
+   * Antes da onda, a bolha do desafio reprovado só tinha SAÍDAS: "Ver a aula"
+   * (1ª falha antes da aula) ou "Gerar novo desafio" — refazer o MESMO teste
+   * pela bolha era impossível (só pelo card da reabertura da aula). Este
+   * handler reabre o painel do MESMO desafio (o `challengeId` da bolha
+   * 'review', `errorFor`) pelo MESMO mecanismo do `openChallenge`
+   * (selectTrackChallenge + navigateToChallenge — nenhum fluxo novo). A
+   * tentativa volta RETOMÁVEL pelo cache de rascunho (código e evidência do
+   * erro preservados, editor e "Testar resposta" ligados — a decisão inteira
+   * está em TrackChallengePanel.planChallengeRetry/normalizeDraftForResume;
+   * aqui NADA é resetado à mão).
+   *
+   * O flag `attemptedBeforeLesson` é REPASSADO quando a falha veio do card de
+   * início da aula: a corrente de tentativas continua sendo "antes da aula" e
+   * a 2ª falha segue a regra do dono (a bolha passa a oferecer "Gerar novo
+   * desafio" — `lessonChallengeBubbleAction`, com o `failedCount` do payload).
+   * O gate `challengeOpenBlockedByQuiz` NÃO se aplica aqui pela mesma razão do
+   * `openChallengeFromCard`: quem clica está refazendo o desafio que JÁ
+   * estava aberto antes da teoria — o gate do fluxo normal (popover/linha de
+   * ação) fica intacto.
+   */
+  const handleRetryChallengeFromBubble = useCallback(
+    (alvo: { challengeId: string; beforeLesson: boolean }): void => {
+      if (!trackLesson) return;
+      const resumo = (lesson?.challenges ?? []).find((c) => c.slug === alvo.challengeId);
+      nav.selectTrackChallenge({
+        trackSlug: trackLesson.trackSlug,
+        target: 'lesson',
+        lessonId: trackLesson.lessonId,
+        challengeId: alvo.challengeId,
+        // Título do cabeçalho do painel: o do payload da aula quando existe;
+        // sem ele (payload ainda não carregado / desafio fora da lista) o
+        // próprio slug — o painel usa `spec.title` para o cabeçalho de
+        // qualquer forma, o `title` da seleção é só o fallback do cabeçalho.
+        title: resumo?.title ?? alvo.challengeId,
+        ...(alvo.beforeLesson ? { attemptedBeforeLesson: true } : {}),
+      });
+      nav.navigateToChallenge();
+    },
+    [trackLesson, lesson, nav],
+  );
 
   /**
    * ONDA2 (falha-ver-aula) — "Ver a aula" NA BOLHA de erro (1ª falha do
@@ -2429,10 +2633,24 @@ export function LessonView(props: ViewProps): ReactElement {
     setChat(createTrackLessonState);
   }, [trackLesson, closeQuizOverlay]);
 
-  /** Revisão de uma aula ANTERIOR da trilha (aluno não entendeu). */
+  /**
+   * Revisão de uma aula ANTERIOR da trilha (aluno não entendeu).
+   *
+   * W11 (auditoria de UX): a troca de aula DESCARTAVA o histórico em silêncio
+   * — o cache só gravava no unmount, já com a chave da aula NOVA, e quem
+   * voltasse à aula anterior encontrava o chat vazio. Agora o estado ATUAL (o
+   * `chatRef`, a mesma leitura do cleanup de unmount) é gravado na chave ANTIGA
+   * ANTES de qualquer troca: revisar um pré-requisito deixa a aula em curso
+   * exatamente onde estava.
+   */
   const openPrerequisite = useCallback(
     (slug: string): void => {
       if (!trackLesson) return;
+      // W11: guarda primeiro, troca depois — a chave ainda é a da aula atual.
+      saveLessonChat(
+        { trackSlug: trackLesson.trackSlug, lessonId: trackLesson.lessonId },
+        chatRef.current,
+      );
       setTrackLesson({ trackSlug: trackLesson.trackSlug, lessonId: slug });
       // ONDA1-NAV-UI: abrir uma aula anterior (pré-requisito) também atualiza
       // a "última aula aberta" — voltar à aba Aula restaura ESTA aula.
@@ -3214,11 +3432,15 @@ export function LessonView(props: ViewProps): ReactElement {
    *
    * ONDA-AVANCAR-COMPOSER: o botão mora no fim da linha do composer, mas a
    * decisão continua sendo do `nextClickAction` (puro): com a seção sendo
-   * escrita o clique COMPLETA a digitação (`requestSkipTyping`) e NÃO avança;
-   * só o passo 'proximo' chama `sendNext`. O gate do quiz não é afrouxado em
-   * lugar nenhum — 'quiz-secao' devolve 'nada', e o próprio `sendNext` mantém
-   * o guard `if (nextBlockedByQuiz) return` para a corrida em que a bolha
-   * termina de ser escrita entre o mousedown e o clique.
+   * escrita o clique PULA a digitação (`requestSkipTyping`) e NÃO avança;
+   * ONDA-SKIP-1S: "mostrar tudo da digitação anterior" agora é uma VARREDURA
+   * de ~1 s (não instantânea — pedido do dono: "ela termina de mostrar tudo
+   * em 1s … com mesmo tempo ate dar um segundo"); o indicador "digitando"
+   * some quando a varredura TERMINA. Só o passo 'proximo' chama `sendNext`.
+   * O gate do quiz não é afrouxado em lugar nenhum — 'quiz-secao' devolve
+   * 'nada', e o próprio `sendNext` mantém o guard `if (nextBlockedByQuiz)
+   * return` para a corrida em que a bolha termina de ser escrita entre o
+   * mousedown e o clique.
    */
   const handleNextClick = useCallback((): void => {
     const action = nextClickAction(actionStep);
@@ -3250,6 +3472,34 @@ export function LessonView(props: ViewProps): ReactElement {
     },
     [lesson, openChallenge],
   );
+
+  /**
+   * W1 (auditoria de UX): o "Tentar de novo" do Alert de erro fechável. A
+   * RECEITA (`lastErrorRetry`) diz o que falhou e aqui se chama sempre o
+   * handler MAIS recente da view — o retry de 'answer' repete o MESMO texto
+   * (sem duplicar a bolha do aluno) e o de 'done' repete a conclusão (que
+   * `doneMarked` mantém aberta enquanto não gravar). O Alert fecha-se sozinho
+   * ao disparar: se falhar de novo, nasce outro com mensagem fresca.
+   */
+  const runLastRetry = useCallback((): void => {
+    const retry = lastErrorRetryRef.current;
+    if (retry === null) return;
+    setChat((s) => ({ ...s, lastError: null }));
+    lastErrorRetryRef.current = null;
+    if (retry.kind === 'next') {
+      void sendNext();
+      return;
+    }
+    if (retry.kind === 'answer') {
+      void sendAnswer(retry.text);
+      return;
+    }
+    if (retry.kind === 'regenerate') {
+      void handleRegenerateFromBubble();
+      return;
+    }
+    void finishLesson();
+  }, [sendNext, sendAnswer, handleRegenerateFromBubble, finishLesson]);
 
   // ─── estado vazio: nenhuma aula de trilha selecionada ─────────────────────
   if (!trackLesson) {
@@ -3289,7 +3539,12 @@ export function LessonView(props: ViewProps): ReactElement {
     return (
       <Box sx={{ p: 2, maxWidth: 640, mx: 'auto', pt: 4 }}>
         {/* ONDA-UX-FEEDBACK: o carregamento da aula era um progresso MUDO (sem
-            nome acessível — leitores de ecrã não anunciavam a espera). */}
+            nome acessível — leitores de ecrã não anunciavam a espera).
+            S3 (auditoria de UX): a espera ganhou TEXTO VISÍVEL — uma barra nua
+            não diz o que está a acontecer nem que a app está viva. */}
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+          {t('translation:lesson.loading')}
+        </Typography>
         <LinearProgress aria-label={t('translation:common.loading')} />
       </Box>
     );
@@ -3394,11 +3649,17 @@ export function LessonView(props: ViewProps): ReactElement {
           <Box
             sx={lessonLogSx(theme)}
             role="log"
-            aria-live="polite"
-            // ONDA10 (bug 3): clicar em QUALQUER lugar do painel completa a
+            // W8 (auditoria de UX): durante a digitação a região viva fica
+            // "off" — com "polite" o leitor de ecrã anunciava o texto PARCIAL
+            // a cada passo do typewriter (~28 mutações/s). O resultado final é
+            // anunciado UMA vez pelo `announceStatus` no fim da digitação (o
+            // efeito W8 acima).
+            aria-live={typingNow ? 'off' : 'polite'}
+            // ONDA10 (bug 3): clicar em QUALQUER lugar do painel pula a
             // digitação em curso. É atalho REDUNDANTE (há o botão "Mostrar
             // tudo", acessível, e qualquer tecla) — por isso o div não vira
             // widget nem ganha foco; sem digitação em curso, é no-op.
+            // ONDA-SKIP-1S: o pulo varre o restante em ~1 s (não estoura).
             onClick={typingNow ? requestSkipTyping : undefined}
           >
           {chat.history.length === 0 ? (
@@ -3571,6 +3832,13 @@ export function LessonView(props: ViewProps): ReactElement {
                       attemptedBeforeLesson: true,
                       failedCount: challengeFailedCountBySlug.get(m.errorFor ?? '') ?? 0,
                     }) === 'viewLesson';
+                  // ONDA-REFAZER: o alvo do "Refazer desafio" da bolha — o
+                  // MESMO desafio que reprovou (`errorFor` da 'review'), com o
+                  // flag "antes da aula" ecoado para a corrente de tentativas.
+                  const retryAlvo =
+                    m.kind === 'review' && m.errorFor !== undefined
+                      ? { challengeId: m.errorFor, beforeLesson: m.errorBeforeLesson === true }
+                      : null;
                   return (
                     <motion.div
                       key={i}
@@ -3620,8 +3888,12 @@ export function LessonView(props: ViewProps): ReactElement {
                         // o "livre" de sempre. Nada mudou em bloco: o default
                         // GLOBAL do TypewriterText continua 100.
                         tps={chatBubbleTps(chat.history, i)}
-                        // ONDA10: clique/tecla/"Mostrar tudo" completam a
-                        // bolha que está digitando AGORA.
+                        // ONDA10: clique/tecla/"Mostrar tudo" pulam a
+                        // bolha que está digitando AGORA. ONDA-SKIP-1S: o
+                        // pulo NÃO mostra tudo instantâneo — o TypewriterText
+                        // varre o restante em ~1 s (chars distribuídos por
+                        // igual) e só então dispara onDone (o indicador
+                        // "digitando" some no fim da varredura, não no clique).
                         skip={skipTyping}
                         // ONDA2 (falha-ver-aula): a bolha de erro oferece UMA
                         // ação — "Ver a aula" na 1ª falha do desafio tentado
@@ -3635,6 +3907,14 @@ export function LessonView(props: ViewProps): ReactElement {
                             : m.kind === 'review'
                               ? handleRegenerateFromBubble
                               : undefined
+                        }
+                        // ONDA-REFAZER (pedido do dono: "se eu erro um desafio
+                        // eu não posso fazer ele de novo"): toda bolha de erro
+                        // COM desafio identificado oferece refazer o MESMO —
+                        // convive com "Ver a aula"/"Gerar novo desafio", que
+                        // seguem decididos pela regra pura acima.
+                        onRetryChallenge={
+                          retryAlvo ? () => handleRetryChallengeFromBubble(retryAlvo) : undefined
                         }
                         // ONDA3 (generate-flow): o gating agora também cobre o
                         // processo GLOBAL em voo (o modal pode estar rodando
@@ -3745,9 +4025,30 @@ export function LessonView(props: ViewProps): ReactElement {
                   {/* ONDA10 (bug 3): saída EXPLÍCITA e acessível da animação
                       — o clique no painel e qualquer tecla fazem o mesmo, mas
                       só um botão de verdade aparece para leitor de tela e
-                      navegação por teclado. Some junto com o indicador. */}
-                  {typingNow ? (
-                    <Button size="small" variant="text" onClick={requestSkipTyping}>
+                      navegação por teclado. Some junto com o indicador.
+                      ONDA-SKIP-1S: "Mostrar tudo" passa a VARREDURA de ~1 s
+                      (o texto restante se distribui por igual nesse segundo —
+                      pedido do dono); o indicador e este botão somem quando a
+                      varredura TERMINA (onDone), não no clique. */}
+                  {/* W3 (auditoria de UX — "um botão, um significado"): com a
+                      seção em digitação ('revelar') o botão do composer JÁ é o
+                      "Mostrar tudo" — um segundo botão com o MESMO rótulo e a
+                      MESMA ação aqui seria a duplicata que a auditoria aponta.
+                      Ele continua sendo a saída explícita e acessível nos
+                      OUTROS estados de digitação (ex.: a explicação do ciclo,
+                      onde o avanço está travado e não revela nada).
+                      `onClick={() => requestSkipTyping()}` SEM evento: o gesto
+                      é de botão, e o guard S8 (clique em controle não pula)
+                      não pode barrar o próprio controle que revela. */}
+                  {typingNow && actionStep !== 'revelar' ? (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => requestSkipTyping()}
+                      // W10 (auditoria de UX — Fitts): piso de 44px — o
+                      // `size="small"` nasce ~30px de alto.
+                      sx={{ minHeight: 44 }}
+                    >
                       {t('translation:lesson.skipTypingButton')}
                     </Button>
                   ) : null}
@@ -3770,7 +4071,25 @@ export function LessonView(props: ViewProps): ReactElement {
             filhos da coluna e a preenchem. Declarar `mx: 'auto'` aqui seria
             escrever CSS que o Stack apaga (ver LESSON_COLUMN_SX). */}
         {chat.lastError ? (
-          <Alert severity="warning" onClose={() => setChat((s) => ({ ...s, lastError: null }))}>
+          <Alert
+            severity="warning"
+            /* W1 (auditoria de UX): o erro tem AÇÃO — "Tentar de novo" repete
+               o que falhou (receita `lastErrorRetry`; `common.tryAgain`).
+               Sem receita (outras fontes de erro), só o fechar de sempre.
+               Fechar limpa os DOIS estados: erro fechado não deixa retry
+               pendurado para um clique futuro. */
+            action={
+              lastErrorRetryRef.current !== null ? (
+                <Button color="inherit" size="small" onClick={runLastRetry}>
+                  {t('translation:common.tryAgain')}
+                </Button>
+              ) : null
+            }
+            onClose={() => {
+              setChat((s) => ({ ...s, lastError: null }));
+              lastErrorRetryRef.current = null;
+            }}
+          >
             {chat.lastError}
           </Alert>
         ) : null}
@@ -3800,7 +4119,20 @@ export function LessonView(props: ViewProps): ReactElement {
           </Typography>
         ) : null}
         {mic.error ? (
-          <Alert severity="error" sx={{ py: 0.5 }}>{mic.error}</Alert>
+          // S4 (auditoria de UX): o erro do mic ganha DESCARTE (×) e retentativa
+          // — antes era um Alert sem saída que persistia até ao próximo start.
+          <Alert
+            severity="error"
+            sx={{ py: 0.5 }}
+            onClose={mic.clearError}
+            action={
+              <Button size="small" color="inherit" onClick={() => void mic.start()}>
+                {t('translation:common.tryAgain')}
+              </Button>
+            }
+          >
+            {mic.error}
+          </Alert>
         ) : null}
 
         {/* ONDA11 — a LINHA DE AÇÃO, no molde da referência de chat: o
@@ -3855,6 +4187,14 @@ export function LessonView(props: ViewProps): ReactElement {
           advanceLocked={actionStep === 'quiz-secao'}
           advanceDisabled={busy}
           onAdvance={handleNextClick}
+          /* W3 (auditoria de UX — "um botão, um significado"): o RÓTULO diz o
+             que o clique faz. Durante a digitação ('revelar') ele revela — e
+             se chama "Mostrar tudo"; fora dela, "Avançar". */
+          advanceLabel={
+            actionStep === 'revelar'
+              ? t('translation:lesson.skipTypingButton')
+              : t('translation:lesson.advanceButton')
+          }
           advanceTooltip={
             actionStep === 'quiz-secao'
               ? t('translation:lesson.quizGateNext')
@@ -3897,10 +4237,18 @@ export function LessonView(props: ViewProps): ReactElement {
               coluna é só a conversa: log, avisos, ação e entrada);
             · `<section aria-labelledby>`, nunca `<header>`: o slot mora
               dentro do AppBar, fora do `main`, e ali um `<header>` viraria um
-              SEGUNDO landmark banner. */}
+              SEGUNDO landmark banner;
+            · ONDA-CURSO-NO-SIDEBAR (pedido do dono, verbatim: *"quando estou
+              na aula o left sidebar deve dizer qual é o curso que estamos
+              fazendo"*): além do título da AULA, o sidebar mostra o nome do
+              CURSO (a trilha) — `lesson.trackTitle`, que o main preenche com o
+              título da trilha (TrackLessonPayload.trackTitle) e que o
+              LessonSidebarHeader desenha como sobretítulo. Sem isto o sidebar
+              só sabia a aula e nada dizia em que curso o aluno estava. */}
       <ShellSidebarPortal>
         <LessonSidebarHeader
           title={lesson.title}
+          courseTitle={lesson.trackTitle}
           summary={lesson.summary}
           challengeCount={lesson.challenges.length}
           pendingChallengeCount={pendingChallengeCount}
@@ -4066,6 +4414,9 @@ export function LessonView(props: ViewProps): ReactElement {
                   borderColor: 'divider',
                   borderRadius: 1,
                   mb: 0.5,
+                  // W10 (auditoria de UX — Fitts): item de lista clicável com
+                  // piso de alvo de toque de 44px (o MUI `dense` nasce ~36px).
+                  minHeight: 44,
                   cursor: challengeOpenBlockedByQuiz(finishBlock) ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   width: '100%',

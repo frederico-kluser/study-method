@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Onde está o pedaço\n\nEscreva a função `achar` que devolve a posição onde o pedaço começa dentro do texto — e devolve `-1` quando o pedaço não existe:\n\n```python\ndef achar(texto, pedaco):\n    # devolva a posicao do pedaco (ou -1 se nao existir)\n```\n\nUse o `find`, como na aula. Exemplos:\n\n```text\nachar(\"banana\", \"na\")  ->  2\nachar(\"banana\", \"ban\")  ->  0\nachar(\"banana\", \"zz\")  ->  -1\n```\n\nA função devolve o número — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao achar(texto, pedaco)\n",
-  "testsCode": "import unittest\n\nfrom solucao import achar\n\n\nclass TestAcharNoTexto(unittest.TestCase):\n    def test_acha_no_meio(self):\n        \"\"\"achar devolve a posicao do pedaco no meio do texto\"\"\"\n        self.assertEqual(achar(\"banana\", \"na\"), 2)\n\n    def test_acha_no_comeco(self):\n        \"\"\"achar devolve a posicao do pedaco no comeco do texto\"\"\"\n        self.assertEqual(achar(\"banana\", \"ban\"), 0)\n\n    def test_acha_a_primeira_ocorrencia(self):\n        \"\"\"achar devolve a primeira posicao onde o pedaco aparece\"\"\"\n        self.assertEqual(achar(\"banana\", \"an\"), 1)\n\n    def test_nao_acha_devolve_menos_um(self):\n        \"\"\"achar devolve -1 quando o pedaco nao existe\"\"\"\n        self.assertEqual(achar(\"banana\", \"zz\"), -1)\n",
-  "solutionCode": "def achar(texto, pedaco):\n    return texto.find(pedaco)\n",
+  "statement": "# Onde está o pedaço\n\nEscreva duas funções:\n\n- `achar(texto, pedaco)` devolve a posição onde o pedaço começa dentro do texto — e devolve `-1` quando o pedaço não existe;\n- `existe(texto, pedaco)` devolve `True` quando o pedaço existe no texto, e `False` quando não existe.\n\n```python\ndef achar(texto, pedaco):\n    # devolva a posicao do pedaco (ou -1 se nao existir)\n\n\ndef existe(texto, pedaco):\n    # devolva True se o pedaco existe no texto\n```\n\nUse o `find`, como na aula. No `existe`, confira com uma comparação o valor que o `find` devolveu — ele devolve `-1` quando não acha. Exemplos:\n\n```text\nachar(\"banana\", \"na\")  ->  2\nachar(\"banana\", \"zz\")  ->  -1\nexiste(\"banana\", \"na\")  ->  True\nexiste(\"banana\", \"zz\")  ->  False\n```\n\nAs funções devolvem o número e o booleano — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes achar e existe\n",
+  "testsCode": "import unittest\n\nfrom solucao import achar\nfrom solucao import existe\n\n\nclass TestAcharNoTexto(unittest.TestCase):\n    def test_acha_no_meio(self):\n        \"\"\"achar devolve a posicao do pedaco no meio do texto\"\"\"\n        self.assertEqual(achar(\"banana\", \"na\"), 2)\n\n    def test_nao_acha_devolve_menos_um(self):\n        \"\"\"achar devolve -1 quando o pedaco nao existe\"\"\"\n        self.assertEqual(achar(\"banana\", \"zz\"), -1)\n\n    def test_existe_quando_tem(self):\n        \"\"\"existe devolve True quando o pedaco esta no texto\"\"\"\n        self.assertEqual(existe(\"banana\", \"na\"), True)\n\n    def test_existe_quando_nao_tem(self):\n        \"\"\"existe devolve False quando o pedaco nao esta no texto\"\"\"\n        self.assertEqual(existe(\"banana\", \"zz\"), False)\n",
+  "solutionCode": "def achar(texto, pedaco):\n    return texto.find(pedaco)\n\n\ndef existe(texto, pedaco):\n    return texto.find(pedaco) != -1\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "achar devolve a posicao do pedaco no meio do texto"
     },
     {
-      "id": "test_acha_no_comeco",
-      "teste": "test_acha_no_comeco",
-      "descricao": "achar devolve a posicao do pedaco no comeco do texto"
-    },
-    {
-      "id": "test_acha_a_primeira_ocorrencia",
-      "teste": "test_acha_a_primeira_ocorrencia",
-      "descricao": "achar devolve a primeira posicao onde o pedaco aparece"
-    },
-    {
       "id": "test_nao_acha_devolve_menos_um",
       "teste": "test_nao_acha_devolve_menos_um",
       "descricao": "achar devolve -1 quando o pedaco nao existe"
+    },
+    {
+      "id": "test_existe_quando_tem",
+      "teste": "test_existe_quando_tem",
+      "descricao": "existe devolve True quando o pedaco esta no texto"
+    },
+    {
+      "id": "test_existe_quando_nao_tem",
+      "teste": "test_existe_quando_nao_tem",
+      "descricao": "existe devolve False quando o pedaco nao esta no texto"
     }
   ]
 }

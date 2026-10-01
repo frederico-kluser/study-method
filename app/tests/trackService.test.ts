@@ -282,6 +282,10 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     const repo = fakeRepo();
     const payload = await buildTrackLesson(track, 'm1', 'a1', repo);
     assert.ok(payload);
+    // ONDA-CURSO-NO-SIDEBAR: o payload carrega o NOME DO CURSO (título da
+    // trilha) — o sidebar da aula ("qual é o curso que estamos fazendo") lê
+    // exatamente este campo.
+    assert.equal(payload.trackTitle, 'Trilha');
     assert.deepEqual(payload.prerequisites, [{ slug: 'a0', title: 'a0' }]);
     assert.equal(payload.challenges.length, 1);
     assert.equal(payload.challenges[0].slug, 'ch-a1');

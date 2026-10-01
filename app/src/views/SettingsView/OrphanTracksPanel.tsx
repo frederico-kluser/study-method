@@ -35,10 +35,26 @@ import Typography from '@mui/material/Typography';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import type { TrackOrphanEntry } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
-import { IPC_TIMEOUT_MS, isTimeoutError, resolveChannelError, withTimeout } from '../../lib/ipcTimeout';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { readCached, writeCached } from './panelCache';
 
-type Feedback = { kind: 'done' } | { kind: 'error'; message: string } | null;
+type Feedback =
+  | { kind: 'done' }
+  | { kind: 'error'; message: string; detail?: string }
+  | null;
+
+/**
+ * W19 (onda-ux): a FRASE principal é sempre i18n; o texto cru do canal/erro é
+ * DETALHE técnico em legenda — nunca a frase que o utilizador lê.
+ */
+type LoadError = { message: string; detail?: string };
+
+/**
+ * Piso de alvo de toque (px) — W21 (onda-ux): o piso de 44 da casa estava a ser
+ * aplicado de forma desigual (os botões `size="small"` nascem ~30px e os
+ * default ~36px). Mesmo valor/constante de LocalAiPanel e placeholders.tsx.
+ */
+const TOUCH_TARGET_PX = 44;
 
 /** Uma linha do resquício: o slug + o inventário do que seria removido. */
 function OrphanRow({
@@ -88,7 +104,7 @@ export function OrphanTracksPanel(): ReactElement {
   const [orphans, setOrphans] = useState<TrackOrphanEntry[] | null>(
     () => readCached<TrackOrphanEntry[]>('track.orphans') ?? null,
   );
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<LoadError | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -99,21 +115,22 @@ export function OrphanTracksPanel(): ReactElement {
     withTimeout(getApi().track.orphans(), IPC_TIMEOUT_MS, 'track.orphans')
       .then((res) => {
         if (res.ok === false) {
-          setLoadError(
-            resolveChannelError(res, t('translation:settings.orphansLoadFailed')) ??
-              t('translation:settings.orphansLoadFailed'),
-          );
+          setLoadError({
+            message: t('translation:settings.orphansLoadFailed'),
+            detail: res.error ?? undefined,
+          });
           return;
         }
         setOrphans(res.orphans);
         writeCached('track.orphans', res.orphans);
       })
       .catch((err: unknown) => {
-        setLoadError(
-          isTimeoutError(err)
+        setLoadError({
+          message: isTimeoutError(err)
             ? t('translation:settings.orphansTimeout')
             : t('translation:settings.orphansLoadFailed'),
-        );
+          detail: err instanceof Error ? err.message : String(err),
+        });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -135,20 +152,20 @@ export function OrphanTracksPanel(): ReactElement {
         IPC_TIMEOUT_MS,
         'track.purge-orphans',
       );
-      if (res.ok) {
+      // `=== false` (e não truthiness): é a comparação discriminante que estreita
+      // a união `TrackPurgeOrphansResult` mesmo sem strictNullChecks no projeto.
+      if (res.ok === false) {
+        setFeedback({
+          kind: 'error',
+          // W19 (onda-ux): frase i18n sempre; o texto cru do canal vira
+          // DETALHE técnico em legenda (antes era a frase principal).
+          message: t('translation:settings.orphansRemoveFailed'),
+          detail: res.error,
+        });
+      } else {
         setFeedback({ kind: 'done' });
         setOrphans([]);
         load();
-      } else {
-        setFeedback({
-          kind: 'error',
-          // `?? fallback`: resolveChannelError devolve `string | null` e o
-          // tsconfig do renderer não liga strictNullChecks — sem isto um
-          // `null` viraria um Alert vazio em runtime, sem o tsc reclamar.
-          message:
-            resolveChannelError(res, t('translation:settings.orphansRemoveFailed')) ??
-            t('translation:settings.orphansRemoveFailed'),
-        });
       }
     } catch (err) {
       setFeedback({
@@ -156,6 +173,7 @@ export function OrphanTracksPanel(): ReactElement {
         message: isTimeoutError(err)
           ? t('translation:settings.orphansTimeout')
           : t('translation:settings.orphansRemoveFailed'),
+        detail: err instanceof Error ? err.message : String(err),
       });
     } finally {
       // Fecha nos TRÊS caminhos (sucesso, falha de negócio, rejeição) — o
@@ -179,8 +197,16 @@ export function OrphanTracksPanel(): ReactElement {
 
       {loadError !== null ? (
         <Box sx={{ mb: 1.5 }}>
-          <Alert severity="warning">{loadError}</Alert>
-          <Button variant="outlined" size="small" onClick={load} sx={{ mt: 1 }}>
+          {/* W19: frase i18n + detalhe técnico em legenda (nunca o cru por cima). */}
+          <Alert severity="warning">
+            {loadError.message}
+            {loadError.detail ? (
+              <Typography component="span" variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+                {loadError.detail}
+              </Typography>
+            ) : null}
+          </Alert>
+          <Button variant="outlined" size="small" onClick={load} sx={{ mt: 1, minHeight: TOUCH_TARGET_PX }}>
             {t('translation:common.tryAgain')}
           </Button>
         </Box>
@@ -208,7 +234,7 @@ export function OrphanTracksPanel(): ReactElement {
           startIcon={<DeleteForeverIcon />}
           onClick={() => setConfirmOpen(true)}
           disabled={busy}
-          sx={{ mt: 1.5 }}
+          sx={{ mt: 1.5, minHeight: TOUCH_TARGET_PX }}
         >
           {t('translation:settings.orphansRemove')}
         </Button>
@@ -226,6 +252,11 @@ export function OrphanTracksPanel(): ReactElement {
       {feedback?.kind === 'error' ? (
         <Alert severity="error" sx={{ mt: 1.5 }}>
           {feedback.message}
+          {feedback.detail ? (
+            <Typography component="span" variant="caption" sx={{ display: 'block', opacity: 0.75 }}>
+              {feedback.detail}
+            </Typography>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -255,7 +286,14 @@ export function OrphanTracksPanel(): ReactElement {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={busy}>
+          {/* W18 (onda-ux): o foco inicial é do "Cancelar" (autoFocus) — num
+              diálogo DESTRUTIVO o Enter nunca pode apagar por acidente. */}
+          <Button
+            onClick={() => setConfirmOpen(false)}
+            disabled={busy}
+            autoFocus
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+          >
             {t('translation:common.cancel')}
           </Button>
           <Button
@@ -263,7 +301,7 @@ export function OrphanTracksPanel(): ReactElement {
             color="error"
             variant="contained"
             disabled={busy}
-            autoFocus
+            sx={{ minHeight: TOUCH_TARGET_PX }}
           >
             {busy
               ? t('translation:settings.orphansBusy')

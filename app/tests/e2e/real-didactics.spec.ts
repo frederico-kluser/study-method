@@ -61,7 +61,7 @@ test('real-didactics: resposta CORRETA → PASSOU + feedback do LLM; resposta ER
   page = real.page;
 
   // Gera a aula real (com repetição transiente do LLM remoto) e aguarda o `done`.
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   // ONDA4-E2E-FENCE: fluxo legado (ver helpers-real.ts) — skip explícito em
   // vez de estourar em "Assunto".
   await skipIfNoLegacyGenerationUi(page);
@@ -126,8 +126,11 @@ test('real-didactics: resposta CORRETA → PASSOU + feedback do LLM; resposta ER
   await page.getByRole('button', { name: 'Testar resposta' }).click();
 
   // Veredito determinístico REAL: PASSOU + contagem de testes.
+  // ONDA-UX (S4): o banner deixou de imprimir `TESTS_RUN=… ESPERADOS=…`
+  // (jargão EN+PT cru) — a linha de contagens é "{{n}} de {{m}} testes" (pt)
+  // / "{{n}} of {{m}} tests" (en). 'PASSOU'/'NÃO PASSOU' continuam no banner.
   await expect(page.getByText('PASSOU', { exact: false }).first()).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByText(/TESTS_RUN=\d+/).first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/(\d+ de \d+ testes|\d+ of \d+ tests)/).first()).toBeVisible({ timeout: 60_000 });
 
   // Feedback didático do LLM remoto chega à UI (painel de feedback — `pre` do
   // piFinal, renderizado por último após o enunciado/raciocínio). Não vazio.

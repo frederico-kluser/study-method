@@ -59,7 +59,7 @@ describe('challengeReviewInjection — o prompt de regeneração', () => {
     assert.match(semRevisao, /NUNCA cobrar algo não ensinado/);
   });
 
-  it('COM itens de revisão: seção "TAMBÉM REVISE" + a regra de misturar nos testes', () => {
+  it('COM itens de revisão: seção "TAMBÉM REVISE" + a regra de misturar no código que o aluno escreve', () => {
     const comRevisao = buildRegenerationPrompt(
       promptInput({
         reviewAtoms: [
@@ -71,7 +71,10 @@ describe('challengeReviewInjection — o prompt de regeneração', () => {
     assert.match(comRevisao, /TAMBÉM REVISE \(intercalado/);
     assert.match(comRevisao, /- global:print \(ensinado em a-tela\/a-primeira-linha\)/);
     assert.match(comRevisao, /- op:binary:\+(?:\n|$)/, 'sem origem conhecida o item entra sozinho');
-    assert.match(comRevisao, /misture nos TESTES os itens de TAMBÉM REVISE/);
+    // a premissa (docs/18 §9): a mistura tem de aparecer no caminho que o aluno
+    // ESCREVE — teste sozinho não pratica nada.
+    assert.match(comRevisao, /misture os itens de TAMBÉM REVISE no caminho que o aluno ESCREVE/);
+    assert.match(comRevisao, /solutionCode tem de praticar 1 ou 2 deles/);
     assert.match(comRevisao, /NUNCA cobrar algo não ensinado/, 'a régua de fora-do-contexto segue de pé');
     assert.match(comRevisao, /misturar na prova|junto com o da aula atual/);
   });

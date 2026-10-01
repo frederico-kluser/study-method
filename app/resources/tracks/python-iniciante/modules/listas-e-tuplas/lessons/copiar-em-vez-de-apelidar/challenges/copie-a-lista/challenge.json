@@ -6,11 +6,11 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Copie a lista\n\nEscreva a função `copia` que devolve uma CÓPIA da lista — uma lista nova com os mesmos itens:\n\n```python\ndef copia(lista):\n    # devolva uma copia da lista\n```\n\nUse o fatiamento sem números, `lista[:]`, como na aula. Exemplo:\n\n```text\ncopia([1, 2, 3])  ->  [1, 2, 3]\n```\n\nA cópia é independente: mexer na lista devolvida NÃO pode mudar a lista original. A função devolve a lista — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao copia(lista)\n",
-  "testsCode": "import unittest\n\nfrom solucao import copia\n\n\nclass TestCopiarEmVezDeApelidar(unittest.TestCase):\n    def test_devolve_a_lista_inteira(self):\n        \"\"\"copia devolve a lista inteira numa lista nova\"\"\"\n        self.assertEqual(copia([1, 2, 3]), [1, 2, 3])\n\n    def test_mexer_na_copia_nao_muda_a_original(self):\n        \"\"\"mexer na lista devolvida nao muda a original\"\"\"\n        original = [1, 2]\n        copiada = copia(original)\n        copiada.append(3)\n        self.assertEqual(original, [1, 2])\n",
-  "solutionCode": "def copia(lista):\n    return lista[:]\n",
-  "expectedTestCount": 2,
+  "statement": "# Copie a lista\n\nEscreva a função `copia`, que devolve uma CÓPIA da lista — uma lista nova com os mesmos itens — e a função `copia_com_mais_um`, que devolve uma cópia da lista com mais um item no fim:\n\n```python\ndef copia(lista):\n    # devolva uma copia da lista\n\ndef copia_com_mais_um(lista, item):\n    # devolva uma copia da lista com o item no fim\n```\n\nUse o fatiamento sem números, `lista[:]`, como na aula. Exemplos:\n\n```text\ncopia([1, 2, 3])  ->  [1, 2, 3]\ncopia_com_mais_um([1, 2], 9)  ->  [1, 2, 9]\ncopia_com_mais_um([], \"a\")  ->  [\"a\"]\n```\n\nEm `copia_com_mais_um`, copie PRIMEIRO com `lista[:]` e só depois acrescente o item com `append`, como na aula `acrescentar-no-fim`. As cópias são independentes: mexer na lista devolvida NÃO pode mudar a lista original. As funções devolvem a lista — elas não imprimem nada.",
+  "starterCode": "# escreva aqui a funcao copia(lista)\n# escreva aqui a funcao copia_com_mais_um(lista, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import copia\nfrom solucao import copia_com_mais_um\n\n\nclass TestCopiarEmVezDeApelidar(unittest.TestCase):\n    def test_devolve_a_lista_inteira(self):\n        \"\"\"copia devolve a lista inteira numa lista nova\"\"\"\n        self.assertEqual(copia([1, 2, 3]), [1, 2, 3])\n\n    def test_mexer_na_copia_nao_muda_a_original(self):\n        \"\"\"mexer na lista devolvida nao muda a original\"\"\"\n        original = [1, 2]\n        copiada = copia(original)\n        copiada.append(3)\n        self.assertEqual(original, [1, 2])\n\n    def test_copia_com_mais_um_nao_muda_a_original(self):\n        \"\"\"copia_com_mais_um devolve a copia com o item e deixa a original quieta\"\"\"\n        original = [1, 2]\n        self.assertEqual(copia_com_mais_um(original, 9), [1, 2, 9])\n        self.assertEqual(original, [1, 2])\n\n    def test_copia_com_mais_um_de_lista_vazia(self):\n        \"\"\"copia_com_mais_um de lista vazia devolve uma lista com o item\"\"\"\n        self.assertEqual(copia_com_mais_um([], \"a\"), [\"a\"])\n",
+  "solutionCode": "def copia(lista):\n    return lista[:]\n\n\ndef copia_com_mais_um(lista, item):\n    nova = lista[:]\n    nova.append(item)\n    return nova\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_devolve_a_lista_inteira",
@@ -21,6 +21,16 @@
       "id": "test_mexer_na_copia_nao_muda_a_original",
       "teste": "test_mexer_na_copia_nao_muda_a_original",
       "descricao": "mexer na lista devolvida nao muda a original"
+    },
+    {
+      "id": "test_copia_com_mais_um_nao_muda_a_original",
+      "teste": "test_copia_com_mais_um_nao_muda_a_original",
+      "descricao": "copia_com_mais_um devolve a copia com o item e deixa a original quieta"
+    },
+    {
+      "id": "test_copia_com_mais_um_de_lista_vazia",
+      "teste": "test_copia_com_mais_um_de_lista_vazia",
+      "descricao": "copia_com_mais_um de lista vazia devolve uma lista com o item"
     }
   ]
 }

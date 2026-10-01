@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-de-palavras",
+  "title": "O contador de palavras",
+  "concept": "contar_palavras",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# O contador de palavras\n\nA função `contadorDePalavras` lê **uma frase** digitada e imprime quantas palavras ela tem. Palavra é um trecho de letras sem espaço no meio — os espaços só separam.\n\nDigitando `eu gosto de cafe`:\n\n```text\n4\n```\n\nDigitando `dois  espacos  juntos` (com espaços duplos):\n\n```text\n3\n```\n\nPassos:\n\n1. declare a flag — um `bool` que nasce `false`, dizendo que a leitura está **fora** de toda palavra;\n2. percorra a frase gaveta por gaveta com um `for` (até `strlen(frase)`, ou até a gaveta guardar o `\\0`);\n3. a cada gaveta, a regra da flag: espaço vira `false`; letra com a flag baixada é o começo de uma palavra — a flag vira `true` e o contador soma 1;\n4. imprima o total com `%d` e `\\n` no fim — só o número, mais nada.\n\nA leitura da frase e o contador em zero já vêm prontos no arquivo: a linha com o `scanf` no começo lê a frase inteira, até o fim da linha.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <stdbool.h>\n#include <string.h>\n\n/* contadorDePalavras le uma frase digitada e imprime quantas palavras\n   ela tem. Palavra e um trecho de letras sem espaco no meio.\n   A leitura da frase e o contador em zero ja vem prontos. */\nvoid contadorDePalavras(void) {\n    char frase[100] = \"\";\n    scanf(\"%99[^\\n]\", frase);\n    int palavras = 0;\n\n    /* 1. declare a flag: um bool que nasce false (fora de palavra) */\n\n    /* 2. percorra a frase com um for (ate strlen(frase), ou ate o \\0) */\n\n    /* 3. a regra da flag: espaco vira false; letra com a flag baixada\n          e o começo de uma palavra - flag em true e palavras + 1 */\n\n    /* 4. imprima o total: um printf com %d e \\n no fim */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio contador-de-palavras - counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem num arquivo a frase que o\n   aluno digitaria, o freopen troca o stdin por esse arquivo, e a captura do\n   stdout acontece dentro do proprio cenario (freopen + fflush, sem fclose\n   no stdout). Duas frases de contagens diferentes (4 e 3) - e a segunda tem\n   espacos DUPLOS: uma conta feita de espacos reprova nela. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid contadorDePalavras(void);\n\nSM_TEST(quatro_palavras_sem_espaco_duplo) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"eu gosto de cafe\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    contadorDePalavras();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"as palavras de eu gosto de cafe\", linha, \"4\\n\",\n              \"quatro palavras separadas por um espaco: quatro viradas da flag\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e so o numero: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(espacos_duplos_nao_criam_palavra) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"dois  espacos  juntos\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    contadorDePalavras();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"as palavras de dois  espacos  juntos\", linha, \"3\\n\",\n              \"quatro espacos, tres palavras: espaco seguido nao abre palavra nova\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <stdbool.h>\n#include <string.h>\n\nvoid contadorDePalavras(void) {\n    char frase[100] = \"\";\n    scanf(\"%99[^\\n]\", frase);\n    int palavras = 0;\n\n    bool dentroDePalavra = false;\n    int n = strlen(frase);\n    for (int i = 0; i < n; i++) {\n        if (frase[i] == ' ') {\n            dentroDePalavra = false;\n        } else if (!dentroDePalavra) {\n            dentroDePalavra = true;\n            palavras++;\n        }\n    }\n    printf(\"%d\\n\", palavras);\n}\n",
+  "expectedTestCount": 2,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "quatro_palavras_sem_espaco_duplo",
+      "teste": "quatro_palavras_sem_espaco_duplo",
+      "descricao": "com \"eu gosto de cafe\" digitado no stdin, a funcao contadorDePalavras percorre a frase com a flag dentro/fora de palavra e imprime 4 numa linha so, sem nenhuma linha extra"
+    },
+    {
+      "id": "espacos_duplos_nao_criam_palavra",
+      "teste": "espacos_duplos_nao_criam_palavra",
+      "descricao": "com \"dois  espacos  juntos\" digitado no stdin, a mesma funcao imprime 3 - quatro espacos, tres palavras - a prova de que a conta vem da flag e nao de um total de espacos"
+    }
+  ]
+}

@@ -33,7 +33,7 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
   app = launched.app;
   page = launched.page;
 
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).waitFor();
 
   // Observadores in-page: timestamps do clique (captura) + microtask pós-mutação
   // que anota o 1º instante em que o h1 e o estado "painéis carregados" estão

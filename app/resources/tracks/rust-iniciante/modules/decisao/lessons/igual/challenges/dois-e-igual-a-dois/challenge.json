@@ -5,10 +5,10 @@
   "concept": "igual",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# Dois é igual a dois\n\nA função `sao_iguais` recebe dois números e devolve `true` quando os dois são IGUAIS — e `false` quando são diferentes.\n\nUse `==` (dois sinais de igual). Não escreva `true` nem `false` no corpo: quem responde é a comparação.\n\nOs testes perguntam por números iguais e por números diferentes.",
-  "starterCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
-  "solutionCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    a == b\n}\n",
-  "testsCode": "use desafio::sao_iguais;\n\n#[test]\nfn testa_dois_e_igual_a_dois() {\n    assert_eq!(sao_iguais(2, 2), true);\n}\n\n#[test]\nfn testa_dois_e_tres_nao_sao_iguais() {\n    assert_eq!(sao_iguais(2, 3), false);\n}\n\n#[test]\nfn testa_sete_e_igual_a_sete() {\n    assert_eq!(sao_iguais(7, 7), true);\n}\n",
+  "statement": "# Dois é igual a dois\n\nDuas funções — e as duas respondem com `==` (dois sinais de igual).\n\n1. `sao_iguais` recebe dois números e devolve `true` quando os dois são IGUAIS — e `false` quando são diferentes.\n2. `soma_igual_produto` recebe dois números e devolve `true` quando a **soma** dos dois é igual ao **produto** dos dois. Com `2` e `2` dá `true`: `2 + 2` e `2 * 2` valem os mesmos `4`.\n\nNas duas, não escreva `true` nem `false` no corpo: quem responde é a comparação. Na segunda, a soma fica de um lado do `==` e o produto do outro — as contas vêm antes da comparação.\n\nOs testes perguntam por números iguais e por números diferentes — e por pares em que a soma e o produto fecham o mesmo valor, ou não.",
+  "starterCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    todo!()\n}\n\npub fn soma_igual_produto(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub fn sao_iguais(a: i32, b: i32) -> bool {\n    a == b\n}\n\npub fn soma_igual_produto(a: i32, b: i32) -> bool {\n    a + b == a * b\n}\n",
+  "testsCode": "use desafio::sao_iguais;\nuse desafio::soma_igual_produto;\n\n#[test]\nfn testa_dois_e_igual_a_dois() {\n    assert_eq!(sao_iguais(2, 2), true);\n}\n\n#[test]\nfn testa_dois_e_tres_nao_sao_iguais() {\n    assert_eq!(sao_iguais(2, 3), false);\n}\n\n#[test]\nfn testa_a_soma_dois_com_dois_igual_ao_produto() {\n    assert_eq!(soma_igual_produto(2, 2), true);\n}\n\n#[test]\nfn testa_a_soma_tres_com_tres_diferente_do_produto() {\n    assert_eq!(soma_igual_produto(3, 3), false);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
@@ -22,9 +22,14 @@
     },
     {
       "id": "REQ-3",
-      "descricao": "A função sao_iguais deve devolver true quando chamada com 7 e 7.",
-      "teste": "testa_sete_e_igual_a_sete"
+      "descricao": "A função soma_igual_produto deve devolver true com 2 e 2 — a soma (4) é igual ao produto (4).",
+      "teste": "testa_a_soma_dois_com_dois_igual_ao_produto"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "A função soma_igual_produto deve devolver false com 3 e 3 — a soma (6) não é o produto (9).",
+      "teste": "testa_a_soma_tres_com_tres_diferente_do_produto"
     }
   ],
-  "expectedTestCount": 3
+  "expectedTestCount": 4
 }

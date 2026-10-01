@@ -34,10 +34,10 @@ test('more-flows: idioma pt → en → pt reflete no Home e na aula; tema claro�
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // Default pt-BR: Home (aba inicial) mostra o título pt-BR e a aba "Aula".
-  await expect(page.getByRole('heading', { name: 'Aprenda programação e matemática com aulas geradas por IA' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Aprenda programação e matemática com trilhas guiadas por IA' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
 
   // Vai para a aba Aula e confere o estado vazio pt-BR (rodada 8: o aluno
@@ -53,7 +53,7 @@ test('more-flows: idioma pt → en → pt reflete no Home e na aula; tema claro�
 
   // Volta ao Home (agora "Home" em en) e confere o título en.
   await page.getByRole('tab', { name: 'Home' }).click();
-  await expect(page.getByRole('heading', { name: 'Learn programming and math with AI-generated lessons' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Learn programming and math with AI-guided tracks' })).toBeVisible();
 
   // Tema: escolha direta light → dark → system (persistido no localStorage
   // junto do idioma). Locator language-agnóstico (segmentos `data-theme-mode`
@@ -74,7 +74,7 @@ test('more-flows: idioma pt → en → pt reflete no Home e na aula; tema claro�
 
   // Reload: idioma en E tema system persistem juntos (ambos os localStorage vivos).
   await page.reload();
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Home' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('app-language'))).toBe('en');
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('system');

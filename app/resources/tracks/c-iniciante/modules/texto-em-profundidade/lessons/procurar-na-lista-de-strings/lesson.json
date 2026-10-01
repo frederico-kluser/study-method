@@ -2,23 +2,132 @@
   "schemaVersion": 1,
   "slug": "procurar-na-lista-de-strings",
   "title": "Procurar na lista de strings",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Procurar um nome numa lista de textos é percorrer as linhas com um laço e perguntar a cada uma com o strcmp — zero quer dizer igual, e o == nunca compara texto.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:strcmp",
+  "concepts": [
+    "procurar_na_lista_de_strings"
+  ],
   "prerequisites": [
     "a-lista-de-strings",
     "comparar-textos"
   ],
+  "introduces": {
+    "productive": [
+      "api:strcmp",
+      "node:CallExpr",
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": [
+      {
+        "chave": "node:CallExpr",
+        "de": "api:strcmp"
+      }
+    ]
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a busca deixa de ser uma pergunta só e vira um percurso: cada volta do laço faz uma pergunta strcmp a uma linha da lista, e a flag carrega a resposta das quatro voltas até o veredito final",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "procurar-e-percorrer",
+      "title": "Procurar é percorrer e perguntar",
+      "markdown": "Procurar `ana` na lista é percorrer as linhas, uma por volta, e perguntar a cada uma: *você é a `ana`?* A pergunta é o `strcmp` de sempre — agora DENTRO do laço:\n\n```c\nchar nome[] = \"ana\";\nchar lista[3][20] = {\"ana\", \"bia\", \"caio\"};\nfor (int i = 0; i < 3; i++) {\n    if (strcmp(nome, lista[i]) == 0) {\n        printf(\"presente\\n\");\n    }\n}\n```\n\n`lista[i]` é o texto inteiro da linha `i`, e o `strcmp` devolve zero quando as letras batem. Duas ferramentas antigas, juntas: o laço anda, o `strcmp` pergunta."
+    },
+    {
+      "id": "zero-quer-dizer-igual",
+      "title": "Zero quer dizer igual",
+      "markdown": "A pergunta certa de cada volta é o `strcmp` com `== 0` — zero quer dizer igual:\n\n```c\nchar nome[] = \"cai\";\nif (strcmp(nome, \"caio\") == 0) {\n    printf(\"presente\\n\");\n} else {\n    printf(\"ausente\\n\");\n}\n```\n\nA armadilha é escrever `nome == lista[i]`: isso compara ENDEREÇOS, e caixas diferentes nunca têm o mesmo endereço — resposta falsa mesmo com as mesmas letras.\n\nE o `strcmp` vai até o fim: `cai` não é `caio`, porque numa das caixas o `\\0` chega antes da letra seguinte."
+    },
+    {
+      "id": "a-flag-guarda-o-veredito",
+      "title": "A flag guarda o veredito",
+      "markdown": "Achou já na primeira linha? O laço continua — mas a flag guarda o achado até acabar:\n\n```c\nchar nome[] = \"rui\";\nchar lista[4][20] = {\"ana\", \"bia\", \"caio\", \"rui\"};\nint achou = 0;\nfor (int i = 0; i < 4; i++) {\n    if (strcmp(nome, lista[i]) == 0) {\n        achou = 1;\n    }\n}\nif (achou == 1) {\n    printf(\"presente\\n\");\n} else {\n    printf(\"ausente\\n\");\n}\n```\n\nO veredito sai DEPOIS do laço, uma vez só: `presente` quando alguma linha era igual, `ausente` nos outros casos — a flag da busca de números, agora comparando texto."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "buscar-e-comparar-dentro-do-laco",
+      "statement": "Buscar é comparar com `strcmp` DENTRO do laço — nunca com `==`.",
+      "question": "Por que `nome == lista[i]` nunca acha o nome `rui` na lista?",
+      "options": [
+        "Porque o laço para antes de chegar à última linha da lista.",
+        "O `==` compara endereços, não as letras do texto.",
+        "Porque o `==` só funciona com números e nunca aceita texto algum como argumento.",
+        "Porque o nome lido fica numa caixa maior do que as linhas da lista."
+      ],
+      "answerIndex": 1,
+      "feedback": "Comparar texto é trabalho do `strcmp`. O `==` olha os endereços das duas caixas — sempre diferentes — e responde falso mesmo quando as letras batem certo.",
+      "sectionId": "procurar-e-percorrer",
+      "optionRationales": [
+        "O laço percorre as quatro linhas inteiras — quem não acha é a comparação, não o percurso.",
+        "São duas caixas, dois endereços: o `==` nunca chega a olhar as letras.",
+        "O `==` aceita o que for do mesmo tipo; o problema é que ele compara as caixas, não o texto.",
+        "O tamanho das caixas não entra na história: a comparação de endereços não vê letras."
+      ]
+    },
+    {
+      "id": "a-pergunta-de-cada-volta",
+      "statement": "A condição de igualdade de texto é `strcmp(a, b) == 0` — zero quer dizer igual.",
+      "question": "Qual condição acha a linha que guarda exatamente o nome lido?",
+      "options": [
+        "`nome == lista[i]`",
+        "`strlen(nome) == strlen(lista[i])`",
+        "`strcmp(nome, lista[i]) == 0`",
+        "`strcmp(nome, lista[i]) != 0`"
+      ],
+      "answerIndex": 2,
+      "feedback": "Zero é o resultado de \"nenhuma diferença\": é assim que o `strcmp` diz que os dois textos são o mesmo, até a placa do fim.",
+      "sectionId": "zero-quer-dizer-igual",
+      "optionRationales": [
+        "O `==` compara endereços de caixas — e os endereços nunca são iguais.",
+        "Tamanho igual não é texto igual: `cai` e `ana` têm três letras cada.",
+        "`== 0` é a tradução de \"iguais\": nenhuma letra diferença entre os dois textos.",
+        "`!= 0` quer dizer textos DIFERENTES — o oposto do que a busca procura."
+      ]
+    },
+    {
+      "id": "o-veredito-sai-uma-vez-so",
+      "statement": "A flag guarda o achado dentro do laço; o veredito sai depois dele, uma vez só.",
+      "question": "Por que guardar `achou = 1` no laço e imprimir só depois dele?",
+      "options": [
+        "Senão sairia uma linha a mais a cada volta do laço.",
+        "Porque a flag apaga o nome lido da caixa logo depois de cada comparação feita na volta.",
+        "Porque o `printf` não funciona dentro de um laço com `strcmp`.",
+        "Porque o `strcmp` só devolve o resultado quando o laço termina."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço faz quatro perguntas, mas o veredito é UMA resposta só. A flag guarda o resultado das perguntas até a última volta acabar.",
+      "sectionId": "a-flag-guarda-o-veredito",
+      "optionRationales": [
+        "Cada volta imprimindo deixaria a saída com quatro linhas — e o enunciado pede uma.",
+        "A flag guarda um número (0 ou 1); o nome lido continua na sua caixa, intacto.",
+        "O `printf` funciona dentro do laço sim — o problema é ele rodar uma vez por volta.",
+        "O `strcmp` responde na hora, a cada comparação — o zero pode sair já na primeira volta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "strcmp — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/strcmp",
+      "description": "A página oficial da strcmp: zero quando os textos são iguais — a pergunta que cada volta do laço faz à linha da lista."
+    },
+    {
+      "title": "for — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "O laço `for` pela fonte oficial: as três partes (começo, condição e passo) que percorrem a lista linha a linha."
+    },
+    {
+      "title": "strcmp(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/strcmp.3.html",
+      "description": "A man-page do sistema: o resultado da strcmp traz o sinal da ordem entre os textos, e só o sinal é garantido."
+    }
+  ],
+  "challenges": [
+    "lista-de-presenca"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

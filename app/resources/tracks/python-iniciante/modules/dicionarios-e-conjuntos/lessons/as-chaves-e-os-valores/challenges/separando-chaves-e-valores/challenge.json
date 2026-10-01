@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Separando chaves e valores\n\nEscreva duas funções:\n\n- `chaves(d)` devolve a visão das chaves do dicionário, com `.keys()`;\n- `valores(d)` devolve a visão dos valores, com `.values()`.\n\n```python\ndef chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nchaves({\"a\": 1})  ->  dict_keys(['a'])\nchaves({\"x\": 9, \"y\": 8})  ->  dict_keys(['x', 'y'])\nvalores({\"a\": 1, \"b\": 2})  ->  dict_values([1, 2])\nvalores({\"x\": 9})  ->  dict_values([9])\n```\n\nAs funções devolvem a visão — elas não imprimem nada.",
-  "starterCode": "def chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import chaves\nfrom solucao import valores\n\n\nclass TestAsChavesEosValores(unittest.TestCase):\n    def test_chaves_devolve_a_visao_das_chaves(self):\n        \"\"\"chaves devolve a visao das chaves do dicionario\"\"\"\n        self.assertEqual(str(chaves({\"a\": 1})), \"dict_keys(['a'])\")\n\n    def test_chaves_de_outro_dicionario(self):\n        \"\"\"chaves funciona com outro dicionario\"\"\"\n        self.assertEqual(str(chaves({\"x\": 9, \"y\": 8})), \"dict_keys(['x', 'y'])\")\n\n    def test_valores_devolve_a_visao_dos_valores(self):\n        \"\"\"valores devolve a visao dos valores guardados\"\"\"\n        self.assertEqual(sorted(valores({\"a\": 1, \"b\": 2})), [1, 2])\n\n    def test_valores_de_outro_dicionario(self):\n        \"\"\"valores devolve a visao dos valores de outro dicionario\"\"\"\n        self.assertEqual(sorted(valores({\"x\": 9})), [9])\n",
-  "solutionCode": "def chaves(d):\n    return d.keys()\n\n\ndef valores(d):\n    return d.values()\n",
+  "statement": "# Separando chaves e valores\n\nEscreva três funções:\n\n- `chaves(d)` devolve a visão das chaves do dicionário, com `.keys()`;\n- `valores(d)` devolve a visão dos valores, com `.values()`;\n- `chaves_em_texto(d, separador)` devolve as chaves juntadas num só texto, com `.join` — o `separador` fica entre elas.\n\n```python\ndef chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n\n\ndef chaves_em_texto(d, separador):\n    # devolva as chaves juntadas com o separador no meio\n    pass\n```\n\nExemplos:\n\n```text\nchaves({\"x\": 1, \"y\": 2})                     ->  dict_keys(['x', 'y'])\nvalores({\"a\": 1, \"b\": 2})                    ->  dict_values([1, 2])\nchaves_em_texto({\"x\": 1, \"y\": 2}, \"-\")       ->  \"x-y\"\nchaves_em_texto({\"uva\": 6, \"pao\": 4}, \", \")   ->  \"uva, pao\"\n```\n\nAs funções devolvem a visão ou o texto — elas não imprimem nada.",
+  "starterCode": "def chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n\n\ndef chaves_em_texto(d, separador):\n    # devolva as chaves juntadas com o separador no meio\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import chaves\nfrom solucao import valores\nfrom solucao import chaves_em_texto\n\n\nclass TestAsChavesEosValores(unittest.TestCase):\n    def test_chaves_devolve_a_visao_das_chaves(self):\n        \"\"\"chaves devolve a visao das chaves do dicionario\"\"\"\n        self.assertEqual(str(chaves({\"x\": 1, \"y\": 2})), \"dict_keys(['x', 'y'])\")\n\n    def test_valores_devolve_a_visao_dos_valores(self):\n        \"\"\"valores devolve a visao dos valores guardados\"\"\"\n        self.assertEqual(sorted(valores({\"a\": 1, \"b\": 2})), [1, 2])\n\n    def test_chaves_em_texto_com_hifen(self):\n        \"\"\"chaves_em_texto junta as chaves com o separador pedido\"\"\"\n        self.assertEqual(chaves_em_texto({\"x\": 1, \"y\": 2}, \"-\"), \"x-y\")\n\n    def test_chaves_em_texto_com_outro_separador(self):\n        \"\"\"chaves_em_texto funciona com outro separador e outro dicionario\"\"\"\n        self.assertEqual(chaves_em_texto({\"uva\": 6, \"pao\": 4}, \", \"), \"uva, pao\")\n",
+  "solutionCode": "def chaves(d):\n    return d.keys()\n\n\ndef valores(d):\n    return d.values()\n\n\ndef chaves_em_texto(d, separador):\n    return separador.join(d.keys())\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "chaves devolve a visao das chaves do dicionario"
     },
     {
-      "id": "test_chaves_de_outro_dicionario",
-      "teste": "test_chaves_de_outro_dicionario",
-      "descricao": "chaves funciona com outro dicionario"
-    },
-    {
       "id": "test_valores_devolve_a_visao_dos_valores",
       "teste": "test_valores_devolve_a_visao_dos_valores",
       "descricao": "valores devolve a visao dos valores guardados"
     },
     {
-      "id": "test_valores_de_outro_dicionario",
-      "teste": "test_valores_de_outro_dicionario",
-      "descricao": "valores devolve a visao dos valores de outro dicionario"
+      "id": "test_chaves_em_texto_com_hifen",
+      "teste": "test_chaves_em_texto_com_hifen",
+      "descricao": "chaves_em_texto junta as chaves com o separador pedido"
+    },
+    {
+      "id": "test_chaves_em_texto_com_outro_separador",
+      "teste": "test_chaves_em_texto_com_outro_separador",
+      "descricao": "chaves_em_texto funciona com outro separador e outro dicionario"
     }
   ]
 }

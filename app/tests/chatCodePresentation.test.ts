@@ -39,15 +39,29 @@
  * Reprodução:
  *   cd app && bash tools/t.sh tests/chatCodePresentation.test.ts
  */
-import { describe, it } from 'node:test';
+import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
+import { createElement, type ComponentType } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { ThemeProvider } from '@mui/material/styles';
+import i18next from 'i18next';
+import { initReactI18next } from 'react-i18next';
 
-import { CODE_SYNTAX_ROLES, CODE_TYPOGRAPHY, CODE_LIGHT, CODE_DARK } from '../src/lib/codeTheme';
+import { CODE_SYNTAX_ROLES, CODE_STATE_ROLES, CODE_TYPOGRAPHY, CODE_LIGHT, CODE_DARK } from '../src/lib/codeTheme';
 import { FONT_STACK, TYPE, contrastRatio, CONTRAST_FLOOR } from '../src/lib/designTokens';
 import theme from '../src/theme';
+import ptBR from '../src/i18n/locales/pt-BR/translation.json';
+
+// ATENÇÃO ao padrão da casa: o componente é .tsx e o tsconfig de tests/ não
+// liga `jsx` — por isso a importação é DINÂMICA por URL (mesma técnica de
+// tests/lessonSidebarHeader.test.ts e tests/quizOverlayRender.test.ts).
+const CODEBLOCK_MODULE = new URL('../src/components/markdown/CodeBlock.tsx', import.meta.url).href;
+
+/** Props do CodeBlock (contrato local — o tipo real vive no .tsx). */
+type CodeBlockProps = { code: string; lang: string; visibleLines?: number };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(HERE, '../src');
@@ -215,6 +229,24 @@ describe('guarda 3 — o HIGHLIGHT usa a paleta de código inteira', () => {
     }
   });
 
+  it('ONDA-CODIGO-EDITOR: os 5 papéis de ESTADO (saída) também passam 4,5:1 sobre o well', () => {
+    // A saída do computador passou a ser pintada (pedido do dono "com highlight
+    // para ate o output") — logo os papéis de estado entram no MESMO piso de
+    // contraste da sintaxe. Medidos: 5,37–5,43 (claro) e 6,07–6,09 (escuro).
+    for (const palette of [CODE_LIGHT, CODE_DARK]) {
+      for (const role of CODE_STATE_ROLES) {
+        const ratio = contrastRatio(palette.state[role], palette.chrome.surface);
+        assert.ok(
+          ratio >= CONTRAST_FLOOR.bodyAA,
+          `${palette.scheme}/${role}: ${ratio.toFixed(3)}:1 sobre ${palette.chrome.surface}`,
+        );
+      }
+    }
+    const block = CODE_FILES.find((f) => f.path === 'src/components/markdown/CodeBlock.tsx');
+    assert.ok(block?.code.includes('CODE_STATE_ROLES'), 'o bloco pinta os DOIS vocabulários');
+    assert.ok(block?.code.includes('highlightOutputLines'), 'a saída vai pelo caminho de estado');
+  });
+
   it('a polaridade do bloco NUNCA vem de um ternário sobre palette.mode (§6.2)', () => {
     const markdown = CODE_FILES.filter((f) => f.path.startsWith('src/components/markdown/'));
     assert.ok(markdown.length >= 3);
@@ -293,5 +325,111 @@ describe('guarda 5 — o balão do chat ganhou o traço do resto do app', () => 
       assert.equal(file.code.includes('40%, transparent'), false, file.path);
       assert.equal(file.code.includes('25%, transparent'), false, file.path);
     }
+  });
+});
+
+/* ═══════════ guarda 6 — ONDA-CODIGO-EDITOR: o GUTTER (SSR de verdade) ═════ */
+
+describe('guarda 6 — o bloco parece um editor: gutter, cópia e sinais de forma', () => {
+  /** O CodeBlock REAL, carregado dinamicamente no `before` (ver CODEBLOCK_MODULE). */
+  let CodeBlock: ComponentType<CodeBlockProps>;
+
+  before(async () => {
+    process.env.I18NEXT_NO_SUPPORT_NOTICE = '1';
+    await i18next.use(initReactI18next).init({
+      lng: 'pt-BR',
+      // A MESMA opção de interpolação da produção (src/i18n/index.ts).
+      interpolation: { escapeValue: false },
+      resources: { 'pt-BR': { translation: ptBR } },
+    });
+    const mod = (await import(CODEBLOCK_MODULE)) as { CodeBlock: ComponentType<CodeBlockProps> };
+    CodeBlock = mod.CodeBlock;
+  });
+
+  /** O CodeBlock REAL, com tema real — o mesmo molde de chatBubbleWidth. */
+  function renderBlock(props: CodeBlockProps): string {
+    return renderToStaticMarkup(
+      createElement(ThemeProvider, { theme }, createElement(CodeBlock, props)),
+    );
+  }
+
+  it('o gutter existe, é ADORNO (aria-hidden + user-select:none) e traz 1 número por linha, fora do <code>', () => {
+    const html = renderBlock({ code: 'int a;\nint b;\nint c;', lang: 'c' });
+    assert.ok(html.includes('aria-hidden="true"'), 'os números não podem ir para o leitor de ecrã');
+    assert.ok(html.includes('user-select:none'), 'copiar tem de levar SÓ o código');
+    assert.ok(html.includes('font-variant-numeric:tabular-nums'), 'dígitos de largura constante (editor)');
+    const codeAt = html.indexOf('<code>');
+    assert.notEqual(codeAt, -1, 'o <code> precisa existir');
+    // Os números vivem ANTES do <code> (coluna própria) — nunca dentro do fluxo
+    // de texto copiável.
+    const gutter = html.slice(0, codeAt);
+    for (const n of ['>1<', '>2<', '>3<']) {
+      assert.ok(gutter.includes(n), `falta o número ${n} no gutter`);
+    }
+    assert.equal(gutter.includes('>4<'), false, 'não existe número para a linha 4');
+  });
+
+  it('o typewriter esconde o número JUNTO com a linha (visibleLines reserva a altura)', () => {
+    const html = renderBlock({ code: 'a\nb\nc', lang: 'text', visibleLines: 1 });
+    // A linha 1 está visível; as linhas 2–3 e os números 2–3 ficam
+    // `visibility:hidden` — a caixa tem a altura final desde o 1º quadro.
+    assert.match(html, /<span style="display:block">1<\/span>/, 'o número 1 nasce visível');
+    assert.match(html, /<span style="display:block;visibility:hidden">2<\/span>/, 'o número 2 some com a linha 2');
+    assert.match(html, /<span style="display:block;visibility:hidden">3<\/span>/, 'o número 3 some com a linha 3');
+    assert.equal((html.match(/visibility:hidden/g) ?? []).length, 4, '2 números + 2 linhas ainda não reveladas');
+  });
+
+  /* ── Finding-2 da auditoria uxui: "Copiar" em 1 clique ────────────────── */
+
+  it('o cabeçalho tem o botão "Copiar" (aria-label i18n) em TODAS as caixas', () => {
+    const entrada = renderBlock({ code: 'int a;', lang: 'c' });
+    const saida = renderBlock({ code: 'ola', lang: 'text' });
+    for (const html of [entrada, saida]) {
+      assert.match(
+        html,
+        new RegExp(`<button[^>]*aria-label="${ptBR.common.copyCode}"`),
+        'o botão Copiar nasce com o nome acessível certo',
+      );
+      assert.ok(html.includes(ptBR.common.copyCode), 'o rótulo visível é o mesmo do aria-label');
+    }
+  });
+
+  it('a cópia leva o `code` CRU (sem números de linha) e confirma "Copiado ✓" por ~2s', () => {
+    const block = CODE_FILES.find((f) => f.path === 'src/components/markdown/CodeBlock.tsx');
+    assert.ok(block);
+    assert.ok(
+      block.code.includes('copyTextToClipboard(code)'),
+      'o botão copia o code cru — o gutter (aria-hidden/user-select:none) e o prompt nunca entram',
+    );
+    assert.ok(block.code.includes('COPIED_HOLD_MS'), 'a confirmação tem duração nomeada, não um número solto');
+    assert.ok(block.code.includes('translation:common.copiedCode'), 'o estado copiado mostra "Copiado ✓"');
+    assert.ok(block.code.includes('clearTimeout'), 'o timeout de "Copiado" é limpo no desmonte');
+  });
+
+  /* ── Finding-1 da auditoria uxui: entrada × saída por SINAL DE FORMA ──── */
+
+  it('a SAÍDA tem moldura tracejada e prefixo de terminal; a ENTRADA não tem nenhuma', () => {
+    const entrada = renderBlock({ code: 'int a;', lang: 'c' });
+    const saida = renderBlock({ code: 'ola, tela!', lang: 'text' });
+    // Forma, não cor: o tracejado sobrevive a daltonismo, a percorrer rápido e
+    // a impressão a preto (a cor do fio e o chip são sinais A MAIS).
+    assert.ok(!entrada.includes('dashed'), 'a caixa de entrada é de moldura SÓLIDA');
+    assert.ok(saida.includes('dashed'), 'a caixa de saída é de moldura TRACEJADA');
+    // O prefixo de terminal (❯) é ADORNO: fora do leitor de ecrã e da cópia.
+    assert.ok(!entrada.includes('❯'), 'a entrada não ganha prefixo de terminal');
+    assert.ok(saida.includes('❯'), 'a saída traz o prefixo de terminal na primeira linha');
+    assert.match(saida, /aria-hidden="true"[^>]*>\s*❯/, 'o prefixo é decorativo (aria-hidden)');
+    assert.ok(saida.includes('user-select:none'), 'o prefixo não entra na seleção/copiado manual');
+  });
+
+  it('os ícones de tipo (terminal × código) são decorativos e vêm do MUI', () => {
+    const block = CODE_FILES.find((f) => f.path === 'src/components/markdown/CodeBlock.tsx');
+    assert.ok(block);
+    assert.ok(block.code.includes('TerminalRoundedIcon'), 'a saída leva o ícone de terminal');
+    assert.ok(block.code.includes('CodeRoundedIcon'), 'a entrada leva o ícone de código');
+    assert.ok(
+      block.code.includes('aria-hidden="true"'),
+      'os ícones são adorno — o nome acessível da caixa continua a ser o rótulo',
+    );
   });
 });

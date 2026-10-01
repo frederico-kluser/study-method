@@ -235,7 +235,7 @@ async function openQuizByGesture(page: Page): Promise<Locator> {
  * porque nada nesta base sobe o modal sem um gesto.
  */
 async function startQuizLesson(page: Page): Promise<void> {
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByText(QUIZ_TRACK_TITLE, { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: QUIZ_TRACK_TITLE })).toBeVisible();
   await page.getByText(QUIZ_LESSON_TITLE, { exact: false }).first().click();
@@ -508,7 +508,7 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   // O `toBeHidden` logo abaixo continua valendo: Playwright espera a janela
   // acabar e o minimize acontecer.
   await expect(
-    dialog.getByText('Essa alternativa se separa do que a seção mostra.', { exact: true }),
+    dialog.getByText('Ainda não: essa alternativa se separa do que a seção mostra.', { exact: true }),
   ).toBeVisible();
 
   // ONDA11 — A NOTA DE HONESTIDADE ANTERIOR CADUCOU, e para melhor. Ela dizia
@@ -572,9 +572,9 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   // conversa com o veredito, e o "Avançar" destrava.
   // ONDA16-VEREDITO: o ACERTO também é mostrado na janela antes do overlay
   // sair — o verde com o CheckCircle aparece antes do minimize/fechamento.
-  await expect(dialog.getByText('É isso que a seção mostra.', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Você acertou: é isso que a seção mostra.', { exact: true })).toBeVisible();
   await expect(dialog).toBeHidden();
-  await expect(log.getByText('É isso que a seção mostra.')).toBeVisible();
+  await expect(log.getByText('Você acertou: é isso que a seção mostra.')).toBeVisible();
   await expect(next).toBeEnabled();
   await expect(
     page.getByText('O quiz desta seção ainda espera a resposta certa', { exact: false }),
@@ -646,7 +646,7 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   // ONDA16-VEREDITO: mesmo com a IA fora, o veredito aparece PRIMEIRO (a
   // janela não depende da IA — o veredito é desenhado pelo estado local).
   await expect(
-    dialog.getByText('Essa alternativa se separa do que a seção mostra.', { exact: true }),
+    dialog.getByText('Ainda não: essa alternativa se separa do que a seção mostra.', { exact: true }),
   ).toBeVisible();
   await expect(dialog).toBeHidden();
 

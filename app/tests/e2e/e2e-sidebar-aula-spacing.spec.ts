@@ -201,7 +201,7 @@ async function waitFullTypewriter(p: Page): Promise<void> {
       const doc = (globalThis as any).document;
       const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
       for (const el of statuses) {
-        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return true;
+        if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return true;
       }
       return false;
     },
@@ -213,7 +213,7 @@ async function waitFullTypewriter(p: Page): Promise<void> {
       const doc = (globalThis as any).document;
       const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
       for (const el of statuses) {
-        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return false;
+        if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return false;
       }
       return true;
     },
@@ -520,7 +520,7 @@ test('e2e-sidebar-aula-spacing: a aula COM desafio (badge) no piso de 180px sob 
   const alturaInicial = await alturaDaJanela(app);
 
   // ── 1. O CAMINHO DO e2e-lesson até a aula aberta ─────────────────────────
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible();
   await page.getByText(CHALLENGE_LESSON_TITLE, { exact: false }).first().click();
@@ -583,7 +583,7 @@ test('e2e-sidebar-aula-spacing: a aula COM chip de pré-requisito no piso de 180
   const alturaInicial = await alturaDaJanela(app);
 
   // ── 1. O CAMINHO DO e2e-cadeado até a aula 2 (a do pré-requisito) ────────
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByText(LOCK_TRACK_TITLE, { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: LOCK_TRACK_TITLE })).toBeVisible();
   await page.getByRole('button', { name: new RegExp(LESSON_ONE_TITLE.replace(/[()]/g, '\\$&')) }).click();

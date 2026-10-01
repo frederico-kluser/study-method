@@ -309,6 +309,12 @@ export async function buildTrackLesson(
   return {
     slug: lesson.meta.slug,
     moduleSlug,
+    // ONDA-CURSO-NO-SIDEBAR (pedido do dono: "o left sidebar deve dizer qual é
+    // o curso que estamos fazendo"): o nome do CURSO (título da trilha) viaja
+    // com a aula — é a única fonte que o sidebar tem para dizer em que curso o
+    // aluno está quando a aula abre direto (última aula, chip de pré-requisito,
+    // erro de desafio). Ver TrackLessonPayload.trackTitle.
+    trackTitle: track.root.title,
     title: lesson.meta.title,
     summary: lesson.meta.summary,
     difficulty: lesson.meta.difficulty,

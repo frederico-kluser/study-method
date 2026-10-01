@@ -62,7 +62,7 @@ test('real-lesson: aula real gerada (pesquisa+autoria+validação); desafios LIS
   page = real.page;
 
   // App destravado (gate ready com chaves reais).
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // ONDA4-E2E-FENCE: o fluxo "Assunto → Gerar nova aula" que este spec
   // dirige é LEGADO desde a rodada 8 (ver helpers-real.ts) — sem ele, TUDO

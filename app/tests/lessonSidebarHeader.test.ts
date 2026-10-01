@@ -168,6 +168,7 @@ function finalDeclOf(html: string, cls: string, prop: string): string | undefine
  *  componente é .tsx e não pode ser importado em teste (ver COMPONENT_MODULE). */
 interface LessonSidebarHeaderProps {
   title: string;
+  courseTitle: string;
   summary: string;
   challengeCount: number;
   pendingChallengeCount: number;
@@ -186,6 +187,7 @@ let LessonSidebarHeader: ComponentType<LessonSidebarHeaderProps>;
 
 const BASE: LessonSidebarHeaderProps = {
   title: 'Aula E2E sobre funções de primeira classe e closures',
+  courseTitle: 'JavaScript do zero',
   summary: 'Resumo da aula: funções de primeira classe no JavaScript.',
   challengeCount: 2,
   pendingChallengeCount: 1,
@@ -255,6 +257,19 @@ describe('1. estrutura: <section aria-labelledby> → h1, nenhum <header>', () =
     assert.equal(h1s.length, 1, 'exatamente UM h1');
     assert.match(html, new RegExp(`<h1\\b[^>]*>${TITLE}</h1>`), 'o h1 carrega o título inteiro');
     assert.equal(html.split(TITLE).length - 1, 1, 'o título não é duplicado');
+  });
+
+  it('ONDA-CURSO-NO-SIDEBAR: o nome do curso vem ANTES do h1 — o sidebar diz em que curso o aluno está', () => {
+    // Pedido do dono, verbatim: "quando estou na aula o left sidebar deve dizer
+    // qual é o curso que estamos fazendo". A linha é SOBRETÍTULO: antes do
+    // título da aula, sem virar heading (o h1 continua sendo só a aula).
+    const html = renderHeader();
+    const curso = ptBR.lesson.courseLabel.replace('{{course}}', BASE.courseTitle);
+    const cursoAt = html.indexOf(curso);
+    const titleAt = html.indexOf(TITLE);
+    assert.notEqual(cursoAt, -1, 'a linha do curso não renderizou o nome do curso');
+    assert.ok(cursoAt < titleAt, 'o curso é sobretítulo: vem ANTES do título da aula');
+    assert.ok(!/<h1[\s>]/.test(html.slice(0, cursoAt)), 'a linha do curso não é heading');
   });
 
   it('o resumo, o progresso + contador e os pré-requisitos estão SEMPRE presentes (sem colapso)', () => {
@@ -393,6 +408,15 @@ describe('4. sem desafios / sem pré-requisitos', () => {
     assert.ok(!html.includes(ptBR.lesson.prerequisitesLabel));
     assert.ok(!html.includes('MuiChip-root'), 'sem chips');
   });
+
+  it('sem nome de curso: a linha do curso NÃO renderiza (nunca um "Curso:" vazio)', () => {
+    const html = renderHeader({ courseTitle: '' });
+    assert.ok(
+      !html.includes(ptBR.lesson.courseLabel.replace('{{course}}', '').trim()),
+      'sem curso não há rótulo órfão',
+    );
+    assert.ok(html.includes(TITLE), 'o título da aula continua');
+  });
 });
 
 /* ════════════════════════════ BLOCO 5 — i18n ═════════════════════════════ */
@@ -440,6 +464,10 @@ describe('6. guardas de fonte — contrato congelado, sem colapso, sem <header>'
       [
         'challengeCount',
         'challengesExpanded',
+        // ONDA-CURSO-NO-SIDEBAR (pedido do dono: "o left sidebar deve dizer
+        // qual é o curso que estamos fazendo") — a única adição deliberada ao
+        // contrato congelado: o nome do curso (trilha) da aula em cena.
+        'courseTitle',
         'onChallengesClick',
         'onPrerequisiteClick',
         'onSourcesClick',

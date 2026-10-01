@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Pegue a letra da posição\n\nEscreva a função `pegar_letra` que devolve a letra que está na posição pedida do texto:\n\n```python\ndef pegar_letra(texto, posicao):\n    # devolva a letra na posicao\n```\n\nUse os colchetes, como na aula. Exemplos:\n\n```text\npegar_letra(\"banana\", 0)  ->  \"b\"\npegar_letra(\"banana\", 2)  ->  \"n\"\npegar_letra(\"ola\", 2)  ->  \"a\"\n```\n\nA função devolve a letra — ela não imprime nada.",
+  "statement": "# Pegue a letra da posição\n\nEscreva a função `pegar_letra` que devolve a letra que está na posição pedida do texto. Quando a posição passa do fim do texto, ela **volta ao começo** — como o ponteiro do relógio, que depois de completar a volta recomeça:\n\n```python\ndef pegar_letra(texto, posicao):\n    # devolva a letra na posicao, voltando ao comeco quando passar do fim\n```\n\nUse os colchetes e o resto da divisão, como nas aulas. Exemplos:\n\n```text\npegar_letra(\"banana\", 0)  ->  \"b\"\npegar_letra(\"banana\", 2)  ->  \"n\"\npegar_letra(\"banana\", 6)  ->  \"b\"\npegar_letra(\"ola\", 4)  ->  \"l\"\n```\n\n`\"banana\"` tem 6 letras: a posição 6 cai exatamente no começo e devolve a mesma letra da posição 0. A função devolve a letra — ela não imprime nada.",
   "starterCode": "# escreva aqui a funcao pegar_letra(texto, posicao)\n",
-  "testsCode": "import unittest\n\nfrom solucao import pegar_letra\n\n\nclass TestOTextoTemPosicaoTambem(unittest.TestCase):\n    def test_pega_a_primeira_letra(self):\n        \"\"\"pegar_letra devolve a letra da posicao 0\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 0), \"b\")\n\n    def test_pega_a_segunda_letra(self):\n        \"\"\"pegar_letra devolve a letra da posicao 1\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 1), \"a\")\n\n    def test_pega_a_ultima_letra(self):\n        \"\"\"pegar_letra devolve a letra da ultima posicao\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 5), \"a\")\n\n    def test_pega_em_palavra_curta(self):\n        \"\"\"pegar_letra devolve a letra da ultima posicao de uma palavra curta\"\"\"\n        self.assertEqual(pegar_letra(\"ola\", 2), \"a\")\n",
-  "solutionCode": "def pegar_letra(texto, posicao):\n    return texto[posicao]\n",
+  "testsCode": "import unittest\n\nfrom solucao import pegar_letra\n\n\nclass TestOTextoTemPosicaoTambem(unittest.TestCase):\n    def test_pega_a_primeira_letra(self):\n        \"\"\"pegar_letra devolve a letra da posicao 0\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 0), \"b\")\n\n    def test_pega_no_meio(self):\n        \"\"\"pegar_letra devolve a letra da posicao 2\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 2), \"n\")\n\n    def test_volta_ao_comeco(self):\n        \"\"\"pegar_letra volta ao comeco quando a posicao passa do fim\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 6), \"b\")\n\n    def test_volta_com_sobra(self):\n        \"\"\"pegar_letra usa o resto da posicao depois de voltar ao comeco\"\"\"\n        self.assertEqual(pegar_letra(\"ola\", 4), \"l\")\n",
+  "solutionCode": "def pegar_letra(texto, posicao):\n    return texto[posicao % len(texto)]\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "pegar_letra devolve a letra da posicao 0"
     },
     {
-      "id": "test_pega_a_segunda_letra",
-      "teste": "test_pega_a_segunda_letra",
-      "descricao": "pegar_letra devolve a letra da posicao 1"
+      "id": "test_pega_no_meio",
+      "teste": "test_pega_no_meio",
+      "descricao": "pegar_letra devolve a letra da posicao 2"
     },
     {
-      "id": "test_pega_a_ultima_letra",
-      "teste": "test_pega_a_ultima_letra",
-      "descricao": "pegar_letra devolve a letra da ultima posicao"
+      "id": "test_volta_ao_comeco",
+      "teste": "test_volta_ao_comeco",
+      "descricao": "pegar_letra volta ao comeco quando a posicao passa do fim"
     },
     {
-      "id": "test_pega_em_palavra_curta",
-      "teste": "test_pega_em_palavra_curta",
-      "descricao": "pegar_letra devolve a letra da ultima posicao de uma palavra curta"
+      "id": "test_volta_com_sobra",
+      "teste": "test_volta_com_sobra",
+      "descricao": "pegar_letra usa o resto da posicao depois de voltar ao comeco"
     }
   ]
 }

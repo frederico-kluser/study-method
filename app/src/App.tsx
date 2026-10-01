@@ -87,6 +87,7 @@ import {
   SHELL_SPLIT_ARIA_I18N_KEY,
   SHELL_SPLIT_CONSTRAINTS,
   SHELL_SPLIT_DIVIDER_ID,
+  SHELL_SPLIT_HINT_I18N_KEY,
   writeShellSplitRatio,
 } from './lib/splitRatio';
 import { navPanelId, navTabId, type PanelKey } from './lib/shellNav';
@@ -148,6 +149,10 @@ function Shell({
   const [containerPx, setContainerPx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // W8 (onda-ux): gestão de foco na troca de vista — o alvo é o `main` do novo
+  // painel (tabIndex={-1}, focado num efeito logo após `setActive`).
+  const mainRef = useRef<HTMLElement | null>(null);
+  const prevActiveRef = useRef<PanelKey | null>(null);
 
   // Medição do contêiner (sidebar + divisória + main) — a matemática do split
   // precisa do eixo INTEIRO em px para os pisos por painel. ResizeObserver, e
@@ -175,6 +180,18 @@ function Shell({
     if (dragging) return;
     writeShellSplitRatio(ratio);
   }, [ratio, dragging]);
+
+  // ── W8 (onda-ux): foco segue a vista ativa (padrão SPA) ───────────────────
+  // Depois de setActive, o foco vai para o `main` do novo painel: quem navega
+  // por teclado/leitor de tela não fica preso na vista anterior, e a próxima
+  // Tab parte do topo do painel novo. O PRIMEIRO render NÃO rouba foco (só a
+  // troca real de vista move) — `prevActiveRef` marca o que já foi visto.
+  useEffect(() => {
+    const prev = prevActiveRef.current;
+    prevActiveRef.current = active;
+    if (prev === null || prev === active) return;
+    mainRef.current?.focus();
+  }, [active]);
 
   const handleRatioChange = useCallback((next: number) => {
     setRatio(next);
@@ -228,7 +245,13 @@ function Shell({
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             ariaLabel={t(SHELL_SPLIT_ARIA_I18N_KEY)}
-            hint={t('translation:challenge.split.hint')}
+            // S2 (onda-ux): a DICA da divisória do shell passa a ter chave
+            // PRÓPRIA (`shell.sidebar.splitHint`, mesmo texto de
+            // `challenge.split.hint`) — a copy do Desafio deixa de alterar o
+            // shell em silêncio. Mesmo critério do rótulo acima
+            // (`shell.sidebar.splitAria`); a chave do Desafio FICA, usada pela
+            // divisória enunciado/editor dele.
+            hint={t(SHELL_SPLIT_HINT_I18N_KEY)}
             hintId={SHELL_SPLIT_HINT_ID}
             controlsIds={[SHELL_SIDEBAR_PANE_ID, navPanelId(active)]}
             dividerId={SHELL_SPLIT_DIVIDER_ID}
@@ -238,12 +261,20 @@ function Shell({
             component="main"
             role="tabpanel"
             id={navPanelId(active)}
+            // W8: o main é o alvo de foco da troca de vista (tabIndex={-1} —
+            // fora da ordem de Tab, focado só programaticamente).
+            ref={mainRef}
+            tabIndex={-1}
             // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio não tem tab no rail,
             // então quando ELE é o painel ativo o vínculo aria-labelledby não
             // tem par (o id apontaria para um tab inexistente — referência
             // ARIA pendente). Nesses casos o painel fica sem rótulo
             // referenciado em vez de apontar para o vazio.
             aria-labelledby={active === 'challenge' ? undefined : navTabId(active)}
+            // W7: sem tab que dê nome, o tabpanel Desafio ganha NOME ACESSÍVEL
+            // próprio (aria-label com o rótulo de navegação) — antes ele
+            // anunciava "painel" sem dizer qual.
+            aria-label={active === 'challenge' ? t('translation:nav.challenge') : undefined}
             sx={{
               // ONDA 1 (layout+a11y): o main vira flex COLUMN para a LessonView
               // poder ocupar 100% da altura: chat com scroll interno e entrada

@@ -71,6 +71,9 @@ import {
   resetQuiz,
   sectionPresentationIndexes,
   seedChallengeError,
+  skipSweepCut,
+  skipSweepDelayPerChar,
+  SKIP_SWEEP_MS,
   submitQuizAnswer,
   tutorNextAction,
   typewriterCut,
@@ -359,6 +362,21 @@ describe('typewriter — corte, atraso e fim (puro e determinístico)', () => {
 
   it('TYPEWRITER_TPS: free 100, theory 7, review 10 (as velocidades nomeadas)', () => {
     assert.deepEqual({ ...TYPEWRITER_TPS }, { free: 100, theory: 7, review: 10 });
+  });
+
+  it('ONDA-SKIP-1S: a varredura do PULO revela o resto em ~1 s, por igual', () => {
+    // A conta literal do dono: "ela termina de mostrar tudo em 1s ai
+    // calculamos a quantidade de caracteres para saber como mostramos eles
+    // com mesmo tempo ate dar um segundo" — o relógio de digitação acima NÃO
+    // mudou; este é o segundo relógio, só do `skip` do aluno. O contrato puro
+    // completo (monotonia, clamps, resto zero) está em
+    // tests/trackLessonState.test.ts ("onda-skip-1s").
+    assert.equal(SKIP_SWEEP_MS, 1000, 'o orçamento do pulo é ~1 s');
+    assert.equal(skipSweepDelayPerChar(10), 100, '10 restantes → 100 ms por caractere');
+    assert.equal(skipSweepCut(300, 120, 0), 120, '0 ms → o corte do pulo');
+    assert.equal(skipSweepCut(300, 120, 1000), 300, '1000 ms → o texto inteiro');
+    assert.equal(skipSweepCut(300, 120, 500), 210, 'metade do tempo → metade dos 180 restantes');
+    assert.equal(skipSweepCut(300, 300, 500), 300, 'resto zero → nada a varrer');
   });
 });
 

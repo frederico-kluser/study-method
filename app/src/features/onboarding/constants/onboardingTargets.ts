@@ -58,6 +58,13 @@ export const ONBOARDING_TARGET_CATALOG: Record<string, OnboardingTargetMeta> = {
     everywhere: true,
   },
 
+  // ONDA-BOTAO-AJUDA: o botão de ajuda (pé da coluna lateral, ao lado de tema e
+  // idioma) reabre o modal de seleção de tutorial. Visível em todas as abas.
+  'help-button': {
+    description: 'Botão de ajuda no pé da coluna lateral (reabre o tutorial).',
+    everywhere: true,
+  },
+
   // ─── Settings (aba settings) ───────────────────────────────────────────────
   'settings-keys-section': {
     description: 'Seção "Chaves de API" em Configurações (campo de chaves).',

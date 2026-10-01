@@ -1,0 +1,2482 @@
+{
+  "trilha": "python-iniciante",
+  "orcamento": "declared",
+  "linguagem": "python",
+  "desafios": [
+    {
+      "ref": "a-tela/a-primeira-linha/escreva-oi",
+      "status": "ok",
+      "minimalCode": "print(\"oi\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "a-tela/a-primeira-linha"
+    },
+    {
+      "ref": "a-tela/mais-de-uma-linha/duas-saudacoes",
+      "status": "ok",
+      "minimalCode": "print(\"bom dia\\nboa noite\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "a-tela/mais-de-uma-linha"
+    },
+    {
+      "ref": "a-tela/numero-nao-tem-aspas/imprima-o-doze",
+      "status": "ok",
+      "minimalCode": "print(\"12\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:IntLiteral"
+      ],
+      "orcamentoRef": "a-tela/numero-nao-tem-aspas"
+    },
+    {
+      "ref": "a-tela/somar/some-dois-numeros",
+      "status": "ok",
+      "minimalCode": "print(\"6912\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary:+",
+        "node:BinOp"
+      ],
+      "orcamentoRef": "a-tela/somar"
+    },
+    {
+      "ref": "a-tela/subtrair-e-multiplicar/menos-e-vezes",
+      "status": "ok",
+      "minimalCode": "print(\"3766\\n5535\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary:-",
+        "op:binary:*"
+      ],
+      "orcamentoRef": "a-tela/subtrair-e-multiplicar"
+    },
+    {
+      "ref": "a-tela/dividir-da-decimal/divida-e-some-decimais",
+      "status": "ok",
+      "minimalCode": "print(\"1080.25\\n3.75\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary:/",
+        "node:FloatLiteral"
+      ],
+      "orcamentoRef": "a-tela/dividir-da-decimal"
+    },
+    {
+      "ref": "a-tela/divisao-inteira-e-resto/quantas-vezes-e-quanto-sobra",
+      "status": "ok",
+      "minimalCode": "print(\"1080\\n1\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary://",
+        "op:binary:%"
+      ],
+      "orcamentoRef": "a-tela/divisao-inteira-e-resto"
+    },
+    {
+      "ref": "a-tela/potencia/dois-elevado-a-vinte",
+      "status": "ok",
+      "minimalCode": "print(\"1048576\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary:**"
+      ],
+      "orcamentoRef": "a-tela/potencia"
+    },
+    {
+      "ref": "a-tela/o-sinal-do-numero/numeros-com-sinal",
+      "status": "ok",
+      "minimalCode": "print(\"-234\\n-750\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:unary:-",
+        "op:unary:+",
+        "node:UnaryOp"
+      ],
+      "orcamentoRef": "a-tela/o-sinal-do-numero"
+    },
+    {
+      "ref": "a-tela/dar-nome-a-um-valor/guarde-o-preco",
+      "status": "ok",
+      "minimalCode": "print(\"1200\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "decl:assign",
+        "node:Assign"
+      ],
+      "orcamentoRef": "a-tela/dar-nome-a-um-valor"
+    },
+    {
+      "ref": "a-tela/religar-o-mesmo-nome/some-quarenta-e-cinco-ao-preco",
+      "status": "ok",
+      "minimalCode": "print(\"1245\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "decl:assign"
+      ],
+      "orcamentoRef": "a-tela/religar-o-mesmo-nome"
+    },
+    {
+      "ref": "a-tela/juntar-textos/monte-a-saudacao",
+      "status": "ok",
+      "minimalCode": "print(\"oi, Ana\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:binary:+"
+      ],
+      "orcamentoRef": "a-tela/juntar-textos"
+    },
+    {
+      "ref": "a-tela/texto-com-buraco/custa-quanto",
+      "status": "ok",
+      "minimalCode": "print(\"custa 1200 reais\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:JoinedStr",
+        "node:FormattedValue"
+      ],
+      "orcamentoRef": "a-tela/texto-com-buraco"
+    },
+    {
+      "ref": "a-tela/de-texto-para-numero/converta-nos-dois-sentidos",
+      "status": "ok",
+      "minimalCode": "print(\"75\\ntotal: 8\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "global:int",
+        "global:str"
+      ],
+      "orcamentoRef": "a-tela/de-texto-para-numero"
+    },
+    {
+      "ref": "a-tela/arredondar/duas-casas-e-um-decimal",
+      "status": "ok",
+      "minimalCode": "print(\"617.29\\n2.0\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "global:round",
+        "global:float"
+      ],
+      "orcamentoRef": "a-tela/arredondar"
+    },
+    {
+      "ref": "a-tela/verdadeiro-e-falso/verdadeiro-e-o-zero",
+      "status": "ok",
+      "minimalCode": "print(\"True\\nFalse\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:BoolLiteral",
+        "global:bool"
+      ],
+      "orcamentoRef": "a-tela/verdadeiro-e-falso"
+    },
+    {
+      "ref": "a-tela/o-nada/o-nada-e-falso",
+      "status": "ok",
+      "minimalCode": "print(\"None\\nFalse\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:NoneLiteral"
+      ],
+      "orcamentoRef": "a-tela/o-nada"
+    },
+    {
+      "ref": "a-tela/o-tipo-de-cada-valor/de-que-tipo-e-cada-um",
+      "status": "ok",
+      "minimalCode": "print(\"<class 'int'>\\n<class 'str'>\\n<class 'NoneType'>\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "global:type"
+      ],
+      "orcamentoRef": "a-tela/o-tipo-de-cada-valor"
+    },
+    {
+      "ref": "a-tela/a-linha-que-o-python-ignora/desligue-o-rascunho",
+      "status": "ok",
+      "minimalCode": "print(\"rodou\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "a-tela/a-linha-que-o-python-ignora"
+    },
+    {
+      "ref": "a-tela/quando-da-errado/conserte-o-nome-errado",
+      "status": "ok",
+      "minimalCode": "print(\"oi, Ana\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "decl:assign",
+        "node:JoinedStr"
+      ],
+      "orcamentoRef": "a-tela/quando-da-errado"
+    },
+    {
+      "ref": "a-tela/challenges/rachando-a-conta",
+      "status": "ok",
+      "minimalCode": "print(\"RACHANDO A CONTA\\nconsumo: 187.4\\ngorjeta: 18.74\\ntotal: 206.14\\n4 pessoas pagam 51.54 cada\\nem notas de 50: 5\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": null
+    },
+    {
+      "ref": "decisao/comparar-numeros/tres-e-maior-que-dois",
+      "status": "ok",
+      "minimalCode": "print(\"True\\nFalse\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:compare:>",
+        "op:compare:<",
+        "node:Compare"
+      ],
+      "orcamentoRef": "decisao/comparar-numeros"
+    },
+    {
+      "ref": "decisao/igual-e-diferente/e-igual-ou-diferente",
+      "status": "ok",
+      "minimalCode": "print(\"False\\nTrue\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:compare:==",
+        "op:compare:!=",
+        "node:Compare"
+      ],
+      "orcamentoRef": "decisao/igual-e-diferente"
+    },
+    {
+      "ref": "decisao/maior-ou-igual/quatro-e-maior-ou-igual",
+      "status": "ok",
+      "minimalCode": "print(\"True\\nFalse\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:compare:>=",
+        "op:compare:<=",
+        "node:Compare"
+      ],
+      "orcamentoRef": "decisao/maior-ou-igual"
+    },
+    {
+      "ref": "decisao/se/so-quando-for-positivo",
+      "status": "ok",
+      "minimalCode": "print(\"positivo\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:If"
+      ],
+      "orcamentoRef": "decisao/se"
+    },
+    {
+      "ref": "decisao/o-bloco-vazio/preencha-com-pass",
+      "status": "ok",
+      "minimalCode": "print(\"feito\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:Pass"
+      ],
+      "orcamentoRef": "decisao/o-bloco-vazio"
+    },
+    {
+      "ref": "decisao/se-senao/maior-ou-nao",
+      "status": "ok",
+      "minimalCode": "print(\"menor ou igual\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:IfElse"
+      ],
+      "orcamentoRef": "decisao/se-senao"
+    },
+    {
+      "ref": "decisao/se-senao-se/positivo-negativo-ou-zero",
+      "status": "ok",
+      "minimalCode": "print(\"zero\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:Elif"
+      ],
+      "orcamentoRef": "decisao/se-senao-se"
+    },
+    {
+      "ref": "decisao/e-e-ou/os-dois-ou-pelo-menos-um",
+      "status": "ok",
+      "minimalCode": "print(\"os dois positivos\\npelo menos um positivo\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:bool:and",
+        "op:bool:or",
+        "node:BoolOp"
+      ],
+      "orcamentoRef": "decisao/e-e-ou"
+    },
+    {
+      "ref": "decisao/nao/quando-nao-achou",
+      "status": "ok",
+      "minimalCode": "print(\"continuar procurando\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:unary:not",
+        "node:UnaryOp"
+      ],
+      "orcamentoRef": "decisao/nao"
+    },
+    {
+      "ref": "decisao/condicao-em-uma-linha/escolha-em-uma-linha",
+      "status": "ok",
+      "minimalCode": "print(\"1\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:IfExp"
+      ],
+      "orcamentoRef": "decisao/condicao-em-uma-linha"
+    },
+    {
+      "ref": "decisao/e-mesmo-o-nada/ainda-nao-tem-valor",
+      "status": "ok",
+      "minimalCode": "print(\"ainda nao tem valor\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "op:compare:is",
+        "node:Compare"
+      ],
+      "orcamentoRef": "decisao/e-mesmo-o-nada"
+    },
+    {
+      "ref": "decisao/comparar-encadeado/dentro-do-intervalo",
+      "status": "ok",
+      "minimalCode": "print(\"dentro\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [
+        "node:Compare"
+      ],
+      "orcamentoRef": "decisao/comparar-encadeado"
+    },
+    {
+      "ref": "repeticao/repetir-um-numero-de-vezes/conte-ate-tres",
+      "status": "ok",
+      "minimalCode": "for i in range(3):\n    print(i)\n",
+      "atoms": [
+        "global:print",
+        "global:range",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/repetir-um-numero-de-vezes"
+    },
+    {
+      "ref": "repeticao/de-onde-ate-onde/os-impares-ate-nove",
+      "status": "ok",
+      "minimalCode": "for i in range(1, 10, 2):\n    print(i)\n",
+      "atoms": [
+        "global:print",
+        "global:range",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/de-onde-ate-onde"
+    },
+    {
+      "ref": "repeticao/acumular-num-nome/some-um-a-quatro",
+      "status": "ok",
+      "minimalCode": "total = 0\nfor i in range(1, 5):\n    total += i\nprint(total)\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "global:range",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "op:aug:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 5,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/acumular-num-nome"
+    },
+    {
+      "ref": "repeticao/tirar-e-multiplicar-no-lugar/o-saldo-do-lanche",
+      "status": "ok",
+      "minimalCode": "saldo = 100\nsaldo -= 10\nsaldo *= 2\nprint(saldo)\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Expr",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "op:aug:*",
+        "op:aug:-"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 5,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/tirar-e-multiplicar-no-lugar"
+    },
+    {
+      "ref": "repeticao/dividir-no-lugar/metade-de-cada-um",
+      "status": "ok",
+      "minimalCode": "resto = 25\nresto //= 4\n\nmetade = 5\nmetade /= 2\n\nprint(resto)\nprint(metade)\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Expr",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "op:aug:/",
+        "op:aug://"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 9,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/dividir-no-lugar"
+    },
+    {
+      "ref": "repeticao/resto-e-potencia-no-lugar/o-resto-que-vira-quadrado",
+      "status": "ok",
+      "minimalCode": "n = 13\nn %= 7\nprint(n)\nn **= 2\nprint(n)\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Expr",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "op:aug:%",
+        "op:aug:**"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/resto-e-potencia-no-lugar"
+    },
+    {
+      "ref": "repeticao/enquanto/a-contagem-regressiva",
+      "status": "ok",
+      "minimalCode": "saldo = 3\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Compare",
+        "node:Expr",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:While",
+        "op:aug:-",
+        "op:compare:>"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 5,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/enquanto"
+    },
+    {
+      "ref": "repeticao/parar-no-meio/pare-antes-do-tres",
+      "status": "ok",
+      "minimalCode": "n = 0\nwhile True:\n    n += 1\n    if n == 3:\n        break\n    print(n)\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:BoolLiteral",
+        "node:Break",
+        "node:Call",
+        "node:Compare",
+        "node:Expr",
+        "node:If",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:While",
+        "op:aug:+",
+        "op:compare:=="
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/parar-no-meio"
+    },
+    {
+      "ref": "repeticao/pular-uma-volta/pule-o-numero-tres",
+      "status": "ok",
+      "minimalCode": "for n in range(6):\n    if n == 3:\n        continue\n    print(n)\n",
+      "atoms": [
+        "global:print",
+        "global:range",
+        "node:Call",
+        "node:Compare",
+        "node:Continue",
+        "node:Expr",
+        "node:For",
+        "node:If",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "op:compare:=="
+      ],
+      "atomsDoTeste": [],
+      "linhas": 5,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/pular-uma-volta"
+    },
+    {
+      "ref": "repeticao/o-laco-que-nao-acaba-sozinho/a-maquina-de-ecos",
+      "status": "ok",
+      "minimalCode": "n = 0\nwhile True:\n    print(n)\n    n += 1\n    if n == 4:\n        break\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:BoolLiteral",
+        "node:Break",
+        "node:Call",
+        "node:Compare",
+        "node:Expr",
+        "node:If",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:While",
+        "op:aug:+",
+        "op:compare:=="
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/o-laco-que-nao-acaba-sozinho"
+    },
+    {
+      "ref": "repeticao/laco-dentro-de-laco/a-tabela-de-pares",
+      "status": "ok",
+      "minimalCode": "for i in range(2):\n    for j in range(2):\n        print(i, j)\n",
+      "atoms": [
+        "global:print",
+        "global:range",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/laco-dentro-de-laco"
+    },
+    {
+      "ref": "repeticao/e-se-nunca-parou/a-contagem-que-se-despede",
+      "status": "ok",
+      "minimalCode": "for n in range(3):\n    print(n)\nelse:\n    print(\"fim\")\n",
+      "atoms": [
+        "global:print",
+        "global:range",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:ForElse",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 5,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/e-se-nunca-parou"
+    },
+    {
+      "ref": "repeticao/o-else-do-while/o-saldo-que-avisa-que-zerou",
+      "status": "ok",
+      "minimalCode": "saldo = 3\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\nelse:\n    print(\"acabou\")\n",
+      "atoms": [
+        "decl:assign",
+        "decl:aug",
+        "global:print",
+        "node:Assign",
+        "node:AugAssign",
+        "node:Call",
+        "node:Compare",
+        "node:Expr",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:StrLiteral",
+        "node:While",
+        "node:WhileElse",
+        "op:aug:-",
+        "op:compare:>"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "repeticao/o-else-do-while"
+    },
+    {
+      "ref": "caixas-que-devolvem/escrever-a-primeira-caixa/a-primeira-caixa",
+      "status": "ok",
+      "minimalCode": "def bom_dia():\n    print(\"bom dia\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/escrever-a-primeira-caixa"
+    },
+    {
+      "ref": "caixas-que-devolvem/chamar-a-caixa-duas-vezes/duas-chamadas",
+      "status": "ok",
+      "minimalCode": "print(\"bom dia\\nbom dia\")\n",
+      "atoms": [
+        "global:print",
+        "node:Call",
+        "node:Expr",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 2,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/chamar-a-caixa-duas-vezes"
+    },
+    {
+      "ref": "caixas-que-devolvem/a-janela-de-entrada/cumprimente-alguem",
+      "status": "ok",
+      "minimalCode": "def saudacao(nome):\n    print(\"oi, \" + nome)\n",
+      "atoms": [
+        "global:print",
+        "node:BinOp",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/a-janela-de-entrada"
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-em-vez-de-mostrar/a-saudacao-devolvida",
+      "status": "ok",
+      "minimalCode": "def saudacao(nome):\n    return \"oi, \" + nome\n",
+      "atoms": [
+        "node:BinOp",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/devolver-em-vez-de-mostrar"
+    },
+    {
+      "ref": "caixas-que-devolvem/imprimir-nao-e-devolver/devolver-e-imprimir",
+      "status": "ok",
+      "minimalCode": "def saudacao(nome):\n    return \"oi, \" + nome\n\n\nprint(saudacao(\"Ana\"))\n",
+      "atoms": [
+        "global:print",
+        "node:BinOp",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/imprimir-nao-e-devolver"
+    },
+    {
+      "ref": "caixas-que-devolvem/a-caixa-que-nao-devolve-nada/a-caixa-que-nao-responde",
+      "status": "ok",
+      "minimalCode": "def mostrar(nome):\n    print(\"oi, \" + nome)\n    return None\n",
+      "atoms": [
+        "global:print",
+        "node:BinOp",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:NoneLiteral",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/a-caixa-que-nao-devolve-nada"
+    },
+    {
+      "ref": "caixas-que-devolvem/mais-de-uma-janela/monte-a-soma",
+      "status": "ok",
+      "minimalCode": "def soma(a, b):\n    return a + b\n",
+      "atoms": [
+        "node:BinOp",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/mais-de-uma-janela"
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-cedo/pode-ou-nao-pode",
+      "status": "ok",
+      "minimalCode": "def categoria(idade):\n    if idade >= 18:\n        return \"pode\"\n    else:\n        return \"nao pode\"\n",
+      "atoms": [
+        "node:Compare",
+        "node:FunctionDef",
+        "node:If",
+        "node:IfElse",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:compare:>="
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/devolver-cedo"
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-verdadeiro-ou-falso/e-de-maior",
+      "status": "ok",
+      "minimalCode": "def e_de_maior(idade):\n    return idade >= 18\n",
+      "atoms": [
+        "node:Compare",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:compare:>="
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/devolver-verdadeiro-ou-falso"
+    },
+    {
+      "ref": "caixas-que-devolvem/o-nome-so-vive-dentro/calcule-o-total",
+      "status": "ok",
+      "minimalCode": "def calcular(preco):\n    total = preco + 10\n    return total\n",
+      "atoms": [
+        "decl:assign",
+        "node:Assign",
+        "node:BinOp",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/o-nome-so-vive-dentro"
+    },
+    {
+      "ref": "caixas-que-devolvem/uma-caixa-chama-outra/o-dobro-mais-um",
+      "status": "ok",
+      "minimalCode": "def dobro(x):\n    return x * 2\n\n\ndef dobro_mais_um(x):\n    return dobro(x) + 1\n",
+      "atoms": [
+        "node:BinOp",
+        "node:Call",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:binary:*",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/uma-caixa-chama-outra"
+    },
+    {
+      "ref": "caixas-que-devolvem/a-caixa-sem-corpo/a-caixa-em-branco",
+      "status": "ok",
+      "minimalCode": "def proximo_passo():\n    pass\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Pass",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/a-caixa-sem-corpo"
+    },
+    {
+      "ref": "caixas-que-devolvem/documentar-a-caixa/a-caixa-documentada",
+      "status": "ok",
+      "minimalCode": "def dobro(x):\n    \"\"\"devolve o dobro de x\"\"\"\n    return x * 2\n",
+      "atoms": [
+        "node:BinOp",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments",
+        "op:binary:*"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/documentar-a-caixa"
+    },
+    {
+      "ref": "caixas-que-devolvem/conferir-a-premissa/a-premissa-conferida",
+      "status": "ok",
+      "minimalCode": "def com_desconto(preco):\n    assert preco > 0\n    return preco - 2\n",
+      "atoms": [
+        "node:Assert",
+        "node:BinOp",
+        "node:Compare",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:binary:-",
+        "op:compare:>"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "caixas-que-devolvem/conferir-a-premissa"
+    },
+    {
+      "ref": "listas-e-tuplas/criar-uma-lista/minha-lista",
+      "status": "ok",
+      "minimalCode": "def minha_lista():\n    return [7, 8, 9]\n\n\ndef outra_lista():\n    return [1, 2]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:List",
+        "node:Load",
+        "node:Return",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/criar-uma-lista"
+    },
+    {
+      "ref": "listas-e-tuplas/pegar-pela-posicao/pegando-pela-posicao",
+      "status": "ok",
+      "minimalCode": "def pegar(lista, posicao):\n    return lista[posicao]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/pegar-pela-posicao"
+    },
+    {
+      "ref": "listas-e-tuplas/posicao-negativa/pegando-de-tras-para-frente",
+      "status": "ok",
+      "minimalCode": "def ultimo(lista):\n    return lista[-1]\n\n\ndef penultimo(lista):\n    return lista[-2]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Subscript",
+        "node:UnaryOp",
+        "node:arg",
+        "node:arguments",
+        "op:unary:-"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/posicao-negativa"
+    },
+    {
+      "ref": "listas-e-tuplas/quantos-itens-tem/contando-itens",
+      "status": "ok",
+      "minimalCode": "def quantos(lista):\n    return len(lista)\n",
+      "atoms": [
+        "global:len",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/quantos-itens-tem"
+    },
+    {
+      "ref": "listas-e-tuplas/acrescentar-no-fim/acrescente-um-item",
+      "status": "ok",
+      "minimalCode": "def adicionar(lista, item):\n    lista.append(item)\n    return lista\n",
+      "atoms": [
+        "api:.append",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/acrescentar-no-fim"
+    },
+    {
+      "ref": "listas-e-tuplas/tirar-um-item/tirando-itens",
+      "status": "ok",
+      "minimalCode": "def tirar_ultimo(lista):\n    return lista.pop()\n\n\ndef tirar(lista, item):\n    lista.remove(item)\n    return lista\n",
+      "atoms": [
+        "api:.pop",
+        "api:.remove",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 8,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/tirar-um-item"
+    },
+    {
+      "ref": "listas-e-tuplas/inserir-no-meio/inserindo-no-meio",
+      "status": "ok",
+      "minimalCode": "def encaixar(lista, posicao, item):\n    lista.insert(posicao, item)\n    return lista\n",
+      "atoms": [
+        "api:.insert",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/inserir-no-meio"
+    },
+    {
+      "ref": "listas-e-tuplas/percorrer-uma-lista/somando-a-lista",
+      "status": "ok",
+      "minimalCode": "def somar_lista(numeros):\n    total = 0\n    for n in numeros:\n        total = total + n\n    return total\n",
+      "atoms": [
+        "decl:assign",
+        "node:Assign",
+        "node:BinOp",
+        "node:For",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/percorrer-uma-lista"
+    },
+    {
+      "ref": "listas-e-tuplas/esta-na-lista/o-item-esta-na-lista",
+      "status": "ok",
+      "minimalCode": "def tem(lista, item):\n    return item in lista\n",
+      "atoms": [
+        "node:Compare",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:compare:in"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/esta-na-lista"
+    },
+    {
+      "ref": "listas-e-tuplas/achar-a-posicao/achando-a-posicao",
+      "status": "ok",
+      "minimalCode": "def posicao_de(lista, item):\n    return lista.index(item)\n\n\ndef quantas_vezes(lista, item):\n    return lista.count(item)\n",
+      "atoms": [
+        "api:.count",
+        "api:.index",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/achar-a-posicao"
+    },
+    {
+      "ref": "listas-e-tuplas/um-pedaco-da-lista/fatie-um-pedaco",
+      "status": "ok",
+      "minimalCode": "def pedaco(lista, inicio, fim):\n    return lista[inicio:fim]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Slice",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/um-pedaco-da-lista"
+    },
+    {
+      "ref": "listas-e-tuplas/copiar-em-vez-de-apelidar/copie-a-lista",
+      "status": "ok",
+      "minimalCode": "def copia(lista):\n    return lista[:]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Slice",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/copiar-em-vez-de-apelidar"
+    },
+    {
+      "ref": "listas-e-tuplas/ordenar/ordene-a-lista",
+      "status": "ok",
+      "minimalCode": "def ordem_crescente(numeros):\n    numeros.sort()\n    return numeros\n\n\ndef em_ordem(numeros):\n    return sorted(numeros)\n",
+      "atoms": [
+        "api:.sort",
+        "global:sorted",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 8,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/ordenar"
+    },
+    {
+      "ref": "listas-e-tuplas/inverter/inverta-a-lista",
+      "status": "ok",
+      "minimalCode": "def inverter_na_hora(numeros):\n    numeros.reverse()\n    return numeros\n\n\ndef ao_contrario(numeros):\n    nova = []\n    for item in reversed(numeros):\n        nova.append(item)\n    return nova\n",
+      "atoms": [
+        "api:.append",
+        "api:.reverse",
+        "decl:assign",
+        "global:reversed",
+        "node:Assign",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:FunctionDef",
+        "node:List",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 11,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/inverter"
+    },
+    {
+      "ref": "listas-e-tuplas/juntar-e-limpar/junte-e-esvazie",
+      "status": "ok",
+      "minimalCode": "def juntar(lista, outros):\n    lista.extend(outros)\n    return lista\n\n\ndef esvaziar(lista):\n    lista.clear()\n    return lista\n",
+      "atoms": [
+        "api:.clear",
+        "api:.extend",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 9,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/juntar-e-limpar"
+    },
+    {
+      "ref": "listas-e-tuplas/o-maior-e-o-menor/qual-e-o-maior",
+      "status": "ok",
+      "minimalCode": "def o_maior(numeros):\n    return max(numeros)\n\n\ndef o_menor(numeros):\n    return min(numeros)\n",
+      "atoms": [
+        "global:max",
+        "global:min",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/o-maior-e-o-menor"
+    },
+    {
+      "ref": "listas-e-tuplas/somar-tudo/some-a-lista",
+      "status": "ok",
+      "minimalCode": "def somar_tudo(numeros):\n    return sum(numeros)\n",
+      "atoms": [
+        "global:sum",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/somar-tudo"
+    },
+    {
+      "ref": "listas-e-tuplas/com-o-indice-junto/numerar-itens",
+      "status": "ok",
+      "minimalCode": "def numerar(itens):\n    numerados = []\n    for par in enumerate(itens):\n        numerados.append(f\"{par[0]}-{par[1]}\")\n    return numerados\n",
+      "atoms": [
+        "api:.append",
+        "decl:assign",
+        "global:enumerate",
+        "node:Assign",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:FormattedValue",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:JoinedStr",
+        "node:List",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:StrLiteral",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/com-o-indice-junto"
+    },
+    {
+      "ref": "listas-e-tuplas/duas-listas-lado-a-lado/par-e-par",
+      "status": "ok",
+      "minimalCode": "def juntar_por_posicao(nomes, sobrenomes):\n    completos = []\n    for par in zip(nomes, sobrenomes):\n        completos.append(par[0] + \" \" + par[1])\n    return completos\n",
+      "atoms": [
+        "api:.append",
+        "decl:assign",
+        "global:zip",
+        "node:Assign",
+        "node:Attribute",
+        "node:BinOp",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:List",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:StrLiteral",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/duas-listas-lado-a-lado"
+    },
+    {
+      "ref": "listas-e-tuplas/a-lista-que-nao-muda/uma-dupla-de-notas",
+      "status": "ok",
+      "minimalCode": "def par_de_notas(primeiro, segundo):\n    return (primeiro, segundo)\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Tuple",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/a-lista-que-nao-muda"
+    },
+    {
+      "ref": "listas-e-tuplas/abrir-a-tupla-em-nomes/abrir-a-dupla",
+      "status": "ok",
+      "minimalCode": "def somar_dupla(dupla):\n    primeiro, segundo = dupla\n    return primeiro + segundo\n",
+      "atoms": [
+        "decl:unpack",
+        "node:Assign",
+        "node:BinOp",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:Tuple",
+        "node:arg",
+        "node:arguments",
+        "op:binary:+"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 4,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/abrir-a-tupla-em-nomes"
+    },
+    {
+      "ref": "listas-e-tuplas/lista-de-listas/nota-da-tabela",
+      "status": "ok",
+      "minimalCode": "def nota_de(tabela, linha, coluna):\n    return tabela[linha][coluna]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "listas-e-tuplas/lista-de-listas"
+    },
+    {
+      "ref": "texto-em-profundidade/maiusculas-e-minusculas/maiscula-ou-minuscula",
+      "status": "ok",
+      "minimalCode": "def maiusculas(texto):\n    return texto.upper()\n\n\ndef minusculas(texto):\n    return texto.lower()\n",
+      "atoms": [
+        "api:.lower",
+        "api:.upper",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/maiusculas-e-minusculas"
+    },
+    {
+      "ref": "texto-em-profundidade/tirar-os-espacos/sem-espacos-sobrando",
+      "status": "ok",
+      "minimalCode": "def limpar(texto):\n    return texto.strip()\n",
+      "atoms": [
+        "api:.strip",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/tirar-os-espacos"
+    },
+    {
+      "ref": "texto-em-profundidade/trocar-um-pedaco/troque-o-pedaco",
+      "status": "ok",
+      "minimalCode": "def trocar(texto, antigo, novo):\n    return texto.replace(antigo, novo)\n",
+      "atoms": [
+        "api:.replace",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/trocar-um-pedaco"
+    },
+    {
+      "ref": "texto-em-profundidade/comeca-e-termina/como-comeca-e-como-termina",
+      "status": "ok",
+      "minimalCode": "def comeca_com(texto, pedaco):\n    return texto.startswith(pedaco)\n\n\ndef termina_com(texto, pedaco):\n    return texto.endswith(pedaco)\n",
+      "atoms": [
+        "api:.endswith",
+        "api:.startswith",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/comeca-e-termina"
+    },
+    {
+      "ref": "texto-em-profundidade/achar-no-texto/onde-esta-o-pedaco",
+      "status": "ok",
+      "minimalCode": "def achar(texto, pedaco):\n    return texto.find(pedaco)\n",
+      "atoms": [
+        "api:.find",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/achar-no-texto"
+    },
+    {
+      "ref": "texto-em-profundidade/quebrar-em-lista/quebre-em-pedacos",
+      "status": "ok",
+      "minimalCode": "def quebrar(texto, separador):\n    return texto.split(separador)\n\n\ndef quebrar_linhas(texto):\n    return texto.splitlines()\n",
+      "atoms": [
+        "api:.split",
+        "api:.splitlines",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/quebrar-em-lista"
+    },
+    {
+      "ref": "texto-em-profundidade/juntar-numa-string/junte-com-um-separador",
+      "status": "ok",
+      "minimalCode": "def juntar(separador, itens):\n    return separador.join(itens)\n",
+      "atoms": [
+        "api:.join",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/juntar-numa-string"
+    },
+    {
+      "ref": "texto-em-profundidade/o-texto-tem-posicao-tambem/pegue-a-letra-da-posicao",
+      "status": "ok",
+      "minimalCode": "def pegar_letra(texto, posicao):\n    return texto[posicao]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/o-texto-tem-posicao-tambem"
+    },
+    {
+      "ref": "texto-em-profundidade/fatiar-o-texto/fatia-o-texto",
+      "status": "ok",
+      "minimalCode": "def pedaco(texto, inicio, fim):\n    return texto[inicio:fim]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Slice",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/fatiar-o-texto"
+    },
+    {
+      "ref": "texto-em-profundidade/esta-no-texto/o-pedaco-esta-no-texto",
+      "status": "ok",
+      "minimalCode": "def esta(texto, pedaco):\n    return pedaco in texto\n",
+      "atoms": [
+        "node:Compare",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:compare:in"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/esta-no-texto"
+    },
+    {
+      "ref": "texto-em-profundidade/so-numeros-ou-so-letras/so-numero-ou-so-letra",
+      "status": "ok",
+      "minimalCode": "def so_numero(texto):\n    return texto.isdigit()\n\n\ndef so_letra(texto):\n    return texto.isalpha()\n",
+      "atoms": [
+        "api:.isalpha",
+        "api:.isdigit",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/so-numeros-ou-so-letras"
+    },
+    {
+      "ref": "texto-em-profundidade/formatar-com-largura/alinhe-o-numero",
+      "status": "ok",
+      "minimalCode": "def formatar(valor):\n    return f\"{valor:>8.2f}\"\n",
+      "atoms": [
+        "node:FormattedValue",
+        "node:FunctionDef",
+        "node:JoinedStr",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/formatar-com-largura"
+    },
+    {
+      "ref": "texto-em-profundidade/alinhar-e-preencher/preencha-os-espacos",
+      "status": "ok",
+      "minimalCode": "def alinhar(texto, largura):\n    return texto.ljust(largura)\n\n\ndef preencher(texto, largura):\n    return texto.zfill(largura)\n",
+      "atoms": [
+        "api:.ljust",
+        "api:.zfill",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/alinhar-e-preencher"
+    },
+    {
+      "ref": "texto-em-profundidade/o-texto-nao-muda/troque-sem-apagar-o-original",
+      "status": "ok",
+      "minimalCode": "def trocar(texto, antigo, novo):\n    return texto.replace(antigo, novo)\n",
+      "atoms": [
+        "api:.replace",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/o-texto-nao-muda"
+    },
+    {
+      "ref": "texto-em-profundidade/a-letra-e-um-numero/a-letra-vira-numero",
+      "status": "ok",
+      "minimalCode": "def codigo_da_letra(letra):\n    return ord(letra)\n\n\ndef letra_do_numero(numero):\n    return chr(numero)\n",
+      "atoms": [
+        "global:chr",
+        "global:ord",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "texto-em-profundidade/a-letra-e-um-numero"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/criar-um-dicionario/meu-primeiro-dicionario",
+      "status": "ok",
+      "minimalCode": "def anotacao():\n    return {\"nome\": \"Ana\"}\n\n\ndef vazia():\n    return {}\n\n\ndef cardapio():\n    return {\"pao\": 4}\n",
+      "atoms": [
+        "node:Dict",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 11,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/criar-um-dicionario"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/pegar-pela-chave/pegando-pela-chave",
+      "status": "ok",
+      "minimalCode": "def pegar(d, chave):\n    return d[chave]\n",
+      "atoms": [
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/pegar-pela-chave"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/pegar-com-padrao/pegando-com-padrao",
+      "status": "ok",
+      "minimalCode": "def pegar(d, chave, padrao):\n    return d.get(chave, padrao)\n",
+      "atoms": [
+        "api:.get",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/pegar-com-padrao"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/guardar-uma-chave-nova/guardando-uma-chave-nova",
+      "status": "ok",
+      "minimalCode": "def guardar(d, chave, valor):\n    d[chave] = valor\n",
+      "atoms": [
+        "decl:assign",
+        "node:Assign",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Store",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/guardar-uma-chave-nova"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/apagar-uma-chave/apagando-uma-chave",
+      "status": "ok",
+      "minimalCode": "def apagar(d, chave):\n    del d[chave]\n",
+      "atoms": [
+        "node:Del",
+        "node:Delete",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Subscript",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/apagar-uma-chave"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/as-chaves-e-os-valores/separando-chaves-e-valores",
+      "status": "ok",
+      "minimalCode": "def chaves(d):\n    return d.keys()\n\n\ndef valores(d):\n    return d.values()\n",
+      "atoms": [
+        "api:.keys",
+        "api:.values",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/as-chaves-e-os-valores"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/chave-e-valor-juntos/os-pares-de-cada-chave",
+      "status": "ok",
+      "minimalCode": "def pares(d):\n    return d.items()\n",
+      "atoms": [
+        "api:.items",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/chave-e-valor-juntos"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/percorrer-um-dicionario/frases-do-dicionario",
+      "status": "ok",
+      "minimalCode": "def frases(d):\n    montadas = []\n    for chave, valor in d.items():\n        montadas.append(f\"{chave}={valor}\")\n    return montadas\n",
+      "atoms": [
+        "api:.append",
+        "api:.items",
+        "decl:assign",
+        "node:Assign",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:For",
+        "node:FormattedValue",
+        "node:FunctionDef",
+        "node:JoinedStr",
+        "node:List",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Store",
+        "node:StrLiteral",
+        "node:Tuple",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 6,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/percorrer-um-dicionario"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/a-chave-existe/a-chave-tem-dono",
+      "status": "ok",
+      "minimalCode": "def tem_chave(d, chave):\n    return chave in d\n",
+      "atoms": [
+        "node:Compare",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments",
+        "op:compare:in"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/a-chave-existe"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/juntar-dicionarios/juntando-dois-dicionarios",
+      "status": "ok",
+      "minimalCode": "def juntar(d, outro):\n    d.update(outro)\n",
+      "atoms": [
+        "api:.update",
+        "node:Attribute",
+        "node:Call",
+        "node:Expr",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/juntar-dicionarios"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/tirar-e-devolver/garantindo-e-tirando",
+      "status": "ok",
+      "minimalCode": "def garantir(d, chave, padrao):\n    return d.setdefault(chave, padrao)\n\n\ndef tirar_ultimo(d):\n    return d.popitem()\n",
+      "atoms": [
+        "api:.popitem",
+        "api:.setdefault",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/tirar-e-devolver"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/dicionario-de-listas/as-regioes",
+      "status": "ok",
+      "minimalCode": "def regioes():\n    return {\"sul\": [\"chapeco\", \"florianopolis\"], \"norte\": [\"manaus\"]}\n",
+      "atoms": [
+        "node:Dict",
+        "node:FunctionDef",
+        "node:List",
+        "node:Load",
+        "node:Return",
+        "node:StrLiteral",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 3,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/dicionario-de-listas"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/conjunto-sem-repetidos/sem-repetidos",
+      "status": "ok",
+      "minimalCode": "def unicos(numeros):\n    return set(numeros)\n\n\ndef dupla_de_conjuntos():\n    return [{1}, {2}]\n",
+      "atoms": [
+        "global:set",
+        "node:Call",
+        "node:FunctionDef",
+        "node:IntLiteral",
+        "node:List",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:Set",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/conjunto-sem-repetidos"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/contas-de-conjunto/juntando-e-intersecando",
+      "status": "ok",
+      "minimalCode": "def juntar(a, b):\n    return a.union(b)\n\n\ndef comuns(a, b):\n    return a.intersection(b)\n",
+      "atoms": [
+        "api:.intersection",
+        "api:.union",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/contas-de-conjunto"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/diferenca-e-subconjunto/diferenca-e-contido",
+      "status": "ok",
+      "minimalCode": "def so_em(a, b):\n    return a.difference(b)\n\n\ndef contido(a, b):\n    return a.issubset(b)\n",
+      "atoms": [
+        "api:.difference",
+        "api:.issubset",
+        "node:Attribute",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/diferenca-e-subconjunto"
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/a-chave-precisa-ser-imutavel/congelando-e-marcando",
+      "status": "ok",
+      "minimalCode": "def congelar(itens):\n    return frozenset(itens)\n\n\ndef marca(valor):\n    return hash(valor)\n",
+      "atoms": [
+        "global:frozenset",
+        "global:hash",
+        "node:Call",
+        "node:FunctionDef",
+        "node:Load",
+        "node:Name",
+        "node:Return",
+        "node:arg",
+        "node:arguments"
+      ],
+      "atomsDoTeste": [],
+      "linhas": 7,
+      "lacuna": [],
+      "excesso": [],
+      "orcamentoRef": "dicionarios-e-conjuntos/a-chave-precisa-ser-imutavel"
+    }
+  ],
+  "placar": {
+    "desafios": 113,
+    "passou": 113,
+    "semSolucao": 0,
+    "parseFalhou": 0,
+    "proverFalhou": 0,
+    "ignorados": 0,
+    "lacunas": 0,
+    "excessos": 51,
+    "naoMedidos": 0
+  }
+}

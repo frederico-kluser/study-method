@@ -22,6 +22,7 @@ import { OnboardingOverlay } from './components/OnboardingOverlay';
 import { TutorialSelectionModal } from './components/TutorialSelectionModal';
 import type { OnboardingProgress, OnboardingTutorialId } from './types/onboarding.types';
 import { onboardingStorageService } from './services/onboardingStorage.service';
+import { tutorialLauncherService } from './services/tutorialLauncher.service';
 
 export interface OnboardingHostProps {
   /** App liberado (startup-gate). O onboarding NUNCA abre antes disso. */
@@ -33,8 +34,10 @@ export interface OnboardingHostProps {
 }
 
 interface OnboardingControllerValue {
-  /** Reabre o tutorial a partir do início (ex.: botão de ajuda). */
+  /** Reabre o tutorial a partir do início (reset total do progresso). */
   openFromHelp: () => void;
+  /** Abre o modal de seleção (Quick Start ⟷ Tutorial Completo). */
+  openTutorialSelection: () => void;
   /** Progresso atual (ex.: badge 'em progresso'). */
   progress: OnboardingProgress;
 }
@@ -45,9 +48,12 @@ const OnboardingController = createContext<OnboardingControllerValue | null>(nul
 export function useOnboardingController(): OnboardingControllerValue {
   const ctx = useContext(OnboardingController);
   if (!ctx) {
-    // Fallback stand-alone (sem provider): devolve stubs seguros.
+    // Fallback stand-alone (sem provider): devolve stubs seguros. Fora do host
+    // o caminho REAL é o `tutorialLauncherService` (o botão de ajuda da
+    // SessionFrame vive fora deste provider — ver o serviço).
     return {
       openFromHelp: () => {},
+      openTutorialSelection: () => {},
       progress: onboardingStorageService.load() ?? { status: 'not_started', currentStepId: 'shell-app-title', updatedAt: 0 },
     };
   }
@@ -74,6 +80,19 @@ export function OnboardingHost({ isReady, activeView = 'home', onNavigateView }:
 
   const openTutorialSelection = useCallback(() => setSelectionOpen(true), []);
 
+  // LANÇADOR GLOBAL: o botão de ajuda da SessionFrame está FORA deste provider
+  // (o host é irmão do Shell na árvore do App). O registo acontece no efeito —
+  // com cleanup idempotente — para que `tutorialLauncherService.openSelection()`
+  // reabra o modal de seleção de qualquer lugar da UI.
+  useEffect(() => {
+    const openers = {
+      openSelection: openTutorialSelection,
+      restart: actions.openFromHelp,
+    };
+    tutorialLauncherService.register(openers);
+    return () => tutorialLauncherService.unregister(openers);
+  }, [openTutorialSelection, actions]);
+
   // Oferta de primeira execução: só com app liberado, estado novo e na home.
   useFirstRunTutorialPrompt({
     enabled: isReady,
@@ -99,8 +118,12 @@ export function OnboardingHost({ isReady, activeView = 'home', onNavigateView }:
   );
 
   const controllerValue = useMemo<OnboardingControllerValue>(
-    () => ({ openFromHelp: actions.openFromHelp, progress: state.progress }),
-    [actions, state.progress],
+    () => ({
+      openFromHelp: actions.openFromHelp,
+      openTutorialSelection,
+      progress: state.progress,
+    }),
+    [actions, openTutorialSelection, state.progress],
   );
 
   return (

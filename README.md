@@ -7,6 +7,10 @@ do que você já sabe e gráficos gerados a partir dos seus próprios dados.
 Cada desafio só chega até você depois que um harness **provou, executando**, que o teste dele não
 tem bug.
 
+> **Novo por aqui?** O passo a passo do primeiro dia — instalar, abrir, configurar as chaves,
+> estudar a primeira aula e resolver o primeiro desafio — está no
+> [`docs/TUTORIAL.md`](docs/TUTORIAL.md). Este README continua sendo o documento de projeto.
+
 ---
 
 ## Por que é diferente
@@ -412,6 +416,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 
 | Documento | Para quem |
 |---|---|
+| [`docs/TUTORIAL.md`](docs/TUTORIAL.md) | **Quem nunca usou e quer estudar já**: instalar, abrir, chaves, primeira aula, primeiro desafio, FAQ. |
 | `BUILD_SPEC.md` | Quem quer **reconstruir o projeto do zero**: o contrato de cada artefato, o que ele recebe, o que produz e como falha. |
 | [`docs/00-contratos.md`](docs/00-contratos.md) | Fonte única de verdade. Vocabulários, exit codes, árvore de arquivos, invariantes. Vence os outros. |
 | [`docs/01-arquitetura.md`](docs/01-arquitetura.md) | Como as peças se encaixam. |

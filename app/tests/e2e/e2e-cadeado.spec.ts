@@ -85,7 +85,7 @@ async function waitFullTypewriter(p: Page): Promise<void> {
     const doc = (globalThis as any).document;
     const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
     for (const el of statuses) {
-      if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return true;
+      if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return true;
     }
     return false;
   };
@@ -95,7 +95,7 @@ async function waitFullTypewriter(p: Page): Promise<void> {
       const doc = (globalThis as any).document;
       const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
       for (const el of statuses) {
-        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return false;
+        if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return false;
       }
       return true;
     },
@@ -122,7 +122,7 @@ test('e2e-cadeado: concluir a aula 1 destrava a aula 2 na Trilha — e a tela di
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // ── 1. O ESTADO INICIAL: a aula 2 tem CADEADO ───────────────────────────
   await page.getByText(LOCK_TRACK_TITLE, { exact: false }).first().click();
@@ -182,7 +182,7 @@ test('e2e-cadeado: "Avançar para a próxima aula" abre MESMO a aula seguinte', 
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByText(LOCK_TRACK_TITLE, { exact: false }).first().click();
   await tileDaAula(page, LESSON_ONE_TITLE).click();
   await page.getByRole('button', { name: 'Começar aula' }).click();

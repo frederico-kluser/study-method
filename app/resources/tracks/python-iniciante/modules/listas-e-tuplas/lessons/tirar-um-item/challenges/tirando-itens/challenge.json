@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Tirando itens\n\nEscreva duas funções que tiram itens de listas:\n\n- `tirar_ultimo(lista)` tira o último item com `pop` e devolve o item tirado;\n- `tirar(lista, item)` tira o item com `remove` e devolve a lista.\n\nExemplos:\n\n```text\ntirar_ultimo([[\"ana\", 10], [\"bia\", 20]])  ->  [\"bia\", 20]\ntirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10])  ->  [[\"bia\", 20]]\n```\n\nAs duas funções MEXEM na lista que receberam, como na aula. Nenhuma delas imprime nada.",
-  "starterCode": "# escreva aqui as funcoes tirar_ultimo e tirar\n",
-  "testsCode": "import unittest\n\nfrom solucao import tirar_ultimo\nfrom solucao import tirar\n\n\nclass TestTirarUmItem(unittest.TestCase):\n    def test_tira_o_ultimo(self):\n        \"\"\"tirar_ultimo devolve o ultimo item\"\"\"\n        self.assertEqual(tirar_ultimo([[\"ana\", 10], [\"bia\", 20]]), [\"bia\", 20])\n\n    def test_tira_o_escolhido(self):\n        \"\"\"tirar devolve a lista sem o item escolhido\"\"\"\n        self.assertEqual(tirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10]), [[\"bia\", 20]])\n\n    def test_tira_o_primeiro_que_achar(self):\n        \"\"\"tirar remove so o primeiro item igual\"\"\"\n        self.assertEqual(tirar([[\"x\", 1], [\"x\", 1], [\"y\", 2]], [\"x\", 1]), [[\"x\", 1], [\"y\", 2]])\n\n    def test_muda_a_lista(self):\n        \"\"\"tirar muda a lista passada\"\"\"\n        lista = [[\"a\", 1]]\n        tirar(lista, [\"a\", 1])\n        self.assertEqual(lista, [])\n",
-  "solutionCode": "def tirar_ultimo(lista):\n    return lista.pop()\n\n\ndef tirar(lista, item):\n    lista.remove(item)\n    return lista\n",
+  "statement": "# Tirando itens\n\nEscreva três funções do estoque:\n\n```python\ndef tirar_ultimo(lista):\n    # tire o ultimo item e devolva o item tirado\n\ndef tirar(lista, item):\n    # tire o item e devolva a lista\n\ndef faltam_para(lista, meta):\n    # devolva quantos itens faltam para a meta\n```\n\n`tirar_ultimo` tira o último item com `pop` e devolve o item tirado. `tirar` tira o item com `remove` e devolve a lista. `faltam_para` devolve quantos itens faltam para a lista chegar à meta (`meta - len(lista)`). Exemplos:\n\n```text\ntirar_ultimo([[\"ana\", 10], [\"bia\", 20]])  ->  [\"bia\", 20]\ntirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10])  ->  [[\"bia\", 20]]\nfaltam_para([1, 2], 5)  ->  3\nfaltam_para([1, 2, 3], 3)  ->  0\n```\n\nAs funções `tirar_ultimo` e `tirar` MEXEM na lista que receberam, como na aula. Elas devolvem o valor — nenhuma função imprime nada.",
+  "starterCode": "# escreva aqui as funcoes tirar_ultimo(lista), tirar(lista, item) e faltam_para(lista, meta)\n",
+  "testsCode": "import unittest\n\nfrom solucao import tirar_ultimo\nfrom solucao import tirar\nfrom solucao import faltam_para\n\n\nclass TestTirarUmItem(unittest.TestCase):\n    def test_tira_o_ultimo(self):\n        \"\"\"tirar_ultimo devolve o ultimo item\"\"\"\n        self.assertEqual(tirar_ultimo([[\"ana\", 10], [\"bia\", 20]]), [\"bia\", 20])\n\n    def test_tira_o_escolhido(self):\n        \"\"\"tirar devolve a lista sem o item escolhido\"\"\"\n        self.assertEqual(tirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10]), [[\"bia\", 20]])\n\n    def test_muda_a_lista(self):\n        \"\"\"tirar muda a lista passada\"\"\"\n        lista = [[\"a\", 1]]\n        tirar(lista, [\"a\", 1])\n        self.assertEqual(lista, [])\n\n    def test_faltam_para_a_meta(self):\n        \"\"\"faltam_para devolve quantos itens faltam para a meta\"\"\"\n        self.assertEqual(faltam_para([1, 2], 5), 3)\n        self.assertEqual(faltam_para([1, 2, 3], 3), 0)\n",
+  "solutionCode": "def tirar_ultimo(lista):\n    return lista.pop()\n\n\ndef tirar(lista, item):\n    lista.remove(item)\n    return lista\n\n\ndef faltam_para(lista, meta):\n    return meta - len(lista)\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -23,14 +23,14 @@
       "descricao": "tirar devolve a lista sem o item escolhido"
     },
     {
-      "id": "test_tira_o_primeiro_que_achar",
-      "teste": "test_tira_o_primeiro_que_achar",
-      "descricao": "tirar remove so o primeiro item igual"
-    },
-    {
       "id": "test_muda_a_lista",
       "teste": "test_muda_a_lista",
       "descricao": "tirar muda a lista passada"
+    },
+    {
+      "id": "test_faltam_para_a_meta",
+      "teste": "test_faltam_para_a_meta",
+      "descricao": "faltam_para devolve quantos itens faltam para a meta"
     }
   ]
 }

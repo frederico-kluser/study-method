@@ -548,6 +548,18 @@ export interface TrackChallengeSummaryDto {
 export interface TrackLessonPayload {
   slug: string;
   moduleSlug: string;
+  /**
+   * ONDA-CURSO-NO-SIDEBAR (pedido do dono, verbatim: *"quando estou na aula o
+   * left sidebar deve dizer qual é o curso que estamos fazendo"*): o NOME DO
+   * CURSO (o título da TRILHA a que a aula pertence) viaja com a aula — a
+   * LessonView o publica no sidebar (LessonSidebarHeader) para o aluno nunca
+   * perder de vista em que curso está. Sem ele o sidebar só sabia o título da
+   * AULA; duas trilhas podiam ter aulas com o mesmo nome e nada dizia qual o
+   * curso em curso. Sempre preenchido pelo main (`buildTrackLesson` lê
+   * `track.root.title`) — inclui os stubs de e2e, que passam pela mesma
+   * montagem.
+   */
+  trackTitle: string;
   title: string;
   summary: string;
   difficulty: number;

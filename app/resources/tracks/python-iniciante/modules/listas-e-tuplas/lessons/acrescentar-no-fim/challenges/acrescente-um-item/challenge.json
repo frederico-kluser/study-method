@@ -6,11 +6,11 @@
   "difficulty": 3,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Acrescente um item\n\nEscreva a função `adicionar` que põe um item no fim de uma lista e devolve a lista:\n\n```python\ndef adicionar(lista, item):\n    # acrescente o item no fim\n    # e devolva a lista\n```\n\nUse `append`, como na aula. Exemplos:\n\n```text\nadicionar([1, 2], 3)  ->  [1, 2, 3]\nadicionar([], 5)  ->  [5]\n```\n\nA função também MEXE na lista que recebeu: depois de `adicionar(lista, 0)` a própria `lista` tem um item a mais. A função devolve a lista — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao adicionar(lista, item)\n",
-  "testsCode": "import unittest\n\nfrom solucao import adicionar\n\n\nclass TestAcrescentarNoFim(unittest.TestCase):\n    def test_adiciona_ao_fim(self):\n        \"\"\"adicionar poe o item no fim e devolve a lista\"\"\"\n        self.assertEqual(adicionar([1, 2], 3), [1, 2, 3])\n\n    def test_adiciona_em_lista_vazia(self):\n        \"\"\"adicionar funciona com a lista vazia\"\"\"\n        self.assertEqual(adicionar([], 5), [5])\n\n    def test_muda_a_lista_original(self):\n        \"\"\"a lista passada fica com o item novo\"\"\"\n        lista = [9]\n        adicionar(lista, 0)\n        self.assertEqual(lista, [9, 0])\n",
-  "solutionCode": "def adicionar(lista, item):\n    lista.append(item)\n    return lista\n",
-  "expectedTestCount": 3,
+  "statement": "# Acrescente um item\n\nEscreva duas funções da fila do café:\n\n```python\ndef adicionar(lista, item):\n    # acrescente o item no fim\n    # e devolva a lista\n\ndef aviso(item):\n    # devolva o texto do painel\n```\n\n`adicionar` põe o item no fim da lista com `append` e devolve a lista. `aviso` devolve o texto que o painel mostra: `\"entrou \"` mais o item em forma de texto (`str(item)`). Exemplos:\n\n```text\nadicionar([1, 2], 3)  ->  [1, 2, 3]\nadicionar([], 5)  ->  [5]\naviso(5)  ->  entrou 5\naviso(\"ana\")  ->  entrou ana\n```\n\nA função `adicionar` também MEXE na lista que recebeu: depois de `adicionar(lista, 0)` a própria `lista` tem um item a mais. As funções devolvem o valor — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes adicionar(lista, item) e aviso(item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import adicionar\nfrom solucao import aviso\n\n\nclass TestAcrescentarNoFim(unittest.TestCase):\n    def test_adiciona_ao_fim(self):\n        \"\"\"adicionar poe o item no fim e devolve a lista\"\"\"\n        self.assertEqual(adicionar([1, 2], 3), [1, 2, 3])\n\n    def test_muda_a_lista_original(self):\n        \"\"\"a lista passada fica com o item novo\"\"\"\n        lista = [9]\n        adicionar(lista, 0)\n        self.assertEqual(lista, [9, 0])\n\n    def test_aviso_de_numero(self):\n        \"\"\"aviso devolve o texto do painel para um numero\"\"\"\n        self.assertEqual(aviso(5), \"entrou 5\")\n\n    def test_aviso_de_texto(self):\n        \"\"\"aviso devolve o texto do painel para um texto\"\"\"\n        self.assertEqual(aviso(\"ana\"), \"entrou ana\")\n",
+  "solutionCode": "def adicionar(lista, item):\n    lista.append(item)\n    return lista\n\n\ndef aviso(item):\n    return \"entrou \" + str(item)\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_adiciona_ao_fim",
@@ -18,14 +18,19 @@
       "descricao": "adicionar poe o item no fim e devolve a lista"
     },
     {
-      "id": "test_adiciona_em_lista_vazia",
-      "teste": "test_adiciona_em_lista_vazia",
-      "descricao": "adicionar funciona com a lista vazia"
-    },
-    {
       "id": "test_muda_a_lista_original",
       "teste": "test_muda_a_lista_original",
       "descricao": "a lista passada fica com o item novo"
+    },
+    {
+      "id": "test_aviso_de_numero",
+      "teste": "test_aviso_de_numero",
+      "descricao": "aviso devolve o texto do painel para um numero"
+    },
+    {
+      "id": "test_aviso_de_texto",
+      "teste": "test_aviso_de_texto",
+      "descricao": "aviso devolve o texto do painel para um texto"
     }
   ]
 }

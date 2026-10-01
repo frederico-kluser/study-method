@@ -21,6 +21,17 @@
  *      errou (proficiency/module): o ERRO é apresentado + botão "Gerar novo
  *      desafio" (proficiency) — comportamento atual preservado.
  *
+ * ONDA-REFAZER (pedido do dono, verbatim: "se eu erro um desafio eu não posso
+ * fazer ele de novo"): TODO veredito não-aprovado ('failed' OU 'timeout') tem
+ * o botão "Refazer desafio" para TODOS os targets — inclusive 'module' (que
+ * não regenera e era um beco sem saída dentro da sessão). O retry devolve a
+ * MESMA tentativa ao estado retomável pelas regras ÚNICAS de
+ * `planChallengeRetry`/`normalizeDraftForResume` (código e evidência do erro
+ * preservados; o relógio só recomeça quando a tentativa morreu). Para target
+ * 'lesson' o submit falho continua FECHANDO o painel (fluxo da bolha intacto)
+ * — a bolha de erro da aula ganhou o MESMO "Refazer desafio", que reabre o
+ * painel para o mesmo desafio (ver LessonView.handleRetryChallengeFromBubble).
+ *
  * A proficiência usa o MESMO painel (target 'proficiency'); ao passar, o main
  * grava o veredito e destrava a trilha inteira. ADITIVO (rodada 9): o desafio
  * do MÓDULO (target 'module' + moduleSlug) usa o mesmo painel — sem botão de
@@ -69,6 +80,10 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
+// ONDA-REFAZER: ícone do botão "Refazer desafio" na tela de veredito não-
+// aprovado (retry da MESMA tentativa — pedido do dono "se eu erro um desafio
+// eu não posso fazer ele de novo").
+import ReplayIcon from '@mui/icons-material/Replay';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -322,6 +337,69 @@ export function normalizeDraftForResume(draft: ChallengeDraft, timeLimitMs: numb
     return { ...draft, concluded: null, elapsedMs: 0, starsLeft: 3 };
   }
   return draft;
+}
+
+/**
+ * ONDA-REFAZER — o PLANO de "Refazer desafio" (DECISÃO PURA, exportada e
+ * medida sem montar o React — mesmo padrão de `shouldMarkAbandon`/
+ * `normalizeDraftForResume`/`restoreStarTracker`).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * O DEFEITO QUE ISTO MATA (pedido do dono, verbatim: "se eu erro um desafio
+ * eu não posso fazer ele de novo")
+ * ══════════════════════════════════════════════════════════════════════════
+ * Reprovado (ou com o tempo esgotado) o painel ficava SEM ação de repetir o
+ * MESMO desafio: `concluded !== null` travava o editor (`readOnly`) e o
+ * "Testar resposta" (`canSubmit` exige `!concluded`), e o único caminho que
+ * zerava o `concluded` era a REGENERAÇÃO — que para `target === 'module'` nem
+ * é renderizada (conteúdo autoral). O aluno reprovado ficava num beco sem
+ * saída DENTRO da própria sessão (o ACHADO 2 de `normalizeDraftForResume` já
+ * documentava o beco do rascunho persistido; este aqui é o beco da TELA).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * A DECISÃO: RETRY = `normalizeDraftForResume`, SEM segunda regra
+ * ══════════════════════════════════════════════════════════════════════════
+ * O significado de "refazer" é EXATAMENTE o de "retomar um veredito terminal
+ * salvo" — a regra já existe, está medida e mata o beco do rascunho
+ * persistido. DUAS regras para a mesma ideia divergiriam na primeira manutenção
+ * (o teste `challengeRetry.test.ts` prova a igualdade plano × normalização
+ * justamente para matar o mutante que reescreve uma delas):
+ *
+ *   - 'failed' (tentativa VIVA) → `concluded: null` mantendo `code`/
+ *     `filesCode`/`activeFile` (o aluno corrige o que escreveu) e o `result`
+ *     (a evidência do erro segue na tela — o checklist e a saída são o que o
+ *     aluno precisa para corrigir) e o relógio de onde parou;
+ *   - 'failed' ESTOURADO (`elapsedMs >= timeLimitMs`) e 'timeout' → a
+ *     tentativa MORREU: mesmos campos preservados, mas `elapsedMs: 0` e
+ *     `starsLeft: 3` (a tentativa NOVA recomeça o relógio — nunca o aluno com
+ *     um relógio já estourado, que reabriria o beco do primeiro tick: ver o
+ *     DEFEITO RESIDUAL na doc de `normalizeDraftForResume`);
+ *   - 'passed'/null → nada a refazer (o helper é TOTAL por segurança, mas a UI
+ *     só oferece retry em 'failed'/'timeout').
+ *
+ * `restartClock` é DERIVADO do resultado (os campos que a normalização mudou)
+ * e não uma segunda leitura das regras: só o ramo de tentativa morta zera o
+ * relógio, então "o `elapsedMs`/`starsLeft` mudou" ⇔ "a tentativa recomeça".
+ * É esse flag que diz ao painel se o relógio reancora em `Date.now()` (nova
+ * tentativa) ou em `Date.now() - elapsedMs` (tentativa viva que continua) e se
+ * o tracker volta a ser criado do zero ou reconstruído por `restoreStarTracker`.
+ */
+export interface ChallengeRetryPlan {
+  /** Rascunho RETOMÁVEL — idêntico ao de `normalizeDraftForResume`. */
+  draft: ChallengeDraft;
+  /** true quando a tentativa MORREU (timeout / failed estourado) e o relógio
+   *  e as estrelas recomeçam; false quando a tentativa VIVA continua. */
+  restartClock: boolean;
+}
+
+export function planChallengeRetry(draft: ChallengeDraft, timeLimitMs: number): ChallengeRetryPlan {
+  // As regras moram SÓ em `normalizeDraftForResume` — este plano só as consome
+  // e delas deriva o flag do relógio (nunca reescreve a decisão por veredito).
+  const retomado = normalizeDraftForResume(draft, timeLimitMs);
+  return {
+    draft: retomado,
+    restartClock: retomado.elapsedMs !== draft.elapsedMs || retomado.starsLeft !== draft.starsLeft,
+  };
 }
 
 /**
@@ -787,6 +865,93 @@ export function TrackChallengePanel({
     setStarsLeft(3);
   }, [spec, started]);
 
+  /**
+   * ONDA-REFAZER — "Refazer desafio" (pedido do dono, verbatim: "se eu erro um
+   * desafio eu não posso fazer ele de novo"): devolve a TENTATIVA reprovada
+   * (ou morta por timeout) ao estado retomável, para TODOS os targets
+   * ('lesson'/'module'/'proficiency' — o de módulo não tem regeneração e era
+   * o beco mais fundo).
+   *
+   * A DECISÃO INTEIRA mora em `planChallengeRetry` (e, por trás dele, em
+   * `normalizeDraftForResume` — regra ÚNICA, nunca duplicada): o código e a
+   * evidência do erro ficam na tela (o aluno CORRIGE, não recomeça do zero),
+   * o `concluded` volta a null (editor editável + "Testar resposta" ligado —
+   * derivados do MESMO estado de sempre) e só a tentativa MORTA recomeça o
+   * relógio (`elapsedMs: 0`, `starsLeft: 3`).
+   *
+   * ══════════════════════════════════════════════════════════════════════
+   * O QUE O RESET DOS REFS EVITA (o defeito documentado no tick, acima)
+   * ══════════════════════════════════════════════════════════════════════
+   * O efeito do tick roda `tick()` IMEDIATAMENTE quando `concluded` volta a
+   * null (ele tem `concluded` nas deps) e calcula `elapsed = Date.now() -
+   * startTsRef.current`. Sem reancorar o ref, aquele `elapsed` seria o tempo
+   * BRUTO desde o "Começar" — incluindo todo o tempo que o aluno passou lendo
+   * o veredito — e o PRIMEIRO tick reconcluiria 'timeout' na hora (o MESMO
+   * beco do "primeiro tick reancorado" que o ACHADO 2 registrou). Por isso,
+   * ANTES de qualquer setState (refs primeiro — o efeito só roda depois do
+   * commit, então a ordem é segura):
+   *
+   *   - tentativa NOVA (restartClock): `startTsRef = Date.now()` e tracker
+   *     criado do zero (3 estrelas, como o "Começar");
+   *   - tentativa VIVA: `startTsRef = Date.now() - elapsedMs` (o relógio segue
+   *     de onde parou — a mesma semântica de pausa do loadSpec) e o tracker
+   *     RECONSTRUÍDO por `restoreStarTracker` (a estrela perdida não volta nem
+   *     é cobrada duas vezes — a regra medida está na doc dele).
+   *
+   * O `marked` NÃO é tocado (nem aqui nem na normalização): ele é o "já tem
+   * terminal gravado" do `shouldMarkAbandon` e o dedupe do `markAttempt`. O
+   * retry que interessa — o aluno corrigir e PASSAR — é OUTRO veredito e entra
+   * no repo como `lastVerdict` novo (o repo é append; `summarizeAttempts`
+   * toma a última linha). Um segundo 'failed' seguido continua deduplicado
+   * (nunca-repetir intacto — não é este botão que muda a semântica do repo).
+   */
+  const handleRetry = useCallback((): void => {
+    if (!spec || (concluded !== 'failed' && concluded !== 'timeout')) return;
+    const plano = planChallengeRetry(
+      {
+        code,
+        filesCode,
+        activeFile,
+        started,
+        elapsedMs,
+        starsLeft,
+        concluded,
+        result,
+        marked: markedRef.current,
+      },
+      spec.timeLimitMs,
+    );
+    // Relógio e tracker PRIMEIRO (refs — ver a doc: o tick re-executa no
+    // commit e lê os dois; eles precisam estar coerentes antes do setState).
+    if (plano.restartClock) {
+      // A tentativa MORREU: relógio novo, tracker novo (mesmo molde do
+      // "Começar" — handleStart).
+      startTsRef.current = Date.now();
+      trackerRef.current = createStarTracker({
+        timeLimitMs: spec.timeLimitMs,
+        minFirstStarMs: spec.minFirstStarMs,
+      });
+    } else {
+      // Tentativa VIVA: relógio reancorado onde parou e tracker reconstruído
+      // pela regra pura (mesmo molde da restauração do loadSpec).
+      startTsRef.current = plano.draft.started ? Date.now() - plano.draft.elapsedMs : 0;
+      trackerRef.current = restoreStarTracker({
+        timeLimitMs: spec.timeLimitMs,
+        minFirstStarMs: spec.minFirstStarMs,
+        elapsedMs: plano.draft.elapsedMs,
+        starsLeft: plano.draft.starsLeft,
+      });
+    }
+    // O plano é SEMPRE "retomável" aqui (os dois vereditos de retry viram
+    // `concluded: null`): o editor (`readOnly={concluded !== null}`) e o
+    // "Testar resposta" (`canSubmit` exige `!concluded`) religam por derivação.
+    setConcluded(plano.draft.concluded);
+    setElapsedMs(plano.draft.elapsedMs);
+    setStarsLeft(plano.draft.starsLeft);
+    // code/filesCode/activeFile/result/marked ficam INTOCADOS de propósito: o
+    // plano os preserva (a normalização só mexe em concluded/relógio/estrelas).
+  }, [spec, concluded, code, filesCode, activeFile, started, elapsedMs, starsLeft, result]);
+
   // Tick de 1s: estrelas por demora + timeout.
   useEffect(() => {
     if (!started || concluded) return undefined;
@@ -935,7 +1100,13 @@ export function TrackChallengePanel({
       if (res.ok) {
         setResult(res);
         if (res.passed) {
-          setConcluded('passed');
+          // S9 (auditoria de UX): com o relógio já estourado DURANTE o submit,
+          // o veredito do relógio ('timeout') FICA — o resultado da tentativa
+          // segue visível (aviso dedicado + caixa do resultado), sem a
+          // sobreposição silenciosa em que o ecrã mudava de veredito duas
+          // vezes (timeout → passed/failed). update funcional: o `concluded`
+          // da closure é o do início do submit.
+          setConcluded((prev) => (prev === 'timeout' ? prev : 'passed'));
           fireConfetti();
         } else if (selection.target === 'lesson') {
           // ONDA2 (error-flow): desafio de AULA que FALHOU → o painel FECHA e o
@@ -966,15 +1137,24 @@ export function TrackChallengePanel({
           nav.navigateToLesson();
           return; // o painel fecha antes de renderizar a bolha determinística
         } else {
-          setConcluded('failed');
+          // S9: idem ao passo — 'timeout' do relógio não é sobrescrito em
+          // silêncio (o resultado da tentativa segue visível junto).
+          setConcluded((prev) => (prev === 'timeout' ? prev : 'failed'));
         }
       } else {
-        setSubmissionError(res.error?.message ?? 'erro ao testar');
+        // W9 (onda-ux): fallback SEMPRE i18n (o literal 'erro ao testar' era
+        // copy cru sem chave, igual no pt e no en).
+        setSubmissionError(res.error?.message ?? tI('challenge.deterministicError'));
       }
     } catch (err) {
       // Guard de montagem: idem — desmontado, nem o catch seta estado.
       if (cancelledRef.current) return;
-      setSubmissionError(isTimeoutError(err) ? tI('challenge.submitTimeout') : String(err));
+      // W9: `String(err)` nunca como frase principal — frase i18n; o cru vai
+      // para o consolo (detalhe técnico).
+      console.warn('[TrackChallengePanel] submit falhou:', err);
+      setSubmissionError(
+        isTimeoutError(err) ? tI('challenge.submitTimeout') : tI('challenge.deterministicError'),
+      );
     } finally {
       // Idem loadSpec: o finally também só roda montado.
       if (!cancelledRef.current) setRunning(false);
@@ -1046,14 +1226,17 @@ export function TrackChallengePanel({
         draftKeyRef.current = challengeDraftKeyFor(selection, res.challenge.slug);
         draftHolderRef.current = null;
       } else {
-        const msg = res.error?.message ?? 'não foi possível gerar um novo desafio';
+        // W9: fallback i18n (antes literal cru 'não foi possível gerar…').
+        const msg = res.error?.message ?? tI('challenge.regenerateFailed');
         failChallengeGenerate(msg, generationId);
         setSubmissionError(msg);
       }
     } catch (err) {
       // Guard de montagem: idem — desmontado, nem o catch seta estado.
       if (cancelledRef.current) return;
-      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err);
+      // W9: `String(err)` nunca como frase principal.
+      console.warn('[TrackChallengePanel] regeneração falhou:', err);
+      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : tI('challenge.regenerateFailed');
       failChallengeGenerate(msg, generationId);
       setSubmissionError(msg);
     } finally {
@@ -1145,6 +1328,16 @@ export function TrackChallengePanel({
     (multiFile
       ? spec.files!.every((f) => (filesCode[f.path] ?? '').trim().length > 0)
       : code.trim().length > 0);
+  // W14 (auditoria de UX): o "Testar resposta" desativado era um CTA MUDO — o
+  // aluno via o botão e não sabia o que faltava (e, com 2–3 ficheiros, nem
+  // QUAL). `missingFile` alimenta o helper dinâmico por baixo do botão: o
+  // primeiro ficheiro por preencher (multi-arquivo) ou a solução em falta
+  // (ficheiro único — o rótulo não leva nome de ficheiro).
+  const missingFile: string | null = multiFile
+    ? (spec.files!.find((f) => (filesCode[f.path] ?? '').trim().length === 0)?.path ?? null)
+    : code.trim().length === 0
+      ? 'solution.mjs'
+      : null;
 
   return (
     // ONDA-INPUT-ANCORADO (bug: "o input sobe quando a view tem menos
@@ -1329,10 +1522,26 @@ export function TrackChallengePanel({
               >
                 {t('translation:challenge.testButton')}
               </Button>
+              {/* W14: helper dinâmico — botão desativado NUNCA fica mudo. Só
+                  aparece pela FALTA de código (nem em corrida, nem depois do
+                  veredito, onde o botão está desativado por ter terminado). */}
+              {!canSubmit && !running && !concluded && missingFile !== null ? (
+                <Typography
+                  variant="caption"
+                  role="status"
+                  sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}
+                >
+                  {multiFile
+                    ? tI('translation:challenge.fillFileToTest', { file: missingFile })
+                    : t('translation:challenge.fillSolutionToTest')}
+                </Typography>
+              ) : null}
             </Box>
 
-            {/* Ato 3: veredito. */}
-            {concluded === 'passed' ? (
+            {/* Ato 3: veredito. S9: a caixa de SUCESSO também aparece com o
+                relógio estourado se a tentativa em voo PASSOU — o resultado
+                segue (o veredito do relógio mantém-se, com o aviso abaixo). */}
+            {concluded === 'passed' || (concluded === 'timeout' && result?.passed === true) ? (
               <Stack spacing={1}>
                 <Alert severity="success">{tI('challenge.passedAnnounce', { stars: starsLeft })}</Alert>
                 {/* ONDA 4 (next-glow): pós-sucesso de um desafio de AULA → o
@@ -1368,8 +1577,35 @@ export function TrackChallengePanel({
               <Alert severity="warning">{t('translation:challenge.timedOutAnnounce')}</Alert>
             ) : null}
 
+            {/* S9 (auditoria de UX): o relógio estourou COM o submit em voo e
+                o resultado chegou depois — a tentativa CONTINHOU e o seu
+                resultado está na tela (caixa própria). Antes, este caso
+                simplesmente sobrescrevia o veredito em silêncio e o aluno via
+                o ecrã mudar de "Tempo esgotado" para outro veredito sem
+                explicação. */}
+            {concluded === 'timeout' && result !== null ? (
+              <Alert severity="info">{t('translation:challenge.timeoutDuringSubmit')}</Alert>
+            ) : null}
+
             {result && !result.passed ? (
-              <Alert severity="error" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+              // S10 (auditoria de UX): resultado PARCIAL (checks passados > 0
+              // com passed=false) não é a mesma coisa que falhar tudo — o
+              // `severity="error"` para tudo inflacionava a gravidade e
+              // destoava do checklist logo acima ("N de M testes passaram").
+              // "error" fica para quando NADA passa. Corpo da saída a 13px
+              // (era 12px — abaixo da legibilidade da casa).
+              <Alert
+                severity={result.passedCount > 0 ? 'warning' : 'error'}
+                sx={(theme) => ({
+                  fontFamily: 'monospace',
+                  // S10: o corpo da saída sobe de 12px para 13px — PELO TOKEN
+                  // da casa (`typography.pixel.fontSize` = 13, escala pinada em
+                  // theme.ts) e não pelo literal `0.8125rem`, que a guarda do
+                  // design system proíbe em src/ (tests/chatCodePresentation:
+                  // "o 13px literal não existe mais").
+                  fontSize: theme.typography.pixel.fontSize,
+                })}
+              >
                 {/* ONDA 1 (checks por teste): razão PARCIAL (N de M) + checklist
                     individual — o veredito não é tudo-ou-nada; o aluno vê o que
                     passou e o que falta antes da próxima tentativa. Sem checks
@@ -1448,49 +1684,78 @@ export function TrackChallengePanel({
               </Alert>
             ) : null}
 
-            {/* Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
-                erro + botão de NOVO desafio. Veredito parcial (passou alguns
-                testes) também conta como não-aprovação: só passed=true aprova.
-                ONDA2 (error-flow): para target 'lesson' este botão NÃO chega a
-                renderizar no submit falho — o painel FECHA e a regeneração
-                migrou para a bolha de erro no chat da aula. Aqui ele segue
-                para a proficiência. ADITIVO (rodada 9): desafios de MÓDULO são
-                autorais — a regeneração é por AULA, então não aparece para
-                target 'module'.
+            {/* ONDA-REFAZER (pedido do dono, verbatim: "se eu erro um desafio
+                eu não posso fazer ele de novo"): "Refazer desafio" é a PRIMEIRA
+                ação de TODO veredito não-aprovado ('failed' OU 'timeout') e
+                vale para TODOS os targets — inclusive 'module' (desafio
+                autoral, sem regeneração: antes este alvo não tinha NENHUM
+                botão aqui e o aluno morria no beco da sessão). O retry devolve
+                a MESMA tentativa ao estado retomável (código e evidência do
+                erro preservados — ver `handleRetry`/`planChallengeRetry`),
+                nunca gera desafio novo.
+                Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
+                erro + ações de saída. Veredito parcial (passou alguns testes)
+                também conta como não-aprovação: só passed=true aprova.
+                ONDA2 (error-flow): para target 'lesson' o SUBMIT falho não
+                chega a renderizar aqui — o painel FECHA e a discussão migra
+                para a bolha de erro no chat da aula (que também ganhou o
+                "Refazer desafio" — ver a LessonView). O que sobra neste
+                veredito para 'lesson' é o TIMEOUT do tick.
+                ADITIVO (rodada 9): desafios de MÓDULO são autorais — a
+                regeneração é por AULA, então "Gerar novo desafio" continua
+                AUSENTE para target 'module' (comportamento documentado,
+                intacto).
                 ONDA2 (falha-ver-aula): o desafio de aula TENTADO ANTES DA AULA
-                (flag do card) que chega a uma tela de veredito terminal (o
-                caminho real é o TIMEOUT do tick — o submit falho fecha o
-                painel antes) NÃO oferece "Gerar novo desafio": a 1ª falha é
-                antes da aula, e o dono manda levar o aluno de VOLTA à aula
-                ("Ver a aula"), que recomeça do início; só a 2ª falha gera
-                desafio novo. O relatório para a bolha, quando existe, já foi
-                reportado no submit; no timeout não há resultado de runner — a
-                volta é sem bolha, e o card 'failed' da aula conduz o retry do
+                (flag do card) mantém o "Ver a aula" da 1ª falha (o dono manda
+                levar o aluno de VOLTA à aula, que recomeça do início) — e agora
+                também pode refazer o MESMO teste direto daqui. Só a 2ª falha
+                gera desafio novo. O relatório para a bolha, quando existe, já
+                foi reportado no submit; no timeout não há resultado de runner —
+                a volta é sem bolha, e o card 'failed' da aula conduz o retry do
                 MESMO desafio. */}
-            {selection.target !== 'module' && (concluded === 'failed' || concluded === 'timeout') ? (
-              selection.target === 'lesson' && selection.attemptedBeforeLesson === true ? (
+            {concluded === 'failed' || concluded === 'timeout' ? (
+              <Stack useFlexGap direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   color="primary"
-                  onClick={() => nav.navigateToLesson()}
-                  startIcon={<MenuBookIcon />}
+                  onClick={handleRetry}
+                  startIcon={<ReplayIcon />}
+                  aria-label={tI('challenge.retryButtonAria', { title: spec.title })}
+                  // "quebra, nunca recorta": rótulo quebra linha em contêiner
+                  // estreito em vez de ser cortado; alvo de toque ≥ 44px
+                  // (piso do design system, TOUCH_TARGET_PX).
+                  sx={{ minHeight: 44, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
                 >
-                  {t('translation:lesson.viewLessonButton')}
+                  {t('translation:challenge.retryButton')}
                 </Button>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => void handleRegenerate()}
-                  // ONDA3 (generate-flow): o gating também cobre o processo
-                  // GLOBAL em voo (o modal pode estar rodando mesmo se este
-                  // painel montou depois do disparo).
-                  disabled={regenerating || generateRunning}
-                  startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
-                >
-                  {t('translation:challenge.regenerateButton')}
-                </Button>
-              )
+                {selection.target !== 'module' ? (
+                  selection.target === 'lesson' && selection.attemptedBeforeLesson === true ? (
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => nav.navigateToLesson()}
+                      startIcon={<MenuBookIcon />}
+                      sx={{ minHeight: 44, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                    >
+                      {t('translation:lesson.viewLessonButton')}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => void handleRegenerate()}
+                      // ONDA3 (generate-flow): o gating também cobre o processo
+                      // GLOBAL em voo (o modal pode estar rodando mesmo se este
+                      // painel montou depois do disparo).
+                      disabled={regenerating || generateRunning}
+                      startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                      sx={{ minHeight: 44, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                    >
+                      {t('translation:challenge.regenerateButton')}
+                    </Button>
+                  )
+                ) : null}
+              </Stack>
             ) : null}
 
             {concluded === 'passed' && selection.target === 'proficiency' ? (

@@ -205,6 +205,8 @@ function onScreen(html: string): string {
 const AULA: TrackLessonPayload = {
   slug: 'a-primeira-linha',
   moduleSlug: 'a-tela',
+  // ONDA-CURSO-NO-SIDEBAR: o nome do curso (trilha) que o sidebar exibe.
+  trackTitle: 'Python do zero',
   title: 'A primeira linha',
   summary: 'Você escreve uma linha, manda rodar, e ela aparece na tela.',
   difficulty: 1,

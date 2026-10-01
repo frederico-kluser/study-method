@@ -5,21 +5,26 @@
   "concept": "crescer_texto",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# O texto que cresce\n\nA função `crescer` recebe o texto como `String` mutável — o parâmetro `mut texto` —, faz ele crescer com `.push_str` e devolve a caixa:\n\n- `crescer(String::from(\"oi\"))` devolve `oi!!!`;\n- `crescer(String::from(\"socorro\"))` devolve `socorro!!!`.\n\nEmpurre o `!!!` para o fim da caixa e devolva ela mesma: a última expressão é o `texto`.",
-  "starterCode": "pub fn crescer(mut texto: String) -> String {\n    todo!()\n}\n",
-  "solutionCode": "pub fn crescer(mut texto: String) -> String {\n    texto.push_str(\"!!!\");\n    texto\n}\n",
-  "testsCode": "use desafio::crescer;\n\n#[test]\nfn testa_o_crescimento_de_oi() {\n    assert_eq!(crescer(String::from(\"oi\")), \"oi!!!\");\n}\n\n#[test]\nfn testa_o_crescimento_de_socorro() {\n    assert_eq!(crescer(String::from(\"socorro\")), \"socorro!!!\");\n}\n",
+  "statement": "# O texto que cresce\n\nA função `crescer` recebe o texto como `String` mutável — o parâmetro `mut texto` —, se o pedido é urgente e o nível do pedido. Ela faz o texto crescer com `.push_str` e devolve a caixa; o sufixo sai calculado das duas respostas:\n\n- urgente E nível acima de 5 → sufixo `!!!` (`crescer(String::from(\"oi\"), true, 8)` devolve `oi!!!`);\n- urgente com nível 5 ou menos → sufixo `!` (`crescer(String::from(\"socorro\"), true, 2)` devolve `socorro!`);\n- sem urgência, mesmo acima de 5 → sufixo `!` (`crescer(String::from(\"oi\"), false, 8)` devolve `oi!`).\n\nA condição junta as duas respostas com `&&` e compara com `>`: só `urgente && nivel > 5` leva `!!!`. Empurre o sufixo para o fim da caixa e devolva ela mesma: a última expressão é o `texto`.",
+  "starterCode": "pub fn crescer(mut texto: String, urgente: bool, nivel: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn crescer(mut texto: String, urgente: bool, nivel: i32) -> String {\n    if urgente && nivel > 5 {\n        texto.push_str(\"!!!\");\n    } else {\n        texto.push_str(\"!\");\n    }\n    texto\n}\n",
+  "testsCode": "use desafio::crescer;\n\n#[test]\nfn testa_o_crescimento_do_urgente_alto() {\n    assert_eq!(crescer(String::from(\"oi\"), true, 8), \"oi!!!\");\n}\n\n#[test]\nfn testa_o_crescimento_do_urgente_baixo() {\n    assert_eq!(crescer(String::from(\"socorro\"), true, 2), \"socorro!\");\n}\n\n#[test]\nfn testa_o_crescimento_do_calmo_alto() {\n    assert_eq!(crescer(String::from(\"oi\"), false, 8), \"oi!\");\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "crescer deve devolver \"oi!!!\" — o texto recebido crescido com push_str.",
-      "teste": "testa_o_crescimento_de_oi"
+      "descricao": "crescer com urgente=true e nivel=8 deve devolver \"oi!!!\" — as duas condições do && satisfeitas levam o sufixo grande.",
+      "teste": "testa_o_crescimento_do_urgente_alto"
     },
     {
       "id": "REQ-2",
-      "descricao": "crescer deve devolver \"socorro!!!\" — o texto recebido crescido com push_str.",
-      "teste": "testa_o_crescimento_de_socorro"
+      "descricao": "crescer com urgente=true e nivel=2 deve devolver \"socorro!\" — urgente sozinho, sem o nível acima de 5, leva o sufixo pequeno.",
+      "teste": "testa_o_crescimento_do_urgente_baixo"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "crescer com urgente=false e nivel=8 deve devolver \"oi!\" — o nível alto sozinho, sem urgência, leva o sufixo pequeno.",
+      "teste": "testa_o_crescimento_do_calmo_alto"
     }
   ],
-  "expectedTestCount": 2
+  "expectedTestCount": 3
 }

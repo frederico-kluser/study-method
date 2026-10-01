@@ -6,11 +6,11 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# A nota da tabela\n\nCrie a função `nota_de(tabela, linha, coluna)`, que devolve a nota que está na linha `linha` e na coluna `coluna` de uma tabela de notas (uma lista de listas).\n\n```text\n>>> tabela = [[7, 8], [9, 6]]\n>>> nota_de(tabela, 1, 0)\n9\n```\n\nUse dois índices seguidos, como na aula: `tabela[linha][coluna]`.",
-  "starterCode": "def nota_de(tabela, linha, coluna):\n    # devolva o item da tabela com dois indices: tabela[linha][coluna]\n    pass\n",
-  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestListaDeListas(unittest.TestCase):\n    def test_nota_de_pega_a_nota_da_linha_e_coluna(self):\n        \"\"\"nota_de devolve a nota na linha e na coluna pedidas\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 1, 0), 9)\n\n    def test_nota_de_com_uma_linha_so(self):\n        \"\"\"nota_de com uma linha so usa a coluna dentro dela\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[5]], 0, 0), 5)\n\n    def test_nota_de_com_outra_celula(self):\n        \"\"\"nota_de devolve a nota de outra celula da tabela\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 0, 1), 8)\n",
-  "solutionCode": "def nota_de(tabela, linha, coluna):\n    return tabela[linha][coluna]\n",
-  "expectedTestCount": 3,
+  "statement": "# A nota da tabela\n\nCrie a função `nota_de(tabela, linha, coluna)`, que devolve a nota que está na linha `linha` e na coluna `coluna` de uma tabela de notas (uma lista de listas).\n\nCrie também a função `nota_em_texto(tabela, linha, coluna)`, que devolve a mesma nota **em texto**, montada para o boletim: a frase `nota: ` seguida da nota. A nota vem como número; para colá-la na frase com `+`, transforme-a em texto com `str`, como na aula `de-texto-para-numero`.\n\n```text\n>>> tabela = [[7, 8], [9, 6]]\n>>> nota_de(tabela, 1, 0)\n9\n>>> nota_em_texto(tabela, 1, 0)\n\"nota: 9\"\n```\n\nUse dois índices seguidos, como na aula: `tabela[linha][coluna]`.",
+  "starterCode": "def nota_de(tabela, linha, coluna):\n    # devolva o item da tabela com dois indices: tabela[linha][coluna]\n    pass\n\n\ndef nota_em_texto(tabela, linha, coluna):\n    # devolva \"nota: \" seguido da nota, colados com + e str\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestListaDeListas(unittest.TestCase):\n    def test_nota_de_pega_a_nota_da_linha_e_coluna(self):\n        \"\"\"nota_de devolve a nota na linha e na coluna pedidas\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 1, 0), 9)\n\n    def test_nota_de_com_outra_celula(self):\n        \"\"\"nota_de devolve a nota de outra celula da tabela\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 0, 1), 8)\n\n    def test_nota_em_texto_monta_a_frase(self):\n        \"\"\"nota_em_texto devolve a nota em texto, montada na frase do boletim\"\"\"\n        self.assertEqual(rodar()[\"nota_em_texto\"]([[7, 8], [9, 6]], 1, 0), \"nota: 9\")\n\n    def test_nota_em_texto_com_outra_celula(self):\n        \"\"\"nota_em_texto devolve a frase com a nota de outra celula\"\"\"\n        self.assertEqual(rodar()[\"nota_em_texto\"]([[7, 8], [9, 6]], 0, 1), \"nota: 8\")\n",
+  "solutionCode": "def nota_de(tabela, linha, coluna):\n    return tabela[linha][coluna]\n\n\ndef nota_em_texto(tabela, linha, coluna):\n    return \"nota: \" + str(tabela[linha][coluna])\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_nota_de_pega_a_nota_da_linha_e_coluna",
@@ -18,14 +18,19 @@
       "descricao": "nota_de devolve a nota na linha e na coluna pedidas"
     },
     {
-      "id": "test_nota_de_com_uma_linha_so",
-      "teste": "test_nota_de_com_uma_linha_so",
-      "descricao": "nota_de com uma linha so usa a coluna dentro dela"
-    },
-    {
       "id": "test_nota_de_com_outra_celula",
       "teste": "test_nota_de_com_outra_celula",
       "descricao": "nota_de devolve a nota de outra celula da tabela"
+    },
+    {
+      "id": "test_nota_em_texto_monta_a_frase",
+      "teste": "test_nota_em_texto_monta_a_frase",
+      "descricao": "nota_em_texto devolve a nota em texto, montada na frase do boletim"
+    },
+    {
+      "id": "test_nota_em_texto_com_outra_celula",
+      "teste": "test_nota_em_texto_com_outra_celula",
+      "descricao": "nota_em_texto devolve a frase com a nota de outra celula"
     }
   ]
 }

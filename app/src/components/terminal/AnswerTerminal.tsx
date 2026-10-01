@@ -80,7 +80,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import Paper from '@mui/material/Paper';
 import { useColorScheme } from '@mui/material/styles';
-import { buildTestBannerLines, type TerminalBannerInput } from '../../lib/terminalBanner';
+import { buildTestBannerLines, type TerminalBannerInput, type TerminalBannerLabels } from '../../lib/terminalBanner';
 import {
   codeTypography,
   terminalColors,
@@ -294,6 +294,11 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
         <div
           ref={containerRef}
           className="answer-terminal__viewport"
+          // W2: a saída dos testes é um LOG (linhas que só crescem) — role
+          // "log" dá semântica de registro e live polite embutido, e o
+          // aria-label (chave `challenge.outputAria`, vinda da view) nomeia a
+          // região para a AT.
+          role="log"
           aria-label={_props['aria-label']}
         />
       </Paper>
@@ -305,10 +310,16 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
  * Imprime o banner PASS/FAIL no terminal dado o resultado determinístico.
  * Usado pela ChallengeView após `study.testAnswer`. A composição das linhas
  * vive em `lib/terminalBanner.ts` (função pura testável); aqui só se itera.
+ * S4 (auditoria de UX): os TEXTOS chegam traduzidos em `labels` (quem chama
+ * tem `t()`) — o módulo puro já não tem uma única frase escrita à mão.
  */
-export function printTestBanner(terminal: AnswerTerminalHandle, input: TerminalBannerInput): void {
+export function printTestBanner(
+  terminal: AnswerTerminalHandle,
+  input: TerminalBannerInput,
+  labels: TerminalBannerLabels,
+): void {
   terminal.clear();
-  for (const line of buildTestBannerLines(input)) {
+  for (const line of buildTestBannerLines(input, labels)) {
     terminal.writeLine(line.text, line.color);
   }
 }

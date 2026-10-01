@@ -22,7 +22,7 @@ test('e2e-i18n: default pt-BR; trocar para en reflete e grava localStorage', asy
 
   // Default pt-BR: aba "Aula" visível.
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // Abre o switcher de idioma (AppBar) e escolhe English.
   await page.getByLabel('Select language').click();

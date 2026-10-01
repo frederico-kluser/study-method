@@ -30,7 +30,16 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { getApi } from '../../lib/apiBridge';
 import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 
-type Feedback = { kind: 'done' } | { kind: 'error'; message: string } | null;
+// W19 (onda-ux): a frase do erro é i18n; `String(err)`/`res.error` viram
+// detalhe técnico OPCIONAL (legenda) — nunca a frase principal da UI.
+type Feedback = { kind: 'done' } | { kind: 'error'; message: string; detail?: string } | null;
+
+/**
+ * Piso de alvo de toque (px) — W21 (onda-ux): o piso de 44 da casa aplicado a
+ * TODOS os botões deste painel (os default nascem ~36px). Mesmo valor/constante
+ * de LocalAiPanel e placeholders.tsx.
+ */
+const TOUCH_TARGET_PX = 44;
 
 export function ProgressPanel(): ReactElement {
   const { t } = useTranslation();
@@ -51,14 +60,19 @@ export function ProgressPanel(): ReactElement {
       if (res.ok) {
         setFeedback({ kind: 'done' });
       } else {
-        setFeedback({ kind: 'error', message: res.error ?? t('translation:settings.clearProgressError') });
+        setFeedback({
+          kind: 'error',
+          message: t('translation:settings.clearProgressError'),
+          detail: res.error,
+        });
       }
     } catch (err) {
       setFeedback({
         kind: 'error',
         message: isTimeoutError(err)
           ? t('translation:settings.clearProgressTimeout')
-          : String(err),
+          : t('translation:settings.clearProgressError'),
+        detail: String(err),
       });
     } finally {
       // Fecha o diálogo nos TRÊS caminhos (sucesso, falha de negócio e
@@ -89,6 +103,7 @@ export function ProgressPanel(): ReactElement {
         onClick={() => setConfirmOpen(true)}
         disabled={busy}
         aria-label={t('translation:settings.clearProgress')}
+        sx={{ minHeight: TOUCH_TARGET_PX }}
       >
         {t('translation:settings.clearProgress')}
       </Button>
@@ -100,7 +115,14 @@ export function ProgressPanel(): ReactElement {
       ) : null}
       {feedback?.kind === 'error' ? (
         <Alert severity="error" sx={{ mt: 1.5 }}>
-          {feedback.message}
+          <Typography component="span" variant="body2" sx={{ display: 'block' }}>
+            {feedback.message}
+          </Typography>
+          {feedback.detail ? (
+            <Typography component="span" variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+              {feedback.detail}
+            </Typography>
+          ) : null}
         </Alert>
       ) : null}
 
@@ -119,10 +141,23 @@ export function ProgressPanel(): ReactElement {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={busy}>
+          {/* W18 (onda-ux): o foco inicial é do "Cancelar" (autoFocus) — num
+              diálogo DESTRUTIVO o Enter nunca pode apagar por acidente. */}
+          <Button
+            onClick={() => setConfirmOpen(false)}
+            disabled={busy}
+            autoFocus
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+          >
             {t('translation:common.cancel')}
           </Button>
-          <Button onClick={() => void handleClear()} color="error" variant="contained" disabled={busy} autoFocus>
+          <Button
+            onClick={() => void handleClear()}
+            color="error"
+            variant="contained"
+            disabled={busy}
+            sx={{ minHeight: TOUCH_TARGET_PX }}
+          >
             {busy ? t('translation:settings.clearProgressBusy') : t('translation:settings.clearProgressConfirmAction')}
           </Button>
         </DialogActions>

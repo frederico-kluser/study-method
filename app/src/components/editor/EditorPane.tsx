@@ -45,8 +45,18 @@ export interface EditorPaneHandle {
   openFile: (path: string) => void;
   /** Cria um novo arquivo e o abre. */
   createFile: (name: string) => void;
-  /** Exclui um arquivo (já confirmado pela UI). */
+  /**
+   * Exclui um arquivo. Chamado DEPOIS do diálogo de confirmação do
+   * FileExplorer (C2) — a confirmação vive no explorer, não aqui.
+   */
   deleteFile: (path: string) => void;
+  /**
+   * Salva TODOS os buffers sujos em disco; `false` se algum write falhou.
+   * A ChallengeView chama ANTES de `study.testAnswer` (C1): o teste roda o
+   * código DO DISCO, então um buffer sujo não salvo seria medido como código
+   * velho — o "Testar resposta" testaria outra coisa que não o editor.
+   */
+  save: () => Promise<boolean>;
 }
 
 export interface EditorPaneProps {
@@ -72,6 +82,9 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
   ref,
 ): ReactElement {
   const { t } = useTranslation();
+  // t() com interpolação (cast documentado na ChallengeView): `saveAria` leva
+  // {{shortcut}} — o atalho também chega a quem usa leitor de tela (S5).
+  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
   const [tabs, dispatch] = useReducer(editorTabsReducer, initialEditorTabs);
   const [error, setError] = useState('');
   const [busyPath, setBusyPath] = useState<string | null>(null);
@@ -180,7 +193,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
     [workspaceDir, apiWrite, onFilesChanged, openFile, t],
   );
 
-  // Excluir arquivo (a toolbar já confirmou).
+  // Excluir arquivo (o diálogo de confirmação do FileExplorer já passou).
   const deleteFile = useCallback(
     async (path: string): Promise<void> => {
       setError('');
@@ -209,6 +222,22 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
     if (active) void saveTab(active.path);
   }, [active, saveTab]);
 
+  /**
+   * Salva TODOS os buffers sujos (não só o ativo) e devolve sucesso (C1).
+   * Quem chama é a ChallengeView antes de testar: `testAnswer` executa o
+   * código do DISCO, e cada aba suja é código que o teste não veria. Falha de
+   * write em qualquer aba devolve `false` — o chamador decide não testar.
+   */
+  const saveAllDirty = useCallback(async (): Promise<boolean> => {
+    let ok = true;
+    for (const tab of tabs.tabs) {
+      if (!tab.dirty) continue;
+      const saved = await saveTab(tab.path);
+      if (!saved) ok = false;
+    }
+    return ok;
+  }, [tabs.tabs, saveTab]);
+
   // Expõe as operações de arquivo ao FileExplorer (pai).
   useImperativeHandle(
     ref,
@@ -216,8 +245,9 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
       openFile: (path) => void openFile(path),
       createFile,
       deleteFile: (path) => void deleteFile(path),
+      save: saveAllDirty,
     }),
-    [openFile, createFile, deleteFile],
+    [openFile, createFile, deleteFile, saveAllDirty],
   );
 
   const empty = tabs.tabs.length === 0;
@@ -229,7 +259,14 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
           size="small"
           variant="text"
           startIcon={<SaveIcon />}
-          title={`${t('translation:editor.save')} (Ctrl+S ou ⌘S)`}
+          // S5 (auditoria de UX): o atalho vivia SÓ no `title` (hover) — para
+          // quem usa leitor de tela ou chega por teclado, o botão dizia apenas
+          // "Salvar". O `aria-label` passa a levar o atalho também (o title
+          // continua, para o hover); o texto do atalho vem do i18n nos dois.
+          title={`${t('translation:editor.save')} (${t('translation:editor.saveShortcut')})`}
+          aria-label={tI('translation:editor.saveAria', {
+            shortcut: t('translation:editor.saveShortcut'),
+          })}
           onClick={saveActive}
           disabled={!active}
         >

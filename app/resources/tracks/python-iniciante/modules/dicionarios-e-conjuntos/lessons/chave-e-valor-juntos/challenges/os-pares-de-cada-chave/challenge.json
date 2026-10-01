@@ -6,11 +6,11 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Os pares de cada chave\n\nEscreva a função `pares(d)` que devolve a visão dos pares do dicionário, usando o método `.items()` como na aula:\n\n```python\ndef pares(d):\n    # devolva a visao dos pares do dicionario\n    pass\n```\n\nExemplos:\n\n```text\npares({\"a\": 1, \"b\": 2})  ->  dict_items([('a', 1), ('b', 2)])\npares({\"x\": 9})  ->  dict_items([('x', 9)])\n```\n\nA função devolve a visão — ela não imprime nada.",
-  "starterCode": "def pares(d):\n    # devolva a visao dos pares do dicionario\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import pares\n\n\nclass TestChaveEValorJuntos(unittest.TestCase):\n    def test_pares_devolve_os_pares(self):\n        \"\"\"pares devolve um par por chave e valor\"\"\"\n        self.assertEqual(sorted(pares({\"a\": 1, \"b\": 2})), [(\"a\", 1), (\"b\", 2)])\n\n    def test_pares_de_outro_dicionario(self):\n        \"\"\"pares devolve os pares de outro dicionario\"\"\"\n        self.assertEqual(sorted(pares({\"x\": 9})), [(\"x\", 9)])\n",
-  "solutionCode": "def pares(d):\n    return d.items()\n",
-  "expectedTestCount": 2,
+  "statement": "# Os pares de cada chave\n\nEscreva duas funções que usam o método `.items()` como na aula:\n\n```python\ndef pares(d):\n    # devolva a visao dos pares do dicionario\n    pass\n\n\ndef pares_ordenados(d):\n    # devolva os pares em ordem de chave\n    pass\n```\n\nExemplos:\n\n```text\npares({\"a\": 1, \"b\": 2})                      ->  dict_items([('a', 1), ('b', 2)])\npares_ordenados({\"b\": 2, \"a\": 1})            ->  [('a', 1), ('b', 2)]\npares_ordenados({\"uva\": 6, \"pao\": 4})        ->  [('pao', 4), ('uva', 6)]\n```\n\n`pares_ordenados` devolve uma lista dos pares do menor para o maior, em ordem de chave — montada com `sorted` a partir dos pares.\n\nAs funções devolvem a visão ou a lista — elas não imprimem nada.",
+  "starterCode": "def pares(d):\n    # devolva a visao dos pares do dicionario\n    pass\n\n\ndef pares_ordenados(d):\n    # devolva os pares em ordem de chave\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import pares\nfrom solucao import pares_ordenados\n\n\nclass TestChaveEValorJuntos(unittest.TestCase):\n    def test_pares_devolve_os_pares(self):\n        \"\"\"pares devolve um par por chave e valor\"\"\"\n        self.assertEqual(sorted(pares({\"a\": 1, \"b\": 2})), [(\"a\", 1), (\"b\", 2)])\n\n    def test_pares_ordenados_por_chave(self):\n        \"\"\"pares_ordenados devolve os pares em ordem de chave\"\"\"\n        self.assertEqual(pares_ordenados({\"b\": 2, \"a\": 1}), [(\"a\", 1), (\"b\", 2)])\n\n    def test_pares_ordenados_de_outro_dicionario(self):\n        \"\"\"pares_ordenados funciona com outro dicionario\"\"\"\n        self.assertEqual(\n            pares_ordenados({\"uva\": 6, \"pao\": 4, \"abacate\": 3}),\n            [(\"abacate\", 3), (\"pao\", 4), (\"uva\", 6)],\n        )\n",
+  "solutionCode": "def pares(d):\n    return d.items()\n\n\ndef pares_ordenados(d):\n    return sorted(d.items())\n",
+  "expectedTestCount": 3,
   "requirements": [
     {
       "id": "test_pares_devolve_os_pares",
@@ -18,9 +18,14 @@
       "descricao": "pares devolve um par por chave e valor"
     },
     {
-      "id": "test_pares_de_outro_dicionario",
-      "teste": "test_pares_de_outro_dicionario",
-      "descricao": "pares devolve os pares de outro dicionario"
+      "id": "test_pares_ordenados_por_chave",
+      "teste": "test_pares_ordenados_por_chave",
+      "descricao": "pares_ordenados devolve os pares em ordem de chave"
+    },
+    {
+      "id": "test_pares_ordenados_de_outro_dicionario",
+      "teste": "test_pares_ordenados_de_outro_dicionario",
+      "descricao": "pares_ordenados funciona com outro dicionario"
     }
   ]
 }

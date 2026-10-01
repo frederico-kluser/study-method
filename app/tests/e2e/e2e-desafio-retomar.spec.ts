@@ -393,7 +393,7 @@ async function waitForUiOrRetry(page: Page, target: Locator, retries = 2): Promi
  * chat e o input) e o card do desafio leva à aba Desafio.
  */
 async function openTrackChallenge(page: Page): Promise<void> {
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).first().waitFor();
   // Home: cartão da trilha fixture → navega para a Trilha (setPendingTrackSlug).
   await waitForUiOrRetry(page, page.getByText('Node.js do Zero', { exact: false }));
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
@@ -422,7 +422,7 @@ async function openTrackChallenge(page: Page): Promise<void> {
  * Este é o alvo do Achado 2: é o desafio que NÃO tem regeneração.
  */
 async function openModuleChallenge(page: Page): Promise<void> {
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).first().waitFor();
   await waitForUiOrRetry(page, page.getByText('Node.js do Zero', { exact: false }));
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   await waitForUiOrRetry(page, page.getByRole('button', { name: /Desafio do módulo/ }));
@@ -440,7 +440,7 @@ async function openModuleChallenge(page: Page): Promise<void> {
  * (`attemptedBeforeLesson`) — é o que decide a bolha de erro depois.
  */
 async function openTrackChallengeFromCard(page: Page): Promise<void> {
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).first().waitFor();
   await waitForUiOrRetry(page, page.getByText('Node.js do Zero', { exact: false }));
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   await waitForUiOrRetry(page, page.getByText('Aula E2E sobre funções', { exact: false }));

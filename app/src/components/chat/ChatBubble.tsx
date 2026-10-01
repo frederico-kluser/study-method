@@ -72,7 +72,11 @@
  *    dono do relógio e `SegmentedMarkdown` do desenho — nenhum dos dois foi
  *    tocado nesta onda;
  *  - PULAR a digitação continua valendo por clique no painel, por qualquer
- *    tecla e pelo botão "Mostrar tudo" (o prop `skip`);
+ *    tecla e pelo botão "Mostrar tudo" (o prop `skip`) — ONDA-SKIP-1S: o pulo
+ *    não estoura mais o texto na cara; o `TypewriterText` varre o restante em
+ *    ~1 s (pedido do dono: "ela termina de mostrar tudo em 1s … com mesmo
+ *    tempo ate dar um segundo"). Só o relógio mudou, não a fiação: `skip`
+ *    segue passando direto;
  *  - `instant` na bolha de ERRO de execução (a 10 tps o erro levaria ~55 s);
  *  - o gating do "Gerar novo desafio" é só o turno em voo (`regenerateDisabled`);
  *  - AGRUPAMENTO de mensagens consecutivas (`groupsWithPrevious`): o cabeçalho
@@ -90,6 +94,10 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 // ONDA2 (falha-ver-aula): ícone do botão "Ver a aula" na bolha de erro do
 // desafio tentado antes da aula (substitui "Gerar novo desafio" na 1ª falha).
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+// ONDA-REFAZER: ícone do botão "Refazer desafio" na bolha de erro (reabre o
+// MESMO desafio — pedido do dono "se eu erro um desafio eu não posso fazer
+// ele de novo").
+import ReplayIcon from '@mui/icons-material/Replay';
 import { motion, useReducedMotion, type Transition } from 'motion/react';
 import type { ReactElement } from 'react';
 
@@ -112,7 +120,8 @@ export interface ChatBubbleProps {
   isNew: boolean;
   /** tokens por segundo do typewriter desta bolha (ver `chatBubbleTps`). */
   tps?: number;
-  /** ONDA10: "pular a digitação" (clique no painel, tecla, "Mostrar tudo"). */
+  /** ONDA10: "pular a digitação" (clique no painel, tecla, "Mostrar tudo") —
+   *  ONDA-SKIP-1S: o relógio varre o restante em ~1 s (não é instantâneo). */
   skip?: boolean;
   /**
    * A mensagem ANTERIOR do histórico. Presente → bolhas consecutivas do mesmo
@@ -132,6 +141,17 @@ export interface ChatBubbleProps {
    * LessonView — o ChatBubble só desenha o botão que chegou.
    */
   onViewLesson?: () => void;
+  /**
+   * ONDA-REFAZER (pedido do dono, verbatim: "se eu erro um desafio eu não
+   * posso fazer ele de novo"): "Refazer desafio" DENTRO da bolha de erro —
+   * reabre o painel do MESMO desafio (com a tentativa retomável) em vez de
+   * gerar desafio novo ou mandar o aluno ver a aula. NÃO disputa com
+   * `onViewLesson`/`onRegenerate`: os três convivem (o retry é a ação de
+   * repetir o MESMO teste; as outras duas são as saídas que a bolha sempre
+   * ofereceu — regra de qual delas aparece continua na pura
+   * `lessonChallengeBubbleAction`, decidida pela LessonView).
+   */
+  onRetryChallenge?: () => void;
   onStreamStart?: () => void;
   onStreamDone?: () => void;
   onStreamTick?: () => void;
@@ -146,6 +166,7 @@ export function ChatBubble({
   onRegenerate,
   regenerateDisabled,
   onViewLesson,
+  onRetryChallenge,
   onStreamStart,
   onStreamDone,
   onStreamTick,
@@ -287,37 +308,65 @@ export function ChatBubble({
                 <motion.span
                   whileTap={wantsMotion ? { scale: 0.98 } : undefined}
                   transition={springs.snappy}
+                  // W9 (auditoria de UX): o motion marca tabIndex=0 em cascas
+                  // com gesto quando o autor não declara um — criava uma parada
+                  // de tab muda antes das ações ("Ver a aula"/"Refazer
+                  // desafio"). A casca nunca recebe foco: quem recebe são os
+                  // botões dentro dela (regra ONDA12, cumprida no composer).
+                  tabIndex={-1}
                   style={{ display: 'inline-block' }}
                 >
-                  {/* ONDA2 (falha-ver-aula): o review de erro tem UMA ação —
-                      "Ver a aula" quando a falha veio do desafio tentado antes
-                      da aula (1ª falha; o clique limpa o chat e recomeça a
-                      aula do início) e "Gerar novo desafio" no fluxo normal e
-                      na 2ª falha (comportamento de sempre, intacto). */}
-                  {onViewLesson ? (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="primary"
-                      onClick={onViewLesson}
-                      startIcon={<MenuBookIcon />}
-                      sx={{ mt: 1 }}
-                    >
-                      {t('translation:lesson.viewLessonButton')}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="secondary"
-                      onClick={onRegenerate}
-                      disabled={regenerateDisabled}
-                      startIcon={<AutoAwesomeIcon />}
-                      sx={{ mt: 1 }}
-                    >
-                      {t('translation:challenge.regenerateButton')}
-                    </Button>
-                  )}
+                  {/* ONDA2 (falha-ver-aula): o review de erro tem UMA ação de
+                      SAÍDA — "Ver a aula" quando a falha veio do desafio
+                      tentado antes da aula (1ª falha; o clique limpa o chat e
+                      recomeça a aula do início) e "Gerar novo desafio" no fluxo
+                      normal e na 2ª falha (comportamento de sempre, intacto).
+                      ONDA-REFAZER (pedido do dono, verbatim: "se eu erro um
+                      desafio eu não posso fazer ele de novo"): a ela se SOME o
+                      "Refazer desafio" — o aluno reabre o MESMO desafio e
+                      corrige a tentativa (código e evidência do erro preservados
+                      — ver TrackChallengePanel.handleRetry). Antes, quem errou
+                      só tinha como sair ou gerar outro desafio: refazer o MESMO
+                      teste era impossível pela bolha. */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1, alignItems: 'center' }}>
+                    {onRetryChallenge ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        onClick={onRetryChallenge}
+                        startIcon={<ReplayIcon />}
+                        // "quebra, nunca recorta": rótulo longo quebra linha em
+                        // contêiner estreito em vez de ser cortado; alvo de
+                        // toque no piso de 44px (TOUCH_TARGET_PX).
+                        sx={{ minHeight: 44, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                      >
+                        {t('translation:challenge.retryButton')}
+                      </Button>
+                    ) : null}
+                    {onViewLesson ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={onViewLesson}
+                        startIcon={<MenuBookIcon />}
+                      >
+                        {t('translation:lesson.viewLessonButton')}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="secondary"
+                        onClick={onRegenerate}
+                        disabled={regenerateDisabled}
+                        startIcon={<AutoAwesomeIcon />}
+                      >
+                        {t('translation:challenge.regenerateButton')}
+                      </Button>
+                    )}
+                  </Box>
                 </motion.span>
               ) : null}
             </>

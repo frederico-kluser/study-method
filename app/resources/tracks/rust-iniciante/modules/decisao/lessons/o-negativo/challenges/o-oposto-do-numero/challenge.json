@@ -5,10 +5,10 @@
   "concept": "o_negativo",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# O oposto do número\n\nA função `oposto` recebe um número e devolve o número com o sinal invertido: o oposto de 3 é -3, o oposto de -3 é 3, e o oposto de 0 é 0.\n\nUma linha no corpo: o `-` unário na frente do parâmetro.\n\nA partir desta aula os testes podem chamar suas funções com números negativos — e vão chamar.",
-  "starterCode": "pub fn oposto(x: i32) -> i32 {\n    todo!()\n}\n",
-  "solutionCode": "pub fn oposto(x: i32) -> i32 {\n    -x\n}\n",
-  "testsCode": "use desafio::oposto;\n\n#[test]\nfn testa_oposto_de_tres_e_menos_tres() {\n    assert_eq!(oposto(3), -3);\n}\n\n#[test]\nfn testa_oposto_de_menos_tres_e_tres() {\n    assert_eq!(oposto(-3), 3);\n}\n\n#[test]\nfn testa_oposto_de_zero_e_zero() {\n    assert_eq!(oposto(0), 0);\n}\n",
+  "statement": "# O oposto do número\n\nA função `oposto` recebe um número e devolve o número com o sinal invertido: o oposto de 3 é -3, o oposto de -3 é 3, e o oposto de 0 é 0.\n\nUma linha no corpo: o `-` unário na frente do parâmetro.\n\nA segunda função junta o que já sabe: `oposto_da_soma` recebe dois números, soma-os **e devolve o oposto dessa soma** — o oposto da soma de 3 e 4 é -7; o de -2 e -2 é 4; e o de 5 e -5 é 0.\n\nA partir desta aula os testes podem chamar suas funções com números negativos — e vão chamar.",
+  "starterCode": "pub fn oposto(x: i32) -> i32 {\n    todo!()\n}\n\npub fn oposto_da_soma(a: i32, b: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn oposto(x: i32) -> i32 {\n    -x\n}\n\npub fn oposto_da_soma(a: i32, b: i32) -> i32 {\n    -a + -b\n}\n",
+  "testsCode": "use desafio::oposto;\nuse desafio::oposto_da_soma;\n\n#[test]\nfn testa_oposto_de_tres_e_menos_tres() {\n    assert_eq!(oposto(3), -3);\n}\n\n#[test]\nfn testa_oposto_de_menos_tres_e_tres() {\n    assert_eq!(oposto(-3), 3);\n}\n\n#[test]\nfn testa_oposto_de_zero_e_zero() {\n    assert_eq!(oposto(0), 0);\n}\n\n#[test]\nfn testa_o_oposto_da_soma_positiva_e_da_negativa() {\n    assert_eq!(oposto_da_soma(3, 4), -7);\n    assert_eq!(oposto_da_soma(-2, -2), 4);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
@@ -24,7 +24,12 @@
       "id": "REQ-3",
       "descricao": "A função oposto deve devolver 0 quando chamada com 0.",
       "teste": "testa_oposto_de_zero_e_zero"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "A função oposto_da_soma deve devolver o oposto da soma: -7 para (3, 4) e 4 para (-2, -2).",
+      "teste": "testa_o_oposto_da_soma_positiva_e_da_negativa"
     }
   ],
-  "expectedTestCount": 3
+  "expectedTestCount": 4
 }

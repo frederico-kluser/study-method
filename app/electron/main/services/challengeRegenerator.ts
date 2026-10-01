@@ -253,15 +253,18 @@ export function buildRegenerationPrompt(input: RegenerationPromptInput): string 
 
   // CONTROLE DE COBERTURA (pedido do dono): a seção de REVISÃO só entra quando
   // há itens selecionados — sem ela o prompt é byte-idêntico ao anterior.
+  // A régua da premissa (docs/18 §9): a mistura tem de aparecer no caminho que
+  // o aluno ESCREVE (solutionCode) — teste sozinho não pratica nada; e 1–2
+  // itens chegam ("a ideia não é ficar gigante").
   const reviewBlock =
     input.reviewAtoms && input.reviewAtoms.length > 0
-      ? `TAMBÉM REVISE (intercalado — conhecimento de aulas anteriores que os TESTES deste desafio devem exercitar, junto com o da aula atual):\n${input.reviewAtoms
+      ? `TAMBÉM REVISE (intercalado — conhecimento de aulas anteriores que o código que o aluno escreve deve praticar, junto com o da aula atual):\n${input.reviewAtoms
           .map((r) => `- ${r.atom}${r.origem ? ` (ensinado em ${r.origem})` : ''}`)
           .join('\n')}\n`
       : '';
   const reviewRule =
     input.reviewAtoms && input.reviewAtoms.length > 0
-      ? '\n- misture nos TESTES os itens de TAMBÉM REVISE (retrieval practice): o desafio deve exercitar esses conteúdos já estudados junto com o da aula atual, sem cobrar nada fora do que as aulas anteriores + esta aula ensinaram;'
+      ? '\n- misture os itens de TAMBÉM REVISE no caminho que o aluno ESCREVE (retrieval practice): o solutionCode tem de praticar 1 ou 2 deles — e os testes têm de exigir esse caminho — junto com o da aula atual, sem cobrar nada fora do que as aulas anteriores + esta aula ensinaram; não encha o desafio (a ideia é misturar, não encher) e mantenha o alvo da aula como o núcleo do desafio;'
       : '';
 
   // ONDA 2 (autoria): caso de erro SÓ se o contexto ensinou validação/erros —

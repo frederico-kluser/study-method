@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "slug": "fechando-o-pedido",
+  "title": "Fechando o pedido",
+  "concept": "composicao_das_caixas",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Fechando o pedido\n\nA cantina da festa do colégio fecha às seis e o terminal de autoatendimento é seu. Cada pedido sai de dois números — o preço de um item e a quantidade — e o balcão precisa do total e do troco, sem contar de cabeça. Nada aqui é novidade: este é o desafio do módulo, e ele junta as caixas que devolvem com as contas, as comparações e o `round` que você já conhece.\n\n## As duas caixas\n\n**1. `total_do_pedido(preco, quantidade)`** — a caixa do total: a **docstring** dizendo o que devolve, a premissa `quantidade > 0` conferida com `assert` (o porteiro da última aula), a conta `preco * quantidade` guardada no nome `total` e o `return total`.\n\n**2. `troco_do_cliente(pago, preco, quantidade)`** — a caixa do troco. Ela **chama `total_do_pedido`** para descobrir o total e devolve:\n\n- `0`, com **return cedo**, quando o `pago` é menor que o total — quem não cobre não recebe troco;\n- o troco `pago - total`, **arredondado em duas casas** com o `round`, no caminho normal.\n\n## O que os testes conferem\n\n```text\ntotal_do_pedido(12.5, 3)       ->  37.5\ntotal_do_pedido(8, 1)          ->  8\ntroco_do_cliente(50, 12.5, 3)  ->  12.5\ntroco_do_cliente(10, 1.1, 3)   ->  6.7\ntroco_do_cliente(3, 1.1, 3)    ->  0\n```\n\n## As regras da casa\n\n- **Nada de resultado à mão.** Total e troco saem de conta e de chamada: quem digitar `6.7` direto cai nos outros números.\n- O `assert` vem **primeiro** na caixa do total, como porteiro — e a docstring vem antes dele.\n- Repare no `troco_do_cliente(10, 1.1, 3)`: sem o `round`, o centavo que sobra deixa o troco em `6.699999999999999` em vez de `6.7`.\n\n## Por que este desafio existe\n\nCada aula deste módulo entregou uma peça: a caixa que devolve, a que chama outra, o nome que vive só dentro, o return cedo, a docstring, o `assert`. Aqui elas trabalham juntas num problema de verdade; e as contas, o `round` e as comparações vêm de trás, dos módulos anteriores: é o conhecimento velho que sustenta o novo.",
+  "starterCode": "# 1. escreva a caixa total_do_pedido(preco, quantidade): a docstring, o\n#    assert  quantidade > 0 , a conta  preco * quantidade  guardada no nome\n#    total e o return total\n# 2. escreva a caixa troco_do_cliente(pago, preco, quantidade): chame\n#    total_do_pedido, devolva 0 com return cedo quando o pago for menor que\n#    o total e, no caminho normal, devolva round(pago - total, 2)\n",
+  "testsCode": "import unittest\n\nfrom solucao import total_do_pedido, troco_do_cliente\n\n\nclass TestFechandoOPedido(unittest.TestCase):\n    def test_devolve_o_total_do_pedido(self):\n        \"\"\"a caixa devolve 37.5 quando o preco e 12.5 e a quantidade e 3\"\"\"\n        self.assertEqual(total_do_pedido(12.5, 3), 37.5)\n\n    def test_devolve_o_total_de_um_item(self):\n        \"\"\"a caixa devolve 8 quando o preco e 8 e a quantidade e 1\"\"\"\n        self.assertEqual(total_do_pedido(8, 1), 8)\n\n    def test_devolve_o_troco_do_cliente(self):\n        \"\"\"a caixa devolve 12.5 de troco quando o cliente paga 50\"\"\"\n        self.assertEqual(troco_do_cliente(50, 12.5, 3), 12.5)\n\n    def test_arredonda_o_troco_em_duas_casas(self):\n        \"\"\"a caixa devolve 6.7 de troco quando o preco e 1.1 e a quantidade e 3\"\"\"\n        self.assertEqual(troco_do_cliente(10, 1.1, 3), 6.7)\n\n    def test_devolve_zero_quando_o_pagamento_nao_cobre(self):\n        \"\"\"a caixa devolve 0 quando o pagamento nao cobre o pedido\"\"\"\n        self.assertEqual(troco_do_cliente(3, 1.1, 3), 0)\n",
+  "solutionCode": "def total_do_pedido(preco, quantidade):\n    \"\"\"devolve o total do pedido\"\"\"\n    assert quantidade > 0\n    total = preco * quantidade\n    return total\n\n\ndef troco_do_cliente(pago, preco, quantidade):\n    \"\"\"devolve o troco do cliente; quando o pagamento nao cobre, devolve 0\"\"\"\n    total = total_do_pedido(preco, quantidade)\n    if pago < total:\n        return 0\n    return round(pago - total, 2)\n",
+  "expectedTestCount": 5,
+  "requirements": [
+    {
+      "id": "test_devolve_o_total_do_pedido",
+      "teste": "test_devolve_o_total_do_pedido",
+      "descricao": "a caixa devolve 37.5 quando o preco e 12.5 e a quantidade e 3"
+    },
+    {
+      "id": "test_devolve_o_total_de_um_item",
+      "teste": "test_devolve_o_total_de_um_item",
+      "descricao": "a caixa devolve 8 quando o preco e 8 e a quantidade e 1"
+    },
+    {
+      "id": "test_devolve_o_troco_do_cliente",
+      "teste": "test_devolve_o_troco_do_cliente",
+      "descricao": "a caixa devolve 12.5 de troco quando o cliente paga 50"
+    },
+    {
+      "id": "test_arredonda_o_troco_em_duas_casas",
+      "teste": "test_arredonda_o_troco_em_duas_casas",
+      "descricao": "a caixa devolve 6.7 de troco quando o preco e 1.1 e a quantidade e 3"
+    },
+    {
+      "id": "test_devolve_zero_quando_o_pagamento_nao_cobre",
+      "teste": "test_devolve_zero_quando_o_pagamento_nao_cobre",
+      "descricao": "a caixa devolve 0 quando o pagamento nao cobre o pedido"
+    }
+  ]
+}

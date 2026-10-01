@@ -207,7 +207,7 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
     await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
 
     // Shell do app (gate 'ready'). Timeout generoso: validação real de rede.
-    const shell = page.getByRole('banner').getByText('Study Method — Tutor', { exact: false });
+    const shell = page.getByRole('banner').getByText('Study Method: Tutor', { exact: false });
     await expect(shell).toBeVisible({ timeout: 90_000 });
     await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible({ timeout: 30_000 });
 

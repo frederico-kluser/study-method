@@ -6,10 +6,10 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Sem repetidos\n\nEscreva duas funções:\n\n- `unicos(numeros)` devolve o conjunto sem repetidos da lista, usando `set()`;\n- `dupla_de_conjuntos()` devolve a lista `[{1}, {2}]` — os conjuntos de um item cada, escritos com chaves.\n\n```python\ndef unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef dupla_de_conjuntos():\n    # devolva a lista com os conjuntos {1} e {2}\n    pass\n```\n\nExemplos:\n\n```text\nunicos([1, 1, 2])  ->  {1, 2}\nunicos([7, 7])  ->  {7}\nunicos([])  ->  set()\ndupla_de_conjuntos()  ->  [{1}, {2}]\n```\n\nAs funções devolvem — elas não imprimem nada.",
-  "starterCode": "def unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef dupla_de_conjuntos():\n    # devolva a lista com os conjuntos {1} e {2}\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import unicos\nfrom solucao import dupla_de_conjuntos\n\n\nclass TestConjuntoSemRepetidos(unittest.TestCase):\n    def test_unicos_tira_as_repeticoes(self):\n        \"\"\"unicos elimina os numeros repetidos\"\"\"\n        self.assertEqual(len(unicos([1, 1, 2])), 2)\n\n    def test_unicos_sem_repeticoes(self):\n        \"\"\"unicos so com numeros sozinhos devolve os mesmos numeros\"\"\"\n        self.assertEqual(sorted(unicos([7, 7])), [7])\n\n    def test_unicos_da_lista_vazia(self):\n        \"\"\"unicos da lista vazia devolve o conjunto vazio\"\"\"\n        self.assertEqual(len(unicos([])), 0)\n\n    def test_dupla_de_conjuntos_tem_dois_conjuntos(self):\n        \"\"\"dupla_de_conjuntos devolve a lista com os conjuntos {1} e {2}\"\"\"\n        self.assertEqual(str(dupla_de_conjuntos()), \"[{1}, {2}]\")\n",
-  "solutionCode": "def unicos(numeros):\n    return set(numeros)\n\n\ndef dupla_de_conjuntos():\n    return [{1}, {2}]\n",
+  "statement": "# Sem repetidos\n\nA organização da corrida de rua recebeu a lista dos números de inscrição e ela está cheia de repetidos — o mesmo corredor se inscreveu duas vezes. Três funções:\n\n- `unicos(numeros)` devolve o conjunto sem repetidos da lista, usando `set()`;\n- `chamada_ordenada(numeros)` devolve a lista dos números, sem repetidos e em ordem, para a chamada na largada — junte o `set` de antes com o `sorted`;\n- `conjunto_de_um(valor)` devolve o conjunto de um item só, escrito com chaves.\n\n```python\ndef unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef chamada_ordenada(numeros):\n    # devolva a lista sem repetidos e em ordem\n    pass\n\n\ndef conjunto_de_um(valor):\n    # devolva o conjunto de um item, escrito com chaves\n    pass\n```\n\nExemplos:\n\n```text\nunicos([4, 4, 7])  ->  {4, 7}\nunicos([7, 7])  ->  {7}\nunicos([])  ->  set()\nchamada_ordenada([4, 4, 7])  ->  [4, 7]\nchamada_ordenada([9, 2])  ->  [2, 9]\nconjunto_de_um(5)  ->  {5}\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef chamada_ordenada(numeros):\n    # devolva a lista sem repetidos e em ordem\n    pass\n\n\ndef conjunto_de_um(valor):\n    # devolva o conjunto de um item, escrito com chaves\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import unicos\nfrom solucao import chamada_ordenada\nfrom solucao import conjunto_de_um\n\n\nclass TestConjuntoSemRepetidos(unittest.TestCase):\n    def test_unicos_tira_as_repeticoes(self):\n        \"\"\"unicos elimina os numeros repetidos\"\"\"\n        self.assertEqual(len(unicos([1, 1, 2])), 2)\n        self.assertEqual(sorted(unicos([7, 7])), [7])\n\n    def test_unicos_da_lista_vazia(self):\n        \"\"\"unicos da lista vazia devolve o conjunto vazio\"\"\"\n        self.assertEqual(len(unicos([])), 0)\n\n    def test_chamada_ordenada_devolve_lista_sem_repetidos_em_ordem(self):\n        \"\"\"chamada_ordenada devolve a lista sem repetidos e em ordem\"\"\"\n        self.assertEqual(chamada_ordenada([4, 4, 7]), [4, 7])\n        self.assertEqual(chamada_ordenada([9, 2]), [2, 9])\n\n    def test_conjunto_de_um_devolve_o_conjunto_de_um_item(self):\n        \"\"\"conjunto_de_um devolve o conjunto de um item escrito com chaves\"\"\"\n        self.assertEqual(str(conjunto_de_um(5)), \"{5}\")\n        self.assertEqual(str(conjunto_de_um(\"ana\")), \"{'ana'}\")\n",
+  "solutionCode": "def unicos(numeros):\n    return set(numeros)\n\n\ndef chamada_ordenada(numeros):\n    return sorted(set(numeros))\n\n\ndef conjunto_de_um(valor):\n    return {valor}\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "unicos elimina os numeros repetidos"
     },
     {
-      "id": "test_unicos_sem_repeticoes",
-      "teste": "test_unicos_sem_repeticoes",
-      "descricao": "unicos so com numeros sozinhos devolve os mesmos numeros"
-    },
-    {
       "id": "test_unicos_da_lista_vazia",
       "teste": "test_unicos_da_lista_vazia",
       "descricao": "unicos da lista vazia devolve o conjunto vazio"
     },
     {
-      "id": "test_dupla_de_conjuntos_tem_dois_conjuntos",
-      "teste": "test_dupla_de_conjuntos_tem_dois_conjuntos",
-      "descricao": "dupla_de_conjuntos devolve a lista com os conjuntos {1} e {2}"
+      "id": "test_chamada_ordenada_devolve_lista_sem_repetidos_em_ordem",
+      "teste": "test_chamada_ordenada_devolve_lista_sem_repetidos_em_ordem",
+      "descricao": "chamada_ordenada devolve a lista sem repetidos e em ordem"
+    },
+    {
+      "id": "test_conjunto_de_um_devolve_o_conjunto_de_um_item",
+      "teste": "test_conjunto_de_um_devolve_o_conjunto_de_um_item",
+      "descricao": "conjunto_de_um devolve o conjunto de um item escrito com chaves"
     }
   ]
 }

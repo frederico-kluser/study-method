@@ -120,22 +120,33 @@ describe('HomeView — estado VAZIO (onboarding), o que o recém-instalado vê',
     }
   });
 
-  it('SEM dados do main: card "verificando", CTA de SETUP e os chips de sugestão (o onboarding)', () => {
+  // ONDA-UX-TRILHAS (decisão do dono): os chips de sugestão ("Ideias para
+  // começar") saíram da UI — prometiam "digitar assunto → aula gerada", fluxo
+  // que a rodada 8 retirou (o clique caía no estado vazio da Aula). O caminho
+  // canónico passou a ser a TRILHA; o CTA é contextual (setup / continuar /
+  // escolher trilha).
+  it('SEM dados do main: card "verificando" e CTA de SETUP — sem chips de sugestão', () => {
     const tela = onScreen(renderView(HomeView));
     assert.ok(tela.includes(ptBR.home.setup.checking), 'o status do setup nasce "verificando"');
     assert.ok(tela.includes(ptBR.home.cta.setup), 'o CTA contextual é "Configurar chaves"');
-    assert.equal(tela.includes(ptBR.home.cta.start), false, '"Começar aula" só com chaves prontas');
-    assert.ok(tela.includes(ptBR.home.suggestions.title), 'os chips de sugestão são o onboarding do vazio');
+    assert.equal(tela.includes(ptBR.home.cta.start), false, '"Escolher uma trilha" só com chaves prontas');
+    assert.equal(tela.includes(ptBR.home.cta.continue), false, '"Continuar aula" exige uma última aula');
+    assert.equal(
+      tela.includes(ptBR.home.suggestions.title),
+      false,
+      'chips de sugestão REMOVIDOS — o caminho canónico são as trilhas',
+    );
   });
 
-  it('o diálogo de troca de matéria nasce FECHADO (sua copy não está na tela)', () => {
+  it('o diálogo de troca de matéria não existe mais (nem fechado — foi removido)', () => {
     const tela = onScreen(renderView(HomeView));
     assert.equal(tela.includes(ptBR.home.switchDialog.title), false);
     assert.equal(tela.includes(ptBR.home.switchDialog.description), false);
   });
 
-  it('a seção de TRILHAS não desenha nada enquanto a lista não chega (nem erro, nem lista fantasma)', () => {
+  it('a seção de TRILHAS mostra o TÍTULO em carregamento — sem lista fantasma nem erro', () => {
     const tela = onScreen(renderView(HomeView));
+    assert.ok(tela.includes(ptBR.home.tracksTitle), 'loading desenha o título + indicador (sem layout shift)');
     assert.equal(tela.includes(ptBR.home.tracksEmptyTitle), false, 'estado vazio é para depois da resposta');
     assert.equal(tela.includes(ptBR.home.tracksLoadFailed), false);
     assert.equal(tela.includes(ptBR.home.orphansNotice.replaceAll('{{n}}', '1')), false);

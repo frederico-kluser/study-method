@@ -2,23 +2,131 @@
   "schemaVersion": 1,
   "slug": "ao-contrario",
   "title": "Ao contrário, e o espelho",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O palíndromo é a palavra que no espelho continua igual: copia-se a palavra, inverte-se a cópia trocando as pontas e compara-se com o original.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "api:strcmp",
+  "concepts": [
+    "o_palindromo"
+  ],
   "prerequisites": [
     "copiar-a-mao",
     "inverter-a-lista"
   ],
+  "introduces": {
+    "productive": [
+      "api:strcmp",
+      "op:assign:="
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "a palavra deixa de ser um texto que só se lê: nasce ao lado dela uma cópia invertida, e a comparação entre as duas caixas é o que o programa devolve como 1 ou 0",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-espelho-da-palavra",
+      "title": "O espelho da palavra",
+      "markdown": "Palíndromo é a palavra que no espelho continua igual. `arara` invertida continua `arara`; `porta` invertida vira `atrop`:\n\n```text\narara -> arara\nporta -> atrop\n```\n\nO plano cabe em três passos: copiar a palavra para uma caixa nova, inverter a cópia trocando as pontas e comparar a cópia com o original. Se as duas caixas batem, a palavra é palíndromo — e comparar texto é comparar letra por letra, posição a posição, como faz a `strcmp`."
+    },
+    {
+      "id": "copiar-para-o-espelho",
+      "title": "A cópia antes do espelho",
+      "markdown": "Inverter a própria palavra apagaria o original — e nada sobraria para comparar. Por isso a cópia vem primeiro:\n\n```c\nchar palavra[] = \"arara\";\nchar espelho[10] = \"\";\nint i = 0;\nfor (i = 0; palavra[i] != '\\0'; i++) {\n    espelho[i] = palavra[i];\n}\nespelho[i] = '\\0';\nint n = i;\n```\n\nÉ a cópia da aula Copiar à mão, placa `\\0` incluída. O `n` da inversão é o `i` que parou na placa."
+    },
+    {
+      "id": "trocar-as-pontas",
+      "title": "Inverter trocando as pontas",
+      "markdown": "A inversão é a da aula Inverter a lista, agora em letras: cada volta troca a gaveta `i` com a `n - 1 - i`, e o laço para em `n / 2`:\n\n```c\nchar espelho[10] = \"arara\";\nint n = 5;\nint i = 0;\nfor (i = 0; i < n / 2; i++) {\n    char guardada = espelho[i];\n    espelho[i] = espelho[n - 1 - i];\n    espelho[n - 1 - i] = guardada;\n}\n```\n\nCom `arara` já dentro, as duas trocas devolvem `arara` outra vez. Com `porta` dentro, a cópia vira `atrop`."
+    },
+    {
+      "id": "comparar-com-o-original",
+      "title": "A comparação que decide",
+      "markdown": "Resta comparar o original com o espelho. A `strcmp` percorre as duas caixas posição a posição e devolve zero quando são iguais — e o `== 0` transforma isso na resposta:\n\n```c\n#include <string.h>\n\nint ehEspelho(char palavra[], char espelho[]) {\n    return strcmp(palavra, espelho) == 0;\n}\n```\n\nÉ a comparação devolvida, como na aula Devolver a comparação. `arara` contra o seu espelho devolve 1; `porta` contra `atrop` devolve 0. Como pergunta de `if`, o mesmo `strcmp(palavra, espelho) == 0` serve de condição."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "inverter-e-trocar-as-pontas",
+      "statement": "Inverter a cópia é trocar as pontas até o meio — passar do meio desfaz a troca.",
+      "question": "Na cópia de `arara`, quantas trocas faz o laço `for (i = 0; i < n / 2; i++)`?",
+      "options": [
+        "Duas: o `n` vale 5, e `5 / 2` dá 2 voltas.",
+        "Cinco: uma troca para cada letra da palavra copiada.",
+        "Nenhuma: `arara` já é igual ao contrário, então não se troca nada.",
+        "Uma: só as duas pontas da cópia trocam entre si."
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço anda até `n / 2`. Com 5 letras são 2 voltas — os pares (0, 4) e (1, 3) — e a letra do meio fica onde está. Repare que a troca acontece mesmo quando as duas letras são iguais: é o caminho que decide, não o resultado.",
+      "sectionId": "trocar-as-pontas",
+      "optionRationales": [
+        "A divisão inteira 5 / 2 dá 2, e cada volta troca um par simétrico da cópia.",
+        "O laço para no meio; seriam cinco voltas só se cada letra tivesse um par próprio.",
+        "A inversão acontece sempre: em `arara` as letras trocam de gaveta e caem nos mesmos lugares de antes.",
+        "Uma troca só resolveria uma caixa de duas gavetas; as outras três letras ficariam por inverter."
+      ]
+    },
+    {
+      "id": "comparar-com-o-espelho-posicao-a-posicao",
+      "statement": "Palíndromo: comparar a palavra com ela mesma invertida, posição a posição.",
+      "question": "Como se decide se `porta` é palíndromo?",
+      "options": [
+        "Comparar a palavra com a sua invertida, letra por letra: `porta` contra `atrop` dá diferente.",
+        "Olhar para as duas pontas: o `p` e o `a` já não batem, logo não é.",
+        "Contar as letras: palíndromo só pode ter um número par de letras.",
+        "Perguntar à `strcmp` se a palavra está numa lista de palavras invertidas que o programa guarda para comparar depois."
+      ],
+      "answerIndex": 0,
+      "feedback": "O espelho é a própria palavra invertida, e a comparação vai posição a posição até o fim. Comparações pela metade — só as pontas, só o tamanho — acertam por sorte e erram logo a seguir.",
+      "sectionId": "o-espelho-da-palavra",
+      "optionRationales": [
+        "É a definição de palíndromo em código: palavra contra palavra invertida, gaveta a gaveta.",
+        "As pontas são só duas gavetas; `abca` tem as pontas iguais e nem por isso é palíndromo.",
+        "Tamanho par nem de longe basta: `porta` e `atrop` têm as cinco letras e não são palíndromos.",
+        "A `strcmp` compara duas caixas que o programa monta; não existe lista de palavras invertidas guardada."
+      ]
+    },
+    {
+      "id": "o-igual-zero-vira-um",
+      "statement": "O `return` devolve a própria comparação: 1 quando o espelho bate com o original, 0 quando não bate.",
+      "question": "Com `arara` digitado, o que `return strcmp(palavra, espelho) == 0;` devolve — e porquê?",
+      "options": [
+        "1: a `strcmp` devolveu zero (iguais) e o `== 0` é verdadeiro.",
+        "0: para igual a `strcmp` devolve zero, e esse zero segue direto para o `return`.",
+        "`arara`: quem chama recebe sempre a palavra que foi lida.",
+        "5: o número de letras da palavra, que é o que a comparação contou."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `== 0` é que responde verdadeiro ou falso, e o `return` converte isso em 1 ou 0. Sem o `== 0`, a função devolveria o zero do igual — e pareceria dizer \"não é palíndromo\" exatamente quando era.",
+      "sectionId": "comparar-com-o-original",
+      "optionRationales": [
+        "Zero quer dizer igual na `strcmp`, e a comparação `== 0` disso resulta em verdadeiro, que o `return` transforma em 1.",
+        "É o zero da `strcmp`, não o do `== 0`: quem devolve 1 ou 0 é a comparação feita em cima dele.",
+        "O `return` devolve o valor da comparação, não a caixa da palavra — imprimir e devolver são canais diferentes.",
+        "A comparação não conta letras: ela só responde se as duas caixas batem ou não."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Null-terminated byte strings — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte",
+      "description": "A definição oficial de texto em C: a sequência de caracteres que termina no caractere nulo — o fim certo que torna a comparação letra por letra possível."
+    },
+    {
+      "title": "strcmp — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/strcmp",
+      "description": "A página oficial da strcmp: zero quando os dois textos são iguais — o veredito que decide se a palavra é igual ao seu espelho."
+    },
+    {
+      "title": "Array subscript — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/operator_member_access",
+      "description": "A regra oficial do acesso por índice: a gaveta que troca de lugar na inversão e que serve igual para ler e para gravar."
+    }
+  ],
+  "challenges": [
+    "o-espelho"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

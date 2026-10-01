@@ -4,20 +4,20 @@
   "title": "O colchete da lista",
   "concept": "pegar_pela_posicao",
   "language": "rust",
-  "statement": "# O colchete da lista\n\nA função `terceiro` recebe a lista emprestada e devolve o valor da posição `2` — a terceira peça:\n\n- `terceiro(&vec![5, 6, 7])` devolve `7`;\n- `terceiro(&vec![9, 8, 1])` devolve `1`.\n\nA posição começa no zero: a `2` é a terceira. O colchete entrega o valor direto — `fila[2]`.\n",
-  "starterCode": "pub fn terceiro(fila: &Vec<i32>) -> i32 {\n    todo!()\n}\n",
-  "solutionCode": "pub fn terceiro(fila: &Vec<i32>) -> i32 {\n    fila[2]\n}\n",
-  "testsCode": "use desafio::terceiro;\n\n#[test]\nfn testa_o_terceiro_de_cinco_seis_sete() {\n    assert_eq!(terceiro(&vec![5, 6, 7]), 7);\n}\n\n#[test]\nfn testa_o_terceiro_da_segunda_fila() {\n    assert_eq!(terceiro(&vec![9, 8, 1]), 1);\n}\n",
+  "statement": "# O colchete da lista\n\nA lista agora guarda PONTOS — o `Ponto { x, y }` da M6, montado pela ponte `ponto_de`. A função `terceiro` recebe a lista emprestada e devolve a ABSCISSA do terceiro ponto, o campo `x`:\n\n- `terceiro(&vec![ponto_de(1, 2), ponto_de(4, 6), ponto_de(5, 7)])` devolve `5`;\n- `terceiro(&vec![ponto_de(9, 8), ponto_de(3, 4), ponto_de(2, 1)])` devolve `2`.\n\nA posição começa no zero: a `2` é a terceira. Pegue a peça com o colchete — `let terceiro_ponto = fila[2];` — e leia o campo com o ponto — `terceiro_ponto.x`. O colchete entrega o valor direto, e a leitura não gasta o ponto (M6).\n",
+  "starterCode": "#[derive(Debug, Clone, Copy)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn terceiro(fila: &Vec<Ponto>) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "#[derive(Debug, Clone, Copy)]\npub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn terceiro(fila: &Vec<Ponto>) -> i32 {\n    let terceiro_ponto = fila[2];\n    terceiro_ponto.x\n}\n",
+  "testsCode": "use desafio::ponto_de;\nuse desafio::terceiro;\n\n#[test]\nfn testa_a_abscissa_do_terceiro_ponto() {\n    let fila = vec![ponto_de(1, 2), ponto_de(4, 6), ponto_de(5, 7)];\n    assert_eq!(terceiro(&fila), 5);\n}\n\n#[test]\nfn testa_o_terceiro_da_segunda_lista() {\n    let fila = vec![ponto_de(9, 8), ponto_de(3, 4), ponto_de(2, 1)];\n    assert_eq!(terceiro(&fila), 2);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "terceiro(&vec![5, 6, 7]) devolve o valor da posição 2: 7.",
-      "teste": "testa_o_terceiro_de_cinco_seis_sete"
+      "descricao": "terceiro devolve o campo x (a abscissa) do terceiro ponto: 5 na lista (1,2), (4,6), (5,7).",
+      "teste": "testa_a_abscissa_do_terceiro_ponto"
     },
     {
       "id": "REQ-2",
-      "descricao": "terceiro(&vec![9, 8, 1]) devolve o valor da posição 2: 1.",
-      "teste": "testa_o_terceiro_da_segunda_fila"
+      "descricao": "terceiro devolve a abscissa do terceiro ponto em qualquer lista: 2 na lista (9,8), (3,4), (2,1).",
+      "teste": "testa_o_terceiro_da_segunda_lista"
     }
   ],
   "expectedTestCount": 2,

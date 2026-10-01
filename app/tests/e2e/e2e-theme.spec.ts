@@ -38,7 +38,7 @@ test('e2e-theme: seletor → classe .light/.dark no <html> + localStorage theme-
   page = launched.page;
 
   // App montou: AppBar com o título e o seletor de tema no pé da coluna.
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   /** Segmento do seletor NO SIDEBAR (o de Configurações tem a mesma alça). */
   const segment = (mode: 'light' | 'dark' | 'system'): Locator =>
     page.locator(`[data-onboarding-target="theme-toggle"] [data-theme-mode="${mode}"]`);
@@ -74,17 +74,20 @@ test('e2e-theme: seletor → classe .light/.dark no <html> + localStorage theme-
   // O RAIL vive na MESMA superfície de chrome (nível 3) e o destino selecionado
   // sobe para o NÍVEL 4 (#ddd5c6 → rgb(221,213,198)) — a rampa é a elevação, não
   // a sombra.
+  // ONDA-UX: os valores abaixo são os tokens ATUAIS (designTokens.ts —
+  // redesign Apple: systemGray deslocado para o papel; os hexes citados acima
+  // são a história da rampa anterior).
   await segment('light').click();
   await expect(html).toHaveClass(/light/);
   expect(await storedMode()).toBe('light');
   // ONDA-SIDEBAR: o quadro de sessão é a COLUNA lateral agora — a fronteira
   // com o conteúdo mudou de borda INFERIOR para borda DIREITA (o mesmo token
   // divider, no lado que de fato separa sidebar ⟷ main).
-  await expect(banner).toHaveCSS('background-color', 'rgb(233, 226, 214)');
-  await expect(banner).toHaveCSS('border-right-color', 'rgb(221, 213, 198)');
-  await expect(rail).toHaveCSS('background-color', 'rgb(233, 226, 214)');
-  await expect(selectedTab).toHaveCSS('background-color', 'rgb(221, 213, 198)');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 247, 242)');
+  await expect(banner).toHaveCSS('background-color', 'rgb(224, 224, 232)');
+  await expect(banner).toHaveCSS('border-right-color', 'rgb(198, 198, 200)');
+  await expect(rail).toHaveCSS('background-color', 'rgb(224, 224, 232)');
+  await expect(selectedTab).toHaveCSS('background-color', 'rgb(217, 217, 227)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 245, 247)');
 
   // Segmento ESCURO: → .dark. A mesma leitura no escuro: header e rail no
   // NÍVEL 3, destino selecionado no NÍVEL 4 e o body no NÍVEL 0.
@@ -105,11 +108,11 @@ test('e2e-theme: seletor → classe .light/.dark no <html> + localStorage theme-
   await segment('dark').click();
   await expect(html).toHaveClass(/dark/);
   expect(await storedMode()).toBe('dark');
-  await expect(banner).toHaveCSS('background-color', 'rgb(49, 49, 49)');
-  await expect(banner).toHaveCSS('border-right-color', 'rgb(77, 77, 77)');
-  await expect(rail).toHaveCSS('background-color', 'rgb(49, 49, 49)');
-  await expect(selectedTab).toHaveCSS('background-color', 'rgb(59, 59, 59)');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(14, 14, 14)');
+  await expect(banner).toHaveCSS('background-color', 'rgb(54, 54, 56)');
+  await expect(banner).toHaveCSS('border-right-color', 'rgb(86, 86, 89)');
+  await expect(rail).toHaveCSS('background-color', 'rgb(54, 54, 56)');
+  await expect(selectedTab).toHaveCSS('background-color', 'rgb(64, 64, 66)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(10, 10, 12)');
 
   // Segmento SISTEMA: volta a ter exatamente um de light/dark (segue o SO).
   await segment('system').click();

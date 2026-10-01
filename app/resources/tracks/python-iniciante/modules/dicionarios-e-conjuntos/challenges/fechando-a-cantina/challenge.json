@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "slug": "fechando-a-cantina",
+  "title": "Fechando a cantina",
+  "concept": "composicao_dicionarios_conjuntos",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Fechando a cantina\n\nA Cantina Boa Mesa atendeu o campeonato de futsal inteiro e é hora de fechar o caixa. Sobraram três registros na mesa do gerente: a **lista de pedidos**, uma linha por item em `mesa;prato` (com espaços sobrando), a **tabela de preços**, um dicionário de prato para valor, e o **cardápio** do dia, um conjunto de pratos. Ele quer cinco respostas antes de ir embora — cada uma vira uma função.\n\n- `montar_pedidos(linhas)` devolve o dicionário mesa (sem espaços) → lista de pratos, na ordem em que chegaram — corte cada linha no `;` e limpe as duas partes;\n- `conta_da_mesa(pedidos, precos, mesa)` devolve o total da mesa: a soma dos preços, com prato sem preço contando `0`, arredondada em duas casas;\n- `pratos_do_dia(pedidos)` devolve o conjunto dos pratos pedidos, em qualquer mesa;\n- `relatorio_do_cardapio(pedidos, cardapio)` devolve a tupla (o que foi pedido e **não** estava no cardápio, o que estava, e `True` quando o dia inteiro cabia no cardápio);\n- `guardar_combinacao(vistos, itens)` deteta duas mesas com o mesmo pedido: devolve `False` e guarda a combinação quando é nova, `True` quando já foi vista. A combinação vira a **chave** do dicionário `vistos` — e chave é imutável: congele-a antes de guardar.\n\nNada aqui ensina construção nova: é o fecho do módulo, com dicionários e conjuntos.\n\n## Exemplos\n\n```text\nlinhas = [\" 3;pizza\", \"3; suco \", \"5;salada\"]\nmontar_pedidos(linhas)  ->  {'3': ['pizza', 'suco'], '5': ['salada']}\n\npedidos = {'3': ['pizza', 'suco'], '5': ['salada']}\nprecos = {'pizza': 42.9, 'suco': 9.9}\nconta_da_mesa(pedidos, precos, '3')  ->  52.8\nconta_da_mesa(pedidos, precos, '5')  ->  0\n\npratos_do_dia(pedidos)  ->  {'pizza', 'suco', 'salada'}\n\nrelatorio_do_cardapio(pedidos, {'pizza', 'salada'})  ->  ({'suco'}, {'pizza', 'salada'}, False)\n\nvistos = {}\nguardar_combinacao(vistos, [3, 1, 3])  ->  False\nguardar_combinacao(vistos, [1, 3])  ->  True\nguardar_combinacao(vistos, [1, 2])  ->  False\n```\n\nAs funções devolvem — nada é impresso.",
+  "starterCode": "def montar_pedidos(linhas):\n    # devolva o dicionario mesa -> lista de pratos, limpa dos espacos\n    pass\n\n\ndef conta_da_mesa(pedidos, precos, mesa):\n    # devolva o total da mesa, com prato sem preco contando zero\n    pass\n\n\ndef pratos_do_dia(pedidos):\n    # devolva o conjunto dos pratos pedidos em qualquer mesa\n    pass\n\n\ndef relatorio_do_cardapio(pedidos, cardapio):\n    # devolva (fora do cardapio, dentro do cardapio, o dia cabia no cardapio)\n    pass\n\n\ndef guardar_combinacao(vistos, itens):\n    # devolva True quando a combinacao ja foi vista e guarde-a quando for nova\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import montar_pedidos\nfrom solucao import conta_da_mesa\nfrom solucao import pratos_do_dia\nfrom solucao import relatorio_do_cardapio\nfrom solucao import guardar_combinacao\n\n\nclass TestFechandoACantina(unittest.TestCase):\n    def test_montar_pedidos_agrupa_os_itens_por_mesa(self):\n        \"\"\"montar_pedidos junta os itens da mesma mesa, na ordem e sem espacos\"\"\"\n        linhas = [\" 3;pizza\", \"3; suco \", \"5;salada\"]\n        self.assertEqual(montar_pedidos(linhas), {\"3\": [\"pizza\", \"suco\"], \"5\": [\"salada\"]})\n\n    def test_conta_da_mesa_soma_os_precos_e_arredonda(self):\n        \"\"\"conta_da_mesa soma os precos dos pratos e conta zero o que nao tem preco\"\"\"\n        pedidos = {\"3\": [\"pizza\", \"suco\"], \"5\": [\"salada\"]}\n        precos = {\"pizza\": 42.9, \"suco\": 9.9}\n        self.assertEqual(conta_da_mesa(pedidos, precos, \"3\"), 52.8)\n        self.assertEqual(conta_da_mesa(pedidos, precos, \"5\"), 0)\n\n    def test_pratos_do_dia_junta_os_pratos_de_todas_as_mesas(self):\n        \"\"\"pratos_do_dia devolve o conjunto dos pratos sem repetir\"\"\"\n        pedidos = {\"3\": [\"pizza\", \"suco\"], \"5\": [\"salada\", \"pizza\"], \"7\": [\"suco\"]}\n        self.assertEqual(pratos_do_dia(pedidos), {\"pizza\", \"suco\", \"salada\"})\n\n    def test_relatorio_do_cardapio_conta_fora_dentro_e_se_cabe(self):\n        \"\"\"relatorio_do_cardapio devolve o que saiu, o que entrou e se tudo cabia\"\"\"\n        pedidos = {\"3\": [\"pizza\", \"suco\"], \"5\": [\"salada\"]}\n        self.assertEqual(relatorio_do_cardapio(pedidos, {\"pizza\", \"salada\"}), ({\"suco\"}, {\"pizza\", \"salada\"}, False))\n        self.assertEqual(relatorio_do_cardapio(pedidos, {\"pizza\", \"suco\", \"salada\"}), (set(), {\"pizza\", \"suco\", \"salada\"}, True))\n\n    def test_guardar_combinacao_deteta_o_pedido_repetido(self):\n        \"\"\"guardar_combinacao devolve True quando a combinacao ja foi vista, em qualquer ordem\"\"\"\n        vistos = {}\n        self.assertFalse(guardar_combinacao(vistos, [3, 1, 3]))\n        self.assertTrue(guardar_combinacao(vistos, [1, 3]))\n        self.assertTrue(guardar_combinacao(vistos, [3, 1]))\n        self.assertTrue(guardar_combinacao(vistos, [1, 1, 3]))\n        self.assertFalse(guardar_combinacao(vistos, [1, 2]))\n",
+  "solutionCode": "def montar_pedidos(linhas):\n    pedidos = {}\n    for linha in linhas:\n        partes = linha.split(\";\")\n        mesa = partes[0].strip()\n        prato = partes[1].strip()\n        lista = pedidos.setdefault(mesa, [])\n        lista.append(prato)\n    return pedidos\n\n\ndef conta_da_mesa(pedidos, precos, mesa):\n    total = 0\n    for prato in pedidos[mesa]:\n        total += precos.get(prato, 0)\n    return round(total, 2)\n\n\ndef pratos_do_dia(pedidos):\n    todos = set()\n    for lista in pedidos.values():\n        todos = todos.union(set(lista))\n    return todos\n\n\ndef relatorio_do_cardapio(pedidos, cardapio):\n    todos = pratos_do_dia(pedidos)\n    return todos.difference(cardapio), todos.intersection(cardapio), todos.issubset(cardapio)\n\n\ndef guardar_combinacao(vistos, itens):\n    chave = frozenset(itens)\n    if chave in vistos:\n        return True\n    vistos[chave] = True\n    return False\n",
+  "expectedTestCount": 5,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_montar_pedidos_agrupa_os_itens_por_mesa",
+      "descricao": "montar_pedidos junta os itens da mesma mesa, na ordem e sem espacos"
+    },
+    {
+      "id": "REQ-2",
+      "teste": "test_conta_da_mesa_soma_os_precos_e_arredonda",
+      "descricao": "conta_da_mesa soma os precos dos pratos e conta zero o que nao tem preco"
+    },
+    {
+      "id": "REQ-3",
+      "teste": "test_pratos_do_dia_junta_os_pratos_de_todas_as_mesas",
+      "descricao": "pratos_do_dia devolve o conjunto dos pratos sem repetir"
+    },
+    {
+      "id": "REQ-4",
+      "teste": "test_relatorio_do_cardapio_conta_fora_dentro_e_se_cabe",
+      "descricao": "relatorio_do_cardapio devolve o que saiu, o que entrou e se tudo cabia"
+    },
+    {
+      "id": "REQ-5",
+      "teste": "test_guardar_combinacao_deteta_o_pedido_repetido",
+      "descricao": "guardar_combinacao devolve True quando a combinacao ja foi vista, em qualquer ordem"
+    }
+  ]
+}

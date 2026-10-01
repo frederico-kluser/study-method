@@ -37,7 +37,8 @@ solução.
      depender da nuvem); sem modelo ativo, o feedback usa o OpenRouter.
 3. **Primeiro uso:** pós-startup-gate (app liberado) o **quick tour** pode oferecer o tutorial
    (overlay com spotlight + modal). Você pode Concluir/Skip — não reaparece (persistido). Se
-   pular, reabra pelo botão de ajuda se houver (ver §2.11).
+   pular, reabra pelo **botão "Ajuda e tutorial"** no pé da coluna lateral (ao lado do tema e do
+   idioma) — ver §2.11.
 4. **Tema:** o seletor de tema (segmentado **Claro · Sistema · Escuro**) vive no pé da
    coluna lateral e em **Configurações → Aparência**; a escolha fica salva em
    `localStorage['theme-mode']` (ver §2.9).
@@ -414,7 +415,11 @@ spotlight** no alvo (`OnboardingOverlay`) e **modal** de seleção na 1ª execu�
   `study-method-onboarding-v1` (progresso + versão), `-offered-v1` (oferta da 1ª
   execução, one-shot) e `-help-hint-v1` (dica pós-tutorial, reservada). Payloads
   corrompidos são descartados. Testado em `tests/onboardingStorage.test.ts`.
-- **Reabertura** — `useOnboardingController().openFromHelp()` reabre do início.
+- **Reabertura** — o botão **"Ajuda e tutorial"** (pé da coluna lateral, `help-button` no
+  catálogo de alvos) abre o modal de seleção via `tutorialLauncherService` (registo do host ↔
+  botão — o `OnboardingHost` é irmão do `Shell`, o contexto React não o alcança);
+  `useOnboardingController().openFromHelp()` continua a reabrir do início para quem estiver
+  dentro do provider.
 - Cobertura E2E: `tests/e2e/e2e-onboarding.spec.ts` (via `E2E_ONBOARDING=1`).
 
 ### 2.12 Janela oculta no E2E e como rodar

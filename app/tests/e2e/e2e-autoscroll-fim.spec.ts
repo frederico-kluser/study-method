@@ -201,7 +201,7 @@ function typingIndicatorPresent(): boolean {
     .document;
   const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
   for (const el of Array.from(statuses)) {
-    if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return true;
+    if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return true;
   }
   return false;
 }
@@ -217,7 +217,7 @@ function typingIndicatorAbsent(): boolean {
     .document;
   const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
   for (const el of Array.from(statuses)) {
-    if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return false;
+    if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return false;
   }
   return true;
 }

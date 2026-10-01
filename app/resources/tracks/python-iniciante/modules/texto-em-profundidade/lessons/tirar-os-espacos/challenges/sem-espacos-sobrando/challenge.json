@@ -6,11 +6,11 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Sem espaços sobrando\n\nEscreva a função `limpar` que devolve o texto sem os espaços do começo e do fim:\n\n```python\ndef limpar(texto):\n    # devolva o texto sem espacos nas pontas\n```\n\nUse o `strip`, como na aula. Exemplos:\n\n```text\nlimpar(\"  ola  \")  ->  \"ola\"\nlimpar(\"   ola\")  ->  \"ola\"\nlimpar(\"ola   \")  ->  \"ola\"\n```\n\nOs espaços do meio ficam: `limpar(\"o l a\")` devolve `\"o l a\"`. A função devolve o texto — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao limpar(texto)\n",
-  "testsCode": "import unittest\n\nfrom solucao import limpar\n\n\nclass TestTirarOsEspacos(unittest.TestCase):\n    def test_tira_espacos_dos_dois_lados(self):\n        \"\"\"limpar tira os espacos dos dois lados\"\"\"\n        self.assertEqual(limpar(\"  ola  \"), \"ola\")\n\n    def test_tira_espacos_do_comeco(self):\n        \"\"\"limpar tira os espacos do comeco\"\"\"\n        self.assertEqual(limpar(\"   ola\"), \"ola\")\n\n    def test_tira_espacos_do_fim(self):\n        \"\"\"limpar tira os espacos do fim\"\"\"\n        self.assertEqual(limpar(\"ola   \"), \"ola\")\n\n    def test_espacos_do_meio_ficam(self):\n        \"\"\"limpar deixa os espacos do meio como estao\"\"\"\n        self.assertEqual(limpar(\"o l a\"), \"o l a\")\n\n    def test_texto_vazio_continua_vazio(self):\n        \"\"\"limpar devolve o texto vazio como esta\"\"\"\n        self.assertEqual(limpar(\"\"), \"\")\n",
-  "solutionCode": "def limpar(texto):\n    return texto.strip()\n",
-  "expectedTestCount": 5,
+  "statement": "# Sem espaços sobrando\n\nEscreva duas funções:\n\n- `limpar(texto)` devolve o texto sem os espaços do começo e do fim;\n- `colar(texto1, texto2)` devolve os dois textos já limpos, colados com um espaço no meio.\n\n```python\ndef limpar(texto):\n    # devolva o texto sem espacos nas pontas\n\n\ndef colar(texto1, texto2):\n    # devolva os dois textos limpos, colados com um espaco\n```\n\nUse o `strip`, como na aula. No `colar`, limpe cada lado antes de colar com o `+` de texto. Exemplos:\n\n```text\nlimpar(\"  ola  \")  ->  \"ola\"\nlimpar(\"ola   \")  ->  \"ola\"\ncolar(\"  ana  \", \"  souza  \")  ->  \"ana souza\"\ncolar(\"ola\", \"mundo \")  ->  \"ola mundo\"\n```\n\nOs espaços do meio ficam: `limpar(\"o l a\")` devolve `\"o l a\"`. As funções devolvem o texto — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes limpar e colar\n",
+  "testsCode": "import unittest\n\nfrom solucao import colar\nfrom solucao import limpar\n\n\nclass TestTirarOsEspacos(unittest.TestCase):\n    def test_tira_espacos_dos_dois_lados(self):\n        \"\"\"limpar tira os espacos dos dois lados\"\"\"\n        self.assertEqual(limpar(\"  ola  \"), \"ola\")\n\n    def test_espacos_do_meio_ficam(self):\n        \"\"\"limpar deixa os espacos do meio como estao\"\"\"\n        self.assertEqual(limpar(\"o l a\"), \"o l a\")\n\n    def test_cola_os_dois_limpos(self):\n        \"\"\"colar cola os textos ja limpos com um espaco\"\"\"\n        self.assertEqual(colar(\"  ana  \", \"  souza  \"), \"ana souza\")\n\n    def test_cola_com_um_lado_sujo(self):\n        \"\"\"colar limpa cada lado antes de colar\"\"\"\n        self.assertEqual(colar(\"ola\", \"mundo \"), \"ola mundo\")\n",
+  "solutionCode": "def limpar(texto):\n    return texto.strip()\n\n\ndef colar(texto1, texto2):\n    return limpar(texto1) + \" \" + limpar(texto2)\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_tira_espacos_dos_dois_lados",
@@ -18,24 +18,19 @@
       "descricao": "limpar tira os espacos dos dois lados"
     },
     {
-      "id": "test_tira_espacos_do_comeco",
-      "teste": "test_tira_espacos_do_comeco",
-      "descricao": "limpar tira os espacos do comeco"
-    },
-    {
-      "id": "test_tira_espacos_do_fim",
-      "teste": "test_tira_espacos_do_fim",
-      "descricao": "limpar tira os espacos do fim"
-    },
-    {
       "id": "test_espacos_do_meio_ficam",
       "teste": "test_espacos_do_meio_ficam",
       "descricao": "limpar deixa os espacos do meio como estao"
     },
     {
-      "id": "test_texto_vazio_continua_vazio",
-      "teste": "test_texto_vazio_continua_vazio",
-      "descricao": "limpar devolve o texto vazio como esta"
+      "id": "test_cola_os_dois_limpos",
+      "teste": "test_cola_os_dois_limpos",
+      "descricao": "colar cola os textos ja limpos com um espaco"
+    },
+    {
+      "id": "test_cola_com_um_lado_sujo",
+      "teste": "test_cola_com_um_lado_sujo",
+      "descricao": "colar limpa cada lado antes de colar"
     }
   ]
 }

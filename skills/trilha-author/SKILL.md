@@ -1,6 +1,6 @@
 ---
 name: trilha-author
-description: Autoria de cursos (trilhas) de programação para o produto study-method — do desenho do currículo à publicação, incluindo N cursos que se interligam (iniciante → intermediário → avançado → especialista). Orquestra a escrita de aulas e desafios seguindo a engine de trilhas, onde a regra dura "um desafio nunca cobra o que não foi ensinado" é verificada por gates determinísticos (orçamento de átomos sobre AST + barra pedagógica + provas de execução), nunca por intenção, e a entrega é um PONTO FIXO — o laço medir/classificar/aplicar/medir roda sem teto de rodadas até o conjunto de achados ficar vazio, quebrando a aula problemática em mais aulas quando nem ela nem os cursos anteriores da cadeia ensinam o que ela pressupõe. Use quando a tarefa for criar um curso/trilha, uma aula, um desafio com testes, encadear cursos (fronteira de entrada/saída), auditar conteúdo didático, quebrar aula que presume demais, ou rodar os gates da engine (audit/barra/coverage/requirements/track:validate/convergir). Não use para ensinar um aluno — isso é a skill study-method.
+description: Autoria de cursos (trilhas) de programação para o produto study-method — do desenho do currículo à publicação, incluindo N cursos que se interligam (iniciante → intermediário → avançado → especialista). Orquestra a escrita de aulas e desafios seguindo a engine de trilhas, onde as duas regras duras — "um desafio nunca cobra o que não foi ensinado" e "todo desafio mistura o que já foi ensinado" (premissa de revisão acumulada) — são verificadas por gates determinísticos (orçamento de átomos sobre AST + barra pedagógica + prática acumulada + provas de execução), nunca por intenção, e a entrega é um PONTO FIXO — o laço medir/classificar/aplicar/medir roda sem teto de rodadas até o conjunto de achados ficar vazio, quebrando a aula problemática em mais aulas quando nem ela nem os cursos anteriores da cadeia ensinam o que ela pressupõe. Use quando a tarefa for criar um curso/trilha, uma aula, um desafio com testes, encadear cursos (fronteira de entrada/saída), auditar conteúdo didático, quebrar aula que presume demais, ou rodar os gates da engine (audit/barra/coverage/requirements/pratica/track:validate/convergir). Não use para ensinar um aluno — isso é a skill study-method.
 ---
 
 # trilha-author — o autor de cursos
@@ -34,6 +34,15 @@ que não passa no gate não é "quase pronto", é **defeito** — e gate verde n
   rodam dentro do `generate` (`references/qualidade-aula.md` §11). Código é 100%, prosa é redundante:
   o limiar em código é **zero violação** (docs/16 §11: "em código o limiar é 100%, e é isso que
   permite o gate ser binário").
+- **P-REVISAO — o desafio também MISTURA o que já foi ensinado** (a premissa do dono: *"os desafios
+  finais da aula englobem conteúdos das aulas anteriores, misturando na prova conhecimentos que ele
+  já possui — claro, não precisamos LITERALMENTE colocar tudo"*). Todo desafio de aula ou de módulo
+  pratica, na solução, **≥1 átomo-conceito de aulas anteriores** (eixos `decl/op/global/api/term` —
+  estrutura `node:`/`form:` não conta como conceito), sem esticar o desafio: 1–2 conceitos anteriores
+  chegam, e o alvo novo da aula continua a ser o núcleo. Quem mede é o gate **`pratica`**
+  (`npm run engine -- pratica <slug>`), que também cobre o **fechamento**: todo conhecimento produtivo
+  do módulo acaba praticado até ao desafio do módulo. O `--json` sugere O QUE misturar (nunca
+  praticado primeiro, depois espaçamento). → `references/validacao.md` §1.1.
 - **P-FORMA — exibir não é ensinar** (A5/A13 no contrato; **A19** é a regra que de fato roda em
   python/rust/C). Toda construção **nova** precisa de demonstração em bloco de código **com tag de
   linguagem** na teoria da PRÓPRIA aula (ou de aula anterior). Declarar `introduces` não demonstra;
@@ -94,9 +103,10 @@ que não passa no gate não é "quase pronto", é **defeito** — e gate verde n
   precisam ser legíveis com o orçamento de **ENTRADA** da aula (A3) — o aluno lê o teste **antes** de
   aprender a aula.
 - **P-PROVA — nada sai sem verde.** Por desafio, as **quatro provas de execução** (solução passa,
-  starter falha, contagem de testes bate, stub vazio falha — docs/16 §5.4); por trilha, os **seis
+  starter falha, contagem de testes bate, stub vazio falha — docs/16 §5.4); por trilha, os **sete
   gates**: `audit` com **0 violações**, `barra` com **0 erros** (A17–A23), `coverage` com **0
-  lacunas**, `requirements` em **bijeção**, `track:validate` ok e `convergir` em **PONTO-FIXO**.
+  lacunas**, `requirements` em **bijeção**, `pratica` sem **SEM_REVISAO** (P-REVISAO),
+  `track:validate` ok e `convergir` em **PONTO-FIXO**.
   Nenhum veredito por leitura humana: o gate decide.
 - **P-AMBIENTE — gate decide por execução, e execução precisa de toolchain provada.** Antes do
   primeiro comando que parseia ou roda código (`desenhar_grafo` em diante), o ambiente é preparado
@@ -171,8 +181,9 @@ de `converger` e de `publicar`. Em cadeia de cursos, um artefato a mais — o co
    canal (impressao → ambos → retorno). Antes de fechar a aula, rode
    `npm run engine -- barra <slug> --aula <mod>/<aula>`: A19 pega chave declarada sem demonstração.
    → `references/autoria-aula.md` · `skills/aula-author` (a skill irmã, que escreve a aula).
-5. **`validar_modulo`** — roda os **seis** gates: `audit` (0 violações), `barra` (0 erros A17–A23),
-   `coverage` (0 lacunas), `requirements` (bijeção), `track:validate`/`track:challenge:verify` (quatro
+5. **`validar_modulo`** — roda os **sete** gates: `audit` (0 violações), `barra` (0 erros A17–A23),
+   `coverage` (0 lacunas), `requirements` (bijeção), `pratica` (P-REVISAO: sem SEM_REVISAO, sem
+   faltante de fechamento), `track:validate`/`track:challenge:verify` (quatro
    provas por desafio) e o laço `convergir`. Violação → corrige e re-roda; **nunca** aceita por leitura.
    → `references/validacao.md`.
 6. **`converger`** — o laço recursivo **sem teto de rodadas** até o **PONTO FIXO**: medir →
@@ -197,9 +208,9 @@ Abra a referência **antes** de agir no passo. Todas em `references/`, um nível
 | preparar_ambiente | references/ambiente.md | `bash skills/study-method/scripts/_ensure-toolchain.sh --ensure --language <l> --json` (da raiz) |
 | `desenhar_grafo` | `references/qualidade-aula.md` | `npm run engine -- audit <slug> --dir <draft> --limite 0` (a partir da 1ª aula) |
 | `autoria_aula` | `references/autoria-aula.md` · `references/qualidade-aula.md` | `npm run track -- track:challenge:verify <slug> <mod> <aula> <desafio>` · `npm run engine -- barra <slug> --aula <mod>/<aula>` |
-| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `barra <slug>` · `coverage <slug>` · `requirements <slug>` · `npm run track -- track:validate <slug>` · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
+| `validar_modulo` | `references/validacao.md` | `npm run engine -- audit <slug> --limite 0` · `barra <slug>` · `coverage <slug>` · `requirements <slug>` · `pratica <slug>` · `npm run track -- track:validate <slug>` · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
 | `converger` | `references/recursao.md` | `npm run engine -- convergir <slug>` (dry-run) · `convergir <slug> --aplicar` · `reorder <slug>` · `gap <slug>` |
-| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os seis gates · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
+| `publicar` | `references/validacao.md` | mover para `app/resources/tracks/<slug>/` e re-rodar os sete gates · `_ensure-toolchain.sh --check --language <l>` (da raiz) |
 
 ## Regras de idioma
 

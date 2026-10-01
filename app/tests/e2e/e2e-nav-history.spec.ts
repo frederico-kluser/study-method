@@ -41,7 +41,7 @@ test('e2e-nav-history: trilha → detalhe → settings → voltar mantém o deta
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // Home → cartão da trilha → DETALHE (módulos + aulas + proficiência).
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
@@ -85,7 +85,7 @@ test('e2e-nav-history: reset de progresso — botão na Settings pede CONFIRMAÇ
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByRole('tab', { name: 'Configurações' }).click();
 
   // Botão destrutivo — um clique NÃO limpa direto: abre o diálogo de confirmação.

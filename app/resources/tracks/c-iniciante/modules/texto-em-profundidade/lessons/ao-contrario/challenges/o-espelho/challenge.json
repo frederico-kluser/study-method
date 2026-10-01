@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-espelho",
+  "title": "O espelho",
+  "concept": "o_palindromo",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "retorno",
+  "statement": "# O espelho\n\nA função `oEspelho` lê **uma palavra** (letras sem acento, até 49) e **devolve** 1 quando ela é palíndromo e 0 quando não é:\n\n```c\nint oEspelho(void)\n```\n\nPalíndromo é a palavra que no espelho continua igual — `arara` invertida é `arara`; `porta` invertida é `atrop`. Ela não imprime nada: a resposta sai pelo `return`.\n\nExemplos:\n\n- digitando `arara`, ela devolve **1**;\n- digitando `porta`, ela devolve **0**;\n- digitando `abca`, ela devolve **0** — as pontas são iguais, mas o meio não;\n- digitando `abccba`, ela devolve **1**.\n\nPassos:\n\n1. copie `palavra` para a caixa `espelho`, gaveta por gaveta, **inclusive a placa `\\0`** — a palavra original tem de ficar intacta;\n2. inverta a cópia trocando as pontas: a gaveta `i` com a `n - 1 - i`, parando em `n / 2`;\n3. devolva a comparação `strcmp(palavra, espelho) == 0` — ela já responde 1 quando as duas caixas batem e 0 quando não batem.\n\nA leitura da palavra e a caixa `espelho` já vêm prontas no arquivo.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* oEspelho le uma palavra digitada e devolve 1 quando ela e palindromo —\n   igual a si mesma invertida — e 0 quando nao e. Nada e impresso aqui:\n   a resposta sai pelo return. */\nint oEspelho(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char espelho[50] = \"\";\n    /* 1) copie palavra para espelho, gaveta por gaveta, INCLUSIVE a placa \\0 */\n\n    /* 2) inverta a copia trocando as pontas: a gaveta i com a n - 1 - i,\n       parando em n / 2 */\n\n    /* 3) devolva strcmp(palavra, espelho) == 0: a comparacao ja responde\n       1 quando as caixas batem e 0 quando nao batem */\n\n    return 0;\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio o-espelho — counter_protocol (03-tdd 3.9.3).\n   Fase VALOR: o teste declara o prototipo da funcao do aluno, DIGITA a\n   palavra num arquivo (fopen/fprintf), aponta o stdin para esse arquivo\n   (freopen) e confere o RETORNO — sem captura de saida. Os temporarios sao\n   POR CENARIO. Quatro palavras: dois espelhos verdadeiros e dois falsos,\n   em tamanhos diferentes — um return constante nao passa nos quatro. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nint oEspelho(void);\n\nSM_TEST(arara_no_espelho) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"arara\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n    checa_int(\"arara e palindromo\", oEspelho(), 1,\n              \"arara invertida continua arara: as duas caixas batem\");\n}\n\nSM_TEST(porta_no_espelho) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"porta\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n    checa_int(\"porta nao e palindromo\", oEspelho(), 0,\n              \"porta invertida e atrop: as duas caixas nao batem\");\n}\n\nSM_TEST(so_as_pontas_enganam) {\n    FILE *digitado = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(digitado, \"abca\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n    checa_int(\"abca so parece espelho\", oEspelho(), 0,\n              \"as pontas sao iguais mas o meio nao: so olhar as pontas erra aqui\");\n}\n\nSM_TEST(abccba_ao_contrario) {\n    FILE *digitado = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(digitado, \"abccba\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n    checa_int(\"abccba e palindromo\", oEspelho(), 1,\n              \"abccba invertida e abccba: a inversao cobre todos os pares\");\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nint oEspelho(void) {\n    char palavra[50] = \"\";\n    scanf(\"%49s\", palavra);\n    char espelho[50] = \"\";\n    int i = 0;\n    for (i = 0; palavra[i] != '\\0'; i++) {\n        espelho[i] = palavra[i];\n    }\n    espelho[i] = '\\0';\n    int n = i;\n    for (i = 0; i < n / 2; i++) {\n        char guardada = espelho[i];\n        espelho[i] = espelho[n - 1 - i];\n        espelho[n - 1 - i] = guardada;\n    }\n    return strcmp(palavra, espelho) == 0;\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000,
+  "requirements": [
+    {
+      "id": "arara_no_espelho",
+      "teste": "arara_no_espelho",
+      "descricao": "com arara digitado no stdin, a funcao oEspelho devolve 1 — arara invertida e arara, entao a comparacao da palavra com o espelho acerta"
+    },
+    {
+      "id": "porta_no_espelho",
+      "teste": "porta_no_espelho",
+      "descricao": "com porta digitado no stdin, a mesma funcao devolve 0: porta invertida e atrop e as duas caixas nao batem posicao a posicao"
+    },
+    {
+      "id": "so_as_pontas_enganam",
+      "teste": "so_as_pontas_enganam",
+      "descricao": "com abca digitado no stdin, a funcao devolve 0 — as pontas sao iguais e um codigo que so compara as pontas passaria em arara e porta, mas reprova aqui"
+    },
+    {
+      "id": "abccba_ao_contrario",
+      "teste": "abccba_ao_contrario",
+      "descricao": "com abccba digitado no stdin, a funcao devolve 1 — palavra de tamanho par invertida no proprio lugar, a prova de que o laco de inversao cobre todos os pares ate n / 2"
+    }
+  ]
+}

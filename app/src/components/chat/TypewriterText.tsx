@@ -38,10 +38,23 @@
  * digitada a 7 tps = 28 chars/s (a conta completa está em
  * `TYPEWRITER_TPS` — trackLessonState.ts). O default do componente segue 100
  * (chamador manda): quem escolhe é a LessonView, por `chatBubbleTps`. E para
- * o aluno NUNCA ficar refém da animação, o prop `skip` completa a bolha na
- * hora: um clique no painel, QUALQUER tecla ou o botão "Mostrar tudo" viram
- * `skip=true` na LessonView, o interval morre e o texto inteiro aparece (com
- * `onDone` — o indicador "digitando" sai e o quiz da seção aparece).
+ * o aluno NUNCA ficar refém da animação, o prop `skip` pula a digitação: um
+ * clique no painel, QUALQUER tecla ou o botão "Mostrar tudo" viram `skip=true`
+ * na LessonView.
+ *
+ * ONDA-SKIP-1S (o pulo DEIXA de estourar o texto na cara — pedido do dono):
+ * "ela termina de mostrar tudo em 1s ai calculamos a quantidade de caracteres
+ * para saber como mostramos eles com mesmo tempo ate dar um segundo". ANTES o
+ * `skip` fazia `setCut(text.length)` instantâneo — o resto da mensagem
+ * "piscava" inteiro num frame, o texto longo virava um murro e o aluno perdia
+ * o fio do que estava sendo escrito (DEFEITO MORTO aqui). AGORA o pulo inicia
+ * uma VARREDURA: o restante não revelado é distribuído UNIFORMEMENTE por
+ * ~1000 ms (ms por caractere = 1000 / chars restantes — `skipSweepDelayPerChar`,
+ * a conta literal do dono), com ticks de ~16 ms calculando o corte pelo tempo
+ * decorrido (`skipSweepCut` — trackLessonState.ts, puro e testado). Detalhes
+ * do relógio no corpo do efeito; o relógio de DIGITAÇÃO
+ * (`typewriterCut`/`typewriterDelayPerChar`/`TYPEWRITER_TPS`) não foi tocado —
+ * a varredura é um segundo relógio, só do pulo.
  *
  * ONDA2-CHAT-NINTENDO (erro instantâneo): `instant` desliga o efeito de
  * digitação — o texto COMPLETO aparece no mount, sem interval, e NENHUM
@@ -52,7 +65,16 @@
  * levariam ~55s). A review de APROVAÇÃO (sem `errorFor`) continua digitando.
  */
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { typewriterCut, typewriterDelayPerChar } from '../../lib/trackLessonState';
+import {
+  SKIP_SWEEP_TICK_MS,
+  skipSweepCut,
+  typewriterCut,
+  typewriterDelayPerChar,
+} from '../../lib/trackLessonState';
+// ONDA-SKIP-1S: o mesmo helper de sempre (lib/confetti.ts, reusado pela
+// RoadmapView) para honrar `prefers-reduced-motion: reduce` (SC 2.3.3) na
+// varredura do `skip`.
+import { prefersReducedMotion } from '../../lib/confetti';
 
 export function TypewriterText({
   text,
@@ -86,13 +108,18 @@ export function TypewriterText({
    */
   instant?: boolean;
   /**
-   * ONDA10: true → PULA a digitação em andamento e mostra o texto COMPLETO
-   * imediatamente (o aluno clicou/apertou uma tecla — "quem lê rápido não pode
-   * ficar esperando"). O interval é encerrado e `onDone` dispara uma vez, para
-   * a LessonView tirar o indicador "digitando" e liberar o card do quiz da
-   * seção. Diferente de `instant`: `instant` é uma decisão do CONTEÚDO (a
-   * bolha de erro nunca digita), `skip` é uma decisão do ALUNO no meio da
-   * digitação.
+   * ONDA10 + ONDA-SKIP-1S: true → o aluno PULOU a digitação em andamento
+   * ("quem lê rápido não pode ficar esperando"). O texto NÃO aparece
+   * instantâneo: o restante é revelado numa varredura LINEAR de ~1 s
+   * (`SKIP_SWEEP_MS`), cada caractere restante com a mesma fatia de tempo
+   * (pedido do dono: "termina de mostrar tudo em 1s … com mesmo tempo ate dar
+   * um segundo"). No fim a varredura dispara `onDone` uma única vez, para a
+   * LessonView tirar o indicador "digitando" e liberar o card do quiz da
+   * seção — o indicador some quando a varredura TERMINA, não no clique.
+   * Exceções instantâneas (documentadas no efeito): texto JÁ revelado por
+   * inteiro e `prefers-reduced-motion: reduce` (SC 2.3.3). Diferente de
+   * `instant`: `instant` é uma decisão do CONTEÚDO (a bolha de erro nunca
+   * digita), `skip` é uma decisão do ALUNO no meio da digitação.
    */
   skip?: boolean;
   /** Avisa que a digitação COMEÇOU (indicador "digitando" + auto-scroll). */
@@ -112,6 +139,19 @@ export function TypewriterText({
   // passa pelo typewriter).
   const [cut, setCut] = useState<number>(() => (instant || !active ? text.length : 0));
   const startedAtRef = useRef<number | null>(null);
+  // ONDA-SKIP-1S: espelho do `cut` para o branch do `skip` ler o corte ATUAL
+  // SEM depender do estado (o efeito do pulo roda no mesmo commit em que o
+  // `cut` pode ainda estar um tick atrás — o espelho é escrito junto com cada
+  // `setCut` e também no render, e assim o `cutAtSkip` da varredura é
+  // exatamente onde a digitação parou: nada pisca para trás).
+  const cutRef = useRef(cut);
+  cutRef.current = cut;
+  // ONDA-SKIP-1S: a varredura de `skip` em andamento (null = não há). Guarda o
+  // instante do pulo E o corte do pulo — é o que permite RETOMAR a varredura
+  // quando o efeito re-rodar no meio dela (StrictMode dev: setup→cleanup→
+  // setup; ou o `skip` voltando a false quando uma mensagem nova entra e expira
+  // o pedido) sem reiniciar o orçamento de ~1 s.
+  const sweepRef = useRef<{ cutAtSkip: number; startedAt: number } | null>(null);
   // ONDA10: bolha JÁ concluída nunca redigita. Sem isto, o `skip` (que é um
   // sinal COMPARTILHADO da LessonView) ao voltar para false — o que acontece
   // sozinho quando uma mensagem NOVA entra — re-rodaria o efeito da bolha
@@ -134,27 +174,103 @@ export function TypewriterText({
     // `instant` (erro de execução) ou `active={false}` (restaurada) → texto
     // completo imediato: sem interval e sem callbacks de stream (a bolha não
     // "digita" — o indicador e o auto-scroll não precisam acompanhar nada).
+    // São decisões de CONTEÚDO, não o pulo do aluno (ONDA2-CHAT-NINTENDO) —
+    // continuam INSTANTÂNEAS mesmo com a varredura da ONDA-SKIP-1S.
     if (!active || instant) return;
     if (textRef.current !== text) {
       textRef.current = text;
       doneRef.current = false;
+      // ONDA-SKIP-1S: texto NOVO no mesmo fiber → a varredura pendente do
+      // texto anterior não sobrevive (aquele relógio era do texto antigo).
+      sweepRef.current = null;
     }
     if (doneRef.current) return;
-    // ONDA10 (pular a animação): o aluno pediu o texto inteiro — nada de
-    // interval, o corte vai direto ao fim e o stream é dado por CONCLUÍDO.
-    // Fica ANTES do onStart: pular no meio não "recomeça" a digitação.
+
+    // ONDA-SKIP-1S — o relógio do PULO do aluno (o "acelerar"/"mostrar tudo").
+    // `startSweep` é o MESMO corpo para COMEÇAR e para RETOMAR a varredura:
+    // ticks de ~16 ms (`SKIP_SWEEP_TICK_MS`) em que o corte sai do tempo
+    // DECORRIDO desde o pulo (`skipSweepCut`) — nunca de um acumulado por
+    // tick, então timer atrasado não estica o orçamento de ~1 s. Por que não
+    // um `setTimeout` POR CARACTERE: timers aninhados são clampados a ~4 ms
+    // pelo browser — 500 chars restantes levariam ≥ 2 s, quebrando o "1s" do
+    // dono justamente nas mensagens longas. `onTick` roda a cada passo (o
+    // auto-scroll da LessonView acompanha a varredura como acompanha a
+    // digitação) e `onDone` dispara UMA vez no fim (guard `doneRef`).
+    const startSweep = (): (() => void) => {
+      const sweep = sweepRef.current;
+      if (!sweep) return () => {};
+      const timer = window.setInterval(() => {
+        const elapsed = Date.now() - sweep.startedAt;
+        const next = skipSweepCut(text.length, sweep.cutAtSkip, elapsed);
+        cutRef.current = next;
+        setCut(next);
+        onTickRef.current?.();
+        if (next >= text.length) {
+          // Fim da varredura: texto inteiro + `onDone` UMA vez — o indicador
+          // "digitando" SOME AQUI (no fim dos ~1 s), NÃO no clique do aluno.
+          doneRef.current = true;
+          sweepRef.current = null;
+          window.clearInterval(timer);
+          onDoneRef.current?.();
+        }
+      }, SKIP_SWEEP_TICK_MS);
+      // Cleanup OBRIGATÓRIO: desmontagem (troca de aba) e StrictMode (dev).
+      return () => window.clearInterval(timer);
+    };
+
+    // (1) Varredura JÁ em andamento → RETOMA do instante original do pulo
+    // (`sweepRef` guarda startedAt/cutAtSkip). É o caminho do StrictMode dev
+    // (setup→cleanup→setup no mesmo fiber) e do `skip` que voltou a false no
+    // meio da varredura (uma mensagem nova expirou o pedido — ver
+    // `skipAtLen` na LessonView): NENHUMA dessas re-rodadas reinicia o
+    // orçamento de ~1 s nem vaza dois intervals (o cleanup acima mata o
+    // anterior), e `onStart` NÃO é re-chamado — pular no meio não "recomeça".
+    if (sweepRef.current !== null) return startSweep();
+
+    // (2) ONDA10 + ONDA-SKIP-1S (pular a animação): o aluno pediu o texto
+    // inteiro — mas o texto NÃO estoura mais na tela. Fica ANTES do onStart:
+    // pular no meio não "recomeça" a digitação.
     if (skip) {
-      doneRef.current = true;
-      setCut(text.length);
-      onDoneRef.current?.();
-      return;
+      // Texto JÁ inteiro na tela (o pulo chegou depois do fim natural, ou
+      // texto vazio) → completa na hora: não há resto para varrer. Mesma
+      // idempotência de sempre: o `doneRef` impede re-typar/re-disparar.
+      if (cutRef.current >= text.length) {
+        doneRef.current = true;
+        cutRef.current = text.length;
+        setCut(text.length);
+        onDoneRef.current?.();
+        return;
+      }
+      // SC 2.3.3 (política do projeto, ver src/theme.ts e os blocos
+      // `@media (prefers-reduced-motion: reduce)`): sob reduced motion a
+      // varredura vira revelação INSTANTÂNEA — o movimento é dispensável, o
+      // conteúdo não. Decisão tomada AQUI (no relógio, que conhece o corte)
+      // em vez de na LessonView: o consumidor não ganha ramo novo.
+      if (prefersReducedMotion()) {
+        doneRef.current = true;
+        cutRef.current = text.length;
+        setCut(text.length);
+        onDoneRef.current?.();
+        return;
+      }
+      // A varredura começa EXATAMENTE onde a digitação parou (`cutRef` = o
+      // corte do pulo) e distribui o RESTO uniformemente pelos ~1 s da
+      // `SKIP_SWEEP_MS`: 1 char sobrando ou 500, cada caractere recebe a
+      // mesma fatia de tempo (a conta do dono está em
+      // `skipSweepDelayPerChar`).
+      sweepRef.current = { cutAtSkip: cutRef.current, startedAt: Date.now() };
+      return startSweep();
     }
+
+    // (3) Digitação normal — o relógio de sempre (`typewriterCut`/`tps`),
+    // intocado pela ONDA-SKIP-1S.
     onStartRef.current?.();
     startedAtRef.current = Date.now();
     const delay = typewriterDelayPerChar(tps);
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - (startedAtRef.current ?? 0);
       const next = typewriterCut(text, elapsed, tps);
+      cutRef.current = next;
       setCut(next);
       onTickRef.current?.();
       if (next >= text.length) {

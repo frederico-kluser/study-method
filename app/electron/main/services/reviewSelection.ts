@@ -117,10 +117,13 @@ export function buildReviewSelection(
   const ref = `${moduleSlug}/${lessonSlug}`;
   const atual = budget.byRef.get(ref);
   if (atual === undefined) return [];
-  // "Conhecimento anterior daquele curso" = o que uma aula ANTERIOR ENSINOU.
-  // O axioma de entrada (estruturais + harness) e o que só vem DEPOIS não são
-  // revisão: `firstTaughtIn` dá o primeiro ensino, `positions` dá a ordem.
-  const entrada = [...atual.entrada.receptive, ...atual.entrada.productive].filter((a) => {
+  // "Conhecimento anterior daquele curso" = o que uma aula ANTERIOR ENSINOU
+  // **a escrever** (`entrada.productive`): átomo só-receptivo ("sabe ler") não
+  // pode ser exigido no solutionCode — o audit A2 reprova (a armadilha medida
+  // `api:.y` do rust-iniciante, campanha 2026-09-27). O axioma de entrada
+  // (estruturais + harness) e o que só vem DEPOIS não são revisão:
+  // `firstTaughtIn` dá o primeiro ensino, `positions` dá a ordem.
+  const entrada = [...atual.entrada.productive].filter((a) => {
     const origemRef = budget.firstTaughtIn.get(a);
     const posOrigem = origemRef === undefined ? undefined : positions.get(origemRef);
     return posOrigem !== undefined && posOrigem < atual.index;

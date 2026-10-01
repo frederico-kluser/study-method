@@ -6,16 +6,26 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# A caixa em branco\n\nEscreva a caixa `proximo_passo` que **ainda não faz nada**: o corpo dela é só `pass`.\n\nO teste importa a sua caixa e a chama, conferindo que ela não devolve nada:\n\n```text\nproximo_passo()  ->  None\n```\n\nEscreva o `def` com o corpo `pass` no lugar do comentário. A caixa roda sem fazer nada — e o corpo chega numa aula futura.",
-  "starterCode": "# escreva aqui a caixa proximo_passo, vazia, com pass no corpo\n",
-  "testsCode": "import unittest\n\nfrom solucao import proximo_passo\n\n\nclass TestACaixaSemCorpo(unittest.TestCase):\n    def test_nao_faz_nada_por_enquanto(self):\n        \"\"\"a caixa proximo_passo nao devolve nada\"\"\"\n        self.assertIsNone(proximo_passo())\n",
-  "solutionCode": "def proximo_passo():\n    pass\n",
-  "expectedTestCount": 1,
+  "statement": "# A caixa em branco\n\nO terminal da lanchonete já tem o **plano da próxima etapa**: a caixa `proximo_passo`, que ainda não faz nada — o corpo dela é só `pass`. Junto do plano, o terminal precisa do troco do cliente.\n\nEscreva as duas caixas, na ordem dos comentários.\n\nA primeira é a caixa em branco, `proximo_passo`, sem janelas e com o corpo `pass`. Ela roda sem fazer nada:\n\n```text\nproximo_passo()  ->  None\n```\n\nA segunda é a caixa `troco_do_cliente`, com as janelas `pago` e `preco`. Ela **chama `proximo_passo()`** antes de devolver — o lugar dela está marcado no plano — e devolve o troco, a conta `pago - preco` guardada no nome `troco`:\n\n```text\ntroco_do_cliente(50, 12)   ->  38\ntroco_do_cliente(100, 75)  ->  25\n```\n\nA caixa em branco continua vazia: o corpo dela chega numa aula futura. E o `pass` não é enfeite — sem ele, o `def` nem existe para o Python.",
+  "starterCode": "# 1. escreva a caixa proximo_passo: um def sem janelas, com pass no corpo\n# 2. escreva a caixa troco_do_cliente(pago, preco): chame proximo_passo(),\n#    guarde a conta pago - preco no nome troco e devolva troco\n",
+  "testsCode": "import unittest\n\nfrom solucao import proximo_passo, troco_do_cliente\n\n\nclass TestACaixaSemCorpo(unittest.TestCase):\n    def test_a_caixa_em_branco_nao_devolve_nada(self):\n        \"\"\"a caixa proximo_passo nao devolve nada\"\"\"\n        self.assertIsNone(proximo_passo())\n\n    def test_devolve_o_troco_de_trinta_e_oito(self):\n        \"\"\"a caixa devolve 38 de troco quando recebe 50 e 12\"\"\"\n        self.assertEqual(troco_do_cliente(50, 12), 38)\n\n    def test_devolve_o_troco_de_vinte_e_cinco(self):\n        \"\"\"a caixa devolve 25 de troco quando recebe 100 e 75\"\"\"\n        self.assertEqual(troco_do_cliente(100, 75), 25)\n",
+  "solutionCode": "def proximo_passo():\n    pass\n\n\ndef troco_do_cliente(pago, preco):\n    proximo_passo()\n    troco = pago - preco\n    return troco\n",
+  "expectedTestCount": 3,
   "requirements": [
     {
-      "id": "test_nao_faz_nada_por_enquanto",
-      "teste": "test_nao_faz_nada_por_enquanto",
+      "id": "test_a_caixa_em_branco_nao_devolve_nada",
+      "teste": "test_a_caixa_em_branco_nao_devolve_nada",
       "descricao": "a caixa proximo_passo nao devolve nada"
+    },
+    {
+      "id": "test_devolve_o_troco_de_trinta_e_oito",
+      "teste": "test_devolve_o_troco_de_trinta_e_oito",
+      "descricao": "a caixa devolve 38 de troco quando recebe 50 e 12"
+    },
+    {
+      "id": "test_devolve_o_troco_de_vinte_e_cinco",
+      "teste": "test_devolve_o_troco_de_vinte_e_cinco",
+      "descricao": "a caixa devolve 25 de troco quando recebe 100 e 75"
     }
   ]
 }

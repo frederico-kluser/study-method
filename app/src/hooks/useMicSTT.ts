@@ -39,6 +39,9 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
   start: () => Promise<void>;
   stop: () => Promise<string>;
   cancel: () => Promise<void>;
+  /** S4 (auditoria de UX): fecha o erro manualmente — antes ele persistia
+   *  até ao próximo `start()` sem o utilizador poder descartá-lo. */
+  clearError: () => void;
 } {
   const [transcribing, setTranscribing] = useState(false);
   const [partial, setPartial] = useState('');
@@ -175,5 +178,9 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
     setTranscribing(false);
   }, []);
 
-  return { transcribing, partial, error, start, stop, cancel };
+  const clearError = useCallback((): void => {
+    setError(undefined);
+  }, []);
+
+  return { transcribing, partial, error, start, stop, cancel, clearError };
 }

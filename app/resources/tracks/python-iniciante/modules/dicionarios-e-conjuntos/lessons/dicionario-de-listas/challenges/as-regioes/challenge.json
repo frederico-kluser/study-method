@@ -6,11 +6,11 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# As regiões\n\nCrie a função `regioes()` que devolve o dicionário com as listas das regiões, como na aula:\n\n```python\ndef regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n```\n\nEla devolve:\n\n```text\nregioes()  ->  {'sul': ['chapeco', 'florianopolis'], 'norte': ['manaus']}\n```\n\nA chave `\"sul\"` aponta para a lista `[\"chapeco\", \"florianopolis\"]` e a chave `\"norte\"` para `[\"manaus\"]`. A função devolve o dicionário — ela não imprime nada.",
-  "starterCode": "def regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import regioes\n\n\nclass TestDicionarioDeListas(unittest.TestCase):\n    def test_sul_tem_duas_cidades(self):\n        \"\"\"regioes guarda a lista do sul com duas cidades\"\"\"\n        self.assertEqual(regioes()[\"sul\"], [\"chapeco\", \"florianopolis\"])\n\n    def test_norte_tem_uma_cidade(self):\n        \"\"\"regioes guarda a lista do norte com uma cidade\"\"\"\n        self.assertEqual(regioes()[\"norte\"], [\"manaus\"])\n\n    def test_tem_as_duas_regioes(self):\n        \"\"\"regioes guarda as duas regioes\"\"\"\n        self.assertEqual(sorted(regioes()), [\"norte\", \"sul\"])\n",
-  "solutionCode": "def regioes():\n    return {\"sul\": [\"chapeco\", \"florianopolis\"], \"norte\": [\"manaus\"]}\n",
-  "expectedTestCount": 3,
+  "statement": "# As regiões\n\nO app de turismo do estado agrupa as cidades por região: cada chave é o nome da região e o valor é a lista das cidades dela. Duas funções:\n\n- `regioes()` devolve o dicionário com as listas das regiões, como na aula;\n- `adicionar_cidade(mapa, regiao, cidade)` acrescenta a cidade na lista da região e devolve a lista dela — quando a região ainda não existe, crie a lista vazia com `.setdefault` e depois use `.append`.\n\n```python\ndef regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n\n\ndef adicionar_cidade(mapa, regiao, cidade):\n    # acrescente a cidade na lista da regiao e devolva a lista\n    pass\n```\n\nExemplos:\n\n```text\nregioes()  ->  {'sul': ['chapeco', 'florianopolis'], 'norte': ['manaus']}\n\nmapa = {'sul': ['chapeco']}\nadicionar_cidade(mapa, 'sul', 'criciuma')  ->  ['chapeco', 'criciuma']\nmapa  ->  {'sul': ['chapeco', 'criciuma']}\n\nadicionar_cidade(mapa, 'nordeste', 'recife')  ->  ['recife']\nmapa  ->  {'sul': ['chapeco', 'criciuma'], 'nordeste': ['recife']}\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n\n\ndef adicionar_cidade(mapa, regiao, cidade):\n    # acrescente a cidade na lista da regiao e devolva a lista\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import regioes\nfrom solucao import adicionar_cidade\n\n\nclass TestDicionarioDeListas(unittest.TestCase):\n    def test_sul_tem_duas_cidades(self):\n        \"\"\"regioes guarda a lista do sul com duas cidades\"\"\"\n        self.assertEqual(regioes()[\"sul\"], [\"chapeco\", \"florianopolis\"])\n\n    def test_norte_tem_uma_cidade(self):\n        \"\"\"regioes guarda a lista do norte com uma cidade\"\"\"\n        self.assertEqual(regioes()[\"norte\"], [\"manaus\"])\n\n    def test_tem_as_duas_regioes(self):\n        \"\"\"regioes guarda as duas regioes\"\"\"\n        self.assertEqual(sorted(regioes()), [\"norte\", \"sul\"])\n\n    def test_adicionar_cidade_cria_ou_amplia_a_regiao(self):\n        \"\"\"adicionar_cidade amplia a regiao que existe e cria a que falta\"\"\"\n        mapa = {\"sul\": [\"chapeco\"]}\n        self.assertEqual(adicionar_cidade(mapa, \"sul\", \"criciuma\"), [\"chapeco\", \"criciuma\"])\n        self.assertEqual(mapa, {\"sul\": [\"chapeco\", \"criciuma\"]})\n        self.assertEqual(adicionar_cidade(mapa, \"nordeste\", \"recife\"), [\"recife\"])\n        self.assertEqual(mapa, {\"sul\": [\"chapeco\", \"criciuma\"], \"nordeste\": [\"recife\"]})\n",
+  "solutionCode": "def regioes():\n    return {\"sul\": [\"chapeco\", \"florianopolis\"], \"norte\": [\"manaus\"]}\n\n\ndef adicionar_cidade(mapa, regiao, cidade):\n    lista = mapa.setdefault(regiao, [])\n    lista.append(cidade)\n    return lista\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_sul_tem_duas_cidades",
@@ -26,6 +26,11 @@
       "id": "test_tem_as_duas_regioes",
       "teste": "test_tem_as_duas_regioes",
       "descricao": "regioes guarda as duas regioes"
+    },
+    {
+      "id": "test_adicionar_cidade_cria_ou_amplia_a_regiao",
+      "teste": "test_adicionar_cidade_cria_ou_amplia_a_regiao",
+      "descricao": "adicionar_cidade amplia a regiao que existe e cria a que falta"
     }
   ]
 }

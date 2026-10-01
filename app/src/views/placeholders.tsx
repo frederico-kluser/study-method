@@ -23,6 +23,28 @@
  * o clique abre o diálogo de aviso ("não dá — a LLM avalia a aula atual") em
  * vez de trocar a sessão em silêncio.
  *
+ * ONDA-UX-TRILHAS (correção de UX — decisão do dono: "alinhado às trilhas"):
+ * a "rodada 8" removeu a geração de aula por assunto (o aluno abre uma TRILHA
+ * e escolhe a aula — ver pendingSubject.ts), mas a Home continuava a prometer
+ * o fluxo removido ("Digite um assunto…", chips de ideias): clicar levava ao
+ * estado vazio "Escolha uma trilha" da LessonView — dead-end confirmado em
+ * auditoria. Realignamento:
+ *   · os chips de sugestão ("Ideias para começar") FORAM REMOVIDOS da UI —
+ *     prometiam um fluxo que não existe; as chaves `home.suggestions.*` e o
+ *     helper `homeSuggestedSubjects` ficam no lib (contrato de testes);
+ *   · o clique num cartão de matéria passa a IR PARA A TRILHA (roadmap), onde
+ *     o conteúdo real vive — nunca mais para uma aula vazia; o diálogo de
+ *     "trocar de matéria" saiu junto (ir para a Trilha não abandona aula — o
+ *     chat fica cacheado por trackSlug:lessonId);
+ *   · o CTA primário é contextual de verdade: sem chaves → Configurações;
+ *     com última aula aberta → Continuar (restaura via lastLesson); sem
+ *     última aula → Escolher uma trilha;
+ *   · o stepper de passos apresenta-se SÓ enquanto o setup está incompleto
+ *     (deixa de ser ruído permanente para quem já está a estudar);
+ *   · falha de `keys.getStatus()` deixa de ser lida como "não configurado":
+ *     é um estado próprio ("não foi possível verificar") com retentativa —
+ *     nunca inferir "em falta" de uma falha de canal.
+ *
  * Navigation: o shell passa `onNavigate: NavKey => void` (ViewProps aditivo) —
  * em App.tsx isso é `setActive`. Settings/Lesson/Challenge continuam como
  * funções exportadas (o registry views/index.ts as sobrescreve pelas reais).
@@ -37,10 +59,7 @@ import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import Container from '@mui/material/Container';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
+import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -66,24 +85,24 @@ import {
   groupSubjectsByDomain,
   homeDomainSections,
   homeSetupStatus,
-  homeSuggestedSubjects,
   homeTracksState,
-  shouldWarnOnSubjectSwitch,
   splitSubjectsByOrphanSlug,
   subjectProgressCounts,
   type HomeDomain,
-  type HomeSuggestionLabelKey,
 } from '../lib/homeSetup';
-import { setPendingDomain, setPendingSubject , setPendingTrackSlug } from '../lib/pendingSubject';
-import { useSessionState } from '../lib/sessionState';
+// ONDA-UX-TRILHAS: o CTA "Continuar" restaura a última aula aberta na sessão
+// (peek — não consome; a LessonView tem a sua própria restauração).
+import { peekLastLesson } from '../lib/lastLesson';
+import { setPendingTrackSlug } from '../lib/pendingSubject';
 
 export interface ViewProps {
   /** Caminho do setup de estudo ativo (quando houver), vazio caso contrário. */
   setupsDir?: string;
   /**
    * ADITIVO (onda 17A): navega entre as abas do shell. A Home usa para o CTA
-   * ("Configurar chaves" → settings, "Começar aula" → lesson) e para os chips de
-   * sugestão (→ lesson). No-op quando ausente (compatibilidade c/ usos antigos).
+   * (Configurações → settings, Continuar → lesson, Escolher trilha → roadmap)
+   * e para os cartões de matéria (→ roadmap). No-op quando ausente
+   * (compatibilidade c/ usos antigos).
    */
   onNavigate?: (key: NavKey) => void;
 }
@@ -133,10 +152,46 @@ function HomeSteps(): ReactElement {
   );
 }
 
-/** Card de status do setup: chaves OK (verde ✓) ou faltando (aviso ⚠). */
-function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElement {
+/**
+ * Card de status do setup: chaves OK (verde ✓), faltando (aviso ⚠) ou
+ * INVERIFICÁVEL (canal falhou — estado próprio, com retentativa). ONDA-UX-
+ * TRILHAS (auditoria W2): uma falha de `keys.getStatus()` nunca é lida como
+ * "não configurado" — a Home não desvia o utilizador para Configurações com
+ * base numa resposta que não chegou.
+ */
+function SetupStatusCard({
+  status,
+  failed,
+  onRetry,
+}: {
+  status: KeysStatus | null;
+  /** O último getStatus falhou (timeout/canal) — distinto de "ainda a carregar". */
+  failed: boolean;
+  /** Retenta a leitura do estado (açao do estado de erro). */
+  onRetry: () => void;
+}): ReactElement {
   const { t } = useTranslation();
   const aggregate = homeSetupStatus(status);
+
+  if (status == null && failed) {
+    return (
+      <Card variant="outlined" sx={{ bgcolor: 'background.paper' }}>
+        <CardContent>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            {t('translation:home.setup.checkFailed')}
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={onRetry}
+            sx={{ mt: 1, minHeight: TOUCH_TARGET_PX }}
+          >
+            {t('translation:common.tryAgain')}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (status == null) {
     return (
@@ -195,50 +250,17 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
   );
 }
 
-/** O que o usuário escolheu clicar: matéria + domínio (para o diálogo/commit). */
+/** O que o usuário escolheu clicar: matéria + domínio (para o rótulo/estado). */
 export interface SubjectPick {
   subject: string;
   domain: HomeDomain;
 }
 
-/**
- * Chips de sugestões (programação + matemática) — onboarding do estado VAZIO.
- * Clicar roteia pelo MESMO fluxo dos cartões (`onPick`): aviso de troca de
- * matéria se houver sessão ativa, senão grava pendingSubject/pendingDomain e
- * navega p/ Aula.
- */
-function SubjectSuggestions({
-  onPick,
-}: {
-  onPick: (pick: SubjectPick) => void;
-}): ReactElement {
-  const { t } = useTranslation();
-  const suggestions = homeSuggestedSubjects();
-  const domainLabel: Record<HomeDomain, string> = {
-    programming: t('translation:home.suggestions.domainProgramming'),
-    math: t('translation:home.suggestions.domainMath'),
-  };
-
-  const openInLesson = (labelKey: HomeSuggestionLabelKey): void => {
-    const suggestion = suggestions.find((s) => s.labelKey === labelKey);
-    if (!suggestion) return;
-    onPick({ subject: t(labelKey), domain: suggestion.domain });
-  };
-
-  return (
- <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap',  }} >
-      {suggestions.map((s) => (
-        <Chip
-          key={s.labelKey}
-          clickable
-          variant="outlined"
-          label={`${domainLabel[s.domain]}: ${t(s.labelKey)}`}
-          onClick={() => openInLesson(s.labelKey)}
-        />
-      ))}
-    </Stack>
-  );
-}
+// ONDA-UX-TRILHAS: o componente `SubjectSuggestions` ("Ideias para começar")
+// foi REMOVIDO — os chips prometiam "digitar um assunto → aula gerada", fluxo
+// que a rodada 8 retirou do app (o clique caía no estado vazio "Escolha uma
+// trilha" da LessonView). O contrato puro (`homeSuggestedSubjects` em
+// src/lib/homeSetup.ts + chaves `home.suggestions.*`) fica intacto.
 
 /** Cartão de uma matéria persistida: nome + progresso + ícone do domínio. */
 function SubjectCard({
@@ -431,10 +453,21 @@ function TracksSection({
     );
   }
 
-  // Resposta ainda não chegou: nada a mostrar (o CTA acima já ocupa a tela).
-  // O `|| tracks === null` é o ESTREITAMENTO para o tsc (o estado 'loading' já
-  // cobre esse caso em runtime, mas o compilador não deriva isso da função).
-  if (state === 'loading' || tracks === null) return null;
+  // Resposta ainda não chegou: o TÍTULO já aparece com um indicador — antes a
+  // secção inteira sumia (`return null`) e o layout saltava quando a lista
+  // chegava (S3 da auditoria: silêncio + layout shift). O `|| tracks === null`
+  // é o ESTREITAMENTO para o tsc (o estado 'loading' já cobre esse caso em
+  // runtime, mas o compilador não deriva isso da função).
+  if (state === 'loading' || tracks === null) {
+    return (
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+          {t('translation:home.tracksTitle')}
+        </Typography>
+        <LinearProgress aria-label={t('translation:home.tracksLoading')} />
+      </Box>
+    );
+  }
 
   // VAZIO LEGÍTIMO: nenhuma trilha instalada. Nem erro, nem lista fantasma —
   // uma explicação do que o app é (o conteúdo vem do CLI de autoria).
@@ -487,10 +520,28 @@ function TracksSection({
                       {tr.description}
                     </Typography>
                   </Box>
+                  {/* S1 (onda-ux): o progresso ganhou UNIDADE — o MESMO texto
+                      de `roadmap.trackCount` ("{{done}} de {{total}} aulas
+                      concluídas") em vez do "{{done}}/{{total}}" cru, que media
+                      diferente do cartão de matéria para o mesmo conceito.
+                      Com o texto mais longo o rótulo QUEBRA em vez de truncar
+                      (SC 1.4.12 — política da casa: "quebra, nunca recorta"):
+                      sem nowrap e sem ellipsis, o chip cresce em altura e o
+                      cartão cresce com ele; `maxWidth: '100%'` segura o chip
+                      dentro do cartão em colunas estreitas. */}
                   <Chip
                     size="small"
                     variant="outlined"
                     label={tI('home.trackProgress', { done: tr.doneCount, total: tr.lessonCount })}
+                    sx={{
+                      maxWidth: '100%',
+                      height: 'auto',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        overflowWrap: 'anywhere',
+                        py: 0.25,
+                      },
+                    }}
                   />
                 </Stack>
               </CardContent>
@@ -510,41 +561,37 @@ export function HomeView(props: ViewProps): ReactElement {
     [t],
   );
   const [keyStatus, setKeyStatus] = useState<KeysStatus | null>(null);
-  // Matérias PERSISTIDAS (onda 4): null = carregando → onboarding (chips) até a
-  // resposta; [] = vazio/erro → onboarding EXATAMENTE como hoje.
+  // ONDA-UX-TRILHAS (auditoria W2): falha de `keys.getStatus()` NÃO é
+  // "não configurado" — é um estado próprio ("não foi possível verificar")
+  // com retentativa. Nunca inferir "em falta" de uma falha de canal.
+  const [keyStatusFailed, setKeyStatusFailed] = useState(false);
+  // Matérias PERSISTIDAS (onda 4): null = carregando → sem cartões até a
+  // resposta; [] = vazio/erro → sem cartões.
   const [topics, setTopics] = useState<SubjectSummary[] | null>(null);
   // ONDA9 (cache-reconcilia): slugs cujo estado persistido NÃO tem trilha no
   // disco nem aula própria no banco — o resquício de um curso apagado. `null`
   // enquanto a reconciliação não respondeu: nesse intervalo NADA é escondido
   // (esconder por falta de resposta trocaria fantasma por sumiço).
   const [orphanSlugList, setOrphanSlugList] = useState<string[] | null>(null);
-  // Escolha aguardando confirmação do diálogo de troca de matéria (null = fechado).
-  const [pendingPick, setPendingPick] = useState<SubjectPick | null>(null);
   const navigate = props.onNavigate ?? (() => {});
-  // Sessão ativa publicada pela LessonView (subject da aula em andamento).
-  const { subject: activeSubject } = useSessionState();
 
-  useEffect(() => {
-    let cancelled = false;
-    getApi()
-      .keys.getStatus()
+  // O estado das chaves com timeout (S4 da auditoria: era a ÚNICA chamada sem
+  // `withTimeout` — "Verificando a configuração…" podia pendurar para sempre).
+  const refreshKeys = useCallback((): void => {
+    setKeyStatusFailed(false);
+    Promise.resolve()
+      .then(() => withTimeout(getApi().keys.getStatus(), IPC_TIMEOUT_MS, 'keys.getStatus'))
       .then((status) => {
-        if (!cancelled) setKeyStatus(status);
+        setKeyStatus(status);
       })
       .catch(() => {
-        if (!cancelled) {
-          setKeyStatus({
-            llmConfigured: false,
-            braveConfigured: false,
-            llmValidated: false,
-            braveValidated: false,
-          });
-        }
+        setKeyStatusFailed(true);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    refreshKeys();
+  }, [refreshKeys]);
 
   // Onda 4: carrega as matérias persistidas. `listTopics` devolve [] sem repo
   // (main é gracioso) e o catch defende o caso do canal ausente — nos DOIS
@@ -585,29 +632,38 @@ export function HomeView(props: ViewProps): ReactElement {
 
   const ready = homeSetupStatus(keyStatus) === 'ready';
 
+  // ONDA-UX-TRILHAS: o CTA é contextual de VERDADE (uma ação = um destino que
+  // sempre funciona):
+  //   · sem chaves        → Configurações (fechar o setup);
+  //   · com última aula   → Continuar (a LessonView restaura via lastLesson);
+  //   · sem última aula   → Escolher uma trilha (roadmap — o conteúdo vive lá).
+  // Antes, "Começar aula" mandava SEMPRE para a aba Aula, que sem aula aberta
+  // mostra "Escolha uma trilha" — um salto para um estado vazio (auditoria).
+  const lastLesson = peekLastLesson();
+
   const primaryAction = (): void => {
-    if (ready) navigate('lesson');
-    else navigate('settings');
-  };
-
-  /** Grava subject + domain pendentes e navega para a aba Aula. */
-  const commitPick = (pick: SubjectPick): void => {
-    setPendingSubject(pick.subject);
-    setPendingDomain(pick.domain);
-    navigate('lesson');
-  };
-
-  /**
-   * Porta ÚNICA de escolha de matéria (cartões E chips). Com sessão ativa de
-   * OUTRA matéria → abre o diálogo em vez de trocar em silêncio (a LLM avalia a
-   * aula atual); mesma matéria ou sem sessão → continua direto.
-   */
-  const handlePick = (pick: SubjectPick): void => {
-    if (shouldWarnOnSubjectSwitch(activeSubject, pick.subject)) {
-      setPendingPick(pick);
+    if (!ready) {
+      navigate('settings');
       return;
     }
-    commitPick(pick);
+    navigate(lastLesson ? 'lesson' : 'roadmap');
+  };
+
+  const primaryLabel = !ready
+    ? t('translation:home.cta.setup')
+    : lastLesson
+      ? t('translation:home.cta.continue')
+      : t('translation:home.cta.start');
+
+  /**
+   * Porta ÚNICA de escolha de matéria (cartões). ONDA-UX-TRILHAS: o clique vai
+   * para a TRILHA (roadmap), onde o conteúdo real vive — a rodada 8 retirou a
+   * geração de aula por assunto e o clique antigo caía no estado vazio da
+   * aba Aula. O aviso de "trocar de matéria" saiu junto: ir para a Trilha não
+   * abandona a aula em curso (o chat fica cacheado por trackSlug:lessonId).
+   */
+  const handlePick = (_pick: SubjectPick): void => {
+    navigate('roadmap');
   };
 
   // ONDA9: o veredito do main aplicado à lista. `visible` são as matérias
@@ -633,13 +689,15 @@ export function HomeView(props: ViewProps): ReactElement {
           </Typography>
         </Box>
 
-        {/* Passos do fluxo recém-instalado. */}
-        <HomeSteps />
+        {/* ONDA-UX-TRILHAS: o stepper de passos apresenta-se SÓ enquanto o
+            setup está incompleto — para quem já estuda, ele era ruído
+            permanente (a mensagem "configure as chaves" repetida 3×). */}
+        {!ready ? <HomeSteps /> : null}
 
-        {/* Card de status do setup. */}
-        <SetupStatusCard status={keyStatus} />
+        {/* Card de status do setup (retentativa quando o canal falha). */}
+        <SetupStatusCard status={keyStatus} failed={keyStatusFailed} onRetry={refreshKeys} />
 
-        {/* CTA primário único e contextual. */}
+        {/* CTA primário único e contextual (destino sempre útil — ver acima). */}
         <Box>
           <Button
             variant="contained"
@@ -647,7 +705,7 @@ export function HomeView(props: ViewProps): ReactElement {
             onClick={primaryAction}
             sx={{ height: 48, minWidth: { xs: '100%', sm: 220 } }}
           >
-            {ready ? t('translation:home.cta.start') : t('translation:home.cta.setup')}
+            {primaryLabel}
           </Button>
         </Box>
 
@@ -680,57 +738,16 @@ export function HomeView(props: ViewProps): ReactElement {
           </Alert>
         ) : null}
 
-        {/* Onda 4: matérias escolhidas por domínio OU onboarding (chips). */}
+        {/* Onda 4: matérias escolhidas por domínio (progresso por matéria).
+            ONDA-UX-TRILHAS: sem matérias NÃO há mais chips de ideias — o
+            caminho canónico são as TRILHAS (secção acima); os chips prometiam
+            "digitar um assunto → aula gerada", fluxo removido na rodada 8. */}
         {hasSubjects ? (
           <Box>
             <SubjectSections topics={visibleTopics} onPick={handlePick} tI={tI} />
           </Box>
-        ) : (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-              {t('translation:home.suggestions.title')}
-            </Typography>
-            <SubjectSuggestions onPick={handlePick} />
-          </Box>
-        )}
+        ) : null}
       </Stack>
-
-      {/* Aviso de troca de matéria no meio da aula (onda 4). */}
-      <Dialog
-        open={pendingPick !== null}
-        onClose={() => setPendingPick(null)}
-        aria-labelledby="home-switch-dialog-title"
-      >
-        <DialogTitle id="home-switch-dialog-title">
-          {t('translation:home.switchDialog.title')}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {t('translation:home.switchDialog.description')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          {/* Sem NENHUM pendingSubject: ir para a aula mantém a sessão atual.
-              minHeight nos dois: piso de alvo de toque (TOUCH_TARGET_PX) — o
-              botão default do MUI nasce ~36px de alto. */}
-          <Button
-            sx={{ minHeight: TOUCH_TARGET_PX }}
-            onClick={() => {
-              setPendingPick(null);
-              navigate('lesson');
-            }}
-          >
-            {t('translation:home.switchDialog.goToLesson')}
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ minHeight: TOUCH_TARGET_PX }}
-            onClick={() => setPendingPick(null)}
-          >
-            {t('translation:home.switchDialog.continueCurrent')}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 }

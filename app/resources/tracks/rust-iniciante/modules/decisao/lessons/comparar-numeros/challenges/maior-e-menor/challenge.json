@@ -5,10 +5,10 @@
   "concept": "comparar_numeros",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# Maior e menor\n\nDuas funções de verdade — cada uma faz UMA pergunta e devolve a resposta.\n\n1. `maior` recebe dois números e devolve `true` quando o primeiro é **maior** que o segundo.\n2. `menor` recebe dois números e devolve `true` quando o primeiro é **menor** que o segundo.\n\nNão escreva `true` nem `false` no corpo: quem responde é a comparação, com `>` e `<`.\n\nOs testes chamam com números positivos e com dois números iguais.",
-  "starterCode": "pub fn maior(a: i32, b: i32) -> bool {\n    todo!()\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    todo!()\n}\n",
-  "solutionCode": "pub fn maior(a: i32, b: i32) -> bool {\n    a > b\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    a < b\n}\n",
-  "testsCode": "use desafio::maior;\nuse desafio::menor;\n\n#[test]\nfn testa_tres_e_maior_que_dois() {\n    assert_eq!(maior(3, 2), true);\n}\n\n#[test]\nfn testa_dois_e_menor_que_tres() {\n    assert_eq!(menor(2, 3), true);\n}\n\n#[test]\nfn testa_iguais_nao_sao_maior_nem_menor() {\n    assert_eq!(maior(4, 4), false);\n    assert_eq!(menor(4, 4), false);\n}\n",
+  "statement": "# Maior e menor\n\nTrês funções de verdade — cada uma faz UMA pergunta ou UMA conta e devolve a resposta.\n\n1. `maior` recebe dois números e devolve `true` quando o primeiro é **maior** que o segundo.\n2. `menor` recebe dois números e devolve `true` quando o primeiro é **menor** que o segundo.\n3. `produto` recebe dois números e devolve o **produto** deles. Guarde a multiplicação num `let` e devolva o nome no fim.\n\nNas duas primeiras, não escreva `true` nem `false` no corpo: quem responde é a comparação, com `>` e `<`.\n\nOs testes chamam as comparações com números positivos e com dois números iguais — e chamam `produto` com pares diferentes, para conferir a conta.",
+  "starterCode": "pub fn maior(a: i32, b: i32) -> bool {\n    todo!()\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    todo!()\n}\n\npub fn produto(a: i32, b: i32) -> i32 {\n    todo!()\n}\n",
+  "solutionCode": "pub fn maior(a: i32, b: i32) -> bool {\n    a > b\n}\n\npub fn menor(a: i32, b: i32) -> bool {\n    a < b\n}\n\npub fn produto(a: i32, b: i32) -> i32 {\n    let resultado = a * b;\n    resultado\n}\n",
+  "testsCode": "use desafio::maior;\nuse desafio::menor;\nuse desafio::produto;\n\n#[test]\nfn testa_tres_e_maior_que_dois() {\n    assert_eq!(maior(3, 2), true);\n}\n\n#[test]\nfn testa_dois_e_menor_que_tres() {\n    assert_eq!(menor(2, 3), true);\n}\n\n#[test]\nfn testa_iguais_nao_sao_maior_nem_menor() {\n    assert_eq!(maior(4, 4), false);\n    assert_eq!(menor(4, 4), false);\n}\n\n#[test]\nfn testa_o_produto_de_cada_par() {\n    assert_eq!(produto(3, 4), 12);\n    assert_eq!(produto(2, 5), 10);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
@@ -24,7 +24,12 @@
       "id": "REQ-3",
       "descricao": "Com 4 e 4, as duas funções devem devolver false — iguais não são maiores nem menores.",
       "teste": "testa_iguais_nao_sao_maior_nem_menor"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "A função produto deve devolver 12 para o par (3, 4) e 10 para o par (2, 5).",
+      "teste": "testa_o_produto_de_cada_par"
     }
   ],
-  "expectedTestCount": 3
+  "expectedTestCount": 4
 }

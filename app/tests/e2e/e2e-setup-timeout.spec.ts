@@ -136,6 +136,12 @@ test('e2e-setup-timeout: validação pendurada no KeysPanel (Settings) → erro 
 
   await hangValidateChannels(app, 20_000);
 
+  // ONDA-UX (W5 da auditoria): "Validar" com o campo VAZIO deixou de validar
+  // a chave guardada em silêncio — agora mostra "Digite a chave antes de
+  // validar" (o utilizador crê que valida o que está no campo). Para disparar
+  // a validação pendurada é preciso TER uma chave digitada, como na 1ª spec.
+  await page.getByLabel('Chave OpenRouter').fill('sk-pendurada-e2e');
+
   await validar.click();
   await expect(page.getByRole('progressbar').first()).toBeVisible();
 

@@ -1,0 +1,3030 @@
+{
+  "trackSlug": "python-iniciante",
+  "adapterId": "python",
+  "budgetSource": "declared",
+  "achados": [
+    {
+      "regra": "A24",
+      "ref": "a-tela/a-primeira-linha",
+      "chave": null,
+      "evidencia": "afirmação \"aspas-marcam-o-texto\": a opção correta é a mais longa das 4, sozinha (54 chars contra 44 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/divisao-inteira-e-resto",
+      "chave": "op:binary://",
+      "evidencia": "op:binary:// aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `//` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/divisao-inteira-e-resto",
+      "chave": "op:binary:%",
+      "evidencia": "op:binary:% aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `%` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/o-sinal-do-numero",
+      "chave": "op:unary:-",
+      "evidencia": "op:unary:- aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `-` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/texto-com-buraco",
+      "chave": null,
+      "evidencia": "afirmação \"sem-f-as-chaves-sao-texto\": a opção correta é a mais longa das 4, sozinha (19 chars contra 16 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/de-texto-para-numero",
+      "chave": "global:int",
+      "evidencia": "global:int aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `int` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/de-texto-para-numero",
+      "chave": "global:str",
+      "evidencia": "global:str aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `str` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/de-texto-para-numero",
+      "chave": null,
+      "evidencia": "afirmação \"colar-texto-com-numero-da-erro\": a opção correta é a mais longa das 4, sozinha (36 chars contra 20 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/arredondar",
+      "chave": "global:round",
+      "evidencia": "global:round aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `round` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/arredondar",
+      "chave": "global:float",
+      "evidencia": "global:float aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `float` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "a-tela/verdadeiro-e-falso",
+      "chave": "node:BoolLiteral",
+      "evidencia": "node:BoolLiteral aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `BoolLiteral` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/a-linha-que-o-python-ignora",
+      "chave": null,
+      "evidencia": "afirmação \"cerquilha-desliga-a-linha\": a opção correta é a mais longa das 4, sozinha (38 chars contra 26 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/quando-da-errado",
+      "chave": null,
+      "evidencia": "afirmação \"ler-de-baixo-para-cima\": a opção correta é a mais longa das 4, sozinha (49 chars contra 41 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/quando-da-errado",
+      "chave": null,
+      "evidencia": "afirmação \"nameerror-e-nome-errado\": a opção correta é a mais longa das 4, sozinha (60 chars contra 39 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "a-tela/quando-da-errado",
+      "chave": null,
+      "evidencia": "afirmação \"syntaxerror-nao-roda-nada\": a opção correta é a mais longa das 4, sozinha (45 chars contra 42 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "decisao/comparar-numeros",
+      "chave": "op:compare:<",
+      "evidencia": "op:compare:< aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `<` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "decisao/igual-e-diferente",
+      "chave": "op:compare:!=",
+      "evidencia": "op:compare:!= aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `!=` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/igual-e-diferente",
+      "chave": null,
+      "evidencia": "afirmação \"igual-comparando-ou-guardando\": a opção correta é a mais longa das 4, sozinha (13 chars contra 12 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/maior-ou-igual",
+      "chave": null,
+      "evidencia": "afirmação \"quando-as-duas-partes-falham\": a opção correta é a mais longa das 4, sozinha (5 chars contra 4 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/se",
+      "chave": null,
+      "evidencia": "afirmação \"recuo-diz-quem-e-o-dono\": a opção correta é a mais longa das 4, sozinha (53 chars contra 42 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "decisao/o-bloco-vazio",
+      "chave": "node:Pass",
+      "evidencia": "node:Pass aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `Pass` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/o-bloco-vazio",
+      "chave": null,
+      "evidencia": "afirmação \"sem-order-o-bloco-e-erro\": a opção correta é a mais longa das 4, sozinha (63 chars contra 47 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/o-bloco-vazio",
+      "chave": null,
+      "evidencia": "afirmação \"pass-nao-muda-estado\": a opção correta é a mais longa das 4, sozinha (66 chars contra 39 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "decisao/se-senao",
+      "chave": "node:IfElse",
+      "evidencia": "node:IfElse aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `IfElse` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/se-senao-se",
+      "chave": null,
+      "evidencia": "afirmação \"elif-plano-no-lugar-de-aninhado\": a opção correta é a mais longa das 4, sozinha (55 chars contra 54 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "decisao/e-e-ou",
+      "chave": "op:bool:or",
+      "evidencia": "op:bool:or aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `or` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "decisao/condicao-em-uma-linha",
+      "chave": null,
+      "evidencia": "afirmação \"else-obrigatorio-na-linha\": a opção correta é a mais longa das 4, sozinha (48 chars contra 43 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/dividir-no-lugar",
+      "chave": "op:aug:/",
+      "evidencia": "op:aug:/ aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `/` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/dividir-no-lugar",
+      "chave": "op:aug://",
+      "evidencia": "op:aug:// aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `//` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/dividir-no-lugar",
+      "chave": null,
+      "evidencia": "afirmação \"divisao-normal-guarda-decimal\": a opção correta é a mais longa das 4, sozinha (3 chars contra 2 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/resto-e-potencia-no-lugar",
+      "chave": "op:aug:%",
+      "evidencia": "op:aug:% aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `%` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/enquanto",
+      "chave": "node:While",
+      "evidencia": "node:While aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `While` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/enquanto",
+      "chave": null,
+      "evidencia": "afirmação \"bloco-precisa-mudar-a-condicao\": a opção correta é a mais longa das 4, sozinha (55 chars contra 45 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/parar-no-meio",
+      "chave": "node:Break",
+      "evidencia": "node:Break aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `Break` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "repeticao/pular-uma-volta",
+      "chave": "node:Continue",
+      "evidencia": "node:Continue aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `Continue` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/pular-uma-volta",
+      "chave": null,
+      "evidencia": "afirmação \"o-que-vem-antes-do-continue-roda\": a opção correta é a mais longa das 4, sozinha (30 chars contra 23 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/o-laco-que-nao-acaba-sozinho",
+      "chave": null,
+      "evidencia": "afirmação \"while-true-precisa-de-break\": a opção correta é a mais longa das 4, sozinha (22 chars contra 21 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/laco-dentro-de-laco",
+      "chave": null,
+      "evidencia": "afirmação \"print-com-dois-valores\": a opção correta é a mais longa das 4, sozinha (3 chars contra 2 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "repeticao/e-se-nunca-parou",
+      "chave": null,
+      "evidencia": "afirmação \"else-responde-a-pergunta\": a opção correta é a mais longa das 4, sozinha (41 chars contra 32 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "caixas-que-devolvem/escrever-a-primeira-caixa",
+      "chave": "node:FunctionDef",
+      "evidencia": "node:FunctionDef aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `FunctionDef` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/escrever-a-primeira-caixa",
+      "chave": null,
+      "evidencia": "afirmação \"definir-nao-roda\": a opção correta é a mais longa das 4, sozinha (25 chars contra 22 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/escrever-a-primeira-caixa",
+      "chave": null,
+      "evidencia": "afirmação \"recuo-do-corpo\": a opção correta é a mais longa das 4, sozinha (52 chars contra 31 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/chamar-a-caixa-duas-vezes",
+      "chave": null,
+      "evidencia": "afirmação \"parenteses-transformam-em-chamada\": a opção correta é a mais longa das 4, sozinha (44 chars contra 30 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "caixas-que-devolvem/a-janela-de-entrada",
+      "chave": "node:arg",
+      "evidencia": "node:arg aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `arg` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/a-janela-de-entrada",
+      "chave": null,
+      "evidencia": "afirmação \"chamar-sem-valor-da-erro\": a opção correta é a mais longa das 4, sozinha (42 chars contra 32 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/devolver-em-vez-de-mostrar",
+      "chave": null,
+      "evidencia": "afirmação \"quem-chama-mostra-o-valor\": a opção correta é a mais longa das 4, sozinha (44 chars contra 43 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/imprimir-nao-e-devolver",
+      "chave": null,
+      "evidencia": "afirmação \"chamada-sozinha-se-perde\": a opção correta é a mais longa das 4, sozinha (34 chars contra 31 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/a-caixa-que-nao-devolve-nada",
+      "chave": null,
+      "evidencia": "afirmação \"return-none-e-o-mesmo\": a opção correta é a mais longa das 4, sozinha (33 chars contra 24 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/mais-de-uma-janela",
+      "chave": null,
+      "evidencia": "afirmação \"faltou-um-valor\": a opção correta é a mais longa das 4, sozinha (40 chars contra 32 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/o-nome-so-vive-dentro",
+      "chave": null,
+      "evidencia": "afirmação \"nome-nao-existe-fora\": a opção correta é a mais longa das 4, sozinha (38 chars contra 32 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/documentar-a-caixa",
+      "chave": null,
+      "evidencia": "afirmação \"onde-mora-a-docstring\": a opção correta é a mais longa das 4, sozinha (47 chars contra 34 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/documentar-a-caixa",
+      "chave": null,
+      "evidencia": "afirmação \"o-rotulo-diz-o-contrato\": a opção correta é a mais longa das 4, sozinha (54 chars contra 44 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "caixas-que-devolvem/conferir-a-premissa",
+      "chave": "node:Assert",
+      "evidencia": "node:Assert aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `Assert` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/conferir-a-premissa",
+      "chave": null,
+      "evidencia": "afirmação \"assert-confere-a-premissa\": a opção correta é a mais longa das 4, sozinha (50 chars contra 47 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/conferir-a-premissa",
+      "chave": null,
+      "evidencia": "afirmação \"premissa-verdadeira-segue\": a opção correta é a mais longa das 4, sozinha (52 chars contra 50 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "caixas-que-devolvem/conferir-a-premissa",
+      "chave": null,
+      "evidencia": "afirmação \"premissa-falsa-para-o-programa\": a opção correta é a mais longa das 4, sozinha (58 chars contra 52 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/pegar-pela-posicao",
+      "chave": null,
+      "evidencia": "afirmação \"indice-fora-da-lista\": a opção correta é a mais longa das 4, sozinha (30 chars contra 23 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/tirar-um-item",
+      "chave": "api:.pop",
+      "evidencia": "api:.pop aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.pop` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/tirar-um-item",
+      "chave": "api:.remove",
+      "evidencia": "api:.remove aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.remove` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/tirar-um-item",
+      "chave": null,
+      "evidencia": "afirmação \"pop-vazio-e-erro\": a opção correta é a mais longa das 4, sozinha (30 chars contra 12 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/achar-a-posicao",
+      "chave": "api:.index",
+      "evidencia": "api:.index aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.index` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/copiar-em-vez-de-apelidar",
+      "chave": null,
+      "evidencia": "afirmação \"atribuir-e-referencia\": a opção correta é a mais longa das 4, sozinha (11 chars contra 8 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/ordenar",
+      "chave": "api:.sort",
+      "evidencia": "api:.sort aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.sort` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/ordenar",
+      "chave": "global:sorted",
+      "evidencia": "global:sorted aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `sorted` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/inverter",
+      "chave": "api:.reverse",
+      "evidencia": "api:.reverse aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.reverse` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/juntar-e-limpar",
+      "chave": "api:.clear",
+      "evidencia": "api:.clear aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.clear` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/juntar-e-limpar",
+      "chave": null,
+      "evidencia": "afirmação \"extend-acrescenta-no-fim\": a opção correta é a mais longa das 4, sozinha (15 chars contra 10 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/o-maior-e-o-menor",
+      "chave": "global:min",
+      "evidencia": "global:min aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `min` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/o-maior-e-o-menor",
+      "chave": null,
+      "evidencia": "afirmação \"max-nao-muda-a-lista\": a opção correta é a mais longa das 4, sozinha (9 chars contra 3 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/somar-tudo",
+      "chave": null,
+      "evidencia": "afirmação \"sum-nao-muda-a-lista\": a opção correta é a mais longa das 4, sozinha (6 chars contra 3 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/com-o-indice-junto",
+      "chave": null,
+      "evidencia": "afirmação \"enumerate-entrega-os-dois\": a opção correta é a mais longa das 4, sozinha (25 chars contra 18 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "listas-e-tuplas/duas-listas-lado-a-lado",
+      "chave": "global:zip",
+      "evidencia": "global:zip aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `zip` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/duas-listas-lado-a-lado",
+      "chave": null,
+      "evidencia": "afirmação \"zip-emparelha-os-itens\": a opção correta é a mais longa das 4, sozinha (35 chars contra 25 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/a-lista-que-nao-muda",
+      "chave": null,
+      "evidencia": "afirmação \"tupla-nao-tem-append\": a opção correta é a mais longa das 4, sozinha (30 chars contra 24 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/a-lista-que-nao-muda",
+      "chave": null,
+      "evidencia": "afirmação \"tupla-guarda-a-ordem\": a opção correta é a mais longa das 4, sozinha (45 chars contra 35 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "listas-e-tuplas/abrir-a-tupla-em-nomes",
+      "chave": null,
+      "evidencia": "afirmação \"a-contagem-precisa-bater\": a opção correta é a mais longa das 4, sozinha (37 chars contra 36 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/maiusculas-e-minusculas",
+      "chave": "api:.upper",
+      "evidencia": "api:.upper aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.upper` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/maiusculas-e-minusculas",
+      "chave": "api:.lower",
+      "evidencia": "api:.lower aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.lower` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/trocar-um-pedaco",
+      "chave": "api:.replace",
+      "evidencia": "api:.replace aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.replace` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/comeca-e-termina",
+      "chave": "api:.startswith",
+      "evidencia": "api:.startswith aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.startswith` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/quebrar-em-lista",
+      "chave": "api:.splitlines",
+      "evidencia": "api:.splitlines aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.splitlines` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "texto-em-profundidade/quebrar-em-lista",
+      "chave": null,
+      "evidencia": "afirmação \"split-devolve-lista\": a opção correta é a mais longa das 4, sozinha (24 chars contra 22 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "texto-em-profundidade/juntar-numa-string",
+      "chave": null,
+      "evidencia": "afirmação \"join-devolve-texto-novo\": a opção correta é a mais longa das 4, sozinha (16 chars contra 11 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/so-numeros-ou-so-letras",
+      "chave": "api:.isdigit",
+      "evidencia": "api:.isdigit aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.isdigit` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/so-numeros-ou-so-letras",
+      "chave": "api:.isalpha",
+      "evidencia": "api:.isalpha aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.isalpha` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "texto-em-profundidade/alinhar-e-preencher",
+      "chave": "api:.ljust",
+      "evidencia": "api:.ljust aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.ljust` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/criar-um-dicionario",
+      "chave": null,
+      "evidencia": "afirmação \"dicionario-guarda-pares\": a opção correta é a mais longa das 4, sozinha (43 chars contra 28 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/guardar-uma-chave-nova",
+      "chave": null,
+      "evidencia": "afirmação \"igual-com-colchete-guarda\": a opção correta é a mais longa das 4, sozinha (62 chars contra 47 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "dicionarios-e-conjuntos/apagar-uma-chave",
+      "chave": "node:Delete",
+      "evidencia": "node:Delete aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `Delete` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/as-chaves-e-os-valores",
+      "chave": null,
+      "evidencia": "afirmação \"keys-sao-as-chaves\": a opção correta é a mais longa das 4, sozinha (24 chars contra 17 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "dicionarios-e-conjuntos/chave-e-valor-juntos",
+      "chave": "api:.items",
+      "evidencia": "api:.items aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.items` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/chave-e-valor-juntos",
+      "chave": null,
+      "evidencia": "afirmação \"items-devolve-pares\": a opção correta é a mais longa das 4, sozinha (30 chars contra 20 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/percorrer-um-dicionario",
+      "chave": null,
+      "evidencia": "afirmação \"for-no-dicionario-das-chaves\": a opção correta é a mais longa das 4, sozinha (23 chars contra 22 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/percorrer-um-dicionario",
+      "chave": null,
+      "evidencia": "afirmação \"estado-dos-pares-apos-o-laco\": a opção correta é a mais longa das 4, sozinha (18 chars contra 10 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/juntar-dicionarios",
+      "chave": null,
+      "evidencia": "afirmação \"update-junta-os-pares\": a opção correta é a mais longa das 4, sozinha (21 chars contra 17 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/juntar-dicionarios",
+      "chave": null,
+      "evidencia": "afirmação \"update-nao-soma-com-mais\": a opção correta é a mais longa das 4, sozinha (46 chars contra 33 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "dicionarios-e-conjuntos/tirar-e-devolver",
+      "chave": "api:.popitem",
+      "evidencia": "api:.popitem aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.popitem` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/dicionario-de-listas",
+      "chave": null,
+      "evidencia": "afirmação \"append-na-lista-dentro-do-par\": a opção correta é a mais longa das 4, sozinha (24 chars contra 16 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "dicionarios-e-conjuntos/conjunto-sem-repetidos",
+      "chave": "global:set",
+      "evidencia": "global:set aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `set` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "ref": "dicionarios-e-conjuntos/diferenca-e-subconjunto",
+      "chave": "api:.issubset",
+      "evidencia": "api:.issubset aparece em 1 forma sintática só nos blocos desta aula",
+      "mensagem": "mostre `.issubset` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/a-chave-precisa-ser-imutavel",
+      "chave": null,
+      "evidencia": "afirmação \"lista-nao-pode-ser-chave\": a opção correta é a mais longa das 4, sozinha (44 chars contra 38 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "ref": "dicionarios-e-conjuntos/a-chave-precisa-ser-imutavel",
+      "chave": null,
+      "evidencia": "afirmação \"frozenset-pode-ser-chave\": a opção correta é a mais longa das 4, sozinha (41 chars contra 36 da segunda)",
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%)",
+      "acao": "REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    }
+  ],
+  "metricas": [
+    {
+      "ref": "a-tela/a-primeira-linha",
+      "index": 0,
+      "produtivasNovas": 3,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:print",
+          "node:Call",
+          "node:StrLiteral"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/mais-de-uma-linha",
+      "index": 1,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "a-tela/numero-nao-tem-aspas",
+      "index": 2,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:IntLiteral"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/somar",
+      "index": 3,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:BinOp",
+          "op:binary:+"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/subtrair-e-multiplicar",
+      "index": 4,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:binary:*"
+        ],
+        [
+          "op:binary:-"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/dividir-da-decimal",
+      "index": 5,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:FloatLiteral"
+        ],
+        [
+          "op:binary:/"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/divisao-inteira-e-resto",
+      "index": 6,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:binary:%"
+        ],
+        [
+          "op:binary://"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/potencia",
+      "index": 7,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 2,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:binary:**"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/o-sinal-do-numero",
+      "index": 8,
+      "produtivasNovas": 3,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:UnaryOp",
+          "op:unary:+",
+          "op:unary:-"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/dar-nome-a-um-valor",
+      "index": 9,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "decl:assign",
+          "node:Assign"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/religar-o-mesmo-nome",
+      "index": 10,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "a-tela/juntar-textos",
+      "index": 11,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "a-tela/texto-com-buraco",
+      "index": 12,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:FormattedValue",
+          "node:JoinedStr"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/de-texto-para-numero",
+      "index": 13,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:int"
+        ],
+        [
+          "global:str"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/arredondar",
+      "index": 14,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:float"
+        ],
+        [
+          "global:round"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/verdadeiro-e-falso",
+      "index": 15,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:bool"
+        ],
+        [
+          "node:BoolLiteral"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/o-nada",
+      "index": 16,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:NoneLiteral"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/o-tipo-de-cada-valor",
+      "index": 17,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:type"
+        ]
+      ]
+    },
+    {
+      "ref": "a-tela/a-linha-que-o-python-ignora",
+      "index": 18,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 2,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "a-tela/quando-da-errado",
+      "index": 19,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 1,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 3,
+      "grupos": []
+    },
+    {
+      "ref": "decisao/comparar-numeros",
+      "index": 20,
+      "produtivasNovas": 3,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 7,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:Compare",
+          "op:compare:<",
+          "op:compare:>"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/igual-e-diferente",
+      "index": 21,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 7,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "op:compare:!="
+        ],
+        [
+          "op:compare:=="
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/maior-ou-igual",
+      "index": 22,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 10,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "op:compare:<="
+        ],
+        [
+          "op:compare:>="
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/se",
+      "index": 23,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 5,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:If"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/o-bloco-vazio",
+      "index": 24,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": [
+        [
+          "node:Pass"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/se-senao",
+      "index": 25,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:IfElse"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/se-senao-se",
+      "index": 26,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:Elif"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/e-e-ou",
+      "index": 27,
+      "produtivasNovas": 3,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:BoolOp",
+          "op:bool:and",
+          "op:bool:or"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/nao",
+      "index": 28,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:unary:not"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/condicao-em-uma-linha",
+      "index": 29,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:IfExp"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/e-mesmo-o-nada",
+      "index": 30,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:compare:is"
+        ]
+      ]
+    },
+    {
+      "ref": "decisao/comparar-encadeado",
+      "index": 31,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 7,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "repeticao/repetir-um-numero-de-vezes",
+      "index": 32,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:range",
+          "node:For"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/de-onde-ate-onde",
+      "index": 33,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "repeticao/acumular-num-nome",
+      "index": 34,
+      "produtivasNovas": 3,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "decl:aug",
+          "node:AugAssign",
+          "op:aug:+"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/tirar-e-multiplicar-no-lugar",
+      "index": 35,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:aug:*"
+        ],
+        [
+          "op:aug:-"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/dividir-no-lugar",
+      "index": 36,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "op:aug:/"
+        ],
+        [
+          "op:aug://"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/resto-e-potencia-no-lugar",
+      "index": 37,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:aug:%"
+        ],
+        [
+          "op:aug:**"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/enquanto",
+      "index": 38,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:While"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/parar-no-meio",
+      "index": 39,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:Break"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/pular-uma-volta",
+      "index": 40,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:Continue"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/o-laco-que-nao-acaba-sozinho",
+      "index": 41,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "repeticao/laco-dentro-de-laco",
+      "index": 42,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "repeticao/e-se-nunca-parou",
+      "index": 43,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:ForElse"
+        ]
+      ]
+    },
+    {
+      "ref": "repeticao/o-else-do-while",
+      "index": 44,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:WhileElse"
+        ]
+      ]
+    },
+    {
+      "ref": "caixas-que-devolvem/escrever-a-primeira-caixa",
+      "index": 45,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 4,
+      "blocosDeCodigo": 6,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": [
+        [
+          "node:FunctionDef"
+        ]
+      ]
+    },
+    {
+      "ref": "caixas-que-devolvem/chamar-a-caixa-duas-vezes",
+      "index": 46,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/a-janela-de-entrada",
+      "index": 47,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:arg"
+        ]
+      ]
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-em-vez-de-mostrar",
+      "index": 48,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:Return"
+        ]
+      ]
+    },
+    {
+      "ref": "caixas-que-devolvem/imprimir-nao-e-devolver",
+      "index": 49,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/a-caixa-que-nao-devolve-nada",
+      "index": 50,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/mais-de-uma-janela",
+      "index": 51,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-cedo",
+      "index": 52,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-verdadeiro-ou-falso",
+      "index": 53,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/o-nome-so-vive-dentro",
+      "index": 54,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/uma-caixa-chama-outra",
+      "index": 55,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/a-caixa-sem-corpo",
+      "index": 56,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/documentar-a-caixa",
+      "index": 57,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": []
+    },
+    {
+      "ref": "caixas-que-devolvem/conferir-a-premissa",
+      "index": 58,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 3,
+      "grupos": [
+        [
+          "node:Assert"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/criar-uma-lista",
+      "index": 59,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:List"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/pegar-pela-posicao",
+      "index": 60,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:Subscript"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/posicao-negativa",
+      "index": 61,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "listas-e-tuplas/quantos-itens-tem",
+      "index": 62,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:len"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/acrescentar-no-fim",
+      "index": 63,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.append",
+          "node:Attribute"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/tirar-um-item",
+      "index": 64,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.pop"
+        ],
+        [
+          "api:.remove"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/inserir-no-meio",
+      "index": 65,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.insert"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/percorrer-uma-lista",
+      "index": 66,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "listas-e-tuplas/esta-na-lista",
+      "index": 67,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "op:compare:in"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/achar-a-posicao",
+      "index": 68,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.count"
+        ],
+        [
+          "api:.index"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/um-pedaco-da-lista",
+      "index": 69,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:Slice"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/copiar-em-vez-de-apelidar",
+      "index": 70,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "listas-e-tuplas/ordenar",
+      "index": 71,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 5,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.sort"
+        ],
+        [
+          "global:sorted"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/inverter",
+      "index": 72,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 4,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.reverse"
+        ],
+        [
+          "global:reversed"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/juntar-e-limpar",
+      "index": 73,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.clear"
+        ],
+        [
+          "api:.extend"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/o-maior-e-o-menor",
+      "index": 74,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:max"
+        ],
+        [
+          "global:min"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/somar-tudo",
+      "index": 75,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:sum"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/com-o-indice-junto",
+      "index": 76,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:enumerate"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/duas-listas-lado-a-lado",
+      "index": 77,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "global:zip"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/a-lista-que-nao-muda",
+      "index": 78,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": [
+        [
+          "node:Tuple"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/abrir-a-tupla-em-nomes",
+      "index": 79,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "decl:unpack"
+        ]
+      ]
+    },
+    {
+      "ref": "listas-e-tuplas/lista-de-listas",
+      "index": 80,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/maiusculas-e-minusculas",
+      "index": 81,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.lower"
+        ],
+        [
+          "api:.upper"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/tirar-os-espacos",
+      "index": 82,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.strip"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/trocar-um-pedaco",
+      "index": 83,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.replace"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/comeca-e-termina",
+      "index": 84,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.endswith"
+        ],
+        [
+          "api:.startswith"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/achar-no-texto",
+      "index": 85,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.find"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/quebrar-em-lista",
+      "index": 86,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.split"
+        ],
+        [
+          "api:.splitlines"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/juntar-numa-string",
+      "index": 87,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.join"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/o-texto-tem-posicao-tambem",
+      "index": 88,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/fatiar-o-texto",
+      "index": 89,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/esta-no-texto",
+      "index": 90,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/so-numeros-ou-so-letras",
+      "index": 91,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 2,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.isalpha"
+        ],
+        [
+          "api:.isdigit"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/formatar-com-largura",
+      "index": 92,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/alinhar-e-preencher",
+      "index": 93,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.ljust"
+        ],
+        [
+          "api:.zfill"
+        ]
+      ]
+    },
+    {
+      "ref": "texto-em-profundidade/o-texto-nao-muda",
+      "index": 94,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "texto-em-profundidade/a-letra-e-um-numero",
+      "index": 95,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:chr",
+          "global:ord"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/criar-um-dicionario",
+      "index": 96,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "node:Dict"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/pegar-pela-chave",
+      "index": 97,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/pegar-com-padrao",
+      "index": 98,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.get"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/guardar-uma-chave-nova",
+      "index": 99,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/apagar-uma-chave",
+      "index": 100,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 2,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "node:Delete"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/as-chaves-e-os-valores",
+      "index": 101,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.keys"
+        ],
+        [
+          "api:.values"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/chave-e-valor-juntos",
+      "index": 102,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": [
+        [
+          "api:.items"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/percorrer-um-dicionario",
+      "index": 103,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": []
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/a-chave-existe",
+      "index": 104,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": []
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/juntar-dicionarios",
+      "index": 105,
+      "produtivasNovas": 1,
+      "produtivasColapsadas": 1,
+      "novasTotais": 1,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": [
+        [
+          "api:.update"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/tirar-e-devolver",
+      "index": 106,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.popitem"
+        ],
+        [
+          "api:.setdefault"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/dicionario-de-listas",
+      "index": 107,
+      "produtivasNovas": 0,
+      "produtivasColapsadas": 0,
+      "novasTotais": 0,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 1,
+      "grupos": []
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/conjunto-sem-repetidos",
+      "index": 108,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "global:set"
+        ],
+        [
+          "node:Set"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/contas-de-conjunto",
+      "index": 109,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.intersection"
+        ],
+        [
+          "api:.union"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/diferenca-e-subconjunto",
+      "index": 110,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 1,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 0,
+      "grupos": [
+        [
+          "api:.difference"
+        ],
+        [
+          "api:.issubset"
+        ]
+      ]
+    },
+    {
+      "ref": "dicionarios-e-conjuntos/a-chave-precisa-ser-imutavel",
+      "index": 111,
+      "produtivasNovas": 2,
+      "produtivasColapsadas": 2,
+      "novasTotais": 2,
+      "secoesDeTeoria": 3,
+      "blocosDeCodigo": 3,
+      "chavesSemDemonstracao": 0,
+      "chavesComUmaFormaSo": 0,
+      "desafios": 1,
+      "afirmacoesMedidas": 3,
+      "afirmacoesQueVazamPorTamanho": 2,
+      "grupos": [
+        [
+          "global:frozenset"
+        ],
+        [
+          "global:hash"
+        ]
+      ]
+    }
+  ],
+  "totais": {
+    "aulas": 112,
+    "erros": 0,
+    "avisos": 102,
+    "aulasComErro": 0,
+    "blocosQueNaoParseiam": 0
+  }
+}

@@ -2,23 +2,126 @@
   "schemaVersion": 1,
   "slug": "contar-palavras",
   "title": "Contar palavras",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "Contar palavras é percorrer a frase com uma flag que guarda o estado — dentro ou fora de palavra — e somar 1 só quando a flag sobe, de fora para dentro.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
+  "targetAtom": "decl:var",
+  "concepts": [
+    "contar_palavras"
+  ],
   "prerequisites": [
     "percorrer-a-string",
     "verdadeiro-e-falso-com-nome"
   ],
+  "introduces": {
+    "productive": [
+      "decl:var",
+      "node:ForStmt"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto ganha memória durante o percurso: a flag registra se a leitura está dentro ou fora de uma palavra, e cada palavra é contada exatamente no instante em que a flag sobe",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "dentro-e-fora-de-palavra",
+      "title": "Os dois estados da leitura",
+      "markdown": "Contar palavras não é contar espaços: em `um  exemplo` há 3 espaços e só 2 palavras. O que decide é o **estado** da leitura — dentro de uma palavra, ou fora dela — e uma flag guarda esse estado:\n\n```c\n#include <stdbool.h>\n\nchar frase[] = \"um  exemplo\";\nbool dentroDePalavra = false;\nint palavras = 0;\n```\n\nA flag nasce `false` porque, antes da primeira letra, estamos **fora** de toda palavra. É a flag da busca de sempre — agora guardando um estado que muda a cada gaveta."
+    },
+    {
+      "id": "a-palavra-nasce-na-virada",
+      "title": "A palavra nasce na virada",
+      "markdown": "A palavra nasce quando uma letra aparece com a flag baixada. O percurso é o `for` de sempre, com duas regras para a flag:\n\n```c\n#include <stdbool.h>\n\nchar frase[] = \"um  exemplo\";\nbool dentroDePalavra = false;\nint palavras = 0;\nfor (int i = 0; frase[i] != '\\0'; i++) {\n    if (frase[i] == ' ') {\n        dentroDePalavra = false;\n    } else if (!dentroDePalavra) {\n        dentroDePalavra = true;\n        palavras++;\n    }\n}\n```\n\nEspaço **baixa** a flag; letra com a flag baixada **levanta** e soma 1 — é só nessa virada que a palavra é contada."
+    },
+    {
+      "id": "espacos-seguidos-nao-criam-palavra",
+      "title": "Espaços seguidos não criam palavra",
+      "markdown": "Espaços seguidos não são duas separações: quem está fora continua fora. Em `um  exemplo`, 3 espaços e 2 palavras.\n\n```c\n#include <stdbool.h>\n\nchar frase[] = \"um  exemplo\";\nbool dentroDePalavra = false;\nint palavras = 0;\nint n = strlen(frase);\nfor (int i = 0; i < n; i++) {\n    if (frase[i] == ' ') {\n        dentroDePalavra = false;\n    } else if (!dentroDePalavra) {\n        dentroDePalavra = true;\n        palavras++;\n    }\n}\nprintf(\"%d\\n\", palavras);\n```\n\nA pergunta certa não é \"quantos espaços?\" — é \"quantas vezes a flag sobeu?\"."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "a-flag-guarda-o-estado",
+      "statement": "Uma palavra começa quando se sai do estado \"dentro de espaço\" — a flag guarda o estado.",
+      "question": "Na frase `um  exemplo  so`, quando o contador soma 1?",
+      "options": [
+        "Na primeira letra depois de um espaço, quando a flag sobe.",
+        "Em cada letra da frase, uma por uma, do primeiro ao último caractere.",
+        "Em cada espaço que o laço encontra no caminho.",
+        "No fim da frase, quando o total já está pronto."
+      ],
+      "answerIndex": 0,
+      "feedback": "A palavra nasce na VIRADA: a flag estava baixada (dentro de espaço) e a letra a levanta. É esse instante — e não a letra em si — que soma 1.",
+      "sectionId": "a-palavra-nasce-na-virada",
+      "optionRationales": [
+        "Só a primeira letra depois do espaço encontra a flag baixada; as letras seguintes entram com a flag já levantada.",
+        "Contar cada letra daria o tamanho da frase, não o número de palavras.",
+        "O espaço é justamente o que BAIXA a flag — ele encerra a palavra, não abre.",
+        "No fim o total já está feito: a soma acontece durante o percurso, na virada da flag."
+      ]
+    },
+    {
+      "id": "a-flag-nasce-fora-de-palavra",
+      "statement": "A flag nasce `false` porque, antes da primeira letra, a leitura está fora de toda palavra.",
+      "question": "Por que a flag `dentroDePalavra` nasce `false`?",
+      "options": [
+        "Porque a leitura começa fora de toda palavra.",
+        "Porque toda flag em C nasce desligada, por regra da linguagem.",
+        "Porque o `false` deixa o laço correr mais depressa.",
+        "Porque a flag guarda o total de palavras, que começa em zero."
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor inicial da flag responde ao estado de quem ainda não leu letra nenhuma: fora de palavra. Quem escolhe o valor é a pergunta que a flag responde — não existe regra de linguagem nisso.",
+      "sectionId": "dentro-e-fora-de-palavra",
+      "optionRationales": [
+        "Antes da primeira letra não existe palavra nenhuma em curso: o estado é \"fora\", e é o `false` que o descreve.",
+        "Não existe essa regra: a flag nasce com o valor que a declaração der a ela.",
+        "O valor inicial não muda a velocidade do laço — muda o que a flag significa na primeira gaveta.",
+        "O total mora em `palavras`; a flag guarda o estado dentro/fora, que é outra coisa."
+      ]
+    },
+    {
+      "id": "espacos-seguidos-nao-abrem-palavra",
+      "statement": "Dois espaços seguidos não criam palavra nova: a flag já está baixada e ninguém a levanta.",
+      "question": "Quantas palavras o contador marca em `dois  espacos  juntos`, com espaços duplos?",
+      "options": [
+        "Três: `dois`, `espacos` e `juntos`.",
+        "Cinco: uma para cada espaço mais a primeira letra.",
+        "Quatro, uma para cada espaço encontrado na frase.",
+        "Duas: o laço pula as letras que estão entre os espaços."
+      ],
+      "answerIndex": 0,
+      "feedback": "São 4 espaços e 3 palavras. O segundo espaço de cada par encontra a flag já baixada — sem virada, sem contagem.",
+      "sectionId": "espacos-seguidos-nao-criam-palavra",
+      "optionRationales": [
+        "Três letras depois de espaço sobem a flag três vezes: `dois`, `espacos` e `juntos`.",
+        "Cinco sairia de somar espaços e letras ao acaso; a conta só cresce na virada da flag.",
+        "Quatro é o número de ESPAÇOS da frase — os espaços baixam a flag, não contam palavra.",
+        "O laço não pula nada: ele visita cada gaveta e o espaço duplo apenas não muda o estado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "for loop — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/for",
+      "description": "A página oficial do for: o percurso que visita a frase gaveta por gaveta, onde a flag muda de estado."
+    },
+    {
+      "title": "Boolean type — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/types/boolean",
+      "description": "A página oficial do tipo bool: a caixa de dois valores que guarda o estado dentro/fora de palavra."
+    },
+    {
+      "title": "Scope — a referência oficial da linguagem",
+      "url": "https://en.cppreference.com/w/c/language/scope",
+      "description": "A página oficial do escopo em C: por que a flag nasce antes do laço e atravessa todas as voltas."
+    }
+  ],
+  "challenges": [
+    "contador-de-palavras"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

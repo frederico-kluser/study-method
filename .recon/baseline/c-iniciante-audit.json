@@ -1,0 +1,2716 @@
+{
+  "trackSlug": "c-iniciante",
+  "budgetSource": "declared",
+  "violations": [
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/o-esqueleto/lesson.json",
+      "ref": "a-tela/o-esqueleto",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "decl:func",
+      "eixo": "decl",
+      "faixa": null,
+      "trechoOfensor": "decl:func aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/o-esqueleto",
+      "mensagem": "mostre `func` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/o-esqueleto/lesson.json",
+      "ref": "a-tela/o-esqueleto",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"a-assinatura-diz-o-contrato\": a opção correta é a mais longa das 4, sozinha (38 chars contra 36 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/a-lista-de-ferramentas/lesson.json",
+      "ref": "a-tela/a-lista-de-ferramentas",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "node:IncludeDirective",
+      "eixo": "node",
+      "faixa": null,
+      "trechoOfensor": "node:IncludeDirective aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/a-lista-de-ferramentas",
+      "mensagem": "mostre `IncludeDirective` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/o-que-o-compilador-ignora/lesson.json",
+      "ref": "a-tela/o-que-o-compilador-ignora",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-bloco-termina-no-estrela-barra\": a opção correta é a mais longa das 4, sozinha (72 chars contra 68 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/o-resto/lesson.json",
+      "ref": "a-tela/o-resto",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-resto-de-17-por-5\": a opção correta é a mais longa das 4, sozinha (46 chars contra 39 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/o-resto/lesson.json",
+      "ref": "a-tela/o-resto",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-resto-zero-e-divisao-exata\": a opção correta é a mais longa das 4, sozinha (53 chars contra 44 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/a-divisao-real/lesson.json",
+      "ref": "a-tela/a-divisao-real",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"a-caixa-double-nao-conserta\": a opção correta é a mais longa das 4, sozinha (55 chars contra 44 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/a-divisao-real/lesson.json",
+      "ref": "a-tela/a-divisao-real",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-cast-chega-tarde\": a opção correta é a mais longa das 4, sozinha (87 chars contra 84 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/somar-no-lugar/lesson.json",
+      "ref": "a-tela/somar-no-lugar",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-acumulador-nasce-com-igual\": a opção correta é a mais longa das 4, sozinha (73 chars contra 65 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/um-de-cada-vez/lesson.json",
+      "ref": "a-tela/um-de-cada-vez",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "op:update:++",
+      "eixo": "op",
+      "faixa": null,
+      "trechoOfensor": "op:update:++ aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/um-de-cada-vez",
+      "mensagem": "mostre `++` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/um-de-cada-vez/lesson.json",
+      "ref": "a-tela/um-de-cada-vez",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "op:update:--",
+      "eixo": "op",
+      "faixa": null,
+      "trechoOfensor": "op:update:-- aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/um-de-cada-vez",
+      "mensagem": "mostre `--` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/a-tela/lessons/um-de-cada-vez/lesson.json",
+      "ref": "a-tela/um-de-cada-vez",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"o-passo-que-a-condicao-cobra\": a opção correta é a mais longa das 4, sozinha (75 chars contra 62 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/perguntar-ao-usuario/lesson.json",
+      "ref": "a-tela/perguntar-ao-usuario",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "api:scanf",
+      "eixo": "api",
+      "faixa": null,
+      "trechoOfensor": "api:scanf aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/perguntar-ao-usuario",
+      "mensagem": "mostre `scanf` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/a-tela/lessons/perguntar-ao-usuario/lesson.json",
+      "ref": "a-tela/perguntar-ao-usuario",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "op:unary:&",
+      "eixo": "op",
+      "faixa": null,
+      "trechoOfensor": "op:unary:& aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "a-tela/perguntar-ao-usuario",
+      "mensagem": "mostre `&` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/decisao/lessons/escolher-por-valor/lesson.json",
+      "ref": "decisao/escolher-por-valor",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "node:BreakStmt",
+      "eixo": "node",
+      "faixa": null,
+      "trechoOfensor": "node:BreakStmt aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "decisao/escolher-por-valor",
+      "mensagem": "mostre `BreakStmt` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A22",
+      "arquivo": "modules/repeticao/lessons/pular-uma-volta/lesson.json",
+      "ref": "repeticao/pular-uma-volta",
+      "campo": "theory",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": "node:ContinueStmt",
+      "eixo": "node",
+      "faixa": null,
+      "trechoOfensor": "node:ContinueStmt aparece em 1 forma sintática só nos blocos desta aula",
+      "primeiraAulaQueEnsina": "repeticao/pular-uma-volta",
+      "mensagem": "mostre `ContinueStmt` em ao menos 2 formas sintaticamente distintas (argumento literal E expressão composta; condição comparada E booleano pronto) — uma forma só faz o aluno induzir regra restrita demais — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/caixas-que-devolvem/lessons/a-janela-de-entrada/challenges/dobro-caixa/challenge.json",
+      "ref": "caixas-que-devolvem/a-janela-de-entrada",
+      "campo": "testsCode",
+      "linha": 49,
+      "coluna": 16,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-3);",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/a-janela-de-entrada` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A4",
+      "arquivo": "modules/caixas-que-devolvem/lessons/devolver-cedo/lesson.json",
+      "ref": "caixas-que-devolvem/devolver-cedo",
+      "campo": "theory",
+      "linha": 5,
+      "coluna": 16,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-1;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/devolver-cedo` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/caixas-que-devolvem/lessons/devolver-cedo/challenges/divisao-segura/challenge.json",
+      "ref": "caixas-que-devolvem/devolver-cedo",
+      "campo": "solutionCode",
+      "linha": 5,
+      "coluna": 16,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "-1;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/devolver-cedo` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/caixas-que-devolvem/lessons/devolver-cedo/challenges/divisao-segura/challenge.json",
+      "ref": "caixas-que-devolvem/devolver-cedo",
+      "campo": "testsCode",
+      "linha": 28,
+      "coluna": 56,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-1,",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/devolver-cedo` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/listas-e-enderecos/lessons/o-papel-com-o-endereco/challenges/aponta-para-mim/challenge.json",
+      "ref": "listas-e-enderecos/o-papel-com-o-endereco",
+      "campo": "testsCode",
+      "linha": 23,
+      "coluna": 55,
+      "construcao": "op:binary:!=",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "strcmp(papel, \"(nada impresso)\") != 0, 1,",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/o-ponteiro-que-nao-aponta",
+      "mensagem": "`!=` só é ensinado em `listas-e-enderecos/o-ponteiro-que-nao-aponta`, que vem DEPOIS de `listas-e-enderecos/o-papel-com-o-endereco` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/listas-e-enderecos/lessons/ir-ate-a-casa/challenges/via-ponteiro/challenge.json",
+      "ref": "listas-e-enderecos/ir-ate-a-casa",
+      "campo": "testsCode",
+      "linha": 19,
+      "coluna": 13,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-3;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `listas-e-enderecos/ir-ate-a-casa` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/listas-e-enderecos/lessons/a-troca-que-funciona/challenges/o-swap/challenge.json",
+      "ref": "listas-e-enderecos/a-troca-que-funciona",
+      "campo": "testsCode",
+      "linha": 22,
+      "coluna": 13,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-5;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `listas-e-enderecos/a-troca-que-funciona` — reescreva sem essa construção, ou mova a aula que a ensina para antes"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/listas-e-enderecos/lessons/procurar-na-lista/challenges/o-procurador/challenge.json",
+      "ref": "listas-e-enderecos/procurar-na-lista",
+      "campo": "testsCode",
+      "linha": 20,
+      "coluna": 62,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-1,",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` é ensinado nesta mesma aula — mas o arquivo de teste é lido ANTES da aula, e por isso só pode usar o orçamento de ENTRADA"
+    },
+    {
+      "regra": "A24",
+      "arquivo": "modules/listas-e-enderecos/lessons/consolidacao-listas/lesson.json",
+      "ref": "listas-e-enderecos/consolidacao-listas",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "afirmação \"a-troca-precisa-do-terceiro\": a opção correta é a mais longa das 4, sozinha (59 chars contra 54 da segunda)",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "a opção correta ser a mais longa é coincidência em uma afirmação e sistema em todas — equilibre os comprimentos (o acaso é 25% das afirmações; medido, o rust-iniciante estava em 73%) — acao prescrita: REWRITE_IN_BUDGET",
+      "severidade": "aviso"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/listas-e-enderecos/lessons/consolidacao-listas/challenges/as-vendas-do-dia/challenge.json",
+      "ref": "listas-e-enderecos/consolidacao-listas",
+      "campo": "solutionCode",
+      "linha": 17,
+      "coluna": 13,
+      "construcao": "op:binary:>",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "vendas[i] > maior) {",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "`>` não é ensinado em NENHUMA aula desta trilha — isto é lacuna de currículo, não erro de redação: falta criar a aula atômica que o introduz"
+    },
+    {
+      "regra": "A20",
+      "arquivo": "modules/texto-em-profundidade/lessons/procurar-na-lista-de-strings/lesson.json",
+      "ref": "texto-em-profundidade/procurar-na-lista-de-strings",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "aula `role: consolidation` com `challenges[]` vazio",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "aula sem desafio é aula sem prova: o aluno não tem como exercitar nem como ser conferido por execução — acao prescrita: ADD_TEST",
+      "severidade": "erro"
+    },
+    {
+      "regra": "A20",
+      "arquivo": "modules/texto-em-profundidade/lessons/ao-contrario/lesson.json",
+      "ref": "texto-em-profundidade/ao-contrario",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "aula `role: consolidation` com `challenges[]` vazio",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "aula sem desafio é aula sem prova: o aluno não tem como exercitar nem como ser conferido por execução — acao prescrita: ADD_TEST",
+      "severidade": "erro"
+    },
+    {
+      "regra": "A20",
+      "arquivo": "modules/texto-em-profundidade/lessons/contar-palavras/lesson.json",
+      "ref": "texto-em-profundidade/contar-palavras",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "aula `role: consolidation` com `challenges[]` vazio",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "aula sem desafio é aula sem prova: o aluno não tem como exercitar nem como ser conferido por execução — acao prescrita: ADD_TEST",
+      "severidade": "erro"
+    },
+    {
+      "regra": "A20",
+      "arquivo": "modules/texto-em-profundidade/lessons/consolidacao-texto/lesson.json",
+      "ref": "texto-em-profundidade/consolidacao-texto",
+      "campo": "lesson",
+      "linha": 1,
+      "coluna": 1,
+      "construcao": null,
+      "eixo": null,
+      "faixa": null,
+      "trechoOfensor": "aula `role: consolidation` com `challenges[]` vazio",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "aula sem desafio é aula sem prova: o aluno não tem como exercitar nem como ser conferido por execução — acao prescrita: ADD_TEST",
+      "severidade": "erro"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/structs-e-arquivos/lessons/consolidacao-structs-arquivos/challenges/o-inventario-final/challenge.json",
+      "ref": "structs-e-arquivos/consolidacao-structs-arquivos",
+      "campo": "solutionCode",
+      "linha": 45,
+      "coluna": 13,
+      "construcao": "op:binary:>",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "preco > maior) {",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "`>` não é ensinado em NENHUMA aula desta trilha — isto é lacuna de currículo, não erro de redação: falta criar a aula atômica que o introduz"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/decisao/challenges/a-portaria-do-clube/challenge.json",
+      "ref": "decisao/module",
+      "campo": "solutionCode",
+      "linha": 36,
+      "coluna": 18,
+      "construcao": "op:binary:!=",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "preco != -1;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/o-ponteiro-que-nao-aponta",
+      "mensagem": "`!=` só é ensinado em `listas-e-enderecos/o-ponteiro-que-nao-aponta`, que vem DEPOIS de `decisao/consolidacao-decisao` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `decisao/consolidacao-decisao`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/decisao/challenges/a-portaria-do-clube/challenge.json",
+      "ref": "decisao/module",
+      "campo": "solutionCode",
+      "linha": 28,
+      "coluna": 9,
+      "construcao": "op:binary:<=",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "hora <= 11) {",
+      "primeiraAulaQueEnsina": "repeticao/enquanto",
+      "mensagem": "`<=` só é ensinado em `repeticao/enquanto`, que vem DEPOIS de `decisao/consolidacao-decisao` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `decisao/consolidacao-decisao`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/decisao/challenges/a-portaria-do-clube/challenge.json",
+      "ref": "decisao/module",
+      "campo": "solutionCode",
+      "linha": 9,
+      "coluna": 17,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "-1;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `decisao/consolidacao-decisao` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `decisao/consolidacao-decisao`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/repeticao/challenges/o-relatorio-da-portaria/challenge.json",
+      "ref": "repeticao/module",
+      "campo": "solutionCode",
+      "linha": 10,
+      "coluna": 12,
+      "construcao": "op:binary:!=",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "idade != 0) {",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/o-ponteiro-que-nao-aponta",
+      "mensagem": "`!=` só é ensinado em `listas-e-enderecos/o-ponteiro-que-nao-aponta`, que vem DEPOIS de `repeticao/consolidacao-repeticao` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `repeticao/consolidacao-repeticao`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/caixas-que-devolvem/challenges/a-caixa-do-frete/challenge.json",
+      "ref": "caixas-que-devolvem/module",
+      "campo": "solutionCode",
+      "linha": 21,
+      "coluna": 9,
+      "construcao": "op:binary:>",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "total > 5000) {",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "`>` não é ensinado em NENHUMA aula desta trilha — isto é lacuna de currículo, não erro de redação: falta criar a aula atômica que o introduz — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `caixas-que-devolvem/consolidacao-caixas`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/caixas-que-devolvem/challenges/a-caixa-do-frete/challenge.json",
+      "ref": "caixas-que-devolvem/module",
+      "campo": "solutionCode",
+      "linha": 9,
+      "coluna": 16,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "-1;",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/consolidacao-caixas` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `caixas-que-devolvem/consolidacao-caixas`, a última aula do módulo"
+    },
+    {
+      "regra": "A3",
+      "arquivo": "modules/caixas-que-devolvem/challenges/a-caixa-do-frete/challenge.json",
+      "ref": "caixas-que-devolvem/module",
+      "campo": "testsCode",
+      "linha": 30,
+      "coluna": 53,
+      "construcao": "op:unary:-",
+      "eixo": "op",
+      "faixa": "receptive",
+      "trechoOfensor": "-1,",
+      "primeiraAulaQueEnsina": "listas-e-enderecos/procurar-na-lista",
+      "mensagem": "`-` só é ensinado em `listas-e-enderecos/procurar-na-lista`, que vem DEPOIS de `caixas-que-devolvem/consolidacao-caixas` — reescreva sem essa construção, ou mova a aula que a ensina para antes — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `caixas-que-devolvem/consolidacao-caixas`, a última aula do módulo"
+    },
+    {
+      "regra": "A2",
+      "arquivo": "modules/listas-e-enderecos/challenges/o-estoque-da-loja/challenge.json",
+      "ref": "listas-e-enderecos/module",
+      "campo": "solutionCode",
+      "linha": 42,
+      "coluna": 13,
+      "construcao": "op:binary:>",
+      "eixo": "op",
+      "faixa": "productive",
+      "trechoOfensor": "estoque[i] > *maior) {",
+      "primeiraAulaQueEnsina": null,
+      "mensagem": "`>` não é ensinado em NENHUMA aula desta trilha — isto é lacuna de currículo, não erro de redação: falta criar a aula atômica que o introduz — e este é o DESAFIO DE MÓDULO, cujo orçamento é o de saída de `listas-e-enderecos/consolidacao-listas`, a última aula do módulo"
+    }
+  ],
+  "metrics": [
+    {
+      "ref": "a-tela/primeira-tela",
+      "index": 0,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 3,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/o-esqueleto",
+      "index": 1,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 1,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/devolver-zero",
+      "index": 2,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/a-lista-de-ferramentas",
+      "index": 3,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 1,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/o-que-o-compilador-ignora",
+      "index": 4,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "a-tela/buraco-na-frase",
+      "index": 5,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/um-nome-para-um-valor",
+      "index": 6,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/mudar-o-valor",
+      "index": 7,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/somar-e-subtrair",
+      "index": 8,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "a-tela/multiplicar-e-dividir",
+      "index": 9,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "a-tela/o-resto",
+      "index": 10,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/o-numero-com-virgula",
+      "index": 11,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/a-divisao-real",
+      "index": 12,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/a-ordem-das-contas",
+      "index": 13,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "a-tela/somar-no-lugar",
+      "index": 14,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 3,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/um-de-cada-vez",
+      "index": 15,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 3,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 2,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/comparacoes",
+      "index": 16,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 3,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 6,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 3
+      }
+    },
+    {
+      "ref": "a-tela/perguntar-ao-usuario",
+      "index": 17,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 2,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/dois-valores-de-uma-vez",
+      "index": 18,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "a-tela/uma-letra-e-um-numero",
+      "index": 19,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "a-tela/o-limite-do-int",
+      "index": 20,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "decisao/se",
+      "index": 21,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/se-senao",
+      "index": 22,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "decisao/e-logico",
+      "index": 23,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/ou-logico",
+      "index": 24,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/negacao",
+      "index": 25,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/verdadeiro-e-falso-com-nome",
+      "index": 26,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "decisao/em-cascata",
+      "index": 27,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "decisao/escolher-por-valor",
+      "index": 28,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 5,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 1,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "decisao/escolher-em-uma-linha",
+      "index": 29,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/faixas-com-prioridade",
+      "index": 30,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 6,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "decisao/desvio-dentro-de-desvio",
+      "index": 31,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "decisao/consolidacao-decisao",
+      "index": 32,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/enquanto",
+      "index": 33,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 5,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "repeticao/contar-para-tras",
+      "index": 34,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/somar-tudo",
+      "index": 35,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/para",
+      "index": 36,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "repeticao/passo-de-dois",
+      "index": 37,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/ler-ate-sentar",
+      "index": 38,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/repetir-ao-menos-uma-vez",
+      "index": 39,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "repeticao/parar-no-meio",
+      "index": 40,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/pular-uma-volta",
+      "index": 41,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 1,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "repeticao/laco-dentro-de-laco",
+      "index": 42,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/o-triangulo",
+      "index": 43,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/a-flag-da-busca",
+      "index": 44,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "repeticao/consolidacao-repeticao",
+      "index": 45,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/sua-primeira-caixa",
+      "index": 46,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/chamar-a-caixa",
+      "index": 47,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/a-janela-de-entrada",
+      "index": 48,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-em-vez-de-mostrar",
+      "index": 49,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 5,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/imprimir-nao-e-devolver",
+      "index": 50,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/a-caixa-que-nao-devolve-nada",
+      "index": 51,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 6,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/mais-de-uma-janela",
+      "index": 52,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-cedo",
+      "index": 53,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 3,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/devolver-verdade-ou-falso",
+      "index": 54,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/o-nome-so-vive-dentro",
+      "index": 55,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/uma-caixa-chama-outra",
+      "index": 56,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/declarar-antes-de-usar",
+      "index": 57,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/mais-contas",
+      "index": 58,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/copias-no-vestibulo",
+      "index": 59,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "caixas-que-devolvem/consolidacao-caixas",
+      "index": 60,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/a-caixa-com-gavetas",
+      "index": 61,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/pegar-pela-gaveta",
+      "index": 62,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/varrer-a-lista",
+      "index": 63,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/o-maximo-da-lista",
+      "index": 64,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/gavetas-vazias",
+      "index": 65,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/contando-iguais",
+      "index": 66,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/quantos-bytes",
+      "index": 67,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/enderecos",
+      "index": 68,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/o-papel-com-o-endereco",
+      "index": 69,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/ir-ate-a-casa",
+      "index": 70,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/a-troca-que-funciona",
+      "index": 71,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/a-lista-como-parametro",
+      "index": 72,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/devolver-dois-valores",
+      "index": 73,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 5,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/preencher-lendo",
+      "index": 74,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/inverter-a-lista",
+      "index": 75,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/procurar-na-lista",
+      "index": 76,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/ordenar-a-lista",
+      "index": 77,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/a-promessa-de-nao-mudar",
+      "index": 78,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/o-ponteiro-que-nao-aponta",
+      "index": 79,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/andar-de-ponteiro",
+      "index": 80,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "listas-e-enderecos/consolidacao-listas",
+      "index": 81,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/a-string-e-o-zero",
+      "index": 82,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/o-comprimento",
+      "index": 83,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/ler-uma-palavra",
+      "index": 84,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/percorrer-a-string",
+      "index": 85,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/copiar-a-mao",
+      "index": 86,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/copiar-com-limite",
+      "index": 87,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/comparar-textos",
+      "index": 88,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/montar-um-texto",
+      "index": 89,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/gritar-a-mao",
+      "index": 90,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/a-biblioteca-de-letras",
+      "index": 91,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/a-string-como-parametro",
+      "index": 92,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 5,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/a-lista-de-strings",
+      "index": 93,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/procurar-na-lista-de-strings",
+      "index": 94,
+      "novas": 0,
+      "conceitosDeclarados": 0,
+      "desafios": 0,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 1,
+        "blocosDeCodigo": 0,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/ao-contrario",
+      "index": 95,
+      "novas": 0,
+      "conceitosDeclarados": 0,
+      "desafios": 0,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 1,
+        "blocosDeCodigo": 0,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/contar-palavras",
+      "index": 96,
+      "novas": 0,
+      "conceitosDeclarados": 0,
+      "desafios": 0,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 1,
+        "blocosDeCodigo": 0,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "texto-em-profundidade/consolidacao-texto",
+      "index": 97,
+      "novas": 0,
+      "conceitosDeclarados": 0,
+      "desafios": 0,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 1,
+        "blocosDeCodigo": 0,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/o-molde-e-o-dado",
+      "index": 98,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/mudar-o-dado",
+      "index": 99,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/o-apelido-do-molde",
+      "index": 100,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/o-dado-na-caixa",
+      "index": 101,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/mudar-o-original",
+      "index": 102,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/a-lista-de-fichas",
+      "index": 103,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/ficha-dentro-de-ficha",
+      "index": 104,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/a-ficha-completa",
+      "index": 105,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/o-caderno",
+      "index": 106,
+      "novas": 2,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 2,
+        "produtivasColapsadas": 2,
+        "novasTotais": 2,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 2
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/escrever-no-caderno",
+      "index": 107,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/ler-o-caderno",
+      "index": 108,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/acrescentar-no-fim",
+      "index": 109,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/ler-numeros-do-caderno",
+      "index": 110,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 1,
+        "produtivasColapsadas": 1,
+        "novasTotais": 1,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 1
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/o-caderno-de-fichas",
+      "index": 111,
+      "novas": 3,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 3,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/a-biblioteca-em-dois-arquivos",
+      "index": 112,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 3,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/compilar-sozinho",
+      "index": 113,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 0,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 4,
+        "blocosDeCodigo": 2,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    },
+    {
+      "ref": "structs-e-arquivos/consolidacao-structs-arquivos",
+      "index": 114,
+      "novas": 1,
+      "conceitosDeclarados": 1,
+      "desafios": 1,
+      "violacoes": 1,
+      "barra": {
+        "produtivasNovas": 0,
+        "produtivasColapsadas": 0,
+        "novasTotais": 0,
+        "secoesDeTeoria": 6,
+        "blocosDeCodigo": 4,
+        "chavesSemDemonstracao": 0,
+        "chavesComUmaFormaSo": 0,
+        "gruposDaRegraDoPar": 0
+      }
+    }
+  ],
+  "totals": {
+    "aulas": 115,
+    "desafios": 111,
+    "desafiosDeModulo": 6,
+    "desafiosComViolacao": 12,
+    "violacoes": 22,
+    "avisos": 17,
+    "checagensNaoExecutadas": 1,
+    "lacunasDeCurriculo": 4,
+    "aulasSemConstrucaoNova": 4,
+    "errosDaBarra": 4,
+    "avisosDaBarra": 17
+  },
+  "hygiene": [],
+  "parseErrors": [],
+  "limitacoes": [
+    {
+      "id": "A13-A16-NAO-RODOU",
+      "checagem": "bateria A13–A16 (A13 ensino-efetivo, A13d, A14a micro-avanço, A14b, A15a/A15b progressividade, A16 primeira-atividade) — as partes que dependem de `ts.SyntaxKind`, das tabelas H13/AX do runner `node:test` e dos spans mecânicos S13",
+      "motivo": "a trilha é `c` e a bateria é javascript-only: `quality/progressao.ts:432` LANÇA `EngineLinguagemError` para adaptador não-default porque `H13`/`AX` são tabelas de chaves do `ts.SyntaxKind` e do runner `node:test`, e os spans mecânicos S13 saem de `ts.createSourceFile`. Rodá-la aqui não daria erro: daria veredito ERRADO E SILENCIOSO (tudo \"não demonstrado\", todo desafio reprovado).",
+      "consequencia": "A BARRA A17–A23 (`quality/barra.ts`) COBRE PARTE DESTE BURACO NESTA TRILHA, porque é agnóstica de linguagem e RODOU aqui: teto do passo (A17, ≤2 produtivas novas colapsadas), primeira aula do curso (A18), declarar-não-é-demonstrar (A19), aula sem prova (A20), carga de novidade e seções que a sustentem (A21), duas formas (A22, aviso) e a regra do par medida no disco (A23). Por isso a PROVA POR MUTAÇÃO que esta entrada citava (docs/19: \"apagar TODOS os blocos de código da teoria da aula 1 não muda o placar — 0 violações · 0 avisos · exit 0\") JÁ NÃO VALE: A19/A18 reprovam exatamente isso, e `totals.violacoes`/`totals.errosDaBarra` mudam. O QUE CONTINUA NÃO MEDIDO nesta trilha, porque a barra NÃO cobre: A14b (≤1 construção nova por LINHA do solutionCode — a lacuna única); A15a/A15b (progressividade intra-aula entre os desafios e inter-aula, o reuso obrigatório do que veio antes); A16b (a primeira atividade resolvível com a PRIMEIRA SEÇÃO da teoria — a barra CONTA seções, não mede a seção 1); e os spans mecânicos S13 do arquivo de teste (import inteiro, assinatura) com as tabelas H13/AX do runner. NO PLACAR: o contador `avisos` soma as duas baterias, e a parte A13–A16 dele continua significando \"não rodou\", não \"sem aviso\" — `totals.avisosDaBarra` é a parte que FOI medida (A22); `metrics[].novosVerdadeiros` (a 2ª coluna do histograma, \"verdadeiramente novas\") continua AUSENTE em todas as aulas, e é `metrics[].barra` que traz as colunas medidas para esta trilha."
+    }
+  ],
+  "barra": {
+    "porRegra": [
+      {
+        "regra": "A17",
+        "erros": 0,
+        "avisos": 0
+      },
+      {
+        "regra": "A18",
+        "erros": 0,
+        "avisos": 0
+      },
+      {
+        "regra": "A19",
+        "erros": 0,
+        "avisos": 0
+      },
+      {
+        "regra": "A20",
+        "erros": 4,
+        "avisos": 0
+      },
+      {
+        "regra": "A21",
+        "erros": 0,
+        "avisos": 0
+      },
+      {
+        "regra": "A22",
+        "erros": 0,
+        "avisos": 8
+      },
+      {
+        "regra": "A23",
+        "erros": 0,
+        "avisos": 0
+      },
+      {
+        "regra": "A24",
+        "erros": 0,
+        "avisos": 9
+      }
+    ],
+    "erros": 4,
+    "avisos": 17,
+    "aulasComErro": 4,
+    "blocosQueNaoParseiam": 0
+  }
+}

@@ -6,11 +6,11 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Apagando uma chave\n\nEscreva a função `apagar(d, chave)` que tira o par da chave do dicionário, usando `del` como na aula. A função altera o dicionário que recebe — ela não devolve nada:\n\n```python\ndef apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1, \"b\": 2}\napagar(d, \"a\")\nd  ->  {'b': 2}\n\nd = {\"x\": 7}\napagar(d, \"x\")\nd  ->  {}\n```",
-  "starterCode": "def apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import apagar\n\n\nclass TestApagarUmaChave(unittest.TestCase):\n    def test_apaga_a_chave_pedida(self):\n        \"\"\"apagar tira a chave pedida do dicionario\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        apagar(d, \"a\")\n        self.assertEqual(d, {\"b\": 2})\n\n    def test_apaga_a_ultima_chave(self):\n        \"\"\"apagar funciona com a ultima chave\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        apagar(d, \"b\")\n        self.assertEqual(d, {\"a\": 1})\n\n    def test_apagar_esvazia_o_dicionario(self):\n        \"\"\"apagar a unica chave esvazia o dicionario\"\"\"\n        d = {\"x\": 7}\n        apagar(d, \"x\")\n        self.assertEqual(d, {})\n",
-  "solutionCode": "def apagar(d, chave):\n    del d[chave]\n",
-  "expectedTestCount": 3,
+  "statement": "# Apagando uma chave\n\nEscreva duas funções que usam `del` como na aula. Elas alteram o dicionário que recebem:\n\n```python\ndef apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n\n\ndef apagar_e_contar(d, chave):\n    # apague o par da chave e devolva quantas chaves sobraram\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1, \"b\": 2}\napagar(d, \"a\")\nd  ->  {'b': 2}\n\nd = {\"x\": 7}\napagar(d, \"x\")\nd  ->  {}\n\napagar_e_contar({\"a\": 1, \"b\": 2, \"c\": 3}, \"a\")   ->  2\napagar_e_contar({\"x\": 7}, \"x\")                   ->  0\n```\n\n`apagar` só altera o dicionário — ela não devolve nada. `apagar_e_contar` altera o dicionário e devolve o número de chaves que sobraram, contadas com `len`.",
+  "starterCode": "def apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n\n\ndef apagar_e_contar(d, chave):\n    # apague o par da chave e devolva quantas chaves sobraram\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import apagar\nfrom solucao import apagar_e_contar\n\n\nclass TestApagarUmaChave(unittest.TestCase):\n    def test_apaga_a_chave_pedida(self):\n        \"\"\"apagar tira a chave pedida do dicionario\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        apagar(d, \"a\")\n        self.assertEqual(d, {\"b\": 2})\n\n    def test_apagar_esvazia_o_dicionario(self):\n        \"\"\"apagar a unica chave esvazia o dicionario\"\"\"\n        d = {\"x\": 7}\n        apagar(d, \"x\")\n        self.assertEqual(d, {})\n\n    def test_conta_as_chaves_que_sobram(self):\n        \"\"\"apagar_e_contar devolve quantas chaves sobraram depois de apagar\"\"\"\n        d = {\"a\": 1, \"b\": 2, \"c\": 3}\n        self.assertEqual(apagar_e_contar(d, \"a\"), 2)\n\n    def test_conta_zero_com_a_ultima_chave(self):\n        \"\"\"apagar_e_contar devolve zero quando so restava a chave apagada\"\"\"\n        d = {\"x\": 7}\n        self.assertEqual(apagar_e_contar(d, \"x\"), 0)\n",
+  "solutionCode": "def apagar(d, chave):\n    del d[chave]\n\n\ndef apagar_e_contar(d, chave):\n    del d[chave]\n    return len(d)\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_apaga_a_chave_pedida",
@@ -18,14 +18,19 @@
       "descricao": "apagar tira a chave pedida do dicionario"
     },
     {
-      "id": "test_apaga_a_ultima_chave",
-      "teste": "test_apaga_a_ultima_chave",
-      "descricao": "apagar funciona com a ultima chave"
-    },
-    {
       "id": "test_apagar_esvazia_o_dicionario",
       "teste": "test_apagar_esvazia_o_dicionario",
       "descricao": "apagar a unica chave esvazia o dicionario"
+    },
+    {
+      "id": "test_conta_as_chaves_que_sobram",
+      "teste": "test_conta_as_chaves_que_sobram",
+      "descricao": "apagar_e_contar devolve quantas chaves sobraram depois de apagar"
+    },
+    {
+      "id": "test_conta_zero_com_a_ultima_chave",
+      "teste": "test_conta_zero_com_a_ultima_chave",
+      "descricao": "apagar_e_contar devolve zero quando so restava a chave apagada"
     }
   ]
 }

@@ -1,0 +1,150 @@
+{
+  "trackSlug": "python-iniciante",
+  "orcamentoFonte": "declared",
+  "linguagem": "python",
+  "aulas": [
+    {
+      "aula": "a-tela/a-primeira-linha",
+      "titulo": "A primeira linha",
+      "indice": 1,
+      "memoria": {
+        "aulaAnterior": null,
+        "lacunasVistas": [],
+        "decisoes": []
+      },
+      "desafios": [
+        {
+          "slug": "escreva-oi",
+          "ref": "a-tela/a-primeira-linha/escreva-oi",
+          "veredito": {
+            "ok": true,
+            "minimalCode": "print(\"oi\")\n",
+            "atoms": [
+              "global:print",
+              "node:Call",
+              "node:Expr",
+              "node:Load",
+              "node:Name",
+              "node:StrLiteral"
+            ],
+            "atomsDoTeste": [],
+            "lines": 2,
+            "proofsValid": true
+          },
+          "minimalCode": "print(\"oi\")\n",
+          "atomsCobrados": [
+            "global:print",
+            "node:Call",
+            "node:Expr",
+            "node:Load",
+            "node:Name",
+            "node:StrLiteral"
+          ],
+          "foraDoOrcamento": [],
+          "excesso": [],
+          "requirements": {
+            "ok": true,
+            "semTeste": [],
+            "testesSemRequirement": [],
+            "correspondencias": [
+              {
+                "requirementId": "REQ-1",
+                "testName": "test_imprime_oi"
+              }
+            ]
+          }
+        }
+      ],
+      "precisaQuebrar": false,
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
+    },
+    {
+      "aula": "a-tela/mais-de-uma-linha",
+      "titulo": "Mais de uma linha",
+      "indice": 2,
+      "memoria": {
+        "aulaAnterior": "a-tela/a-primeira-linha",
+        "lacunasVistas": [],
+        "decisoes": [
+          {
+            "aula": "a-tela/a-primeira-linha",
+            "decisao": "ok",
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
+          }
+        ]
+      },
+      "desafios": [
+        {
+          "slug": "duas-saudacoes",
+          "ref": "a-tela/mais-de-uma-linha/duas-saudacoes",
+          "veredito": {
+            "ok": true,
+            "minimalCode": "print(\"bom dia\\nboa noite\")\n",
+            "atoms": [
+              "global:print",
+              "node:Call",
+              "node:Expr",
+              "node:Load",
+              "node:Name",
+              "node:StrLiteral"
+            ],
+            "atomsDoTeste": [],
+            "lines": 2,
+            "proofsValid": true
+          },
+          "minimalCode": "print(\"bom dia\\nboa noite\")\n",
+          "atomsCobrados": [
+            "global:print",
+            "node:Call",
+            "node:Expr",
+            "node:Load",
+            "node:Name",
+            "node:StrLiteral"
+          ],
+          "foraDoOrcamento": [],
+          "excesso": [],
+          "requirements": {
+            "ok": true,
+            "semTeste": [],
+            "testesSemRequirement": [],
+            "correspondencias": [
+              {
+                "requirementId": "REQ-1",
+                "testName": "test_imprime_as_duas_saudacoes_na_ordem"
+              }
+            ]
+          }
+        }
+      ],
+      "precisaQuebrar": false,
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
+    }
+  ],
+  "convergencia": true,
+  "iteracoes": 2,
+  "placar": {
+    "aulas": 2,
+    "cobertas": 2,
+    "comLacuna": 0,
+    "naoRevisaveis": 0,
+    "comExcesso": 0,
+    "splitsPendentes": 0
+  },
+  "memoriaFinal": {
+    "aulaAnterior": "a-tela/mais-de-uma-linha",
+    "lacunasVistas": [],
+    "decisoes": [
+      {
+        "aula": "a-tela/a-primeira-linha",
+        "decisao": "ok",
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
+      },
+      {
+        "aula": "a-tela/mais-de-uma-linha",
+        "decisao": "ok",
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
+      }
+    ]
+  },
+  "splitsPendentes": []
+}

@@ -161,7 +161,7 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   page = launched.page;
 
   await expect(
-    page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }),
+    page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }),
   ).toBeVisible();
 
   const lightSegment = page.locator(

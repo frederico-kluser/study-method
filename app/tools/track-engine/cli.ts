@@ -94,6 +94,17 @@ import {
   rodarRevisaoAteConvergir,
   type RelatorioDeRevisao,
 } from '../../electron/main/engine/revision/progressiva';
+import {
+  apurarPraticaAcumulada,
+  sugestaoDeRevisao,
+  type BlocoDeCurriculo,
+  type EntradaDePratica,
+  type FechamentoDeModuloInput,
+  type PraticaDeDesafio,
+} from '../../electron/main/engine/coverage/praticaAcumulada';
+import { extractAtoms } from '../../electron/main/engine/extract';
+import { adapterDoDesafio } from '../../electron/main/engine/exec/proofsCore';
+import { challengeReferenceCode } from '../../electron/main/services/moduleMastery';
 import { createLlmClient } from '../../electron/main/services/llmClient';
 import {
   LEGACY_LLM_ENV_KEY,
@@ -287,6 +298,25 @@ comandos:
       aula nao-revisavel; 0 quando converge sem lacunas.
       --limite N revisa no maximo N aulas; SO ACEITA N >= 1, pela MESMA razao
       do coverage (uso incorreto, exit 2, --limite 0 nao revisaria nenhuma).
+
+  pratica <slug> [--eixos a,b] [--so-falhas] [--json] [--dir DIR]
+      o CONTROLE DA PREMISSA DE REVISAO ACUMULADA: todo desafio de aula ou de
+      modulo tem que praticar TAMBEM conhecimento de aulas anteriores (sem
+      ficar gigante: basta misturar o que ja foi ensinado), e todo o
+      conhecimento PRODUTIVO do modulo/curso acaba praticado em desafio.
+      Medicao ESTATICA (extrai os atoms da solucao de referencia — zero LLM,
+      zero execucao):
+        MISTURA    atoms(solucao) ∩ ensinadoAntes(bloco) ≠ vazio
+                   (isento por vacuidade: nada ensinado antes ainda)
+        FECHAMENTO atoms produtivos do modulo praticados ate o desafio do
+                   modulo (faltantesDoModulo) e do curso inteiro
+      A mistura conta so os EIXOS DE CONCEITO (decl, op, global, api, term):
+      estrutura (node:) e forma (form:) sao o esqueleto do codigo — contar
+      node:Call como revisao aprovaria todo desafio que imprime algo.
+      --eixos a,b sobrepoe a lista de eixos que contam.
+      --so-falhas imprime so os desafios em violacao e os faltantes.
+      Exit 1 quando ha SEM_REVISAO, SEM_ATOMOS, desafio/aula faltando,
+      faltante de modulo ou conhecimento nunca praticado; 0 quando cumpre.
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
@@ -1549,6 +1579,219 @@ function validarFaseOuFalhar(from: string | undefined): FaseId | undefined {
   return from as FaseId;
 }
 
+// ---------------------------------------------------------------------------
+// pratica — o CONTROLE DA PREMISSA DE REVISÃO ACUMULADA (a régua estática do
+// "misturar nos desafios o que já foi ensinado"): zero LLM, zero execução.
+// ---------------------------------------------------------------------------
+
+/**
+ * Os átomos que um desafio PRATICA — a solução de referência é a régua, a
+ * MESMA do runtime (`services/reviewSelection.ts`): o que o aluno tem que
+ * escrever para passar é o que a aula pratica.
+ */
+function atomsDaSolucao(challenge: TrackChallengeSource): AtomKey[] {
+  try {
+    const adapterId = adapterDoDesafio(challenge.language).id;
+    const result = extractAtoms(challengeReferenceCode(challenge), {
+      fileName: 'desafio#referencia',
+      language: adapterId,
+    });
+    return result.ok ? result.keys : [];
+  } catch {
+    return [];
+  }
+}
+
+async function cmdPratica(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- pratica minha-trilha)');
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  const budget = deriveTrackBudget(track);
+
+  const eixosQueContam =
+    flags.eixos === undefined
+      ? undefined
+      : flags.eixos
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+
+  const blocos: BlocoDeCurriculo[] = [];
+  const praticas: PraticaDeDesafio[] = [];
+  const modulos: FechamentoDeModuloInput[] = [];
+  const semDesafio: string[] = [];
+  let posMax = -1;
+
+  for (const mod of track.modules) {
+    const atomsDoModulo = new Set<AtomKey>();
+    let ultimaPos = -1;
+    for (const lesson of mod.lessons) {
+      const ref = `${mod.meta.slug}/${lesson.meta.slug}`;
+      const lb = budget.byRef.get(ref);
+      const p = lb?.index ?? ultimaPos + 1;
+      if (lb !== undefined) {
+        blocos.push({
+          ref,
+          pos: lb.index,
+          introduz: [...lb.introduces.receptive, ...lb.introduces.productive],
+          introduzProdutivo: lb.introduces.productive,
+        });
+        for (const a of lb.introduces.productive) atomsDoModulo.add(a);
+      }
+      ultimaPos = Math.max(ultimaPos, p);
+      if (lesson.challenges.length === 0) {
+        semDesafio.push(`${ref} (aula sem desafio — violação de A20)`);
+        continue;
+      }
+      for (const ch of lesson.challenges) {
+        praticas.push({
+          ref: `${ref}/${ch.slug}`,
+          blocoRef: ref,
+          kind: 'aula',
+          pos: p,
+          atoms: atomsDaSolucao(ch),
+        });
+      }
+    }
+    // o desafio do MÓDULO pratica ENTRE a última aula dele e a próxima (+0.5):
+    // assim ele herda o currículo do módulo inteiro e não "atropela" a aula 1
+    // do módulo seguinte nos fechamentos.
+    const posModulo = ultimaPos + 0.5;
+    if (mod.challenge !== null) {
+      praticas.push({
+        ref: `${mod.meta.slug}/challenges/${mod.challenge.slug}`,
+        blocoRef: mod.meta.slug,
+        kind: 'modulo',
+        pos: posModulo,
+        atoms: atomsDaSolucao(mod.challenge),
+      });
+    } else {
+      semDesafio.push(`${mod.meta.slug} (módulo sem desafio de módulo)`);
+    }
+    modulos.push({
+      modulo: mod.meta.slug,
+      fim: posModulo,
+      atomsDoModulo: [...atomsDoModulo],
+    });
+    posMax = Math.max(posMax, posModulo);
+  }
+
+  if (track.proficiency !== null) {
+    praticas.push({
+      ref: 'proficiencia',
+      blocoRef: 'proficiencia',
+      kind: 'proficiencia',
+      pos: posMax + 1,
+      atoms: atomsDaSolucao(track.proficiency),
+    });
+  }
+
+  const entrada: EntradaDePratica = {
+    praticas,
+    blocos,
+    modulos,
+    origemDe: budget.firstTaughtIn,
+    ...(eixosQueContam !== undefined ? { eixosQueContam } : {}),
+  };
+  const apurado = apurarPraticaAcumulada(entrada);
+  const { placar } = apurado;
+
+  const falhas = apurado.desafios.filter(
+    (d) => d.veredito === 'SEM_REVISAO' || d.veredito === 'SEM_ATOMOS',
+  );
+  const mostrar = bools.has('so-falhas') ? falhas : apurado.desafios;
+
+  if (bools.has('json')) {
+    console.log(
+      JSON.stringify(
+        {
+          trilha: slug,
+          linguagem: budget.adapterId,
+          eixosQueContam: apurado.eixosQueContam,
+          desafios: mostrar.map((d) => ({
+            ...d,
+            sugestao: d.veredito === 'SEM_REVISAO' ? sugestaoDeRevisao(entrada, d.ref) : [],
+          })),
+          modulos: apurado.modulos,
+          nuncaPraticados: apurado.nuncaPraticados,
+          blocosSemDesafio: semDesafio,
+          placar: { ...placar, blocosSemDesafio: semDesafio.length },
+        },
+        null,
+        2,
+      ),
+    );
+  } else {
+    console.log('');
+    console.log(`TRILHA ${slug} — PRATICA ACUMULADA (a premissa: desafio mistura o que ja foi ensinado)`);
+    console.log(`linguagem: ${budget.adapterId} · eixos que contam como conceito: ${apurado.eixosQueContam.join(', ')}`);
+    console.log('');
+    if (!bools.has('so-falhas')) {
+      console.log('DESAFIOS (atoms da solucao de referencia × o que a aula ensinou)');
+    } else {
+      console.log('FALHAS (desafios que NAO praticam conhecimento anterior)');
+    }
+    for (const d of mostrar) {
+      console.log('');
+      console.log(`  ${d.ref}  [${d.kind}]`);
+      console.log(
+        `    atoms: ${d.atoms.length} · revisao anterior: ${d.revisaoContavel.length}` +
+          ` · novos da aula: ${d.novos.length}  → ${d.veredito}`,
+      );
+      if (d.revisao.length > 0) console.log(`    revisao: ${d.revisao.join(' · ')}`);
+      if (d.novos.length > 0) console.log(`    novos: ${d.novos.join(' · ')}`);
+      if (d.veredito === 'SEM_REVISAO') {
+        const sugestoes = sugestaoDeRevisao(entrada, d.ref);
+        console.log(`    MISTURE (sugestao por nunca-praticado/espacamento): ${sugestoes.map((s) => s.atom).join(' · ') || '(sem candidato — nada ensinado antes conta)'}`);
+      }
+      if (d.veredito === 'SEM_ATOMOS') {
+        console.log('    a solucao de referencia nao produziu atom nenhum (parse falhou ou solucao vazia) — fail-closed, nunca aprova');
+      }
+    }
+    if (semDesafio.length > 0) {
+      console.log('');
+      console.log(`BLOCOS SEM DESAFIO (${semDesafio.length}) — aula/módulo sem prova nao cumpre a premissa`);
+      for (const s of semDesafio) console.log(`  ${s}`);
+    }
+    console.log('');
+    console.log('FECHAMENTO POR MODULO (atoms produtivos do modulo nao praticados ate o desafio dele)');
+    for (const m of apurado.modulos) {
+      if (m.faltantes.length === 0) continue;
+      console.log(`  ${m.modulo}: ${m.faltantes.map((f) => `${f.atom}${f.origem !== null ? ` (${f.origem})` : ''}`).join(' · ')}`);
+    }
+    if (apurado.modulos.every((m) => m.faltantes.length === 0)) {
+      console.log('  (nenhum — todo conhecimento produtivo do modulo acaba praticado)');
+    }
+    if (apurado.nuncaPraticados.length > 0) {
+      console.log('');
+      console.log(`NUNCA PRATICADOS NO CURSO (${apurado.nuncaPraticados.length}) — ensinado e jamais exigido em desafio`);
+      for (const f of apurado.nuncaPraticados) {
+        console.log(`  ${f.atom}${f.origem !== null ? ` (${f.origem})` : ''}`);
+      }
+    }
+    console.log('');
+    console.log('PLACAR (pratica acumulada)');
+    console.log(`  desafios ........................... ${placar.desafios}`);
+    console.log(`  com revisao anterior ............... ${placar.comRevisao}`);
+    console.log(`  SEM revisao anterior ............... ${placar.semRevisao}   <- violacao da premissa`);
+    console.log(`  isentos (nada ensinado antes) ...... ${placar.semConhecimentoAnterior}`);
+    console.log(`  sem atomos (fail-closed) ........... ${placar.semAtomos}`);
+    console.log(`  faltantes de modulo ................ ${placar.faltantesDeModulo}`);
+    console.log(`  nunca praticados no curso .......... ${placar.nuncaPraticados}`);
+    console.log(`  blocos sem desafio ................. ${semDesafio.length}`);
+    console.log('');
+  }
+
+  const reprovado =
+    placar.semRevisao > 0 ||
+    placar.semAtomos > 0 ||
+    placar.faltantesDeModulo > 0 ||
+    placar.nuncaPraticados > 0 ||
+    semDesafio.length > 0;
+  process.exit(reprovado ? 1 : 0);
+}
+
 async function cmdGenerate(pos: string[], flags: Record<string, string>): Promise<void> {
   const slug = pos[0];
   const assunto = flags.assunto;
@@ -2476,6 +2719,9 @@ async function main(): Promise<void> {
       break;
     case 'revise':
       await cmdRevise(pos, flags, bools);
+      break;
+    case 'pratica':
+      await cmdPratica(pos, flags, bools);
       break;
     case 'generate':
       await cmdGenerate(pos, flags);

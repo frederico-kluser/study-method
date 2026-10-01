@@ -9,8 +9,13 @@
  * Uma dependência nova, declarada: `@codemirror/lang-rust` entrou como
  * dependência nova na onda 2.2 (onda2-editor-rust) e é usada aqui, junto dos
  * pacotes de linguagem que JÁ estavam na base (@codemirror/lang-javascript,
- * lang-python, lang-json, lang-markdown). Idiomas sem parser dedicado (go, c,
- * shell, text…) caem num fallback documentado — `javascript` básico sem
+ * lang-python, lang-json, lang-markdown). ONDA-CODIGO-EDITOR:
+ * `@codemirror/lang-cpp` entrou como dependência nova (a trilha `c-iniciante`
+ * edita ficheiros `.c`/`.h` e eles caíam no fallback — pedido do dono "nosso
+ * editor que deve ser highlight de codigos"): a gramática Lezer dele cobre C e
+ * C++ e é a MESMA que o `codeHighlight.ts` usa para pintar os blocos do chat —
+ * editor e display falam a mesma língua. Idiomas sem parser dedicado (go,
+ * shell, text…) continuam num fallback documentado — `javascript` básico sem
  * TS/JSX — porque compartilham a sintaxe de chaves/identificadores, o que
  * ainda dá realce útil sob o tema Dracula sem adicionar pacote.
  */
@@ -18,6 +23,7 @@ import type { Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { rust } from '@codemirror/lang-rust';
+import { cpp } from '@codemirror/lang-cpp';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 
@@ -57,13 +63,17 @@ const LANGUAGE_BY_EXT: Readonly<Record<string, EditorLanguageInfo>> = {
   json: { label: 'JSON', extensions: [json()] },
   md: { label: 'Markdown', extensions: [markdown()] },
   markdown: { label: 'Markdown', extensions: [markdown()] },
+  // ONDA-CODIGO-EDITOR: C/C++ com gramática DEDICADA (a mesma do display).
+  c: { label: 'C', extensions: [cpp()] },
+  h: { label: 'C', extensions: [cpp()] },
+  cpp: { label: 'C++', extensions: [cpp()] },
+  hpp: { label: 'C++', extensions: [cpp()] },
+  cc: { label: 'C++', extensions: [cpp()] },
+  cxx: { label: 'C++', extensions: [cpp()] },
+  hxx: { label: 'C++', extensions: [cpp()] },
+  'c++': { label: 'C++', extensions: [cpp()] },
   // Fallback genérico (JS básico) para idiomas sem parser dedicado:
   go: { label: 'Go', extensions: JS_ONLY, fallback: true },
-  c: { label: 'C', extensions: JS_ONLY, fallback: true },
-  h: { label: 'C', extensions: JS_ONLY, fallback: true },
-  cpp: { label: 'C++', extensions: JS_ONLY, fallback: true },
-  hpp: { label: 'C++', extensions: JS_ONLY, fallback: true },
-  cc: { label: 'C++', extensions: JS_ONLY, fallback: true },
   sh: { label: 'Shell', extensions: JS_ONLY, fallback: true },
   bash: { label: 'Shell', extensions: JS_ONLY, fallback: true },
   zsh: { label: 'Shell', extensions: JS_ONLY, fallback: true },

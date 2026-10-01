@@ -71,18 +71,24 @@
   "keys": {
     "openrouter": {
       "label": "OpenRouter key",
-      "placeholder": "Paste your OpenRouter key"
+      "placeholder": "Paste your OpenRouter key",
+      "help": "Routes the conversation and challenges through cloud AI models.",
+      "whereToGet": "Where to get an OpenRouter key"
     },
     "brave": {
       "label": "Brave Search key",
-      "placeholder": "Paste your Brave key"
+      "placeholder": "Paste your Brave key",
+      "help": "Web search used to bring sources and up-to-date content.",
+      "whereToGet": "Where to get a Brave Search key"
     },
     "validate": "Validate",
+    "validateSaved": "Validate saved key",
     "validating": "Validating…",
     "valid": "Valid",
     "invalid": "Invalid",
     "configured": "Configured",
     "notConfigured": "Not configured",
+    "statusUnknown": "Could not verify",
     "save": "Save",
     "saved": "Saved",
     "show": "Show key",
@@ -102,8 +108,11 @@
     "title": "Local model",
     "downloadAria": "Download model {{id}}",
     "detect": "Detect hardware",
+    "detecting": "Detecting…",
+    "detectDone": "Hardware detected: {{backend}}, {{ram}} GB RAM.",
     "ram": "RAM",
     "vram": "VRAM",
+    "notDetermined": "n/a",
     "cpu": "CPU",
     "backend": "Backend",
     "recommended": "Recommended",
@@ -114,10 +123,15 @@
     "use": "Use",
     "inUse": "In use",
     "delete": "Delete",
+    "deleteAria": "Delete model {{name}}",
+    "deleteConfirmTitle": "Delete {{name}}?",
+    "deleteConfirmDescription": "The model {{name}} ({{size}}) will be removed from disk. You can download it again later.",
+    "deleteConfirmAction": "Delete",
     "feedbackProvider": "Feedback provider",
     "feedbackProviderOpenrouter": "OpenRouter (cloud)",
     "feedbackProviderLocal": "Local model",
     "hintActive": "This model is active and will be the default grader.",
+    "feedbackSaved": "Feedback provider saved.",
     "errorSaveFeedback": "Failed to save the feedback provider:",
     "errorList": "Could not list the models:",
     "errorDetect": "Failed to detect hardware:",
@@ -194,25 +208,28 @@
     "emptyDescription": "Pick a track in the Track tab and open a lesson: the content is ready, just study.",
     "emptyCta": "Browse tracks",
     "sourcesButton": "Sources",
+    "courseLabel": "Course: {{course}}",
     "theoryProgress": "Theory progress: {{percent}}%",
     "theoryCount": "Section {{current}} of {{total}}",
     "prerequisitesLabel": "Stuck? Review:",
     "chatStart": "This lesson is a chat with the tutor. Click below to start the first theory section.",
+    "loading": "Loading lesson…",
+    "messagePresented": "Message presented.",
     "startButton": "Start lesson",
     "tutorName": "Tutor",
     "youName": "You",
-    "typingIndicator": "tutor typing…",
+    "typingIndicator": "typing…",
     "typingDots": "tutor typing…",
     "dayToday": "Today",
     "dayYesterday": "Yesterday",
     "quizTitle": "Quick quiz",
     "quizOptionAria": "Option {{n}} of {{total}}: {{option}}",
-    "quizCorrect": "That is what the section shows.",
-    "quizWrong": "That option parts ways with what the section shows.",
+    "quizCorrect": "You got it: that is what the section shows.",
+    "quizWrong": "Not yet: that option parts ways with what the section shows.",
     "quizFeedback": "Why:",
     "quizGateNext": "This section's quiz is still waiting for the right answer. Picking off target opens, in the conversation, an explanation of where that option parts ways with the section: and a new quiz on the same passage.",
     "quizGateTyping": "Finish reading this section: its quiz shows up in the conversation as soon as the text is done being written. You can click (or press any key) to show it all at once.",
-    "revealGateTyping": "This section is still being written. “Advance” shows all of it at once.",
+    "revealGateTyping": "This section is still being written. “Show all” reveals the whole section — Advance comes later.",
     "revealTypingTooltip": "Show the whole section now (does not move on)",
     "challengeGateFinish": "The theory is over. What is left is this lesson's challenge: it is the next step, and finishing it unlocks the lesson.",
     "challengeGateQuiz": "The challenge opens once this lesson's quiz has the right answer ({{n}} still missing): it is the proof the passage was understood.",
@@ -262,7 +279,7 @@
     "challengeIntroCardTryAria": "Try the challenge now: {{title}}",
     "challengeIntroCardTryAgainAria": "Try the same challenge again: {{title}}",
     "challengesListAria": "Challenges list of this lesson",
-    "difficulty": "difficulty {{n}}",
+    "difficulty": "difficulty {{n}} of 5",
     "generatedBadge": "generated for you",
     "challengePassed": "Passed with {{stars}} star(s)",
     "challengeFailedCount": "Failed {{n}} time(s): try again",
@@ -277,19 +294,23 @@
     "trackLoadFailed": "Could not load the lesson.",
     "trackLoadTimeout": "The lesson did not respond in time. Try again.",
     "nextTimeout": "The tutor did not respond when advancing the section. Try again.",
+    "nextFailed": "Could not move on to the next section. Try again.",
     "answerTimeout": "The tutor took too long to reply. Try again.",
+    "answerFailed": "Could not send your question. Try again.",
     "doneTimeout": "Could not finish the lesson: the app did not respond. Try again.",
+    "doneFailed": "Could not finish the lesson: your progress was not saved. Try again.",
     "errorBubbleTitle": "Your code failed the tests",
     "errorBubbleFilesTitle": "Submitted code",
     "errorQuestion": "What do you think went wrong? Type here or speak into the microphone. If you don't know, just say \"I don't know\".",
     "micStart": "Speak",
-    "micStop": "Stopping recording…",
-    "micRecording": "Transcribing…",
+    "micStop": "Stop recording",
+    "micRecording": "Recording…",
     "regenerateFailed": "Could not generate a new challenge."
   },
   "challenge": {
     "openChallenge": "Open challenge",
     "testAnswer": "Test answer",
+    "deterministicError": "Could not run the tests (infrastructure failure). Try again.",
     "abort": "Abort",
     "output": "Output",
     "feedback": "Feedback",
@@ -302,6 +323,7 @@
     "emptyGoToLesson": "Go to the lesson",
     "outputTruncated": "Output truncated to the first {{n}} characters.",
     "listError": "Could not list the challenges",
+    "listTimeout": "The challenge list did not respond in time. Try again.",
     "statementUnavailable": "Statement (README.md) unavailable.",
     "workspaceLoadError": "Error loading the workspace",
     "localModelError": "The local model could not grade",
@@ -309,6 +331,7 @@
     "piMissingKey": "Failed to call the pi: OpenRouter key missing or invalid. Open Settings to register the key.",
     "piCallError": "Failed to call the pi",
     "piExecuteError": "Error running the pi",
+    "piTimeout": "The feedback took too long to arrive. Try again.",
     "unknownError": "unknown error",
     "running": "running…",
     "aborted": "aborted",
@@ -353,6 +376,16 @@
     "regenerateButton": "Generate new challenge",
     "checksTitle": "Result per test",
     "partialCount": "{{passed}} of {{total}} tests passed",
+    "bannerTitle": "=== TESTS ===",
+    "bannerPassed": "PASSED",
+    "bannerFailed": "DID NOT PASS",
+    "bannerCounts": "{{n}} of {{m}} tests",
+    "fillFileToTest": "Fill in {{file}} to test",
+    "fillSolutionToTest": "Write the solution to test",
+    "requestingFeedback": "Requesting the evaluator's feedback…",
+    "verdictLabel": "Evaluator verdict",
+    "errorMovedToChat": "The discussion of this error continues here in the lesson chat.",
+    "timeoutDuringSubmit": "Time ran out during execution — the attempt result still follows.",
     "masteryTitle": "What this attempt demonstrated",
     "masteryDemonstrated": "You demonstrated mastery of:",
     "masteryRedo": "Let's redo:",
@@ -364,13 +397,17 @@
     "regenerateTimeout": "Generating a new challenge took too long. Try again.",
     "trackLoadFailed": "Could not load the challenge.",
     "nextLessonButton": "Go to next lesson",
-    "generateNewAfterPass": "Generate another challenge for this lesson"
+    "generateNewAfterPass": "Generate another challenge for this lesson",
+    "retryButton": "Redo challenge",
+    "retryButtonAria": "Redo the challenge {{title}}",
+    "regenerateFailed": "Could not generate a new challenge. Try again."
   },
   "gate": {
     "checking": "Checking setup…",
     "blocked": "Setup pending",
     "missingKeys": "API keys are missing to get started.",
     "invalidKeys": "Some keys are invalid.",
+    "validateBothKeys": "Validate both keys to continue.",
     "offline": "No internet connection.",
     "offlineTip": "Connect to the internet and try again.",
     "tryAgain": "Try again",
@@ -382,6 +419,7 @@
     "openFile": "Open file",
     "save": "Save",
     "unsaved": "Unsaved changes",
+    "closeTabAria": "Close {{name}}",
     "newFile": "New file",
     "newFilePlaceholder": "new.txt (relative path)",
     "deleteFile": "Delete file",
@@ -391,6 +429,8 @@
     "openTabsAria": "Open files",
     "openError": "Could not open",
     "saveError": "Failed to save",
+    "saveShortcut": "Ctrl+S or ⌘S",
+    "saveAria": "Save ({{shortcut}})",
     "createError": "Failed to create",
     "deleteError": "Failed to delete",
     "create": "Create",
@@ -413,43 +453,48 @@
     "loading": "Loading…",
     "back": "Back",
     "close": "Close",
-    "tryAgain": "Try again"
+    "copyCode": "Copy",
+    "copiedCode": "Copied ✓",
+    "tryAgain": "Try again",
+    "copyFailed": "Could not copy"
   },
   "voice": {
     "engineUnavailable": "Speech engine unavailable (too many failures).",
     "captureFailed": "Could not start voice capture: {{msg}}"
   },
   "home": {
-    "title": "Learn programming and math with AI-generated lessons",
-    "description": "Type a subject: such as \"Invert a binary tree\" or \"Quadratic equations\": and get a lesson with explanation, analogy, visualization and hands-on challenges validated by tests.",
+    "title": "Learn programming and math with AI-guided tracks",
+    "description": "Pick a ready-made track (C, Python, Rust…) and study lesson by lesson with the tutor: sectioned theory, quizzes and test-validated challenges, with evaluator feedback. Your progress stays on this computer.",
     "cta": {
       "setup": "Set up keys",
-      "start": "Start a lesson"
+      "start": "Choose a track",
+      "continue": "Resume lesson"
     },
     "steps": {
       "configureKeys": {
         "title": "Set up your AI keys",
-        "description": "Add and validate your OpenRouter and Brave Search keys in Settings."
+        "description": "On first run the app asks for your OpenRouter (lessons and feedback) and Brave Search (sources) keys. You can manage them later in Settings."
       },
       "subject": {
-        "title": "Type a subject",
-        "description": "For example: \"Invert a binary tree\" or \"Quadratic equations\"."
+        "title": "Choose a track",
+        "description": "Courses come with lessons already defined, from zero to advanced. Open a track to see the map."
       },
       "learn": {
         "title": "Learn and practice with challenges",
-        "description": "Read the lesson, follow the visualizations and solve test-validated challenges."
+        "description": "Follow the theory in the tutor chat, answer the quizzes and solve test-validated challenges."
       }
     },
     "setup": {
       "checking": "Checking your setup…",
       "ready": "Ready to start",
       "missing": "AI keys pending",
-      "readyDescription": "Your OpenRouter and Brave Search keys are configured. Pick a subject and start.",
+      "readyDescription": "Your OpenRouter and Brave Search keys are configured. Choose a track and start.",
       "missingDescription": "Configure the OpenRouter and Brave Search keys so the app can generate lessons and search sources.",
       "openrouter": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configured",
-      "pending": "pending"
+      "pending": "pending",
+      "checkFailed": "Could not verify the API key configuration."
     },
     "subjects": {
       "answeredOfTotal": "{{answered}} of {{total}} lessons answered",
@@ -481,11 +526,12 @@
     "tracksDescription": "Ready-made courses, from zero to professional. Pick a track and start.",
     "tracksLoadFailed": "Could not load the tracks.",
     "tracksTimeout": "The tracks did not respond in time. Try again.",
-    "trackProgress": "{{done}}/{{total}}",
+    "trackProgress": "{{done}} of {{total}} lessons done",
     "tracksEmptyTitle": "No tracks installed",
     "tracksEmptyDescription": "This app does not author tracks on its own: content lives in resources/tracks and is created by the authoring CLI (npm run track -- track:new). Until a track is installed this section stays like this: it is not an error.",
     "orphansAction": "See in Settings",
-    "orphansNotice": "Courses from your history that are not installed: {{n}}. Your progress is kept: nothing was deleted."
+    "orphansNotice": "Courses from your history that are not installed: {{n}}. Your progress is kept: nothing was deleted.",
+    "tracksLoading": "Loading tracks…"
   },
   "tutorial": {
     "progress": {
@@ -519,7 +565,7 @@
     "steps": {
       "shellAppTitle": {
         "title": "Study Method",
-        "description": "This is the coding tutor. Generate AI-powered lessons and solve hands-on challenges in the tabs below."
+        "description": "This is your study tutor. Choose a track, follow the lessons and solve hands-on challenges."
       },
       "shellThemeToggle": {
         "title": "Light/dark theme",
@@ -531,11 +577,11 @@
       },
       "shellNavTabs": {
         "title": "Navigation",
-        "description": "Use the tabs to navigate: Settings (configuration), Lesson (lesson generation) and Challenge (practice)."
+        "description": "Use the left rail to navigate: Home, Lesson, Track and Settings. Challenges open from the Lesson or the Track."
       },
       "settingsKeys": {
         "title": "API keys",
-        "description": "In Settings you set up and validate the OpenRouter (lesson generation) and Brave Search (sources) keys, and manage the local model."
+        "description": "Keys live in Settings: OpenRouter (lessons and challenge feedback) and Brave Search (sources). The local model is managed here too."
       },
       "lessonSubject": {
         "title": "Generate a lesson",
@@ -558,7 +604,7 @@
         "description": "Browse the tabs to explore. You can reopen this tutorial anytime from the help button."
       },
       "settingsKeysFill": {
-        "description": "Fill in your OpenRouter and Brave Search keys in this section. They power lesson generation and source search."
+        "description": "Fill in the OpenRouter and Brave Search keys here. They power the tutor and the sources search."
       },
       "openSettings": {
         "title": "Go to Settings",
@@ -566,7 +612,7 @@
       },
       "openLesson": {
         "title": "Go to Lesson",
-        "description": "Click the Lesson tab to generate your first study material."
+        "description": "The Lesson tab is where you study: sectioned theory, tutor chat and quiz. Choose a track on Home to begin."
       },
       "lessonSubjectFill": {
         "description": "Type the subject you want to study into this field."
@@ -587,7 +633,7 @@
         "description": "You now know the essentials. You can restart the tutorial anytime from the help button."
       },
       "qsOpenLesson": {
-        "description": "Navigate to the Lesson tab to generate a study material."
+        "description": "Go to the Lesson tab to study with the tutor."
       },
       "qsOpenChallenge": {
         "description": "Open a challenge from the Lesson or the Track to practice."
@@ -598,15 +644,15 @@
     },
     "selection": {
       "title": "Want a tour?",
-      "subtitle": "A short tutorial introduces the interface and shows how to generate lessons and solve challenges.",
+      "subtitle": "A short tour introduces the interface and shows how to study a track and solve challenges.",
       "quickTourTitle": "Quick tour",
-      "quickTourDescription": "See the top bar, the tabs, and learn to generate a lesson and test a solution.",
+      "quickTourDescription": "See the sidebar and navigation, and learn how to open a lesson and test a solution.",
       "badgeRecommended": "Recommended",
       "dismiss": "Not now",
       "quickStartTitle": "Quick Start",
-      "quickStartDescription": "A quick look at the tabs, with no key setup required. Great to get going now.",
+      "quickStartDescription": "A quick look at the interface, with no API keys required. Great to start right now.",
       "fullTutorialTitle": "Full Tutorial",
-      "fullTutorialDescription": "Step-by-step guide across all tabs: set up keys, generate a lesson and test a solution.",
+      "fullTutorialDescription": "Step by step: set up the keys, follow a lesson and test a solution.",
       "badgeFull": "Complete",
       "requiresKeys": "Requires the API keys (OpenRouter + Brave).",
       "openSettings": "Set up keys"
@@ -621,7 +667,10 @@
     },
     "helpHint": {
       "title": "Type any doubt",
-      "description": "This is the lesson subject field. Type the topic you want to study and generate an AI-powered lesson."
+      "description": "This is the lesson tutor chat. Type your questions about the material here — it replies in the conversation."
+    },
+    "helpButton": {
+      "label": "Help & tutorial"
     }
   },
   "shell": {
@@ -631,7 +680,8 @@
       "collapse": "Collapse navigation"
     },
     "sidebar": {
-      "splitAria": "Divider between the sidebar and the content"
+      "splitAria": "Divider between the sidebar and the content",
+      "splitHint": "Drag, or use the arrow keys while the divider has focus"
     },
     "session": {
       "aria": "Session state",

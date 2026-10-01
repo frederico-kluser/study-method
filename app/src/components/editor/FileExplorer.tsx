@@ -7,7 +7,8 @@
  *  - diretórios expandíveis/colapsáveis;
  *  - clique num arquivo → `onOpenFile(path)`;
  *  - toolbar: novo arquivo (pede nome → `onCreateFile(name, content?)`),
- *    atualizar (→ `onRefresh()`), excluir (→ `onDeleteFile(path)`).
+ *    atualizar (→ `onRefresh()`), excluir (→ diálogo de confirmação e só
+ *    depois `onDeleteFile(path)` — C2: excluir NUNCA é 1 clique).
  *
  * O controle de expandir é estado local (não precisa sobreviver à navegação).
  * Nenhuma dependência nova (sem @mui/x-tree-view) — usa List aninhado.
@@ -16,6 +17,10 @@ import { useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -50,7 +55,10 @@ export interface FileExplorerCallbacks {
   onCreateFile: (name: string) => void;
   /** Recarrega a lista do workspace. */
   onRefresh: () => void;
-  /** Exclui um arquivo (a UI já confirmou). */
+  /**
+   * Exclui um arquivo. Chamado SÓ depois de o usuário confirmar no diálogo
+   * (`editor.confirmDelete`) — o callback não precisa de confirmar de novo.
+   */
   onDeleteFile: (path: string) => void;
 }
 
@@ -147,6 +155,10 @@ export function FileExplorer({
   onDeleteFile,
 }: FileExplorerProps): ReactElement {
   const { t } = useTranslation();
+  // t() com interpolação (mesmo cast documentado da ChallengeView): o t()
+  // strict-typed desta base não resolve InterpolationMap, mas o runtime
+  // interpola normal — `editor.confirmDelete` leva {{name}}.
+  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
   // Diretórios expandidos (default: todos expandidos inicialmente).
   const [openDirs, setOpenDirs] = useState<ReadonlySet<string>>(() => {
     const all = new Set<string>();
@@ -158,6 +170,10 @@ export function FileExplorer({
   const [newName, setNewName] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  // C2: exclusão confirmada num diálogo — `pendingDelete` é o path AGUARDANDO
+  // confirmação (null = diálogo fechado). Excluir arquivo é destrutivo e
+  // irreversível: 1 clique nunca apaga.
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const tree = useMemo(() => sortTree(buildTreeFromFiles(files)), [files]);
 
@@ -178,11 +194,19 @@ export function FileExplorer({
     setShowNew(false);
   };
 
+  // Botão excluir: abre o diálogo de confirmação (C2). Só o "Excluir" do
+  // diálogo chama `onDeleteFile` — o risco de clique errado some.
   const confirmDelete = (): void => {
-    if (selectedPath) {
-      onDeleteFile(selectedPath);
+    if (selectedPath) setPendingDelete(selectedPath);
+  };
+
+  // Confirmação dada: apaga e limpa a seleção.
+  const acceptDelete = (): void => {
+    if (pendingDelete) {
+      onDeleteFile(pendingDelete);
       setSelectedPath(null);
     }
+    setPendingDelete(null);
   };
 
   return (
@@ -283,6 +307,28 @@ export function FileExplorer({
           </List>
         )}
       </Box>
+
+      {/* C2 — CONFIRMAÇÃO de exclusão (mesmo padrão do OrphanTracksPanel):
+          pergunta pelo NOME do arquivo e só apaga no botão destrutivo. */}
+      <Dialog
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        aria-labelledby="editor-confirm-delete-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="editor-confirm-delete-title">
+          {tI('translation:editor.confirmDelete', {
+            name: (pendingDelete ?? '').split('/').pop() ?? pendingDelete ?? '',
+          })}
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setPendingDelete(null)}>{t('translation:common.cancel')}</Button>
+          <Button onClick={acceptDelete} color="error" variant="contained" autoFocus>
+            {t('translation:editor.deleteFile')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

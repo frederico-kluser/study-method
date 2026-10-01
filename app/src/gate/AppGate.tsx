@@ -93,10 +93,26 @@ function Splash(): ReactElement {
 /** Aviso renderizado no topo do app em modo OFFLINE (ambas as chaves falharam por rede). */
 export function OfflineBanner(): ReactElement {
   const { t } = useTranslation();
+  // W13 (onda-ux): o aviso ganha o "Tentar novamente", que re-executa o gate de
+  // início (recheck do StartupCtx) sem fechar o app — se a rede voltou, o
+  // banner some sozinho quando o novo veredito chega.
+  const { recheck } = useStartup();
   return (
     <Alert severity="warning" role="alert" sx={{ borderRadius: 0 }}>
-      <strong>{t('translation:gate.offline')}</strong>
-      <span>{` ${t('translation:gate.offlineTip')}`}</span>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <strong>{t('translation:gate.offline')}</strong>
+          <span>{` ${t('translation:gate.offlineTip')}`}</span>
+        </Box>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => void recheck()}
+          sx={{ flexShrink: 0, minHeight: 32 }}
+        >
+          {t('translation:gate.tryAgain')}
+        </Button>
+      </Box>
     </Alert>
   );
 }
@@ -146,8 +162,13 @@ export function AppGate(): ReactElement {
   // (nunca resolveu em IPC_TIMEOUT_MS) — splash nunca fica eterno.
   const [readError, setReadError] = useState<null | 'rejected' | 'timeout'>(null);
 
-  const runCheck = useCallback(async () => {
-    setStatus(null);
+  const runCheck = useCallback(async (keepContent = false) => {
+    // S5/W13 (onda-ux): `keepContent` distingue a PRIMEIRA carga (splash) de um
+    // RE-CHECK (Salvar e continuar / Tentar novamente): o re-check NÃO apaga o
+    // que está no ecrã — o SetupView fica montado (as chaves digitadas e o
+    // estado de validação sobrevivem) e o App continua visível sob o banner
+    // offline até o novo veredito chegar.
+    if (!keepContent) setStatus(null);
     setReadError(null);
     try {
       const api = getApi().keys as unknown as KeysWithStartupStatus;
@@ -158,8 +179,11 @@ export function AppGate(): ReactElement {
     }
   }, []);
 
+  /** Re-check preservando o conteúdo (contrato do StartupCtx / SetupView). */
+  const recheck = useCallback(() => runCheck(true), [runCheck]);
+
   useEffect(() => {
-    void runCheck();
+    void runCheck(false);
   }, [runCheck]);
 
   const flags = useMemo(
@@ -168,17 +192,20 @@ export function AppGate(): ReactElement {
   );
 
   const contextValue = useMemo<StartupContextValue>(
-    () => ({ status, flags, recheck: runCheck }),
-    [status, flags, runCheck],
+    () => ({ status, flags, recheck }),
+    [status, flags, recheck],
   );
 
   let content: ReactElement;
   if (readError) {
-    content = <GateError kind={readError} onRetry={() => void runCheck()} />;
+    content = <GateError kind={readError} onRetry={() => void recheck()} />;
   } else if (!status || status.phase === 'checking') {
     content = <Splash />;
   } else if (status.phase === 'blocked') {
-    content = <SetupView onDone={() => void runCheck()} />;
+    // S5: `onDone` é AGUARDADO pelo SetupView — se o re-check voltar 'blocked',
+    // o mesmo SetupView (montado, valores intactos) volta a responder. W1: o
+    // status carregado informa se as chaves já são inválidas (mensagem por estado).
+    content = <SetupView onDone={recheck} startupStatus={status} />;
   } else if (status.phase === 'offline') {
     // ONDA-INPUT-ANCORADO (bug: "o input sobe quando a view tem menos
     // conteúdo"): o wrapper antigo era um BLOCO de altura auto — e o root do

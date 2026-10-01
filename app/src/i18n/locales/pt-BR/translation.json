@@ -71,18 +71,24 @@
   "keys": {
     "openrouter": {
       "label": "Chave OpenRouter",
-      "placeholder": "Cole sua chave OpenRouter"
+      "placeholder": "Cole sua chave OpenRouter",
+      "help": "Roteia a conversa e os desafios pelos modelos de IA da nuvem.",
+      "whereToGet": "Onde obter a chave OpenRouter"
     },
     "brave": {
       "label": "Chave Brave Search",
-      "placeholder": "Cole sua chave Brave"
+      "placeholder": "Cole sua chave Brave",
+      "help": "Pesquisa na web usada para trazer fontes e conteúdo atualizado.",
+      "whereToGet": "Onde obter a chave Brave Search"
     },
     "validate": "Validar",
+    "validateSaved": "Validar chave salva",
     "validating": "Validando…",
     "valid": "Válida",
     "invalid": "Inválida",
     "configured": "Configurada",
     "notConfigured": "Não configurada",
+    "statusUnknown": "Não foi possível verificar",
     "save": "Salvar",
     "saved": "Salvo",
     "show": "Mostrar chave",
@@ -102,8 +108,11 @@
     "title": "Modelo local",
     "downloadAria": "Baixar modelo {{id}}",
     "detect": "Detectar hardware",
+    "detecting": "A detetar…",
+    "detectDone": "Hardware detetado: {{backend}}, {{ram}} GB de RAM.",
     "ram": "RAM",
     "vram": "VRAM",
+    "notDetermined": "n/d",
     "cpu": "CPU",
     "backend": "Backend",
     "recommended": "Recomendado",
@@ -114,10 +123,15 @@
     "use": "Usar",
     "inUse": "Em uso",
     "delete": "Excluir",
+    "deleteAria": "Excluir o modelo {{name}}",
+    "deleteConfirmTitle": "Excluir {{name}}?",
+    "deleteConfirmDescription": "O modelo {{name}} ({{size}}) será removido do disco. Pode voltar a baixá-lo mais tarde.",
+    "deleteConfirmAction": "Excluir",
     "feedbackProvider": "Provedor de feedback",
     "feedbackProviderOpenrouter": "OpenRouter (nuvem)",
     "feedbackProviderLocal": "Modelo local",
     "hintActive": "Este modelo está ativo e será o avaliador padrão.",
+    "feedbackSaved": "Provedor de feedback guardado.",
     "errorSaveFeedback": "Falha ao salvar o provedor de feedback:",
     "errorList": "Não foi possível listar os modelos:",
     "errorDetect": "Falha ao detectar hardware:",
@@ -194,25 +208,28 @@
     "emptyDescription": "Escolha uma trilha na aba Trilha e depois abra uma aula: o conteúdo já está pronto, é só estudar.",
     "emptyCta": "Ver trilhas",
     "sourcesButton": "Fontes",
+    "courseLabel": "Curso: {{course}}",
     "theoryProgress": "Progresso da teoria: {{percent}}%",
     "theoryCount": "Seção {{current}} de {{total}}",
     "prerequisitesLabel": "Não entendeu? Revisar:",
     "chatStart": "Esta aula é um chat com o tutor. Clique abaixo para começar a primeira seção da teoria.",
+    "loading": "Carregando aula…",
+    "messagePresented": "Mensagem apresentada.",
     "startButton": "Começar aula",
     "tutorName": "Tutor",
     "youName": "Você",
-    "typingIndicator": "tutor digitando…",
+    "typingIndicator": "digitando…",
     "typingDots": "tutor digitando…",
     "dayToday": "Hoje",
     "dayYesterday": "Ontem",
     "quizTitle": "Quiz rápido",
     "quizOptionAria": "Opção {{n}} de {{total}}: {{option}}",
-    "quizCorrect": "É isso que a seção mostra.",
-    "quizWrong": "Essa alternativa se separa do que a seção mostra.",
+    "quizCorrect": "Você acertou: é isso que a seção mostra.",
+    "quizWrong": "Ainda não: essa alternativa se separa do que a seção mostra.",
     "quizFeedback": "Por quê:",
     "quizGateNext": "O quiz desta seção ainda espera a resposta certa. Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra, e um quiz novo sobre o mesmo trecho.",
     "quizGateTyping": "Termine de ler esta seção: o quiz dela aparece na conversa assim que o texto acabar de ser escrito. Você pode clicar (ou apertar qualquer tecla) para mostrar tudo de uma vez.",
-    "revealGateTyping": "Esta seção ainda está sendo escrita. “Avançar” mostra tudo de uma vez.",
+    "revealGateTyping": "Esta seção ainda está sendo escrita. “Mostrar tudo” revela a seção inteira — Avançar fica para depois.",
     "revealTypingTooltip": "Mostrar a seção inteira agora (não avança)",
     "challengeGateFinish": "A teoria acabou. Falta o desafio desta aula: ele é o próximo passo, e concluí-lo libera a conclusão da aula.",
     "challengeGateQuiz": "O desafio abre depois que o quiz da aula tiver a resposta certa ({{n}} ainda sem): é a prova de que o trecho foi entendido.",
@@ -262,7 +279,7 @@
     "challengeIntroCardTryAria": "Tentar o desafio agora: {{title}}",
     "challengeIntroCardTryAgainAria": "Tentar o mesmo desafio de novo: {{title}}",
     "challengesListAria": "Lista de desafios desta aula",
-    "difficulty": "dificuldade {{n}}",
+    "difficulty": "dificuldade {{n}} de 5",
     "generatedBadge": "gerado para você",
     "challengePassed": "Passou com {{stars}} estrela(s)",
     "challengeFailedCount": "Falhou {{n}} vez(es): tente de novo",
@@ -277,19 +294,23 @@
     "trackLoadFailed": "Não foi possível carregar a aula.",
     "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente.",
     "nextTimeout": "O tutor não respondeu ao avançar a seção. Tente de novo.",
+    "nextFailed": "Não foi possível avançar a seção. Tente de novo.",
     "answerTimeout": "O tutor demorou demais para responder. Tente de novo.",
+    "answerFailed": "Não foi possível enviar a sua dúvida. Tente de novo.",
     "doneTimeout": "Não foi possível concluir a aula: o aplicativo não respondeu. Tente de novo.",
+    "doneFailed": "Não foi possível concluir a aula: o progresso não foi gravado. Tente de novo.",
     "errorBubbleTitle": "Seu código falhou nos testes",
     "errorBubbleFilesTitle": "Código submetido",
     "errorQuestion": "O que você acha que errou? Escreva aqui ou fale no microfone. Se não souber, diga \"não sei\".",
     "micStart": "Falar",
-    "micStop": "Parando gravação…",
-    "micRecording": "Transcrevendo…",
+    "micStop": "Parar gravação",
+    "micRecording": "Gravando…",
     "regenerateFailed": "Não foi possível gerar um novo desafio."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
     "testAnswer": "Testar resposta",
+    "deterministicError": "Não consegui rodar os testes (falha de infraestrutura). Tente de novo.",
     "abort": "Abortar",
     "output": "Saída",
     "feedback": "Feedback",
@@ -302,6 +323,7 @@
     "emptyGoToLesson": "Ir para a aula",
     "outputTruncated": "Saída truncada aos primeiros {{n}} caracteres.",
     "listError": "Não consegui listar os desafios",
+    "listTimeout": "A lista de desafios não respondeu a tempo. Tente de novo.",
     "statementUnavailable": "Enunciado (README.md) indisponível.",
     "workspaceLoadError": "Erro ao carregar o workspace",
     "localModelError": "O modelo local não conseguiu avaliar",
@@ -309,6 +331,7 @@
     "piMissingKey": "Falha ao chamar o pi: chave OpenRouter ausente ou inválida. Abra as Configurações para cadastrar a chave.",
     "piCallError": "Falha ao chamar o pi",
     "piExecuteError": "Erro ao executar o pi",
+    "piTimeout": "O feedback demorou demais para chegar. Tente de novo.",
     "unknownError": "erro desconhecido",
     "running": "rodando…",
     "aborted": "abortado",
@@ -353,6 +376,16 @@
     "regenerateButton": "Gerar novo desafio",
     "checksTitle": "Resultado por teste",
     "partialCount": "{{passed}} de {{total}} testes passaram",
+    "bannerTitle": "=== TESTES ===",
+    "bannerPassed": "PASSOU",
+    "bannerFailed": "NÃO PASSOU",
+    "bannerCounts": "{{n}} de {{m}} testes",
+    "fillFileToTest": "Preenche {{file}} para testar",
+    "fillSolutionToTest": "Escreve a solução para testar",
+    "requestingFeedback": "A pedir avaliação ao avaliador…",
+    "verdictLabel": "Veredito do avaliador",
+    "errorMovedToChat": "A discussão deste erro segue aqui no chat da aula.",
+    "timeoutDuringSubmit": "Tempo esgotado durante a execução — o resultado da tentativa segue.",
     "masteryTitle": "O que esta tentativa demonstrou",
     "masteryDemonstrated": "Você demonstrou dominar:",
     "masteryRedo": "Vamos refazer:",
@@ -364,13 +397,17 @@
     "regenerateTimeout": "A geração do novo desafio demorou demais. Tente de novo.",
     "trackLoadFailed": "Não foi possível carregar o desafio.",
     "nextLessonButton": "Avançar para a próxima aula",
-    "generateNewAfterPass": "Gerar outro desafio da aula"
+    "generateNewAfterPass": "Gerar outro desafio da aula",
+    "retryButton": "Refazer desafio",
+    "retryButtonAria": "Refazer o desafio {{title}}",
+    "regenerateFailed": "Não foi possível gerar um novo desafio. Tente de novo."
   },
   "gate": {
     "checking": "Verificando configuração…",
     "blocked": "Configuração pendente",
     "missingKeys": "Faltam chaves de API para começar.",
     "invalidKeys": "Algumas chaves são inválidas.",
+    "validateBothKeys": "Valide as duas chaves para continuar.",
     "offline": "Sem conexão com a internet.",
     "offlineTip": "Conecte-se à internet e tente novamente.",
     "tryAgain": "Tentar novamente",
@@ -382,6 +419,7 @@
     "openFile": "Abrir arquivo",
     "save": "Salvar",
     "unsaved": "Alterações não salvas",
+    "closeTabAria": "Fechar {{name}}",
     "newFile": "Novo arquivo",
     "newFilePlaceholder": "novo.txt (caminho relativo)",
     "deleteFile": "Excluir arquivo",
@@ -391,6 +429,8 @@
     "openTabsAria": "Arquivos abertos",
     "openError": "Não consegui abrir",
     "saveError": "Falha ao salvar",
+    "saveShortcut": "Ctrl+S ou ⌘S",
+    "saveAria": "Salvar ({{shortcut}})",
     "createError": "Falha ao criar",
     "deleteError": "Falha ao excluir",
     "create": "Criar",
@@ -413,43 +453,48 @@
     "loading": "Carregando…",
     "back": "Voltar",
     "close": "Fechar",
-    "tryAgain": "Tentar de novo"
+    "copyCode": "Copiar",
+    "copiedCode": "Copiado ✓",
+    "tryAgain": "Tentar de novo",
+    "copyFailed": "Não foi possível copiar"
   },
   "voice": {
     "engineUnavailable": "Motor de voz indisponível (muitas falhas).",
     "captureFailed": "Não foi possível iniciar a captura de voz: {{msg}}"
   },
   "home": {
-    "title": "Aprenda programação e matemática com aulas geradas por IA",
-    "description": "Digite um assunto, como \"Inverter uma árvore binária\" ou \"Equações do 2º grau\", e receba uma aula com explicação, analogia, visualização e desafios práticos validados por testes.",
+    "title": "Aprenda programação e matemática com trilhas guiadas por IA",
+    "description": "Escolha uma trilha pronta (C, Python, Rust…) e estude aula a aula com o tutor: teoria em seções, quiz e desafios validados por testes, com feedback do avaliador. O progresso fica guardado neste computador.",
     "cta": {
       "setup": "Configurar chaves",
-      "start": "Começar aula"
+      "start": "Escolher uma trilha",
+      "continue": "Continuar aula"
     },
     "steps": {
       "configureKeys": {
         "title": "Configure as chaves de IA",
-        "description": "Cadastre e valide as chaves do OpenRouter e do Brave Search em Configurações."
+        "description": "No primeiro arranque o app pede as chaves do OpenRouter (aulas e feedback) e do Brave Search (fontes). Depois, gerencie-as em Configurações."
       },
       "subject": {
-        "title": "Digite o assunto",
-        "description": "Por exemplo: \"Inverter uma árvore binária\" ou \"Equações do 2º grau\"."
+        "title": "Escolha uma trilha",
+        "description": "Os cursos já vêm com aulas definidas, do zero ao avançado. Abra uma trilha para ver o mapa."
       },
       "learn": {
         "title": "Aprenda e pratique com desafios",
-        "description": "Leia a aula, acompanhe as visualizações e resolva os desafios validados por testes."
+        "description": "Acompanhe a teoria no chat com o tutor, responda aos quizzes e resolva os desafios validados por testes."
       }
     },
     "setup": {
       "checking": "Verificando a configuração…",
       "ready": "Pronto para começar",
       "missing": "Chaves de IA pendentes",
-      "readyDescription": "Suas chaves OpenRouter e Brave Search estão configuradas. Escolha um assunto e comece.",
+      "readyDescription": "Suas chaves OpenRouter e Brave Search estão configuradas. Escolha uma trilha e comece.",
       "missingDescription": "Configure as chaves OpenRouter e Brave Search para o app gerar aulas e pesquisar fontes.",
       "openrouter": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configurada",
-      "pending": "pendente"
+      "pending": "pendente",
+      "checkFailed": "Não foi possível verificar a configuração das chaves."
     },
     "subjects": {
       "answeredOfTotal": "{{answered}} de {{total}} aulas respondidas",
@@ -481,11 +526,12 @@
     "tracksDescription": "Cursos prontos, do zero ao profissional. Escolha uma trilha e comece.",
     "tracksLoadFailed": "Não foi possível carregar as trilhas.",
     "tracksTimeout": "As trilhas não responderam a tempo. Tente novamente.",
-    "trackProgress": "{{done}}/{{total}}",
+    "trackProgress": "{{done}} de {{total}} aulas concluídas",
     "tracksEmptyTitle": "Nenhuma trilha instalada",
     "tracksEmptyDescription": "Este app não gera trilha sozinho: o conteúdo vive em resources/tracks e é criado pelo CLI de autoria (npm run track -- track:new). Enquanto não houver trilha instalada, esta seção fica assim mesmo: não é erro.",
     "orphansAction": "Ver em Configurações",
-    "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado: nada foi apagado."
+    "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado: nada foi apagado.",
+    "tracksLoading": "A carregar as trilhas…"
   },
   "tutorial": {
     "progress": {
@@ -519,7 +565,7 @@
     "steps": {
       "shellAppTitle": {
         "title": "O Study Method",
-        "description": "Este é o tutor de programação. Crie aulas geradas por IA e resolva desafios práticos nas abas abaixo."
+        "description": "Este é o tutor de estudo. Escolha uma trilha, acompanhe as aulas com o tutor e resolva desafios práticos."
       },
       "shellThemeToggle": {
         "title": "Tema claro/escuro",
@@ -531,11 +577,11 @@
       },
       "shellNavTabs": {
         "title": "Navegação",
-        "description": "Use as abas para navegar: Settings (configurações), Aula (geração de aula) e Desafio (prática)."
+        "description": "Navegue pelo rail à esquerda: Início, Aula, Trilha e Configurações. O Desafio abre a partir da Aula ou da Trilha."
       },
       "settingsKeys": {
         "title": "Chaves de API",
-        "description": "Em Configurações você cadastra e valida as chaves do OpenRouter (geração de aulas) e do Brave Search (fontes), além de gerenciar o modelo local."
+        "description": "As chaves vivem em Configurações: OpenRouter (aulas e feedback do desafio) e Brave Search (fontes). Aqui também gere o modelo local."
       },
       "lessonSubject": {
         "title": "Gerar uma aula",
@@ -558,7 +604,7 @@
         "description": "Navegue pelas abas para explorar. Você pode reabrir este tutorial a qualquer momento pelo botão de ajuda."
       },
       "settingsKeysFill": {
-        "description": "Preencha as chaves do OpenRouter e do Brave Search nesta seção. Elas usam a geração de aulas e a pesquisa de fontes."
+        "description": "Preencha as chaves do OpenRouter e do Brave Search nesta seção. Elas dão vida ao tutor e à pesquisa de fontes."
       },
       "openSettings": {
         "title": "Vá para Configurações",
@@ -566,7 +612,7 @@
       },
       "openLesson": {
         "title": "Vá para Aula",
-        "description": "Clique na aba Aula para gerar seu primeiro material de estudo."
+        "description": "A aba Aula é onde se estuda: teoria em seções, chat com o tutor e quiz. Escolha uma trilha em Início para começar."
       },
       "lessonSubjectFill": {
         "description": "Digite o assunto que você quer estudar neste campo."
@@ -587,7 +633,7 @@
         "description": "Você conhece o essencial. Recomece o tutorial a qualquer momento pelo botão de ajuda."
       },
       "qsOpenLesson": {
-        "description": "Navegue até a aba Aula para gerar um material de estudo."
+        "description": "Navegue até a aba Aula para estudar com o tutor."
       },
       "qsOpenChallenge": {
         "description": "Abra um desafio pela Aula ou pela Trilha para praticar."
@@ -598,15 +644,15 @@
     },
     "selection": {
       "title": "Quer um tour?",
-      "subtitle": "Um breve tutorial apresenta a interface e mostra como gerar aulas e resolver desafios.",
+      "subtitle": "Um breve tutorial apresenta a interface e mostra como estudar numa trilha e resolver desafios.",
       "quickTourTitle": "Tour rápido",
-      "quickTourDescription": "Veja a barra superior, as abas e aprenda a gerar uma aula e testar uma solução.",
+      "quickTourDescription": "Veja a coluna lateral e a navegação, e aprenda a abrir uma aula e testar uma solução.",
       "badgeRecommended": "Recomendado",
       "dismiss": "Agora não",
       "quickStartTitle": "Quick Start",
-      "quickStartDescription": "Uma visão rápida das abas, sem exigir configurar chaves. Ideal para começar agora.",
+      "quickStartDescription": "Uma visão rápida da interface, sem exigir configurar chaves. Ideal para começar agora.",
       "fullTutorialTitle": "Tutorial Completo",
-      "fullTutorialDescription": "Guia passo a passo por todas as abas: configure as chaves, gere uma aula e teste uma solução.",
+      "fullTutorialDescription": "Guia passo a passo: configure as chaves, siga uma aula e teste uma solução.",
       "badgeFull": "Simplificado",
       "requiresKeys": "Requer as chaves de API (OpenRouter + Brave).",
       "openSettings": "Configurar chaves"
@@ -621,7 +667,10 @@
     },
     "helpHint": {
       "title": "Digite qualquer dúvida",
-      "description": "Este é o campo de assunto da aula. Digite o tema que quer estudar e gere uma aula por IA."
+      "description": "Este é o chat com o tutor da aula. Digite aqui as suas dúvidas sobre o material — ele responde no meio da conversa."
+    },
+    "helpButton": {
+      "label": "Ajuda e tutorial"
     }
   },
   "shell": {
@@ -631,7 +680,8 @@
       "collapse": "Recolher navegação"
     },
     "sidebar": {
-      "splitAria": "Divisória entre a barra lateral e o conteúdo"
+      "splitAria": "Divisória entre a barra lateral e o conteúdo",
+      "splitHint": "Arraste, ou use as setas com a divisória em foco"
     },
     "session": {
       "aria": "Estado da sessão",

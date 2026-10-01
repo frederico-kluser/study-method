@@ -6,11 +6,11 @@
   "difficulty": 3,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Contando itens\n\nEscreva a função `quantos` que devolve a quantidade de itens de uma lista:\n\n```python\ndef quantos(lista):\n    # devolva a quantidade de itens\n```\n\nUse `len`, como na aula. Exemplos:\n\n```text\nquantos([1, 2, 3])  ->  3\nquantos([\"unico\"])  ->  1\nquantos([])  ->  0\n```\n\nA função devolve o número — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao quantos(lista)\n",
-  "testsCode": "import unittest\n\nfrom solucao import quantos\n\n\nclass TestQuantosItensTem(unittest.TestCase):\n    def test_conta_tres_itens(self):\n        \"\"\"quantos devolve 3 para uma lista de 3 itens\"\"\"\n        self.assertTrue(quantos([1, 2, 3]) == 3)\n\n    def test_conta_um_item(self):\n        \"\"\"quantos devolve 1 para uma lista de 1 item\"\"\"\n        self.assertTrue(quantos([\"unico\"]) == 1)\n\n    def test_lista_vazia_tem_zero(self):\n        \"\"\"quantos devolve 0 para a lista vazia\"\"\"\n        self.assertTrue(quantos([]) == 0)\n",
-  "solutionCode": "def quantos(lista):\n    return len(lista)\n",
-  "expectedTestCount": 3,
+  "statement": "# Contando itens\n\nEscreva três funções que contam itens de uma lista:\n\n```python\ndef quantos(lista):\n    # devolva a quantidade de itens\n\ndef quantas_duplas(lista):\n    # devolva quantas duplas completas cabem\n\ndef sobra(lista):\n    # devolva quantos itens sobram da ultima dupla\n```\n\n`quantos` devolve o tamanho da lista com `len`. `quantas_duplas` devolve quantas duplas completas cabem na lista (`len(lista) // 2`). `sobra` devolve quantos itens ficam de fora da última dupla (`len(lista) % 2`). Exemplos:\n\n```text\nquantos([1, 2, 3])  ->  3\nquantas_duplas([1, 2, 3, 4, 5])  ->  2\nsobra([1, 2, 3, 4, 5])  ->  1\nsobra([1, 2])  ->  0\n```\n\nAs funções devolvem o número — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes quantos, quantas_duplas e sobra\n",
+  "testsCode": "import unittest\n\nfrom solucao import quantos\nfrom solucao import quantas_duplas\nfrom solucao import sobra\n\n\nclass TestQuantosItensTem(unittest.TestCase):\n    def test_conta_tres_itens(self):\n        \"\"\"quantos devolve 3 para uma lista de 3 itens\"\"\"\n        self.assertEqual(quantos([1, 2, 3]), 3)\n\n    def test_lista_vazia_tem_zero(self):\n        \"\"\"quantos devolve 0 para a lista vazia\"\"\"\n        self.assertEqual(quantos([]), 0)\n\n    def test_quantas_duplas_cabem(self):\n        \"\"\"quantas_duplas devolve 2 para a lista [1, 2, 3, 4, 5]\"\"\"\n        self.assertEqual(quantas_duplas([1, 2, 3, 4, 5]), 2)\n\n    def test_o_que_sobra_da_dupla(self):\n        \"\"\"sobra devolve o que fica de fora da ultima dupla\"\"\"\n        self.assertEqual(sobra([1, 2, 3, 4, 5]), 1)\n        self.assertEqual(sobra([1, 2]), 0)\n",
+  "solutionCode": "def quantos(lista):\n    return len(lista)\n\n\ndef quantas_duplas(lista):\n    return len(lista) // 2\n\n\ndef sobra(lista):\n    return len(lista) % 2\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
       "id": "test_conta_tres_itens",
@@ -18,14 +18,19 @@
       "descricao": "quantos devolve 3 para uma lista de 3 itens"
     },
     {
-      "id": "test_conta_um_item",
-      "teste": "test_conta_um_item",
-      "descricao": "quantos devolve 1 para uma lista de 1 item"
-    },
-    {
       "id": "test_lista_vazia_tem_zero",
       "teste": "test_lista_vazia_tem_zero",
       "descricao": "quantos devolve 0 para a lista vazia"
+    },
+    {
+      "id": "test_quantas_duplas_cabem",
+      "teste": "test_quantas_duplas_cabem",
+      "descricao": "quantas_duplas devolve 2 para a lista [1, 2, 3, 4, 5]"
+    },
+    {
+      "id": "test_o_que_sobra_da_dupla",
+      "teste": "test_o_que_sobra_da_dupla",
+      "descricao": "sobra devolve o que fica de fora da ultima dupla"
     }
   ]
 }

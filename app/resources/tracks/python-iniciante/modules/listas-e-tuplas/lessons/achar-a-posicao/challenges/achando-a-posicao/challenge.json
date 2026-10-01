@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Achando a posição\n\nEscreva duas funções de busca em listas:\n\n- `posicao_de(lista, item)` devolve a posição do item com `index`;\n- `quantas_vezes(lista, item)` devolve quantas vezes o item aparece com `count`.\n\nExemplos:\n\n```text\nposicao_de([\"uva\", \"pera\", \"manga\"], \"manga\")  ->  2\nposicao_de([\"uva\", \"pera\", \"manga\"], \"uva\")  ->  0\nquantas_vezes([\"ana\", \"bia\", \"ana\"], \"ana\")  ->  2\nquantas_vezes([\"ana\", \"bia\"], \"caio\")  ->  0\n```\n\nAs duas funções devolvem o número — elas não imprimem nada.",
-  "starterCode": "# escreva aqui as funcoes posicao_de e quantas_vezes\n",
-  "testsCode": "import unittest\n\nfrom solucao import posicao_de\nfrom solucao import quantas_vezes\n\n\nclass TestAcharAPosicao(unittest.TestCase):\n    def test_posicao_do_item(self):\n        \"\"\"posicao_de devolve a posicao do item\"\"\"\n        self.assertTrue(posicao_de([\"uva\", \"pera\", \"manga\"], \"manga\") == 2)\n\n    def test_posicao_do_primeiro(self):\n        \"\"\"posicao_de devolve a posicao do primeiro item\"\"\"\n        self.assertTrue(posicao_de([\"uva\", \"pera\", \"manga\"], \"uva\") == 0)\n\n    def test_conta_as_vezes(self):\n        \"\"\"quantas_vezes devolve quantas vezes o item aparece\"\"\"\n        self.assertTrue(quantas_vezes([\"ana\", \"bia\", \"ana\"], \"ana\") == 2)\n\n    def test_count_de_item_ausente(self):\n        \"\"\"quantas_vezes devolve 0 para item que nao esta\"\"\"\n        self.assertTrue(quantas_vezes([\"ana\", \"bia\"], \"caio\") == 0)\n",
-  "solutionCode": "def posicao_de(lista, item):\n    return lista.index(item)\n\n\ndef quantas_vezes(lista, item):\n    return lista.count(item)\n",
+  "statement": "# Achando a posição\n\nEscreva duas funções de busca em listas:\n\n```python\ndef posicao_de(lista, item):\n    # devolva a posicao do item, ou -1 quando nao esta\n\ndef quantas_vezes(lista, item):\n    # devolva quantas vezes o item aparece\n```\n\n`posicao_de` devolve a posição do item com `index`; quando o item não está na lista, devolva `-1` — o número que marca que não se achou. `quantas_vezes` devolve quantas vezes o item aparece com `count`. Exemplos:\n\n```text\nposicao_de([\"uva\", \"pera\", \"manga\"], \"manga\")  ->  2\nposicao_de([\"uva\", \"pera\"], \"kiwi\")  ->  -1\nquantas_vezes([\"ana\", \"bia\", \"ana\"], \"ana\")  ->  2\nquantas_vezes([\"ana\", \"bia\"], \"caio\")  ->  0\n```\n\nAs duas funções devolvem o número — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes posicao_de(lista, item) e quantas_vezes(lista, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import posicao_de\nfrom solucao import quantas_vezes\n\n\nclass TestAcharAPosicao(unittest.TestCase):\n    def test_posicao_do_item(self):\n        \"\"\"posicao_de devolve a posicao do item\"\"\"\n        self.assertEqual(posicao_de([\"uva\", \"pera\", \"manga\"], \"manga\"), 2)\n\n    def test_posicao_de_quem_nao_esta(self):\n        \"\"\"posicao_de devolve -1 para o item que nao esta\"\"\"\n        self.assertEqual(posicao_de([\"uva\", \"pera\"], \"kiwi\"), -1)\n\n    def test_conta_as_vezes(self):\n        \"\"\"quantas_vezes devolve quantas vezes o item aparece\"\"\"\n        self.assertEqual(quantas_vezes([\"ana\", \"bia\", \"ana\"], \"ana\"), 2)\n\n    def test_count_de_item_ausente(self):\n        \"\"\"quantas_vezes devolve 0 para o item que nao esta\"\"\"\n        self.assertEqual(quantas_vezes([\"ana\", \"bia\"], \"caio\"), 0)\n",
+  "solutionCode": "def posicao_de(lista, item):\n    if item in lista:\n        return lista.index(item)\n    return -1\n\n\ndef quantas_vezes(lista, item):\n    return lista.count(item)\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,9 +18,9 @@
       "descricao": "posicao_de devolve a posicao do item"
     },
     {
-      "id": "test_posicao_do_primeiro",
-      "teste": "test_posicao_do_primeiro",
-      "descricao": "posicao_de devolve a posicao do primeiro item"
+      "id": "test_posicao_de_quem_nao_esta",
+      "teste": "test_posicao_de_quem_nao_esta",
+      "descricao": "posicao_de devolve -1 para o item que nao esta"
     },
     {
       "id": "test_conta_as_vezes",
@@ -30,7 +30,7 @@
     {
       "id": "test_count_de_item_ausente",
       "teste": "test_count_de_item_ausente",
-      "descricao": "quantas_vezes devolve 0 para item que nao esta"
+      "descricao": "quantas_vezes devolve 0 para o item que nao esta"
     }
   ]
 }

@@ -5,21 +5,26 @@
   "concept": "tamanho_texto",
   "difficulty": 2,
   "language": "rust",
-  "statement": "# O peso do texto\n\nA função `peso` recebe o texto como `String` e devolve o TAMANHO dele — o que o `.len` responde:\n\n- `peso(String::from(\"abc\"))` devolve `3`;\n- `peso(String::from(\"casa\"))` devolve `4`.\n\nO retorno é `usize`, o tipo do tamanho. Os testes cobram dois textos diferentes — o tamanho tem de vir do texto recebido, não de um número fixo.",
+  "statement": "# O peso do texto\n\nNa balança da gráfica, cada caractere pesa 3 — o peso de cada caractere vive na constante `PESO_POR_CARACTERE`. A função `peso` recebe o texto como `String` e devolve o peso total como `usize`: o tamanho do texto (o que o `.len` responde) multiplicado pelo peso de cada caractere:\n\n- `peso(String::from(\"abc\"))` devolve `9`;\n- `peso(String::from(\"casa\"))` devolve `12`;\n- `peso(String::from(\"\"))` devolve `0`.\n\nDeclare `const PESO_POR_CARACTERE: usize = 3` e monte a conta com `*`. Os testes cobram três textos diferentes — o peso tem de vir do texto recebido, não de um número fixo.",
   "starterCode": "pub fn peso(texto: String) -> usize {\n    todo!()\n}\n",
-  "solutionCode": "pub fn peso(texto: String) -> usize {\n    texto.len()\n}\n",
-  "testsCode": "use desafio::peso;\n\n#[test]\nfn testa_o_peso_de_abc() {\n    assert_eq!(peso(String::from(\"abc\")), 3);\n}\n\n#[test]\nfn testa_o_peso_de_casa() {\n    assert_eq!(peso(String::from(\"casa\")), 4);\n}\n",
+  "solutionCode": "const PESO_POR_CARACTERE: usize = 3;\n\npub fn peso(texto: String) -> usize {\n    texto.len() * PESO_POR_CARACTERE\n}\n",
+  "testsCode": "use desafio::peso;\n\n#[test]\nfn testa_o_peso_de_abc() {\n    assert_eq!(peso(String::from(\"abc\")), 9);\n}\n\n#[test]\nfn testa_o_peso_de_casa() {\n    assert_eq!(peso(String::from(\"casa\")), 12);\n}\n\n#[test]\nfn testa_o_peso_do_texto_vazio() {\n    assert_eq!(peso(String::from(\"\")), 0);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "peso deve devolver 3 para o texto \"abc\" — o tamanho vindo do .len.",
+      "descricao": "peso deve devolver 9 para o texto \"abc\" — o tamanho 3 multiplicado pelo peso por caractere.",
       "teste": "testa_o_peso_de_abc"
     },
     {
       "id": "REQ-2",
-      "descricao": "peso deve devolver 4 para o texto \"casa\" — o tamanho vindo do .len.",
+      "descricao": "peso deve devolver 12 para o texto \"casa\" — o tamanho 4 multiplicado pelo peso por caractere.",
       "teste": "testa_o_peso_de_casa"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "peso deve devolver 0 para o texto vazio — o tamanho 0 multiplicado pelo peso por caractere.",
+      "teste": "testa_o_peso_do_texto_vazio"
     }
   ],
-  "expectedTestCount": 2
+  "expectedTestCount": 3
 }

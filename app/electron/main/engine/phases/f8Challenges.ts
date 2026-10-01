@@ -367,6 +367,18 @@ function renderAntiRepeticao(dossie: DossieDeDesafio): string {
     .join('\n');
 }
 
+/**
+ * A REVISÃO ACUMULADA — o que o aluno já sabe ESCREVER antes desta aula:
+ * `budget_teste` (a ENTRADA: tudo que as aulas anteriores já ensinaram) ∩
+ * `budget_produtivo` (o que o aluno escreve). Só a interseção é misturável no
+ * `solutionCode`: átomo só-receptivo seria violação A2 (a armadilha medida
+ * `api:.y`, docs/18 §9.5). É a lista que a premissa de revisão acumulada manda
+ * praticar 1–2 itens por desafio — determinística, calculada do dossiê.
+ */
+export function revisaoAcumuladaDoDesafio(dossie: DossieDeDesafio): string[] {
+  return dossie.budget_teste.filter((item) => dossie.budget_produtivo.includes(item));
+}
+
 /** O dossiê DE DESAFIO COMPLETO — literal e integral (nunca resumo). */
 function renderDossieDeDesafio(dossie: DossieDeDesafio): string {
   const linhas: string[] = [];
@@ -395,6 +407,10 @@ function renderDossieDeDesafio(dossie: DossieDeDesafio): string {
   linhas.push('');
   linhas.push('ANTI-REPETICAO — desafios anteriores da MESMA trilha (não repita enunciado nem requisitos; varie o cenário):');
   linhas.push(renderAntiRepeticao(dossie));
+  linhas.push('');
+  const revisao = revisaoAcumuladaDoDesafio(dossie);
+  linhas.push('REVISAO_ACUMULADA — construções que o aluno já sabe ESCREVER (ensinadas em aulas anteriores; interseção budget_produtivo ∩ budget_teste). A premissa do produto manda praticar 1 ou 2 delas no caminho que o aluno escreve, junto com o alvo da aula:');
+  linhas.push(revisao.length > 0 ? renderItens(revisao) : '  (nenhuma — é a primeira aula da trilha, não há o que revisar)');
   return linhas.join('\n');
 }
 
@@ -413,6 +429,7 @@ const CONVENCOES_DO_DESAFIO = [
   '- O controle de profundidade do raciocínio é parâmetro do sistema, não texto do prompt: não peça ao aluno raciocínio encenado em etapas.',
   '- Não improvise dentro da resposta: se o orçamento não permite o que o desafio pede, isso é defeito do grafo, não licença — responda blocked (seção SAÍDA) e pare.',
   '- Itens de avaliação vêm ANTES dos materiais (§4.3): o enunciado deve ser resolvível com o orçamento vigente e o starter deve dar ao aluno exatamente o que corrigir.',
+  '- PREMISSA DE REVISÃO ACUMULADA (regra dura do produto): o solutionCode deve praticar, ao lado do alvo da aula, 1 ou 2 construções da lista REVISAO_ACUMULADA — misturar o que o aluno já sabe, sem esticar o desafio (a ideia é misturar, não encher). O alvo novo da aula continua a ser o núcleo: quem passa sem escrevê-lo tem de reprovar nos testes.',
 ].join('\n');
 
 const SAIDA_DO_DESAFIO = [

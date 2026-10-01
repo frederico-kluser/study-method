@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "fechando-o-dia",
+  "title": "Fechando o dia",
+  "concept": "composicao_das_listas",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Fechando o dia\n\nO mercadinho da esquina fecha às sete, e antes de fechar a porta alguém tem de\nfechar o dia: o recibo da última compra, o produto mais caro que saiu e a lista\ndo que faltou para completar os pedidos. Este desafio não ensina nada novo —\nele junta tudo o que este módulo ensinou: a lista, o item pela posição, o\n`len`, o `append`, o `for` percorrendo listas, o `in`, o `index`, o `max`, a\ntupla e as listas andando lado a lado.\n\n## O que você escreve\n\nTrês funções — todas devolvem valores, nenhuma imprime nada:\n\n1. **`recibo_da_compra(nomes, precos, comprados)`** — recebe três listas do\n   mesmo tamanho (o nome de cada produto, o preço de cada um e quantos saíram) e\n   devolve a LISTA das linhas do recibo: uma linha por produto e, no fim, a\n   linha do total. Percorra as três listas lado a lado com `zip` (ou pelo\n   índice), calcule o subtotal de cada produto (`preco * quantidade`) e vá\n   somando o total.\n2. **`par_do_mais_caro(nomes, precos)`** — devolve a TUPLA `(nome, preço)` do\n   produto mais caro: o preço sai do `max`, a posição do `index` e o nome dos\n   colchetes.\n3. **`quem_falta(estoque, pedidos)`** — devolve a lista dos pedidos que não\n   estão no estoque, na ordem dos pedidos. Percorra os pedidos com `for` e use o\n   `in` para decidir quem entra na lista.\n\n## Os resultados, exatamente assim\n\n```text\nrecibo_da_compra([\"pao\", \"leite\", \"queijo\"], [2.5, 4.0, 7.0], [2, 1, 3])\n-> [\"pao x2 = 5.0\", \"leite x1 = 4.0\", \"queijo x3 = 21.0\", \"total = 30.0\"]\npar_do_mais_caro([\"pao\", \"leite\", \"queijo\"], [2.5, 4.0, 7.0])  ->  (\"queijo\", 7.0)\nquem_falta([\"pao\", \"queijo\", \"uva\"], [\"queijo\", \"pao\", \"uva\", \"leite\"])  ->  [\"leite\"]\n```\n\n## As regras da casa\n\n- **Nada de escrever o resultado à mão.** Se você devolver a lista de linhas\n  pronta, o teste com outros dados reprova: todo valor sai de conta ou de busca.\n- As linhas do recibo saem com **texto de buraco** (`f\"...\"` com `{}`), e os\n  números calculados com duas casas saem do `round`, com o número e o `2`.\n- O recibo se monta linha a linha com `append`; a tupla do mais caro se monta\n  com parênteses e vírgula.\n- Nada de `print` em lugar nenhum: o que a função devolve é o que o teste olha.\n\n## Por que este desafio existe\n\nCada aula deste módulo mostrou uma peça sozinha: criar a lista, pegar pela\nposição, contar, acrescentar, tirar, inserir, percorrer, procurar, fatiar,\nordenar, abrir a tupla. Aqui elas precisam conversar no mesmo programa. Se\ntravar em alguma linha, volte à aula da peça: o exemplo está lá.",
+  "starterCode": "# o mercado fecha o dia -- escreva as tres funcoes\n# 1. recibo_da_compra(nomes, precos, comprados) devolve a lista de linhas do recibo\n# 2. par_do_mais_caro(nomes, precos) devolve a tupla (nome, preco) do mais caro\n# 3. quem_falta(estoque, pedidos) devolve a lista dos pedidos que faltam\n",
+  "testsCode": "import unittest\n\nfrom solucao import recibo_da_compra\nfrom solucao import par_do_mais_caro\nfrom solucao import quem_falta\n\n\nclass TestFechandoODia(unittest.TestCase):\n    def test_recibo_da_compra(self):\n        \"\"\"recibo_da_compra devolve as linhas do recibo com o total no fim\"\"\"\n        self.assertEqual(\n            recibo_da_compra([\"pao\", \"leite\", \"queijo\"], [2.5, 4.0, 7.0], [2, 1, 3]),\n            [\"pao x2 = 5.0\", \"leite x1 = 4.0\", \"queijo x3 = 21.0\", \"total = 30.0\"],\n        )\n\n    def test_recibo_de_um_produto(self):\n        \"\"\"recibo_da_compra funciona com um produto so\"\"\"\n        self.assertEqual(recibo_da_compra([\"uva\"], [3.5], [2]), [\"uva x2 = 7.0\", \"total = 7.0\"])\n\n    def test_par_do_mais_caro(self):\n        \"\"\"par_do_mais_caro devolve a tupla nome e preco do mais caro\"\"\"\n        self.assertEqual(par_do_mais_caro([\"pao\", \"leite\", \"queijo\"], [2.5, 4.0, 7.0]), (\"queijo\", 7.0))\n        self.assertEqual(par_do_mais_caro([\"arroz\", \"feijao\"], [3.0, 9.0]), (\"feijao\", 9.0))\n\n    def test_quem_falta_no_estoque(self):\n        \"\"\"quem_falta devolve os pedidos que nao estao no estoque\"\"\"\n        self.assertEqual(quem_falta([\"pao\", \"queijo\", \"uva\"], [\"queijo\", \"pao\", \"uva\", \"leite\"]), [\"leite\"])\n        self.assertEqual(quem_falta([\"pao\"], [\"leite\", \"uva\"]), [\"leite\", \"uva\"])\n",
+  "solutionCode": "def recibo_da_compra(nomes, precos, comprados):\n    linhas = []\n    total = 0\n    for nome, preco, quantidade in zip(nomes, precos, comprados):\n        subtotal = preco * quantidade\n        total += subtotal\n        linhas.append(f\"{nome} x{quantidade} = {round(subtotal, 2)}\")\n    linhas.append(f\"total = {round(total, 2)}\")\n    return linhas\n\n\ndef par_do_mais_caro(nomes, precos):\n    mais_caro = max(precos)\n    return (nomes[precos.index(mais_caro)], mais_caro)\n\n\ndef quem_falta(estoque, pedidos):\n    faltas = []\n    for item in pedidos:\n        if item in estoque:\n            continue\n        faltas.append(item)\n    return faltas\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_recibo_da_compra",
+      "descricao": "recibo_da_compra devolve as linhas do recibo com o total no fim: [\"pao x2 = 5.0\", \"leite x1 = 4.0\", \"queijo x3 = 21.0\", \"total = 30.0\"]."
+    },
+    {
+      "id": "REQ-2",
+      "teste": "test_recibo_de_um_produto",
+      "descricao": "recibo_da_compra funciona com um produto so: [\"uva x2 = 7.0\", \"total = 7.0\"]."
+    },
+    {
+      "id": "REQ-3",
+      "teste": "test_par_do_mais_caro",
+      "descricao": "par_do_mais_caro devolve a tupla nome e preco do produto mais caro, achado com max, index e os colchetes."
+    },
+    {
+      "id": "REQ-4",
+      "teste": "test_quem_falta_no_estoque",
+      "descricao": "quem_falta devolve a lista dos pedidos que nao estao no estoque, na ordem dos pedidos."
+    }
+  ]
+}

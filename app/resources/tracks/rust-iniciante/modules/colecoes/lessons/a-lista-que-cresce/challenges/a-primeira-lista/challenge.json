@@ -4,19 +4,19 @@
   "title": "A primeira lista",
   "concept": "a_lista_que_cresce",
   "language": "rust",
-  "statement": "# A primeira lista\n\nSua primeira COLEÇÃO: a função `pares` monta e devolve a lista dos três primeiros pares:\n\n- `pares()[0]` devolve `2`;\n- `pares()[1]` devolve `4`;\n- `pares()[2]` devolve `6`.\n\nMonte a lista com `vec![2, 4, 6]` — os três valores nascem dentro da caixa, na ordem. Os testes olham a lista peça a peça com o colchete que você já conhece (M5).\n",
+  "statement": "# A primeira lista\n\nSua primeira COLEÇÃO: a função `pares` monta e devolve a lista dos três primeiros pares — todos nascem do `PAR`, o `2` fixo na constante:\n\n1. declare `const PAR: i32 = 2;` no topo do arquivo — o valor fixo de sempre (M1);\n2. calcule o dobro e o triplo na mão, com o produto que você já conhece (M1): `let dobro = PAR * 2;` e `let triplo = PAR * 3;`;\n3. monte a lista com `vec![PAR, dobro, triplo]` — os três valores nascem dentro da caixa, na ordem.\n\n- `pares()[0]` devolve `2` (o `PAR`);\n- `pares()[1]` devolve `4` (o dobro);\n- `pares()[2]` devolve `6` (o triplo).\n\nOs testes olham a lista peça a peça com o colchete que você já conhece (M5).\n",
   "starterCode": "pub fn pares() -> Vec<i32> {\n    todo!()\n}\n",
-  "solutionCode": "pub fn pares() -> Vec<i32> {\n    vec![2, 4, 6]\n}\n",
+  "solutionCode": "const PAR: i32 = 2;\n\npub fn pares() -> Vec<i32> {\n    let dobro = PAR * 2;\n    let triplo = PAR * 3;\n    vec![PAR, dobro, triplo]\n}\n",
   "testsCode": "use desafio::pares;\n\n#[test]\nfn testa_o_primeiro_par() {\n    assert_eq!(pares()[0], 2);\n}\n\n#[test]\nfn testa_os_outros_dois_pares() {\n    assert_eq!(pares()[1], 4);\n    assert_eq!(pares()[2], 6);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "pares() monta a lista com vec! e devolve 2 na posição 0: pares()[0] == 2.",
+      "descricao": "pares() monta a lista com vec! a partir da constante PAR e devolve o PAR na posição 0: pares()[0] == 2.",
       "teste": "testa_o_primeiro_par"
     },
     {
       "id": "REQ-2",
-      "descricao": "pares() devolve 4 na posição 1 e 6 na posição 2, na ordem do vec!.",
+      "descricao": "pares() devolve o dobro (PAR * 2 == 4) na posição 1 e o triplo (PAR * 3 == 6) na posição 2, na ordem do vec!.",
       "teste": "testa_os_outros_dois_pares"
     }
   ],

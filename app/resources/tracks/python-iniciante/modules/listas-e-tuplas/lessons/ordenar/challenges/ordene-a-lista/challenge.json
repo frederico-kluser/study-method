@@ -6,10 +6,10 @@
   "difficulty": 3,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Ordene a lista\n\nCrie a função `ordem_crescente(numeros)`, que **ordena a lista no lugar** com o método `.sort()` e devolve a própria lista já arrumada.\n\nCrie também a função `em_ordem(numeros)`, que devolve **outra** lista, já em ordem, usando a função `sorted` — sem mexer na lista original.\n\n```text\n>>> numeros = [3, 1, 2]\n>>> ordem_crescente(numeros)\n[1, 2, 3]\n>>> numeros\n[1, 2, 3]\n>>> em_ordem([3, 1, 2])\n[1, 2, 3]\n```\n\nAs duas devolvem o mesmo resultado para a mesma lista — a diferença é o que acontece com a lista original.",
-  "starterCode": "def ordem_crescente(numeros):\n    # ordene numeros no lugar com .sort() e devolva a propria lista\n    pass\n\n\ndef em_ordem(numeros):\n    # devolva outra lista, em ordem, com sorted()\n    pass\n",
-  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestOrdenar(unittest.TestCase):\n    def test_ordem_crescente_devolve_a_lista_em_ordem(self):\n        \"\"\"ordem_crescente devolve a lista em ordem crescente\"\"\"\n        self.assertEqual(rodar()[\"ordem_crescente\"]([3, 1, 2]), [1, 2, 3])\n\n    def test_ordem_crescente_muda_a_lista_original(self):\n        \"\"\"ordem_crescente muda a lista original no lugar\"\"\"\n        numeros = [3, 1, 2]\n        rodar()[\"ordem_crescente\"](numeros)\n        self.assertEqual(numeros, [1, 2, 3])\n\n    def test_em_ordem_nao_muda_a_lista_original(self):\n        \"\"\"em_ordem devolve outra lista e nao muda a original\"\"\"\n        numeros = [3, 1, 2]\n        self.assertEqual(rodar()[\"em_ordem\"](numeros), [1, 2, 3])\n        self.assertEqual(numeros, [3, 1, 2])\n\n    def test_em_ordem_com_um_item_so(self):\n        \"\"\"em_ordem com um item so devolve a lista igual\"\"\"\n        self.assertEqual(rodar()[\"em_ordem\"]([7]), [7])\n",
-  "solutionCode": "def ordem_crescente(numeros):\n    numeros.sort()\n    return numeros\n\n\ndef em_ordem(numeros):\n    return sorted(numeros)\n",
+  "statement": "# Ordene a lista\n\nCrie a função `ordem_crescente(numeros)`, que **ordena a lista no lugar** com o método `.sort()` e devolve a própria lista já arrumada.\n\nCrie também a função `em_ordem(numeros)`, que devolve **outra** lista, já em ordem, usando a função `sorted` — sem mexer na lista original.\n\nE crie `o_segundo_melhor(numeros)`, que devolve o **segundo maior** número da lista: com a lista em ordem crescente, ele é o penúltimo item. Quem pega de trás para frente usa índice negativo, como na aula `posicao-negativa` — `sorted(numeros)[-2]`.\n\n```text\n>>> numeros = [3, 1, 2]\n>>> ordem_crescente(numeros)\n[1, 2, 3]\n>>> numeros\n[1, 2, 3]\n>>> em_ordem([3, 1, 2])\n[1, 2, 3]\n>>> o_segundo_melhor([3, 9, 1])\n3\n>>> o_segundo_melhor([4, 8, 6, 9])\n8\n```\n\nAs duas primeiras devolvem o mesmo resultado para a mesma lista — a diferença é o que acontece com a lista original. As listas de `o_segundo_melhor` têm sempre dois ou mais itens.",
+  "starterCode": "def ordem_crescente(numeros):\n    # ordene numeros no lugar com .sort() e devolva a propria lista\n    pass\n\n\ndef em_ordem(numeros):\n    # devolva outra lista, em ordem, com sorted()\n    pass\n\n\ndef o_segundo_melhor(numeros):\n    # devolva o segundo maior: o penultimo da lista em ordem\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestOrdenar(unittest.TestCase):\n    def test_ordem_crescente_devolve_a_lista_em_ordem(self):\n        \"\"\"ordem_crescente devolve a lista em ordem crescente\"\"\"\n        self.assertEqual(rodar()[\"ordem_crescente\"]([3, 1, 2]), [1, 2, 3])\n\n    def test_ordem_crescente_muda_a_lista_original(self):\n        \"\"\"ordem_crescente muda a lista original no lugar\"\"\"\n        numeros = [3, 1, 2]\n        rodar()[\"ordem_crescente\"](numeros)\n        self.assertEqual(numeros, [1, 2, 3])\n\n    def test_em_ordem_nao_muda_a_lista_original(self):\n        \"\"\"em_ordem devolve outra lista e nao muda a original\"\"\"\n        numeros = [3, 1, 2]\n        self.assertEqual(rodar()[\"em_ordem\"](numeros), [1, 2, 3])\n        self.assertEqual(numeros, [3, 1, 2])\n\n    def test_o_segundo_melhor_pega_o_penultimo_da_ordem(self):\n        \"\"\"o_segundo_melhor devolve o segundo maior numero da lista\"\"\"\n        self.assertEqual(rodar()[\"o_segundo_melhor\"]([3, 9, 1]), 3)\n        self.assertEqual(rodar()[\"o_segundo_melhor\"]([4, 8, 6, 9]), 8)\n",
+  "solutionCode": "def ordem_crescente(numeros):\n    numeros.sort()\n    return numeros\n\n\ndef em_ordem(numeros):\n    return sorted(numeros)\n\n\ndef o_segundo_melhor(numeros):\n    return sorted(numeros)[-2]\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -28,9 +28,9 @@
       "descricao": "em_ordem devolve outra lista e nao muda a original"
     },
     {
-      "id": "test_em_ordem_com_um_item_so",
-      "teste": "test_em_ordem_com_um_item_so",
-      "descricao": "em_ordem com um item so devolve a lista igual"
+      "id": "test_o_segundo_melhor_pega_o_penultimo_da_ordem",
+      "teste": "test_o_segundo_melhor_pega_o_penultimo_da_ordem",
+      "descricao": "o_segundo_melhor devolve o segundo maior numero da lista"
     }
   ]
 }

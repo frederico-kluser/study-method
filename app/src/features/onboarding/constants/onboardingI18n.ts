@@ -98,4 +98,6 @@ export type OnboardingI18nKey =
   | 'translation:tutorial.selection.badgeFull'
   | 'translation:tutorial.selection.requiresKeys'
   | 'translation:tutorial.selection.openSettings'
-  | 'translation:tutorial.selection.dismiss';
+  | 'translation:tutorial.selection.dismiss'
+  // botão de ajuda do shell (reabre o modal de seleção)
+  | 'translation:tutorial.helpButton.label';

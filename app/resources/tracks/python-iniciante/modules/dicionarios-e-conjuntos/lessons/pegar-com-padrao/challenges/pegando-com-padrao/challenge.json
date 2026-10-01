@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Pegando com padrão\n\nEscreva a função `pegar(d, chave, padrao)` que devolve o valor da chave quando ela existe, e o `padrao` quando ela não existe, usando o método `.get` como na aula:\n\n```python\ndef pegar(d, chave, padrao):\n    # devolva o valor da chave, ou o padrao se ela nao existe\n    pass\n```\n\nExemplos:\n\n```text\npegar({\"a\": 1}, \"a\", 0)  ->  1\npegar({\"a\": 1}, \"b\", 0)  ->  0\npegar({\"uva\": 6}, \"pao\", 9)  ->  9\npegar({\"uva\": 6}, \"uva\", 9)  ->  6\n```\n\nA função devolve o valor — ela não imprime nada.",
-  "starterCode": "def pegar(d, chave, padrao):\n    # devolva o valor da chave, ou o padrao se ela nao existe\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import pegar\n\n\nclass TestPegarComPadrao(unittest.TestCase):\n    def test_pega_quando_a_chave_existe(self):\n        \"\"\"pegar devolve o valor da chave quando ela existe\"\"\"\n        self.assertEqual(pegar({\"a\": 1}, \"a\", 0), 1)\n\n    def test_devolve_o_padrao_sem_a_chave(self):\n        \"\"\"pegar devolve o padrao quando a chave nao existe\"\"\"\n        self.assertEqual(pegar({\"a\": 1}, \"b\", 0), 0)\n\n    def test_devolve_outro_padrao(self):\n        \"\"\"pegar devolve o padrao pedido em cada chamada\"\"\"\n        self.assertEqual(pegar({\"uva\": 6}, \"pao\", 9), 9)\n\n    def test_chave_presente_ignora_o_padrao(self):\n        \"\"\"pegar com chave presente nao usa o padrao\"\"\"\n        self.assertEqual(pegar({\"uva\": 6}, \"uva\", 9), 6)\n",
-  "solutionCode": "def pegar(d, chave, padrao):\n    return d.get(chave, padrao)\n",
+  "statement": "# Pegando com padrão\n\nEscreva duas funções que usam o método `.get` como na aula:\n\n```python\ndef pegar(d, chave, padrao):\n    # devolva o valor da chave, ou o padrao se ela nao existe\n    pass\n\n\ndef area(lados, nome, padrao):\n    # devolva o lado (o da chave ou o padrao) elevado ao quadrado\n    pass\n```\n\nExemplos:\n\n```text\npegar({\"a\": 1}, \"a\", 0)                  ->  1\npegar({\"a\": 1}, \"b\", 0)                  ->  0\narea({\"quadrado\": 3}, \"quadrado\", 0)     ->  9\narea({\"quadrado\": 3}, \"triangulo\", 4)    ->  16\n```\n\n`area(lados, nome, padrao)` devolve a área do quadrado: o lado guardado na chave `nome`, ou o `padrao` quando a chave não existe, elevado ao quadrado com `**`.\n\nAs funções devolvem o valor — elas não imprimem nada.",
+  "starterCode": "def pegar(d, chave, padrao):\n    # devolva o valor da chave, ou o padrao se ela nao existe\n    pass\n\n\ndef area(lados, nome, padrao):\n    # devolva o lado (o da chave ou o padrao) elevado ao quadrado\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import pegar\nfrom solucao import area\n\n\nclass TestPegarComPadrao(unittest.TestCase):\n    def test_pega_quando_a_chave_existe(self):\n        \"\"\"pegar devolve o valor da chave quando ela existe\"\"\"\n        self.assertEqual(pegar({\"a\": 1}, \"a\", 0), 1)\n\n    def test_devolve_o_padrao_sem_a_chave(self):\n        \"\"\"pegar devolve o padrao quando a chave nao existe\"\"\"\n        self.assertEqual(pegar({\"a\": 1}, \"b\", 0), 0)\n\n    def test_area_usa_o_lado_da_chave(self):\n        \"\"\"area devolve o lado da chave elevado ao quadrado\"\"\"\n        self.assertEqual(area({\"quadrado\": 3}, \"quadrado\", 0), 9)\n\n    def test_area_usa_o_padrao_sem_a_chave(self):\n        \"\"\"area usa o padrao como lado quando a chave nao existe\"\"\"\n        self.assertEqual(area({\"quadrado\": 3}, \"triangulo\", 4), 16)\n",
+  "solutionCode": "def pegar(d, chave, padrao):\n    return d.get(chave, padrao)\n\n\ndef area(lados, nome, padrao):\n    return lados.get(nome, padrao) ** 2\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -23,14 +23,14 @@
       "descricao": "pegar devolve o padrao quando a chave nao existe"
     },
     {
-      "id": "test_devolve_outro_padrao",
-      "teste": "test_devolve_outro_padrao",
-      "descricao": "pegar devolve o padrao pedido em cada chamada"
+      "id": "test_area_usa_o_lado_da_chave",
+      "teste": "test_area_usa_o_lado_da_chave",
+      "descricao": "area devolve o lado da chave elevado ao quadrado"
     },
     {
-      "id": "test_chave_presente_ignora_o_padrao",
-      "teste": "test_chave_presente_ignora_o_padrao",
-      "descricao": "pegar com chave presente nao usa o padrao"
+      "id": "test_area_usa_o_padrao_sem_a_chave",
+      "teste": "test_area_usa_o_padrao_sem_a_chave",
+      "descricao": "area usa o padrao como lado quando a chave nao existe"
     }
   ]
 }

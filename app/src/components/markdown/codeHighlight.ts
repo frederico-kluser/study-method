@@ -36,6 +36,7 @@
 import { highlightTree, tagHighlighter, tags, type Highlighter } from '@lezer/highlight';
 import { pythonLanguage } from '@codemirror/lang-python';
 import { rustLanguage } from '@codemirror/lang-rust';
+import { cppLanguage } from '@codemirror/lang-cpp';
 import {
   javascriptLanguage,
   jsxLanguage,
@@ -45,7 +46,7 @@ import {
 import { jsonLanguage } from '@codemirror/lang-json';
 import type { Parser } from '@lezer/common';
 
-import type { CodeSyntaxRole } from '../../lib/codeTheme';
+import type { CodePaintRole, CodeSyntaxRole } from '../../lib/codeTheme';
 
 /**
  * Teto de tamanho para o parse. Não é token de design — é válvula de
@@ -56,11 +57,14 @@ import type { CodeSyntaxRole } from '../../lib/codeTheme';
  */
 const MAX_HIGHLIGHT_CHARS = 100_000;
 
-/** Um pedaço contíguo de código com (ou sem) papel de sintaxe. */
+/** Um pedaço contíguo de código com (ou sem) papel pintável. */
 export interface CodeToken {
   readonly text: string;
-  /** Papel de `codeTheme.CodeSyntaxRole`, ou null quando não há cor. */
-  readonly role: CodeSyntaxRole | null;
+  /**
+   * Papel de `codeTheme.CodePaintRole` (sintaxe para ENTRADA, estado para
+   * SAÍDA), ou null quando não há cor.
+   */
+  readonly role: CodePaintRole | null;
 }
 
 /**
@@ -153,11 +157,62 @@ const PARSERS: Readonly<Record<string, Parser>> = {
   jsx: jsxLanguage.parser,
   tsx: tsxLanguage.parser,
   json: jsonLanguage.parser,
+  // ONDA-CODIGO-EDITOR: C/C++ (a trilha `c-iniciante` produz blocos `c`/`cpp`
+  // e SEM estes aliases o bloco saía cinza — o defeito capturado pelo dono).
+  // O pacote `@codemirror/lang-cpp` é a MESMA gramática do editor (uma
+  // dependência nova, declarada — critério "withered technology" da §1) e o
+  // parser dele cobre a linguagem C; daí um parser para os dois nomes.
+  c: cppLanguage.parser,
+  h: cppLanguage.parser,
+  cpp: cppLanguage.parser,
+  'c++': cppLanguage.parser,
+  cc: cppLanguage.parser,
+  cxx: cppLanguage.parser,
+  hpp: cppLanguage.parser,
+  hxx: cppLanguage.parser,
 };
 
 /** true quando existe gramática instalada para a tag de cerca. */
 export function hasHighlightGrammar(lang: string): boolean {
   return Object.prototype.hasOwnProperty.call(PARSERS, lang);
+}
+
+/**
+ * ONDA-CODIGO-EDITOR: nome de EXIBIÇÃO da linguagem (o chip do cabeçalho do
+ * bloco). A tag crua da cerca é apelido de markdown (`c`, `py`, `mjs`) e não
+ * comunica nada a quem está a aprender — o dono chamou ao bloco "confuso".
+ * Devolve o nome canónico (o mesmo que o editor mostra no seletor de
+ * linguagem) ou null para tag desconhecida/vazia (aí o chip mostra a tag crua,
+ * que é melhor que inventar nome).
+ */
+const DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  python: 'Python',
+  py: 'Python',
+  python3: 'Python',
+  javascript: 'JavaScript',
+  js: 'JavaScript',
+  mjs: 'JavaScript',
+  cjs: 'JavaScript',
+  node: 'JavaScript',
+  typescript: 'TypeScript',
+  ts: 'TypeScript',
+  jsx: 'JavaScript (JSX)',
+  tsx: 'TypeScript (TSX)',
+  json: 'JSON',
+  rust: 'Rust',
+  rs: 'Rust',
+  c: 'C',
+  h: 'C',
+  cpp: 'C++',
+  'c++': 'C++',
+  cc: 'C++',
+  cxx: 'C++',
+  hpp: 'C++',
+  hxx: 'C++',
+};
+
+export function codeLabelFor(lang: string): string | null {
+  return DISPLAY_NAMES[lang] ?? null;
 }
 
 /**
@@ -225,4 +280,72 @@ function splitTokenLines(tokens: readonly CodeToken[]): readonly (readonly CodeT
     }
   }
   return lines;
+}
+
+/* ─── ONDA-CODIGO-EDITOR: o highlight da SAÍDA ─────────────────────────────
+ * Pedido do dono, verbatim: *"quero que melhore os items de saida ou
+ * demonstração de código… com highlight para ate o output, e ficar facil de
+ * entender as coisas"*.
+ *
+ * A saída do computador NÃO é código-fonte — pintá-la com papéis de SINTAXE
+ * seria informação falsa (foi a decisão documentada da "segunda caixa" do
+ * CodeBlock, que se mantém). O que a torna legível é o ESTADO: o que passou,
+ * o que falhou, o que é aviso — mais o valor citado (string) e a contagem
+ * (number). Papéis emitidos (todos de `codeTheme`, contraste medido contra o
+ * well):
+ *
+ *   success  ✓ ✔ ✅ · pass/passed/ok/sucesso/aprovado
+ *   error    ✗ ✖ × ❌ · fail/failed/error/erro/timeout/exception/assert/reprovado
+ *   warn     ⚠ · warn/warning/aviso/deprecated
+ *   string   aspas simples/duplas/backticks (o valor que o programa imprimiu)
+ *   number   inteiros/decimais isolados (contagens, códigos de saída)
+ *   muted    durações (123ms, 1.2s) e relógios [12:33:44] — contexto, não resultado
+ *
+ * Ordem da alternância = PRIORIDADE (símbolo/status vence string, que vence
+ * muted, que vence number). DECISÃO REGISTRADA: prefixos de diff (`+`/`-`)
+ * ficam FORA de propósito — em saída de matemática são sinais, e o vermelho/
+ * verde de "o que passou" já é o sinal que o aluno procura. Uma passagem só,
+ * tokens contíguos, texto NUNCA alterado (reconstrução = entrada; testado).
+ */
+const OUTPUT_TOKEN_RE =
+  /(?<symbol>[✓✔✅]|✗|✖|×|❌|⚠)|(?<word>\b(?:pass(?:ed|ing)?|ok|sucesso|aprovado|fail(?:ed|ure)?|erro(?:r)?|timeout|exception|traceback|assert|reprovado|warn(?:ing)?|aviso|deprecated)\b)|(?<string>"[^"\n]*"|'[^'\n]*'|`[^`\n]*`)|(?<muted>\[?\d{1,2}:\d{2}(?::\d{2})?\]?|\b\d+(?:[.,]\d+)?\s?(?:ms|s)\b)|(?<number>\b\d+(?:[.,]\d+)?\b)/gi;
+
+const OUTPUT_SUCCESS_WORDS = new Set(['pass', 'passed', 'passing', 'ok', 'sucesso', 'aprovado', '✓', '✔', '✅']);
+const OUTPUT_ERROR_WORDS = new Set(['fail', 'failed', 'failure', 'error', 'erro', 'timeout', 'exception', 'traceback', 'assert', 'reprovado', '✗', '✖', '×', '❌']);
+const OUTPUT_WARN_WORDS = new Set(['warn', 'warning', 'aviso', 'deprecated', '⚠']);
+
+/** Papel de um token de saída — a palavra/símbolo decide, nunca a posição. */
+function outputRoleOf(match: RegExpExecArray): CodePaintRole | null {
+  const g = match.groups ?? {};
+  if (g.symbol !== undefined || g.word !== undefined) {
+    const key = (g.symbol ?? g.word ?? '').toLowerCase();
+    if (OUTPUT_SUCCESS_WORDS.has(key)) return 'success';
+    if (OUTPUT_ERROR_WORDS.has(key)) return 'error';
+    if (OUTPUT_WARN_WORDS.has(key)) return 'warn';
+    // Inalcançável com a regex atual (só casa palavras dos 3 conjuntos), mas a
+    // função é TOTAL: palavra desconhecida = sem cor, nunca papel inventado.
+    return null;
+  }
+  if (g.string !== undefined) return 'string';
+  if (g.muted !== undefined) return 'muted';
+  return 'number';
+}
+
+/**
+ * Saída do computador → tokens POR LINHA, na ordem (mesmo contrato de
+ * `highlightCodeLines`, incluindo a regra da linha vazia). É o caminho que o
+ * CodeBlock usa para as cercas `text`/`output`/sem tag.
+ */
+export function highlightOutputLines(code: string): readonly (readonly CodeToken[])[] {
+  if (code.length > MAX_HIGHLIGHT_CHARS) return splitTokenLines([{ text: code, role: null }]);
+  const out: CodeToken[] = [];
+  let pos = 0;
+  for (const m of code.matchAll(OUTPUT_TOKEN_RE)) {
+    const from = m.index ?? 0;
+    if (from > pos) out.push({ text: code.slice(pos, from), role: null });
+    out.push({ text: m[0], role: outputRoleOf(m) });
+    pos = from + m[0].length;
+  }
+  if (pos < code.length) out.push({ text: code.slice(pos), role: null });
+  return splitTokenLines(out);
 }

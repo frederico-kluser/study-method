@@ -22,8 +22,10 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  codeLabelFor,
   hasHighlightGrammar,
   highlightCodeLines,
+  highlightOutputLines,
   type CodeToken,
 } from '../src/components/markdown/codeHighlight';
 import { CODE_SYNTAX_ROLES } from '../src/lib/codeTheme';
@@ -155,14 +157,117 @@ describe('degradação DECLARADA — sem gramática, o bloco continua legível',
     ]);
   });
 
-  it('a SAÍDA do computador nunca é colorida (não é código-fonte)', () => {
-    // `codeFenceRole` decide, e o CodeBlock passa '' como linguagem nesse caso.
+  it('a SAÍDA do computador NUNCA leva papéis de SINTAXE (ela não é código-fonte)', () => {
+    // ONDA-CODIGO-EDITOR: a regra mudou de "sem cor" para "cor de ESTADO"
+    // (pedido do dono: "com highlight para ate o output, e ficar facil de
+    // entender as coisas") — mas a fronteira das DUAS caixas CONTINUA: gramática
+    // só em entrada. O caminho antigo (highlightCodeLines com linguagem vazia)
+    // continua sem cor; o caminho novo da saída (highlightOutputLines) emite
+    // APENAS estado + string/number — nenhum keyword/comment/function/etc.
     assert.equal(codeFenceRole('text'), 'output');
     assert.deepEqual(rolesOf('boa noite', ''), []);
+    const permitidos = new Set(['success', 'error', 'warn', 'info', 'muted', 'string', 'number']);
+    const saida = highlightOutputLines('Test failed: 2 of 3 (12ms) "x"')
+      .flat()
+      .map((t: CodeToken) => t.role)
+      .filter((r): r is NonNullable<CodeToken['role']> => r !== null);
+    assert.ok(saida.length > 0, 'a saída passa a ser pintada (ONDA-CODIGO-EDITOR)');
+    for (const r of saida) {
+      assert.ok(permitidos.has(r), `papel de sintaxe vazou para a saída: ${r}`);
+    }
   });
 
   it('código PYTHON inválido não lança e não perde texto', () => {
     const quebrado = 'def (: !!! }}';
     assert.equal(textOf(quebrado, 'python'), quebrado);
+  });
+});
+
+/* ═══════════ ONDA-CODIGO-EDITOR — C/C++ e o highlight da SAÍDA ═══════════ */
+
+describe('C/C++ com gramática dedicada (a trilha c-iniciante deixa de sair cinza)', () => {
+  it('c, h, cpp, c++, cc, cxx, hpp têm gramática instalada', () => {
+    for (const lang of ['c', 'h', 'cpp', 'c++', 'cc', 'cxx', 'hpp', 'hxx']) {
+      assert.equal(hasHighlightGrammar(lang), true, lang);
+    }
+  });
+
+  it('o bloco C do dono sai colorido: printf é função e a string é string', () => {
+    // A captura do dono: printf("ola, tela!\n") em ```c — antes SEM cor nenhuma.
+    const [linha] = highlightCodeLines('printf("ola, tela!\\n");', 'c');
+    const papeis = linha.map((t: CodeToken) => t.role);
+    assert.ok(papeis.includes('function'), `printf sem papel de função: ${JSON.stringify(papeis)}`);
+    assert.ok(papeis.includes('string'), `string sem papel: ${JSON.stringify(papeis)}`);
+    assert.equal(
+      linha.map((t) => t.text).join(''),
+      'printf("ola, tela!\\n");',
+      'o texto nunca muda',
+    );
+  });
+
+  it('int/return/constantes de C também têm papel (a gramática é a do editor)', () => {
+    const roles = highlightCodeLines('int main(void) { return 0; }', 'cpp')
+      .flat()
+      .map((t: CodeToken) => t.role);
+    assert.ok(roles.includes('keyword'), 'int/return são keyword');
+    assert.ok(roles.includes('number'), '0 é number');
+  });
+
+  it('o chip do bloco mostra o NOME da linguagem, não a tag crua da cerca', () => {
+    // A tag da cerca é apelido de markdown (`c`, `py`, `mjs`) — o dono chamou
+    // ao bloco "confuso" e o chip era parte disso. Nome canónico ou nada.
+    assert.equal(codeLabelFor('c'), 'C');
+    assert.equal(codeLabelFor('py'), 'Python');
+    assert.equal(codeLabelFor('mjs'), 'JavaScript');
+    assert.equal(codeLabelFor('cpp'), 'C++');
+    assert.equal(codeLabelFor('rs'), 'Rust');
+    assert.equal(codeLabelFor(''), null, 'tag vazia: o fallback é do bloco');
+    assert.equal(codeLabelFor('brainfuck'), null, 'desconhecida não ganha nome inventado');
+  });
+});
+
+describe('highlightOutputLines — a SAÍDA do computador fala por estado', () => {
+  /** Papéis de um trecho de saída, na ordem. */
+  function outRoles(code: string): string[] {
+    return highlightOutputLines(code)
+      .flat()
+      .map((t: CodeToken) => t.role)
+      .filter((r): r is NonNullable<CodeToken['role']> => r !== null);
+  }
+
+  /** A saída reconstrói por inteiro — o highlight nunca come caractere. */
+  function outText(code: string): string {
+    return highlightOutputLines(code)
+      .map((line) => line.map((t) => t.text).join(''))
+      .join('\n');
+  }
+
+  it('símbolos ✓ ✗ ⚠ mandam no resultado: success/error/warn', () => {
+    assert.ok(outRoles('✓ passed').includes('success'));
+    assert.ok(outRoles('✗ failed').includes('error'));
+    assert.ok(outRoles('⚠ warning').includes('warn'));
+  });
+
+  it('palavras de estado (pass/fail/error/ok/sucesso) pintam na cor certa', () => {
+    assert.ok(outRoles('2 tests passed').includes('success'));
+    assert.ok(outRoles('FAIL tests/validate.sh').includes('error'));
+    assert.ok(outRoles('AssertionError: timeout').includes('error'));
+    assert.ok(outRoles('ok').includes('success'));
+    assert.ok(outRoles('aprovado').includes('success'));
+  });
+
+  it('valores citados (string), contagens (number) e durações (muted)', () => {
+    const roles = outRoles('esperado "bom dia" mas veio 3 em 12ms');
+    assert.ok(roles.includes('string'), 'aspas = valor citado');
+    assert.ok(roles.includes('number'), 'contagem');
+    assert.ok(roles.includes('muted'), 'duração é contexto, não resultado');
+  });
+
+  it('reconstrói o texto por inteiro e linhas vazias ficam VAZIAS', () => {
+    const saida = '✓ 2 passed\n\n✗ 1 failed: esperado "x"';
+    assert.equal(outText(saida), saida);
+    assert.deepEqual(highlightOutputLines(saida)[1], [], 'a linha vazia não ganha tokens');
+    assert.equal(highlightOutputLines(saida).length, saida.split('\n').length);
+    assert.equal(outText(''), '');
   });
 });

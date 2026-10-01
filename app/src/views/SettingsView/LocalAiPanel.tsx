@@ -22,6 +22,10 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
@@ -58,7 +62,11 @@ function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
     { label: t('translation:localAi.ram'), value: `${info.ramGb.toFixed(1)} GB` },
     {
       label: t('translation:localAi.vram'),
-      value: info.vramGb == null ? 'n/d' : `${info.vramGb.toFixed(1)} GB`,
+      // W20 (onda-ux): o literal 'n/d' era copy SOLTURA — no locale `en` o
+      // utilizador via português. Agora é chave (`localAi.notDetermined`:
+      // "n/d" / "n/a"). Nomes de marca e strings do hardware (backend, CPU)
+      // NÃO se traduzem — vêm da máquina.
+      value: info.vramGb == null ? t('translation:localAi.notDetermined') : `${info.vramGb.toFixed(1)} GB`,
     },
     { label: t('translation:localAi.cpu'), value: info.cpuModel },
   ];
@@ -108,7 +116,17 @@ export function LocalAiPanel(): ReactElement {
   const [loadingModels, setLoadingModels] = useState(
     () => readCached('localAi.models') === undefined,
   );
-  const [error, setError] = useState<string>('');
+  // W19 (onda-ux): o erro tem frase PRINCIPAL i18n + detalhe técnico opcional —
+  // `String(err)` nunca vira a frase da UI.
+  const [error, setError] = useState<{ message: string; detail?: string } | null>(null);
+  // C3 (onda-ux): exclusão de modelo local só com CONFIRMAÇÃO (nome + tamanho),
+  // o mesmo padrão do ProgressPanel/OrphanTracksPanel.
+  const [pendingDelete, setPendingDelete] = useState<LocalModelInfo | null>(null);
+  // W23 (onda-ux): feedback do "Provedor de feedback" INLINE junto ao seletor
+  // (antes fugia para o Alert do fundo da lista, longe da ação).
+  const [feedbackMsg, setFeedbackMsg] = useState<{ severity: 'success' | 'error'; message: string; detail?: string } | null>(null);
+  // S6 (onda-ux): anúncio do resultado da deteção de hardware (role="status").
+  const [detectMsg, setDetectMsg] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadTicks, setDownloadTicks] = useState<Record<string, DownloadTick>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -143,15 +161,24 @@ export function LocalAiPanel(): ReactElement {
   const handleFeedbackProviderChange = async (next: FeedbackProvider): Promise<void> => {
     const prev = feedbackProvider;
     setFeedbackProvider(next);
+    setFeedbackMsg(null);
     writeCached('settings.feedbackProvider', next);
     try {
       await getApi().settings.set({ defaultModelProvider: next });
+      // W23: confirmação INLINE junto ao seletor — a mudança fica dita onde
+      // foi feita, não no Alert do fundo da página.
+      setFeedbackMsg({ severity: 'success', message: t('translation:localAi.feedbackSaved') });
     } catch (err) {
       setFeedbackProvider(prev);
       // Reverte também o cache — senão a próxima visita pinta o valor novo
       // (que nunca chegou ao disco) até a revalidação corrigir.
       writeCached('settings.feedbackProvider', prev);
-      setError(`${t('translation:localAi.errorSaveFeedback')} ${String(err)}`);
+      // W19: frase i18n + detalhe técnico opcional (nunca `String(err)` solto).
+      setFeedbackMsg({
+        severity: 'error',
+        message: t('translation:localAi.errorSaveFeedback'),
+        detail: String(err),
+      });
     }
   };
 
@@ -167,7 +194,8 @@ export function LocalAiPanel(): ReactElement {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(`${t('translation:localAi.errorList')} ${String(err)}`);
+        // W19: frase i18n + detalhe técnico opcional.
+        if (!cancelled) setError({ message: t('translation:localAi.errorList'), detail: String(err) });
       })
       .finally(() => {
         if (!cancelled) setLoadingModels(false);
@@ -205,19 +233,27 @@ export function LocalAiPanel(): ReactElement {
 
   const handleDetect = async (): Promise<void> => {
     setDetecting(true);
-    setError('');
+    setError(null);
+    // S6: o anúncio do resultado anterior some enquanto se deteta de novo.
+    setDetectMsg('');
     try {
       const info = await getApi().localAi.detectHardware();
       setHardware(info);
+      // S6: o resultado é ANUNCIADO (role="status" logo abaixo do botão) —
+      // quem usa leitor de tela não fica sem saber que a deteção terminou.
+      setDetectMsg(
+        tI('translation:localAi.detectDone', { backend: info.backend, ram: info.ramGb.toFixed(1) }),
+      );
     } catch (err) {
-      setError(`${t('translation:localAi.errorDetect')} ${String(err)}`);
+      // W19: frase i18n + detalhe técnico opcional.
+      setError({ message: t('translation:localAi.errorDetect'), detail: String(err) });
     } finally {
       setDetecting(false);
     }
   };
 
   const handleDownload = async (modelId: string): Promise<void> => {
-    setError('');
+    setError(null);
     setDownloading(modelId);
     setDownloadTicks((prev) => ({
       ...prev,
@@ -232,26 +268,27 @@ export function LocalAiPanel(): ReactElement {
     try {
       await getApi().localAi.download(modelId);
     } catch (err) {
-      setError(`${t('translation:localAi.errorDownload')} ${modelId}: ${String(err)}`);
+      // W19: frase i18n (+ modelo) e detalhe técnico opcional.
+      setError({ message: `${t('translation:localAi.errorDownload')} ${modelId}`, detail: String(err) });
       setDownloading(null);
     }
   };
 
   const handleSetActive = async (modelId: string): Promise<void> => {
-    setError('');
+    setError(null);
     setBusy((b) => ({ ...b, [modelId]: true }));
     try {
       await getApi().localAi.setActive(modelId);
       setModels((prev) => prev.map((m) => ({ ...m, active: m.id === modelId })));
     } catch (err) {
-      setError(`${t('translation:localAi.errorActivate')} ${modelId}: ${String(err)}`);
+      setError({ message: `${t('translation:localAi.errorActivate')} ${modelId}`, detail: String(err) });
     } finally {
       setBusy((b) => ({ ...b, [modelId]: false }));
     }
   };
 
   const handleDelete = async (modelId: string): Promise<void> => {
-    setError('');
+    setError(null);
     setBusy((b) => ({ ...b, [modelId]: true }));
     try {
       await getApi().localAi.delete(modelId);
@@ -261,10 +298,21 @@ export function LocalAiPanel(): ReactElement {
         ),
       );
     } catch (err) {
-      setError(`${t('translation:localAi.errorRemove')} ${modelId}: ${String(err)}`);
+      setError({ message: `${t('translation:localAi.errorRemove')} ${modelId}`, detail: String(err) });
     } finally {
       setBusy((b) => ({ ...b, [modelId]: false }));
     }
+  };
+
+  /**
+   * C3 (onda-ux): a exclusão só acontece DEPOIS do diálogo de confirmação
+   * (nome + tamanho do modelo) — mesmo padrão do ProgressPanel e do
+   * OrphanTracksPanel. O diálogo fecha e a remoção corre em seguida.
+   */
+  const handleConfirmDelete = async (): Promise<void> => {
+    const model = pendingDelete;
+    setPendingDelete(null);
+    if (model) await handleDelete(model.id);
   };
 
   return (
@@ -297,6 +345,21 @@ export function LocalAiPanel(): ReactElement {
           <MenuItem value="openrouter">{t('translation:localAi.feedbackProviderOpenrouter')}</MenuItem>
           <MenuItem value="local">{t('translation:localAi.feedbackProviderLocal')}</MenuItem>
         </Select>
+        {/* W23 (onda-ux): feedback INLINE junto ao seletor (sucesso e falha) —
+            antes só havia um Alert no fundo da lista, longe da ação que o
+            causou. W19: detalhe técnico (se houver) em legenda separada. */}
+        {feedbackMsg ? (
+          <Alert severity={feedbackMsg.severity} sx={{ fontSize: 13, maxWidth: 480 }}>
+            <Typography component="span" variant="body2" sx={{ display: 'block' }}>
+              {feedbackMsg.message}
+            </Typography>
+            {feedbackMsg.detail ? (
+              <Typography component="span" variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+                {feedbackMsg.detail}
+              </Typography>
+            ) : null}
+          </Alert>
+        ) : null}
       </Stack>
 
       {/* Detect hardware */}
@@ -310,8 +373,20 @@ export function LocalAiPanel(): ReactElement {
             startIcon={detecting ? <CircularProgress size={16} /> : undefined}
             sx={{ minHeight: TOUCH_TARGET_PX }}
           >
-            {detecting ? t('translation:localAi.detect') : t('translation:localAi.detect')}
+            {/* S6 (onda-ux): o botão DIZ que está a detetar ("A detetar…") —
+                antes os dois estados partilhavam o mesmo rótulo. */}
+            {detecting ? t('translation:localAi.detecting') : t('translation:localAi.detect')}
           </Button>
+        </Box>
+        {/* S6: o RESULTADO da deteção é anunciado (role="status"/aria-live) —
+            a região nasce montada e vazia; é a MUDANÇA de conteúdo que o
+            leitor de tela lê. */}
+        <Box role="status" aria-live="polite" sx={{ minHeight: 0 }}>
+          {detectMsg ? (
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              {detectMsg}
+            </Typography>
+          ) : null}
         </Box>
         {hardware ? <HardwareView info={hardware} /> : null}
       </Stack>
@@ -401,11 +476,16 @@ export function LocalAiPanel(): ReactElement {
                               : t('translation:localAi.use')}
                         </Button>
                         <IconButton
-                          aria-label={t('translation:localAi.delete')}
+                          // W22 (onda-ux): o nome acessível leva o NOME do
+                          // modelo — dois botões "Excluir" idênticos eram
+                          // indistinguíveis no leitor de tela.
+                          aria-label={tI('translation:localAi.deleteAria', { name: formatModelLabel(model) })}
                           size="small"
                           color="error"
                           disabled={busy[model.id]}
-                          onClick={() => void handleDelete(model.id)}
+                          // C3 (onda-ux): NUNCA apaga direto — abre o diálogo
+                          // de confirmação (nome + tamanho), como os demais.
+                          onClick={() => setPendingDelete(model)}
                           sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
                         >
                           <DeleteIcon />
@@ -430,7 +510,64 @@ export function LocalAiPanel(): ReactElement {
         })}
       </Grid>
 
-      {error ? <Alert severity="error" sx={{ fontSize: 13 }}>{error}</Alert> : null}
+      {/* W19: frase i18n em cima, detalhe técnico (se houver) em legenda. */}
+      {error ? (
+        <Alert severity="error" sx={{ fontSize: 13 }}>
+          <Typography component="span" variant="body2" sx={{ display: 'block' }}>
+            {error.message}
+          </Typography>
+          {error.detail ? (
+            <Typography component="span" variant="caption" sx={{ display: 'block', opacity: 0.85 }}>
+              {error.detail}
+            </Typography>
+          ) : null}
+        </Alert>
+      ) : null}
+
+      {/* C3 (onda-ux): CONFIRMAÇÃO antes de excluir um modelo local — repete o
+          nome e o tamanho que vão sair do disco, mesmo padrão do
+          ProgressPanel/OrphanTracksPanel. W18: o foco inicial é do
+          "Cancelar" (autoFocus), nunca do botão de apagar. */}
+      <Dialog
+        open={pendingDelete !== null}
+        onClose={() => {
+          if (pendingDelete && !busy[pendingDelete.id]) setPendingDelete(null);
+        }}
+        aria-labelledby="localai-delete-confirm-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="localai-delete-confirm-title">
+          {pendingDelete
+            ? tI('translation:localAi.deleteConfirmTitle', { name: formatModelLabel(pendingDelete) })
+            : ''}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2">
+            {pendingDelete
+              ? tI('translation:localAi.deleteConfirmDescription', {
+                  name: formatModelLabel(pendingDelete),
+                  size: formatBytes(pendingDelete.sizeBytes),
+                })
+              : ''}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingDelete(null)} disabled={pendingDelete ? busy[pendingDelete.id] : false} autoFocus>
+            {t('translation:common.cancel')}
+          </Button>
+          <Button
+            onClick={() => void handleConfirmDelete()}
+            color="error"
+            variant="contained"
+            disabled={pendingDelete ? busy[pendingDelete.id] : false}
+          >
+            {pendingDelete && busy[pendingDelete.id]
+              ? t('translation:common.loading')
+              : t('translation:localAi.deleteConfirmAction')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

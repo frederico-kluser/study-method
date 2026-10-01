@@ -6,10 +6,10 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Fatie um pedaço\n\nEscreva a função `pedaco` que devolve o pedaço da lista do começo até um antes do fim:\n\n```python\ndef pedaco(lista, inicio, fim):\n    # devolva o pedaco da lista\n```\n\nUse o fatiamento com dois pontos, como na aula. Exemplos:\n\n```text\npedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3)  ->  [\"b\", \"c\"]\npedaco([\"a\", \"b\", \"c\"], 0, 2)  ->  [\"a\", \"b\"]\npedaco([\"a\", \"b\", \"c\"], 1, 1)  ->  []\n```\n\nA função devolve a lista nova — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao pedaco(lista, inicio, fim)\n",
-  "testsCode": "import unittest\n\nfrom solucao import pedaco\n\n\nclass TestUmPedacoDaLista(unittest.TestCase):\n    def test_pega_o_meio(self):\n        \"\"\"pedaco devolve do inicio ate um antes do fim\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3), [\"b\", \"c\"])\n\n    def test_pega_do_comeco(self):\n        \"\"\"pedaco com inicio 0 devolve do comeco\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 0, 2), [\"a\", \"b\"])\n\n    def test_pega_ate_o_fim(self):\n        \"\"\"pedaco com fim passando do tamanho vai ate o fim\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 1, 9), [\"b\", \"c\"])\n\n    def test_pedaco_vazio(self):\n        \"\"\"pedaco com inicio igual ao fim devolve lista vazia\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 1, 1), [])\n",
-  "solutionCode": "def pedaco(lista, inicio, fim):\n    return lista[inicio:fim]\n",
+  "statement": "# Fatie um pedaço\n\nEscreva a função `pedaco` que devolve o pedaço da lista do começo até um antes do fim, e a função `pedaco_depois`, que devolve o pedaço da lista que começa um depois de um item:\n\n```python\ndef pedaco(lista, inicio, fim):\n    # devolva o pedaco da lista\n\ndef pedaco_depois(lista, item):\n    # devolva o pedaco que vem depois do item\n```\n\nUse o fatiamento com dois pontos, como na aula. Exemplos:\n\n```text\npedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3)  ->  [\"b\", \"c\"]\npedaco([\"a\", \"b\", \"c\"], 0, 2)  ->  [\"a\", \"b\"]\npedaco([\"a\", \"b\", \"c\"], 1, 1)  ->  []\npedaco_depois([\"a\", \"b\", \"c\", \"d\"], \"b\")  ->  [\"c\", \"d\"]\npedaco_depois([\"a\", \"b\", \"c\"], \"c\")  ->  []\n```\n\nEm `pedaco_depois`, ache a posição do item com `lista.index(item)`, como na aula `achar-a-posicao`, e fatie UM DEPOIS dela: `lista.index(item) + 1` é o começo do pedaço, e o fim fica de fora — o pedaço vai até o último item.\n\nAs funções devolvem a lista nova — elas não imprimem nada.",
+  "starterCode": "# escreva aqui a funcao pedaco(lista, inicio, fim)\n# escreva aqui a funcao pedaco_depois(lista, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import pedaco\nfrom solucao import pedaco_depois\n\n\nclass TestUmPedacoDaLista(unittest.TestCase):\n    def test_pega_o_meio(self):\n        \"\"\"pedaco devolve do inicio ate um antes do fim\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3), [\"b\", \"c\"])\n\n    def test_pedaco_vazio(self):\n        \"\"\"pedaco com inicio igual ao fim devolve lista vazia\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 1, 1), [])\n\n    def test_pedaco_depois_do_item(self):\n        \"\"\"pedaco_depois devolve o pedaco que comeca um depois do item\"\"\"\n        self.assertEqual(pedaco_depois([\"a\", \"b\", \"c\", \"d\"], \"b\"), [\"c\", \"d\"])\n\n    def test_pedaco_depois_do_ultimo(self):\n        \"\"\"pedaco_depois do ultimo item devolve lista vazia\"\"\"\n        self.assertEqual(pedaco_depois([\"a\", \"b\", \"c\"], \"c\"), [])\n",
+  "solutionCode": "def pedaco(lista, inicio, fim):\n    return lista[inicio:fim]\n\n\ndef pedaco_depois(lista, item):\n    return lista[lista.index(item) + 1:]\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "pedaco devolve do inicio ate um antes do fim"
     },
     {
-      "id": "test_pega_do_comeco",
-      "teste": "test_pega_do_comeco",
-      "descricao": "pedaco com inicio 0 devolve do comeco"
-    },
-    {
-      "id": "test_pega_ate_o_fim",
-      "teste": "test_pega_ate_o_fim",
-      "descricao": "pedaco com fim passando do tamanho vai ate o fim"
-    },
-    {
       "id": "test_pedaco_vazio",
       "teste": "test_pedaco_vazio",
       "descricao": "pedaco com inicio igual ao fim devolve lista vazia"
+    },
+    {
+      "id": "test_pedaco_depois_do_item",
+      "teste": "test_pedaco_depois_do_item",
+      "descricao": "pedaco_depois devolve o pedaco que comeca um depois do item"
+    },
+    {
+      "id": "test_pedaco_depois_do_ultimo",
+      "teste": "test_pedaco_depois_do_ultimo",
+      "descricao": "pedaco_depois do ultimo item devolve lista vazia"
     }
   ]
 }

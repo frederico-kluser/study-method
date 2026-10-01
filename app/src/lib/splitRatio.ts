@@ -150,6 +150,14 @@ export const SPLIT_SECONDARY_LABEL_I18N_KEY = 'translation:challenge.editorPane'
 export const SHELL_SPLIT_ARIA_I18N_KEY = 'translation:shell.sidebar.splitAria' as const;
 
 /**
+ * Chave da DICA da divisória do shell (`shell.sidebar.splitHint`). Irmã da
+ * chave ARIA acima pelo mesmo critério: a copy vive no i18n do SHELL e não na
+ * do Desafio (`challenge.split.hint` continua existindo para a divisória
+ * enunciado/editor dele) — mudar o texto de um não altera o outro em silêncio.
+ */
+export const SHELL_SPLIT_HINT_I18N_KEY = 'translation:shell.sidebar.splitHint' as const;
+
+/**
  * Movimento do split. `flex-basis` está em `SPATIAL_ALLOWED_PROPERTIES`
  * (designTokens §Movimento), então usa a curva `spatial`. REGRA DE USO: anima
  * só o passo de TECLADO; durante o arraste a razão segue o ponteiro sem

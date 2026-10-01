@@ -122,7 +122,7 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
  * Determinístico no modo E2E (fixture em disco).
  */
 export async function openTrackChallenge(page: Page): Promise<void> {
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).first().waitFor();
   // Home: cartão da trilha fixture → navega para a Trilha (setPendingTrackSlug).
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   // Trilha: módulo com a aula → abre o chat da aula.
@@ -150,7 +150,7 @@ export async function openTrackChallenge(page: Page): Promise<void> {
  * pela spec do desafio multi-arquivo (2 abas de arquivo, submit com ambos).
  */
 export async function openModuleChallenge(page: Page): Promise<void> {
-  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }).first().waitFor();
   // Home: cartão da trilha fixture → navega para a Trilha (setPendingTrackSlug).
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   // Trilha: card do desafio do MÓDULO (fixture module.json declara challenge).

@@ -91,6 +91,15 @@ test.afterEach(async () => {
  * (sem closure): o Playwright serializa a função e a avalia no escopo
  * global da página. O `undefined` explícito é o arg (senão o objeto de
  * options seria interpretado como arg).
+ *
+ * ONDA-SKIP-1S (coerência com o novo `skip`): pular a digitação NÃO derruba
+ * mais o indicador no clique — o `TypewriterText` varre o texto restante em
+ * ~1 s e o indicador some quando a varredura TERMINA (o `onDone` do fim).
+ * Para este helper nada muda (o unmount continua sendo a condição "texto
+ * completo no DOM" — inclusive o texto revelado pela varredura), mas um gesto
+ * de skip no MEIO da espera estende a janela do indicador em até ~1 s: as
+ * esperas por polling/timeout daqui já absorvem isso, nenhum teste assume
+ * revelação instantânea pós-clique.
  */
 async function waitFullTypewriter(page: Page): Promise<void> {
   // APARECE: o indicador monta durante a digitação (janela transiente).
@@ -105,7 +114,7 @@ async function waitFullTypewriter(page: Page): Promise<void> {
       const doc = (globalThis as any).document;
       const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
       for (const el of statuses) {
-        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return true;
+        if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return true;
       }
       return false;
     },
@@ -119,7 +128,7 @@ async function waitFullTypewriter(page: Page): Promise<void> {
       const doc = (globalThis as any).document;
       const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
       for (const el of statuses) {
-        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return false;
+        if (/tutor digitando|digitando|tutor typing|typing/i.test(el.textContent ?? '')) return false;
       }
       return true;
     },
@@ -135,7 +144,7 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
 
   // Home: a TRILHA já aparece como cartão (conteúdo pronto, nada a gerar).
   await expect(page.getByText('Node.js do Zero', { exact: false }).first()).toBeVisible();
@@ -305,7 +314,7 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
   await expect(page.getByText('Tutor E2E:', { exact: false })).toHaveCount(2);
-  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
+  await expect(page.getByText(/tutor digitando|digitando|tutor typing|typing/i)).toHaveCount(0);
 
   // ─── O DESAFIO PASSADO LIBERA A CONCLUSÃO DA AULA ──────────────────────
   // ONDA-INTEGRAÇÃO. Este galho era NÃO OBSERVÁVEL por dois motivos em

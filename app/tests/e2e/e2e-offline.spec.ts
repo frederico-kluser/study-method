@@ -26,7 +26,7 @@ test('e2e-offline: chaves ok + rede fora → banner offline e app acessível', a
   await expect(page.getByText('Sem conexão com a internet.')).toBeVisible();
 
   // O app ainda montou (não fica preso no setup) e a navegação existe.
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
 
   // Aba Settings alcançável (LLM local — mock — segue utilizável).

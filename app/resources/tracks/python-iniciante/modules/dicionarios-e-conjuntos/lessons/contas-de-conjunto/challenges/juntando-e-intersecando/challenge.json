@@ -6,10 +6,10 @@
   "difficulty": 5,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Juntando e intersecando\n\nEscreva duas funções:\n\n- `juntar(a, b)` devolve a união dos dois conjuntos, com `.union()`;\n- `comuns(a, b)` devolve a interseção, com `.intersection()`.\n\n```python\ndef juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n```\n\nExemplos:\n\n```text\njuntar({1, 2}, {2, 3})  ->  {1, 2, 3}\njuntar({7}, {8})  ->  {7, 8}\ncomuns({1, 2}, {2, 3})  ->  {2}\ncomuns({1, 2}, {3})  ->  set()\n```\n\nAs funções devolvem o conjunto — elas não imprimem nada.",
-  "starterCode": "def juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n",
-  "testsCode": "import unittest\n\nfrom solucao import juntar\nfrom solucao import comuns\n\n\nclass TestContasDeConjunto(unittest.TestCase):\n    def test_juntar_une_os_dois_conjuntos(self):\n        \"\"\"juntar devolve os numeros dos dois conjuntos sem repetir\"\"\"\n        self.assertEqual(juntar({1, 2}, {2, 3}), {1, 2, 3})\n\n    def test_juntar_sem_nada_em_comum(self):\n        \"\"\"juntar de conjuntos sem nada em comum junta tudo\"\"\"\n        self.assertEqual(juntar({7}, {8}), {7, 8})\n\n    def test_comuns_acha_o_numero_que_esta_nos_dois(self):\n        \"\"\"comuns devolve o numero que esta nos dois conjuntos\"\"\"\n        self.assertEqual(comuns({1, 2}, {2, 3}), {2})\n\n    def test_comuns_sem_nada_em_comum(self):\n        \"\"\"comuns de conjuntos sem nada em comum devolve o conjunto vazio\"\"\"\n        self.assertEqual(comuns({1, 2}, {3}), set())\n",
-  "solutionCode": "def juntar(a, b):\n    return a.union(b)\n\n\ndef comuns(a, b):\n    return a.intersection(b)\n",
+  "statement": "# Juntando e intersecando\n\nO treinador guarda num conjunto os números de camisa escalados em cada jogo. Três funções:\n\n- `juntar(a, b)` devolve a união dos dois conjuntos, com `.union()`;\n- `comuns(a, b)` devolve a interseção, com `.intersection()`;\n- `escalado_nos_dois(numero, a, b)` devolve `True` quando o número de camisa jogou nos dois jogos — use `.intersection()` e o `in`.\n\n```python\ndef juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n\n\ndef escalado_nos_dois(numero, a, b):\n    # devolva True quando o numero esta nos dois jogos\n    pass\n```\n\nExemplos:\n\n```text\njuntar({1, 2}, {2, 3})  ->  {1, 2, 3}\njuntar({7}, {8})  ->  {7, 8}\ncomuns({1, 2}, {2, 3})  ->  {2}\ncomuns({1, 2}, {3})  ->  set()\nescalado_nos_dois(2, {1, 2}, {2, 3})  ->  True\nescalado_nos_dois(3, {1, 2}, {3})  ->  False\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n\n\ndef escalado_nos_dois(numero, a, b):\n    # devolva True quando o numero esta nos dois jogos\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import juntar\nfrom solucao import comuns\nfrom solucao import escalado_nos_dois\n\n\nclass TestContasDeConjunto(unittest.TestCase):\n    def test_juntar_une_os_dois_conjuntos(self):\n        \"\"\"juntar devolve os numeros dos dois conjuntos sem repetir\"\"\"\n        self.assertEqual(juntar({1, 2}, {2, 3}), {1, 2, 3})\n\n    def test_juntar_sem_nada_em_comum(self):\n        \"\"\"juntar de conjuntos sem nada em comum junta tudo\"\"\"\n        self.assertEqual(juntar({7}, {8}), {7, 8})\n\n    def test_comuns_acha_o_que_esta_nos_dois(self):\n        \"\"\"comuns devolve o que esta nos dois conjuntos e o vazio quando nao ha nada\"\"\"\n        self.assertEqual(comuns({1, 2}, {2, 3}), {2})\n        self.assertEqual(comuns({1, 2}, {3}), set())\n\n    def test_escalado_nos_dois_responde_para_os_dois_lados(self):\n        \"\"\"escalado_nos_dois diz True para o numero dos dois jogos e False para o de um so\"\"\"\n        self.assertTrue(escalado_nos_dois(2, {1, 2}, {2, 3}))\n        self.assertFalse(escalado_nos_dois(3, {1, 2}, {3}))\n",
+  "solutionCode": "def juntar(a, b):\n    return a.union(b)\n\n\ndef comuns(a, b):\n    return a.intersection(b)\n\n\ndef escalado_nos_dois(numero, a, b):\n    return numero in a.intersection(b)\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -23,14 +23,14 @@
       "descricao": "juntar de conjuntos sem nada em comum junta tudo"
     },
     {
-      "id": "test_comuns_acha_o_numero_que_esta_nos_dois",
-      "teste": "test_comuns_acha_o_numero_que_esta_nos_dois",
-      "descricao": "comuns devolve o numero que esta nos dois conjuntos"
+      "id": "test_comuns_acha_o_que_esta_nos_dois",
+      "teste": "test_comuns_acha_o_que_esta_nos_dois",
+      "descricao": "comuns devolve o que esta nos dois conjuntos e o vazio quando nao ha nada"
     },
     {
-      "id": "test_comuns_sem_nada_em_comum",
-      "teste": "test_comuns_sem_nada_em_comum",
-      "descricao": "comuns de conjuntos sem nada em comum devolve o conjunto vazio"
+      "id": "test_escalado_nos_dois_responde_para_os_dois_lados",
+      "teste": "test_escalado_nos_dois_responde_para_os_dois_lados",
+      "descricao": "escalado_nos_dois diz True para o numero dos dois jogos e False para o de um so"
     }
   ]
 }

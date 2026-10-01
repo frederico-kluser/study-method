@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "slug": "lista-de-presenca",
+  "title": "A lista de presença",
+  "concept": "procurar_na_lista_de_strings",
+  "difficulty": 3,
+  "language": "c",
+  "outputChannel": "impressao",
+  "statement": "# A lista de presença\n\nA função `listaDePresenca` lê **um nome** digitado (uma palavra só, letras sem acento, até 19) e checa se ele está na lista de presença da turma — que já vem pronta no arquivo, com quatro nomes.\n\nDigitando `ana`, que abre a lista:\n\n```text\npresente\n```\n\nDigitando `rui`, o último nome dela:\n\n```text\npresente\n```\n\nDigitando `tom`, que não aparece:\n\n```text\nausente\n```\n\nDigitando `cai`:\n\n```text\nausente\n```\n\nO último caso é a armadilha da busca: `cai` **começa** como `caio` e mesmo assim não está na lista. Só o `strcmp` (zero quer dizer igual) compara os textos até o fim — e ele tem de ficar DENTRO do laço, senão só a primeira linha é que é checada.\n\nPassos:\n\n1. percorra as quatro linhas da lista com um `for`, com o índice indo de 0 a 3;\n2. dentro do laço, compare o nome com a linha usando `strcmp` e guarde o achado na flag `achou`;\n3. depois do laço, imprima `presente` quando a flag acusar igual e `ausente` em qualquer outro caso.\n\nA lista e a leitura do nome já vêm prontas no arquivo. A saída é uma linha — e só uma.\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "#include <stdio.h>\n#include <string.h>\n\n/* listaDePresenca le um nome digitado e checa se ele esta na lista de\n   presenca da turma. Imprime \"presente\" quando alguma linha da lista e\n   igual ao nome lido, e \"ausente\" em qualquer outro caso. */\nvoid listaDePresenca(void) {\n    char lista[4][20] = {\"ana\", \"bia\", \"caio\", \"rui\"};\n    char nome[20] = \"\";\n    int achou = 0;\n    scanf(\"%19s\", nome);\n    /* 1) percorra as quatro linhas da lista com um for (de 0 a 3) */\n\n    /* 2) dentro do laco, compare nome com a linha com strcmp\n          (zero quer dizer igual) e guarde o achado em achou */\n\n    /* 3) depois do laco, imprima \"presente\" quando achou valer 1,\n          e \"ausente\" em qualquer outro caso */\n\n}\n",
+  "testsCode": "#include <stdio.h>\n\n/* teste do desafio lista-de-presenca — counter_protocol (03-tdd 3.9.3).\n   Quem DIGITA e o teste: fopen/fprintf escrevem o nome num arquivo, o\n   freopen troca o stdin por esse arquivo, e a captura do stdout acontece\n   dentro do proprio cenario (freopen + fflush, sem fclose no stdout).\n   Quatro cenarios: o nome da primeira linha, o nome da ultima linha, um\n   nome fora da lista e o comeco de um nome da lista — nenhum texto fixo\n   no codigo passa nos quatro. */\n\n/* prototipo da funcao do aluno (o teste declara o que exercita) */\nvoid listaDePresenca(void);\n\nSM_TEST(ana_esta_na_primeira_linha) {\n    FILE *digitado = fopen(\"sm_entrada_1.tmp\", \"w\");\n    fprintf(digitado, \"ana\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_1.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_1.tmp\", \"w\", stdout);\n    listaDePresenca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_1.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"a ana esta na lista\", linha, \"presente\\n\",\n              \"ana abre a lista: a comparacao com strcmp devolveu zero\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(rui_esta_na_ultima_linha) {\n    FILE *digitado = fopen(\"sm_entrada_2.tmp\", \"w\");\n    fprintf(digitado, \"rui\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_2.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_2.tmp\", \"w\", stdout);\n    listaDePresenca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_2.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o rui esta na lista\", linha, \"presente\\n\",\n              \"rui e a ultima linha: o laco percorreu a lista inteira\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(tom_nao_esta_na_lista) {\n    FILE *digitado = fopen(\"sm_entrada_3.tmp\", \"w\");\n    fprintf(digitado, \"tom\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_3.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_3.tmp\", \"w\", stdout);\n    listaDePresenca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_3.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o tom nao esta na lista\", linha, \"ausente\\n\",\n              \"nenhuma linha e igual ao tom: o veredito e ausente\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n\nSM_TEST(o_comeco_do_nome_nao_basta) {\n    FILE *digitado = fopen(\"sm_entrada_4.tmp\", \"w\");\n    fprintf(digitado, \"cai\\n\");\n    fclose(digitado);\n    freopen(\"sm_entrada_4.tmp\", \"r\", stdin);\n\n    freopen(\"sm_saida_4.tmp\", \"w\", stdout);\n    listaDePresenca();\n    fflush(stdout);\n\n    FILE *f = fopen(\"sm_saida_4.tmp\", \"r\");\n    char linha[80] = \"(nada impresso)\";\n    fgets(linha, 80, f);\n    checa_str(\"o cai nao esta na lista\", linha, \"ausente\\n\",\n              \"cai comeca como caio e nao e igual: a comparacao vai ate o fim\");\n    char fim[80] = \"(nada impresso)\";\n    fgets(fim, 80, f);\n    checa_str(\"nao ha linha a mais\", fim, \"(nada impresso)\",\n              \"a saida e uma linha so: nenhuma linha extra e aceita\");\n    fclose(f);\n}\n",
+  "solutionCode": "#include <stdio.h>\n#include <string.h>\n\nvoid listaDePresenca(void) {\n    char lista[4][20] = {\"ana\", \"bia\", \"caio\", \"rui\"};\n    char nome[20] = \"\";\n    int achou = 0;\n    scanf(\"%19s\", nome);\n    for (int i = 0; i < 4; i++) {\n        if (strcmp(nome, lista[i]) == 0) {\n            achou = 1;\n        }\n    }\n    if (achou == 1) {\n        printf(\"presente\\n\");\n    } else {\n        printf(\"ausente\\n\");\n    }\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 90000,
+  "requirements": [
+    {
+      "id": "ana_esta_na_primeira_linha",
+      "teste": "ana_esta_na_primeira_linha",
+      "descricao": "com ana digitado no stdin a funcao listaDePresenca imprime presente e mais nada — ana abre a lista e a comparacao com strcmp devolveu zero"
+    },
+    {
+      "id": "rui_esta_na_ultima_linha",
+      "teste": "rui_esta_na_ultima_linha",
+      "descricao": "com rui digitado no stdin a mesma funcao imprime presente e mais nada: o laco percorreu a lista inteira e achou igual na ultima linha"
+    },
+    {
+      "id": "tom_nao_esta_na_lista",
+      "teste": "tom_nao_esta_na_lista",
+      "descricao": "com tom digitado no stdin a funcao imprime ausente e mais nada — nenhuma linha e igual ao nome lido e o veredito sai uma vez so"
+    },
+    {
+      "id": "o_comeco_do_nome_nao_basta",
+      "teste": "o_comeco_do_nome_nao_basta",
+      "descricao": "com cai digitado no stdin a funcao imprime ausente e mais nada: cai comeca como caio e nao e igual a linha nenhuma — a comparacao vai ate a placa do fim"
+    }
+  ]
+}

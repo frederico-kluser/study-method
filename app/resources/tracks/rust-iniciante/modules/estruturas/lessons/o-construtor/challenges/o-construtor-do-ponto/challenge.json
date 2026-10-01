@@ -5,10 +5,10 @@
   "concept": "construtor_associado",
   "difficulty": 4,
   "language": "rust",
-  "statement": "# O construtor do ponto\n\nO `ponto_de` solta monta pontos — mas o CONSTRUTOR é do molde: ele mora no impl, não pede `self`, e é chamado pelo caminho `Ponto::new`.\n\nO esqueleto já está no impl, sem `self` na assinatura. Escreva o corpo: monte a peça com o `x` e o `y` recebidos:\n\n- `desafio::Ponto::new(2, 3)` é a peça com `x` = `2` e `y` = `3`;\n- `desafio::Ponto::new(-1, 4)` é a peça com `x` = `-1` e `y` = `4`.\n\nO caminho do construtor é o mesmo de `String::from` — agora para a struct do aluno.",
-  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        todo!()\n    }\n}\n",
-  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        Ponto { x: x, y: y }\n    }\n}\n",
-  "testsCode": "use desafio::Ponto;\n\n#[test]\nfn testa_o_x_do_construtor_dois_por_tres() {\n    assert_eq!(Ponto::new(2, 3).x, 2);\n}\n\n#[test]\nfn testa_o_y_do_construtor_negativo_um_por_quatro() {\n    assert_eq!(Ponto::new(-1, 4).y, 4);\n}\n",
+  "statement": "# O construtor do ponto\n\nO `ponto_de` solta monta pontos — mas o CONSTRUTOR é do molde: ele mora no impl, não pede `self`, e é chamado pelo caminho `Ponto::new`.\n\nO esqueleto já está no impl. Escreva os dois corpos — os DOIS moradores do impl:\n\n1. `new`, sem `self`: monte a peça com o `x` e o `y` recebidos;\n2. `escalado`, o método que pede a peça (`&self`): devolva a peça com os dois eixos multiplicados por `k` — os campos da peça que chamou se leem com `self.x` e `self.y`.\n\n- `desafio::Ponto::new(2, 3)` é a peça com `x` = `2` e `y` = `3`;\n- `desafio::Ponto::new(-1, 4)` é a peça com `x` = `-1` e `y` = `4`;\n- `desafio::Ponto::new(2, 3).escalado(3)` é a peça com `x` = `6` e `y` = `9`;\n- `desafio::Ponto::new(-1, 4).escalado(2)` é a peça com `x` = `-2` e `y` = `8`.\n\nO caminho do construtor é o mesmo de `String::from` — agora para a struct do aluno; o `escalado` mora no mesmo impl e é chamado NA peça.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        todo!()\n    }\n\n    pub fn escalado(&self, k: i32) -> Ponto {\n        todo!()\n    }\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\nimpl Ponto {\n    pub fn new(x: i32, y: i32) -> Ponto {\n        Ponto { x: x, y: y }\n    }\n\n    pub fn escalado(&self, k: i32) -> Ponto {\n        Ponto { x: self.x * k, y: self.y * k }\n    }\n}\n",
+  "testsCode": "use desafio::Ponto;\n\n#[test]\nfn testa_o_x_do_construtor_dois_por_tres() {\n    assert_eq!(Ponto::new(2, 3).x, 2);\n}\n\n#[test]\nfn testa_o_y_do_construtor_negativo_um_por_quatro() {\n    assert_eq!(Ponto::new(-1, 4).y, 4);\n}\n\n#[test]\nfn testa_o_x_da_peca_escalada() {\n    assert_eq!(Ponto::new(2, 3).escalado(3).x, 6);\n}\n\n#[test]\nfn testa_o_y_da_peca_escalada_por_dois() {\n    assert_eq!(Ponto::new(-1, 4).escalado(2).y, 8);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
@@ -19,7 +19,17 @@
       "id": "REQ-2",
       "descricao": "A função associada Ponto::new monta a peça com o campo y valendo 4.",
       "teste": "testa_o_y_do_construtor_negativo_um_por_quatro"
+    },
+    {
+      "id": "REQ-3",
+      "descricao": "O método escalado com &self devolve a peça com os eixos multiplicados por k: Ponto::new(2, 3).escalado(3) tem x valendo 6.",
+      "teste": "testa_o_x_da_peca_escalada"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "O método escalado com &self devolve a peça com os eixos multiplicados por k: Ponto::new(-1, 4).escalado(2) tem y valendo 8.",
+      "teste": "testa_o_y_da_peca_escalada_por_dois"
     }
   ],
-  "expectedTestCount": 2
+  "expectedTestCount": 4
 }

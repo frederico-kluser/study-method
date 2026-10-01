@@ -2,20 +2,149 @@
   "schemaVersion": 1,
   "slug": "consolidacao-texto",
   "title": "O projeto do módulo",
-  "summary": "Aula em esqueleto (onda 3): teoria, quiz e desafio a autorar pela onda de conteúdo, conforme docs/20-trilha-c.md.",
-  "difficulty": 1,
+  "summary": "O projeto do módulo: um normalizador de nomes que lê um nome composto e imprime-o com a inicial de cada palavra em maiúscula, montado palavra a palavra num buffer com snprintf.",
+  "difficulty": 3,
   "role": "consolidation",
-  "concepts": [],
-  "prerequisites": [],
+  "targetAtom": "api:toupper",
+  "concepts": [
+    "o_normalizador"
+  ],
+  "prerequisites": [
+    "a-string-e-o-zero",
+    "o-comprimento",
+    "ler-uma-palavra",
+    "percorrer-a-string",
+    "copiar-a-mao",
+    "copiar-com-limite",
+    "comparar-textos",
+    "montar-um-texto",
+    "gritar-a-mao",
+    "a-biblioteca-de-letras",
+    "a-string-como-parametro",
+    "a-lista-de-strings",
+    "procurar-na-lista-de-strings",
+    "ao-contrario",
+    "contar-palavras"
+  ],
+  "introduces": {
+    "productive": [
+      "api:toupper",
+      "api:snprintf"
+    ],
+    "receptive": [],
+    "derived": []
+  },
+  "introducesTerms": [],
+  "notionalMachineDelta": "o texto deixa de ser peça única: o nome normalizado nasce pedaço a pedaço num buffer, e o estado do buffer — vazio ou já com palavra — decide como cada palavra nova entra",
   "theory": [
     {
-      "id": "esqueleto-em-autoria",
-      "title": "Aula em autoria (onda de conteúdo)",
-      "markdown": "Esta aula está em esqueleto: teoria, quiz e desafio serão autorados pela onda de conteúdo do curso C.\n\nA ficha normativa (Ensina, Presume, quiz, desafio) está no campo `autoria` deste lesson.json, com fonte em docs/20-trilha-c.md. O template de prova congelado está em skills/trilha-author/references/prova-c.md."
+      "id": "o-plano-do-projeto",
+      "title": "O plano do projeto",
+      "markdown": "Este é o projeto do módulo: um **normalizador** de nomes. Ele lê um nome composto — uma ou mais palavras — e imprime o nome novo com a inicial de cada palavra em maiúscula e um espaço entre elas.\n\nNenhuma peça é nova. O laço que lê palavra a palavra é o `while` da `scanf` de sempre, e para quando não há mais palavra:\n\n```c\nchar palavra[50] = \"\";\nwhile (scanf(\"%49s\", palavra) == 1) {\n    /* uma palavra por volta */\n}\n```\n\nCada volta traz UMA palavra na caixa `palavra`."
+    },
+    {
+      "id": "a-inicial-vira-maiuscula",
+      "title": "Só a inicial vira maiúscula",
+      "markdown": "Em cada palavra, só a inicial vira maiúscula — o resto fica como veio:\n\n```c\nchar palavra[50] = \"bola7\";\npalavra[0] = toupper(palavra[0]);\n```\n\nOs dois lados são a mesma gaveta: o `toupper` devolve a maiúscula e a gaveta 0 recebe. As gavetas 1 em diante não mudam.\n\nE o que não é letra sai intacto — `bola7` vira `Bola7`, nunca `BOLA7`:\n\n```c\nprintf(\"%c\\n\", toupper('m'));\n```\n\nSai `M`: a mesma função recebendo a letra direto, sem caixa nenhuma."
+    },
+    {
+      "id": "o-buffer-e-a-placa",
+      "title": "O buffer, e a gaveta da placa",
+      "markdown": "O nome novo vai sendo montado no buffer `nome[120]`. Por que 120 gavetas? Porque todo texto em C reserva UMA para a placa `\\0` que marca o fim — e é a placa que diz onde o `%s` e o `strlen` param.\n\n```c\nchar nome[120] = \"\";\nsnprintf(nome, sizeof nome, \"%s\", \"Ana\");\n```\n\nA `snprintf` grava a placa sempre, mas o espaço dela conta dentro do limite. Sem gaveta para a placa, não há texto seguro."
+    },
+    {
+      "id": "montar-palavra-a-palavra",
+      "title": "Palavra por palavra, no buffer",
+      "markdown": "Acrescentar é escrever começando na gaveta onde o texto acaba — `nome + strlen(nome)` — e pedir ao `snprintf` só as gavetas que sobram:\n\n```c\nchar nome[120] = \"Ana\";\nchar palavra[50] = \"clara\";\nif (nome[0] == '\\0') {\n    snprintf(nome, sizeof nome, \"%s\", palavra);\n} else {\n    snprintf(nome + strlen(nome), sizeof nome - strlen(nome), \" %s\", palavra);\n}\nprintf(\"%s\\n\", nome);\n```\n\nO `nome[0] == '\\0'` pergunta \"já há palavra?\": buffer vazio tem a placa logo na primeira gaveta. Aqui sai `Ana Clara`."
+    },
+    {
+      "id": "o-roteiro",
+      "title": "O roteiro do projeto",
+      "markdown": "No desafio você escreve a função `oNormalizador` inteira, em três passos:\n\n1. o laço que lê cada palavra, enquanto a `scanf` devolver 1;\n2. dentro do laço: a inicial em maiúscula e a palavra acrescentada ao buffer;\n3. no fim, o nome normalizado impresso com `%s` e `\\n` — uma linha só.\n\nO teste digita nomes diferentes e compara a linha inteira: o nome tem de sair normalizado, sem linha extra."
     }
   ],
-  "sources": [],
-  "challenges": [],
+  "assertions": [
+    {
+      "id": "o-espaco-para-a-placa",
+      "statement": "Todo texto em C reserva uma gaveta para a placa `\\0`: é ela que marca o fim do texto, e o espaço dela conta dentro do buffer.",
+      "question": "Por que todo texto em C precisa de espaço para o `\\0`?",
+      "options": [
+        "Porque a placa diz onde o texto acaba.",
+        "Porque a `snprintf` guarda o texto ao contrário.",
+        "Porque o `printf` escreve a placa entre as palavras.",
+        "Porque o buffer só funciona com a última gaveta vazia."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem a placa `\\0` ninguém sabe onde o texto termina: o `%s`, o `strlen` e o `snprintf` só param quando a encontram. É por isso que a gaveta dela conta dentro do buffer.",
+      "sectionId": "o-buffer-e-a-placa",
+      "optionRationales": [
+        "A placa marca o fim: quem lê o texto só para quando a encontra.",
+        "A ordem das palavras no buffer é a mesma do texto — nada anda ao contrário.",
+        "A placa fica no FIM do texto, nunca entre as palavras.",
+        "A última gaveta é justamente a da placa: o buffer funciona porque ela está lá."
+      ]
+    },
+    {
+      "id": "so-a-inicial-muda",
+      "statement": "`palavra[0] = toupper(palavra[0]);` põe em maiúscula só a inicial; o resto da palavra não muda.",
+      "question": "Depois de `palavra[0] = toupper(palavra[0]);`, com `palavra` guardando `bola7`, o que `palavra` guarda?",
+      "options": [
+        "`Bola7`: a inicial mudou, o resto ficou.",
+        "`BOLA7`: a conversão percorre a palavra inteira.",
+        "`B0LA7`: o dígito também sofre a conversão.",
+        "`bola7`: a função devolve a maiúscula, mas nada foi guardado."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `toupper` devolve a maiúscula da inicial e a gaveta 0 a recebe; as outras gavetas não são tocadas — e o `7` é dígito, sai intacto.",
+      "sectionId": "a-inicial-vira-maiuscula",
+      "optionRationales": [
+        "Só a gaveta 0 recebe o valor devolvido; a palavra fica guardando `Bola7`.",
+        "Percorrer a palavra inteira gritaria tudo: `BOLA7`.",
+        "O dígito não é letra: o `toupper` devolve o `7` como ele é.",
+        "Sem `palavra[0] =` na frente, o valor devolvido se perde — aqui ele é guardado."
+      ]
+    },
+    {
+      "id": "o-espaco-antes-da-palavra",
+      "statement": "O buffer vazio tem a placa logo na primeira gaveta — é isso que diz \"a primeira palavra entra sem espaço\".",
+      "question": "O buffer `nome` já guarda `Ana`. O que a volta seguinte, com a palavra `clara`, deixa nele?",
+      "options": [
+        "`Ana Clara`: a palavra nova entra depois de um espaço.",
+        "`AnaClara`: as palavras colam sem espaço nenhum.",
+        "`Clara Ana`: as palavras entram na ordem em que foram digitadas.",
+        "`clara`: a palavra nova apaga o que já estava guardado."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quando `nome[0]` já não é a placa, existe texto lá: a palavra nova é acrescentada no fim, com um espaço na frente — `Ana Clara`.",
+      "sectionId": "montar-palavra-a-palavra",
+      "optionRationales": [
+        "O espaço vem junto do acréscimo: `\" %s\"` com a palavra nova.",
+        "Sem o espaço na frente o resultado seria `AnaClara`, e o enunciado pede um espaço entre as palavras.",
+        "A ordem é a de leitura: quem entra primeiro fica primeiro.",
+        "Acrescentar escreve no fim do texto; apagar seria perder a palavra anterior."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "toupper — a referência oficial da biblioteca",
+      "url": "https://en.cppreference.com/w/c/string/byte/toupper",
+      "description": "A página oficial do `toupper`: devolve a maiúscula correspondente, ou o próprio argumento quando o caractere não é letra."
+    },
+    {
+      "title": "snprintf(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/snprintf.3.html",
+      "description": "A man-page da snprintf: o tamanho passado inclui o byte nulo, e mesmo truncada a saída termina com o `\\0`."
+    },
+    {
+      "title": "strlen(3) — a man-page oficial do Linux",
+      "url": "https://man7.org/linux/man-pages/man3/strlen.3.html",
+      "description": "A man-page do strlen: ele devolve o tamanho do texto SEM contar o terminador nulo — a gaveta da placa."
+    }
+  ],
+  "challenges": [
+    "o-normalizador"
+  ],
   "autoria": {
     "modulo": "texto-em-profundidade",
     "moduloTitulo": "Texto em profundidade",

@@ -167,7 +167,13 @@ function LessonRow({
       <Box
         component="button"
         onClick={() => onOpen(lesson)}
-        disabled={lesson.locked}
+        // W16 (onda-ux): lições TRANCADAS continuam FOCÁVEIS com
+        // `aria-disabled` (em vez de `disabled`) — o leitor de tela consegue
+        // chegar ao tile e ouvir o estado ("Travada: …", via aria-describedby);
+        // o clique continua guardado em `openLesson` (não abre) e o cursor
+        // continua "not-allowed". `disabled` tirava o tile da navegação
+        // inteira: a restrição existia, mas ninguém a podia ouvir.
+        aria-disabled={lesson.locked ? true : undefined}
         aria-describedby={stateId}
         sx={{
           display: 'flex',
@@ -185,7 +191,7 @@ function LessonRow({
           p: 0.75,
           borderRadius: 1,
           opacity: lesson.locked ? 0.55 : 1,
-          '&:hover:not(:disabled)': { bgcolor: 'action.hover' },
+          '&:hover:not([aria-disabled="true"])': { bgcolor: 'action.hover' },
           ...(lesson.current
             ? { borderColor: 'primary.main' }
             : {}),

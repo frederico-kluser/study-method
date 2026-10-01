@@ -6,10 +6,10 @@
   "difficulty": 3,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# O item está na lista?\n\nEscreva a função `tem` que devolve `True` quando o item está na lista e `False` quando não está:\n\n```python\ndef tem(lista, item):\n    # devolva True se o item esta na lista\n```\n\nUse o operador `in`, como na aula. Exemplos:\n\n```text\ntem([\"uva\", \"pera\", \"manga\"], \"pera\")  ->  True\ntem([\"uva\", \"pera\", \"manga\"], \"kiwi\")  ->  False\ntem([], \"uva\")  ->  False\n```\n\nA função devolve o booleano — ela não imprime nada.",
-  "starterCode": "# escreva aqui a funcao tem(lista, item)\n",
-  "testsCode": "import unittest\n\nfrom solucao import tem\n\n\nclass TestEstaNaLista(unittest.TestCase):\n    def test_item_que_esta(self):\n        \"\"\"tem devolve True quando o item esta na lista\"\"\"\n        self.assertTrue(tem([\"uva\", \"pera\", \"manga\"], \"pera\"))\n\n    def test_item_no_comeco(self):\n        \"\"\"tem devolve True para o primeiro item\"\"\"\n        self.assertTrue(tem([\"uva\", \"pera\", \"manga\"], \"uva\"))\n\n    def test_item_que_nao_esta(self):\n        \"\"\"tem devolve False quando o item nao esta na lista\"\"\"\n        self.assertFalse(tem([\"uva\", \"pera\", \"manga\"], \"kiwi\"))\n\n    def test_lista_vazia(self):\n        \"\"\"tem devolve False para a lista vazia\"\"\"\n        self.assertFalse(tem([], \"uva\"))\n",
-  "solutionCode": "def tem(lista, item):\n    return item in lista\n",
+  "statement": "# O item está na lista?\n\nEscreva duas funções da despensa:\n\n```python\ndef tem(lista, item):\n    # devolva True se o item esta na lista\n\ndef quantos_estao(lista, pedidos):\n    # percorra os pedidos contando quem esta na lista\n```\n\n`tem` devolve `True` quando o item está na lista e `False` quando não está — use o operador `in`, como na aula. `quantos_estao` recebe a lista da despensa e uma lista de pedidos e devolve quantos dos pedidos já estão na despensa (percorrendo os pedidos e somando 1 a cada um que passa no `in`). Exemplos:\n\n```text\ntem([\"uva\", \"pera\", \"manga\"], \"pera\")  ->  True\ntem([\"uva\", \"pera\", \"manga\"], \"kiwi\")  ->  False\nquantos_estao([\"uva\", \"pera\"], [\"pera\", \"kiwi\", \"uva\"])  ->  2\nquantos_estao([\"uva\"], [\"kiwi\", \"pera\"])  ->  0\n```\n\nAs funções devolvem o valor — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes tem(lista, item) e quantos_estao(lista, pedidos)\n",
+  "testsCode": "import unittest\n\nfrom solucao import tem\nfrom solucao import quantos_estao\n\n\nclass TestEstaNaLista(unittest.TestCase):\n    def test_item_que_esta(self):\n        \"\"\"tem devolve True quando o item esta na lista\"\"\"\n        self.assertTrue(tem([\"uva\", \"pera\", \"manga\"], \"pera\"))\n\n    def test_item_que_nao_esta(self):\n        \"\"\"tem devolve False quando o item nao esta na lista\"\"\"\n        self.assertFalse(tem([\"uva\", \"pera\", \"manga\"], \"kiwi\"))\n\n    def test_quantos_dos_pedidos_estao(self):\n        \"\"\"quantos_estao devolve quantos dos pedidos estao na lista\"\"\"\n        self.assertEqual(quantos_estao([\"uva\", \"pera\"], [\"pera\", \"kiwi\", \"uva\"]), 2)\n\n    def test_nenhum_pedido_esta(self):\n        \"\"\"quantos_estao devolve 0 quando nenhum pedido esta\"\"\"\n        self.assertEqual(quantos_estao([\"uva\"], [\"kiwi\", \"pera\"]), 0)\n",
+  "solutionCode": "def tem(lista, item):\n    return item in lista\n\n\ndef quantos_estao(lista, pedidos):\n    total = 0\n    for item in pedidos:\n        if item in lista:\n            total += 1\n    return total\n",
   "expectedTestCount": 4,
   "requirements": [
     {
@@ -18,19 +18,19 @@
       "descricao": "tem devolve True quando o item esta na lista"
     },
     {
-      "id": "test_item_no_comeco",
-      "teste": "test_item_no_comeco",
-      "descricao": "tem devolve True para o primeiro item"
-    },
-    {
       "id": "test_item_que_nao_esta",
       "teste": "test_item_que_nao_esta",
       "descricao": "tem devolve False quando o item nao esta na lista"
     },
     {
-      "id": "test_lista_vazia",
-      "teste": "test_lista_vazia",
-      "descricao": "tem devolve False para a lista vazia"
+      "id": "test_quantos_dos_pedidos_estao",
+      "teste": "test_quantos_dos_pedidos_estao",
+      "descricao": "quantos_estao devolve quantos dos pedidos estao na lista"
+    },
+    {
+      "id": "test_nenhum_pedido_esta",
+      "teste": "test_nenhum_pedido_esta",
+      "descricao": "quantos_estao devolve 0 quando nenhum pedido esta"
     }
   ]
 }

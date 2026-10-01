@@ -225,7 +225,11 @@ export function QuizChatCard({
 
       {notice ? (
         <Stack direction="row" spacing={0.75} sx={{ alignItems: 'flex-start', maxWidth: 560 }}>
-          <InfoOutlinedIcon fontSize="small" sx={{ color: 'info.main', flexShrink: 0, mt: 0.125 }} />
+          {/* W6b (auditoria de UX): `info.main` foi MEDIDO reprovado (2,81:1)
+              para ícone não-texto sobre o well — o overlay do quiz usa
+              `info.accentText` para o mesmo ícone de aviso. Um conceito, um
+              token (SC 1.4.11). */}
+          <InfoOutlinedIcon fontSize="small" sx={{ color: 'info.accentText', flexShrink: 0, mt: 0.125 }} />
           <Typography role="status" variant="caption" sx={{ color: 'text.secondary' }}>
             {notice}
           </Typography>
@@ -270,7 +274,15 @@ export function QuizChatCard({
               tabIndex={-1}
               style={{ display: 'inline-block' }}
             >
-              <Button size="small" variant="text" onClick={onRetry} startIcon={<ReplayIcon />}>
+              {/* W10 (auditoria de UX — Fitts): `size="small"` nasce ~30px de
+                  alto; o piso da casa para controlo apontável é 44px. */}
+              <Button
+                size="small"
+                variant="text"
+                onClick={onRetry}
+                startIcon={<ReplayIcon />}
+                sx={{ minHeight: 44 }}
+              >
                 {t('translation:lesson.quizChatRetry')}
               </Button>
             </motion.span>
@@ -288,7 +300,14 @@ export function QuizChatCard({
               tabIndex={-1}
               style={{ display: 'inline-block' }}
             >
-              <Button size="small" variant="outlined" onClick={onReopen} startIcon={<RestartAltIcon />}>
+              {/* W10: o mesmo piso de 44px do irmão de cima. */}
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onReopen}
+                startIcon={<RestartAltIcon />}
+                sx={{ minHeight: 44 }}
+              >
                 {t('translation:lesson.quizChatReopen')}
               </Button>
             </motion.span>

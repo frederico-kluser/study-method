@@ -101,6 +101,27 @@ export const CODE_STATE_ROLES: readonly CodeStateRole[] = [
   'muted',
 ] as const;
 
+/**
+ * ONDA-CODIGO-EDITOR (pedido do dono: *"quero que melhore os items de saida ou
+ * demonstração de código… com highlight para ate o output, e ficar facil de
+ * entender as coisas"*): o vocabulário PINTÁVEL total de uma superfície de
+ * código — os 9 papéis de SINTAXE (o que é código-fonte) mais os 5 de ESTADO
+ * (o que o computador responde). A SAÍDA passa a ser pintada com os papéis de
+ * estado (mais `string`/`number` para valores citados/contagens) em vez de
+ * sair monocromática: "teste falhou" em vermelho e "✓ passou" em verde são
+ * informação de leitura, não enfeite. Contraste dos 14 papéis medido contra o
+ * well (nível 2) nas DUAS polaridades: sintaxe ≥ 4,5:1 (varredura
+ * `tools/design/codepalette.ts`) e estado ≥ 5,37:1 (medido; ver o teste de
+ * contraste de chatCodePresentation).
+ */
+export type CodePaintRole = CodeSyntaxRole | CodeStateRole;
+
+/** Todos os papéis pintáveis — a fonte dos testes de completude das classes. */
+export const CODE_PAINT_ROLES: readonly CodePaintRole[] = [
+  ...CODE_SYNTAX_ROLES,
+  ...CODE_STATE_ROLES,
+] as const;
+
 /** Idem para o contrato de nomes do `writeLine`. */
 export const TERMINAL_COLOR_NAMES: readonly TerminalColorName[] = [
   'default',

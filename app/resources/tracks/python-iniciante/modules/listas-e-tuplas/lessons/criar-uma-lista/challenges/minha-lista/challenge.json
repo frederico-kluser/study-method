@@ -6,21 +6,31 @@
   "difficulty": 3,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Minha lista\n\nEscreva duas funções que devolvem listas prontas:\n\n- `minha_lista()` devolve a lista `[7, 8, 9]`;\n- `outra_lista()` devolve a lista `[1, 2]`.\n\nUse os colchetes e as vírgulas, como na aula. As duas funções devolvem o valor da lista — nenhuma delas imprime nada.",
-  "starterCode": "# escreva aqui as funcoes minha_lista e outra_lista\n",
-  "testsCode": "import unittest\n\nfrom solucao import minha_lista\nfrom solucao import outra_lista\n\n\nclass TestMinhaLista(unittest.TestCase):\n    def test_devolve_7_8_9(self):\n        \"\"\"minha_lista devolve a lista [7, 8, 9]\"\"\"\n        self.assertEqual(str(minha_lista()), \"[7, 8, 9]\")\n\n    def test_devolve_1_2(self):\n        \"\"\"outra_lista devolve a lista [1, 2]\"\"\"\n        self.assertEqual(str(outra_lista()), \"[1, 2]\")\n",
-  "solutionCode": "def minha_lista():\n    return [7, 8, 9]\n\n\ndef outra_lista():\n    return [1, 2]\n",
-  "expectedTestCount": 2,
+  "statement": "# Minha lista\n\nEscreva a função `minha_lista` que monta a lista das potências de um número:\n\n```python\ndef minha_lista(n):\n    # devolva [n, n ao quadrado, n ao cubo]\n```\n\nEla recebe um número e devolve a lista com três números: o próprio `n`, o quadrado (`n ** 2`) e o cubo (`n ** 3`). Os valores são calculados com `**`, como na aula de potência. Exemplos:\n\n```text\nminha_lista(2)  ->  [2, 4, 8]\nminha_lista(1)  ->  [1, 1, 1]\nminha_lista(0)  ->  [0, 0, 0]\n```\n\nMonte a lista com os colchetes e as vírgulas, como na aula. A função devolve o valor da lista — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao minha_lista(n)\n",
+  "testsCode": "import unittest\n\nfrom solucao import minha_lista\n\n\nclass TestMinhaLista(unittest.TestCase):\n    def test_potencias_de_2(self):\n        \"\"\"minha_lista devolve [2, 4, 8] para n igual a 2\"\"\"\n        self.assertEqual(str(minha_lista(2)), \"[2, 4, 8]\")\n\n    def test_potencias_de_1(self):\n        \"\"\"minha_lista devolve [1, 1, 1] para n igual a 1\"\"\"\n        self.assertEqual(str(minha_lista(1)), \"[1, 1, 1]\")\n\n    def test_potencias_de_0(self):\n        \"\"\"minha_lista devolve [0, 0, 0] para n igual a 0\"\"\"\n        self.assertEqual(str(minha_lista(0)), \"[0, 0, 0]\")\n\n    def test_devolve_lista_nao_texto(self):\n        \"\"\"minha_lista devolve uma lista, nao o texto parecido\"\"\"\n        self.assertTrue(minha_lista(2) != \"[2, 4, 8]\")\n        self.assertTrue(minha_lista(1) != \"[1, 1, 1]\")\n        self.assertTrue(minha_lista(0) != \"[0, 0, 0]\")\n",
+  "solutionCode": "def minha_lista(n):\n    return [n, n ** 2, n ** 3]\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
-      "id": "test_devolve_7_8_9",
-      "teste": "test_devolve_7_8_9",
-      "descricao": "minha_lista devolve a lista [7, 8, 9]"
+      "id": "test_potencias_de_2",
+      "teste": "test_potencias_de_2",
+      "descricao": "minha_lista devolve [2, 4, 8] para n igual a 2"
     },
     {
-      "id": "test_devolve_1_2",
-      "teste": "test_devolve_1_2",
-      "descricao": "outra_lista devolve a lista [1, 2]"
+      "id": "test_potencias_de_1",
+      "teste": "test_potencias_de_1",
+      "descricao": "minha_lista devolve [1, 1, 1] para n igual a 1"
+    },
+    {
+      "id": "test_potencias_de_0",
+      "teste": "test_potencias_de_0",
+      "descricao": "minha_lista devolve [0, 0, 0] para n igual a 0"
+    },
+    {
+      "id": "test_devolve_lista_nao_texto",
+      "teste": "test_devolve_lista_nao_texto",
+      "descricao": "minha_lista devolve uma lista, nao o texto parecido"
     }
   ]
 }

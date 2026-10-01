@@ -373,6 +373,72 @@ export function typewriterIsDone(text: string, elapsedMs: number, tps: number = 
   return typewriterCut(text, elapsedMs, tps) >= text.length;
 }
 
+// ─── ONDA-SKIP-1S (pular a digitação SEM estourar o texto na cara) ──────────
+
+/**
+ * Orçamento da varredura de `skip` em ms: o texto RESTANTE termina de ser
+ * revelado em ~1 s, NUNCA instantâneo. Pedido do dono, literal:
+ *
+ *   "ela termina de mostrar tudo em 1s ai calculamos a quantidade de
+ *    caracteres para saber como mostramos eles com mesmo tempo ate dar um
+ *    segundo"
+ *
+ * O relógio da digitação (`typewriterCut`, `TYPEWRITER_TPS`, o delay por
+ * caractere) NÃO muda — este é um relógio SEPARADO, que só entra quando o
+ * aluno pula ("acelerar"/"mostrar a mensagem"): clique no painel, qualquer
+ * tecla, o botão "Mostrar tudo" ou o "Avançar" durante a digitação.
+ */
+export const SKIP_SWEEP_MS = 1000;
+
+/**
+ * Passo do tick da varredura de `skip` (~1 quadro a 60fps). O corte é SEMPRE
+ * derivado do tempo decorrido (`skipSweepCut`), nunca acumulado por tick,
+ * então o drift do timer não empurra o fim para fora do orçamento de 1 s.
+ *
+ * Por que tick e não um `setTimeout` POR CARACTERE (defeito que este número
+ * mata): navegadores/electron CLAMPAM timers aninhados a ~4 ms — um texto de
+ * 500 chars restantes agendaria 500 timers e levaria ≥ 2 s, estourando o
+ * orçamento exatamente nas mensagens longas (a teoria da aula). Um laço de
+ * ~16 ms consultando o relógio não tem esse piso: a distribuição é feita na
+ * CONTA, não na fila de timers.
+ */
+export const SKIP_SWEEP_TICK_MS = 16;
+
+/**
+ * ms por caractere na varredura de `skip` = 1000 / caracteres RESTANTES — a
+ * conta pedida pelo dono ("calculamos a quantidade de caracteres para saber
+ * como mostramos eles com mesmo tempo"): cada caractere restante recebe a
+ * MESMA fatia dos ~1 s, seja 1 char (1000 ms/char) ou 500 (2 ms/char).
+ * `remainingChars <= 0` (nada a revelar) devolve 0 — não há o que agendar.
+ */
+export function skipSweepDelayPerChar(remainingChars: number): number {
+  if (remainingChars <= 0) return 0;
+  return SKIP_SWEEP_MS / remainingChars;
+}
+
+/**
+ * Índice de corte da varredura de `skip` no instante `elapsedMs` APÓS o
+ * pulo: `cutAtSkip + floor(remaining × elapsedMs / 1000)` — a MESMA fórmula
+ * da fala do dono, com os caracteres restantes distribuídos uniformemente
+ * pelos ~1 s (`SKIP_SWEEP_MS`). PURA e determinística (testada em
+ * tests/trackLessonState.test.ts):
+ *
+ *   - 0 ms → `cutAtSkip` (a varredura começa exatamente onde a digitação
+ *     parou — nada pisca para trás);
+ *   - 1000 ms → `total` (o texto inteiro, sem sobra de caractere);
+ *   - monotônica em `elapsedMs` (o texto só CRECECE durante a varredura);
+ *   - clamps: `elapsedMs` negativo vira 0, acima de 1000 vira `total`,
+ *     `cutAtSkip` fora de [0, total] é trazido para dentro, e
+ *     `cutAtSkip >= total` (texto JÁ inteiro) devolve `total` na cara.
+ */
+export function skipSweepCut(total: number, cutAtSkip: number, elapsedMs: number): number {
+  const start = Math.max(0, Math.min(total, Math.floor(cutAtSkip)));
+  const remaining = total - start;
+  if (remaining <= 0) return total;
+  const t = Math.max(0, Math.min(SKIP_SWEEP_MS, elapsedMs));
+  return Math.min(total, start + Math.floor((remaining * t) / SKIP_SWEEP_MS));
+}
+
 /**
  * ONDA10 (velocidade de LEITURA — bug 3 do dono: "quero que a escrita da
  * história seja na velocidade de leitura").
@@ -640,6 +706,13 @@ export interface ErrorBubbleLabels {
   outputTitle: string;
   /** Rótulo da seção do código submetido (chave `lesson.errorBubbleFilesTitle`). */
   filesTitle: string;
+  /**
+   * W8 (onda-ux): frase que EXPLICA A TRANSIÇÃO — o painel do desafio fechou
+   * sozinho e a discussão segue aqui no chat (chave
+   * `challenge.errorMovedToChat`). OPCIONAL: vazia = linha não renderizada
+   * (os testes de forma do markdown e os callers legados mantêm o shape).
+   */
+  movedToChat: string;
 }
 
 const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
@@ -648,6 +721,7 @@ const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
   checksTitle: 'Resultado por teste',
   outputTitle: 'Saída',
   filesTitle: 'Código submetido',
+  movedToChat: '',
 };
 
 /**
@@ -714,6 +788,9 @@ export function formatErrorBubble(
     `${outputFence}text`,
     report.output,
     `${outputFence}`,
+    // W8: a transição explicada como ÚLTIMA linha — só quando a UI injeta a
+    // frase (vazia = nada, shape antigo preservado).
+    ...(l.movedToChat ? [`*${l.movedToChat}*`] : []),
   ].join('\n\n');
 }
 

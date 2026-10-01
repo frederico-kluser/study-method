@@ -12,7 +12,7 @@ sai ≠ 0 (medido no `barra rust-iniciante --json`: 65536 bytes no pipe × **789
 
 ## 0. Pré-requisito de ambiente — a prova ANTES do gate
 
-Os seis gates spawnam toolchains reais (a engine parseia código e roda as provas de execução em
+Os gates de execução spawnam toolchains reais (a engine parseia código e roda as provas de execução em
 binários de verdade) e o fail-closed deles é honesto: sem toolchain o gate reprova por ambiente, e a
 causa não é conteúdo — medido, o `track:validate` chegou a reprovar 109 desafios rust "corretamente"
 só porque o env do cargo não estava exportado (docs/18 §8.3). Por isso o ambiente é PROVADO por
@@ -85,10 +85,11 @@ A moral que amarra o pré-requisito ao resto deste arquivo: **ambiente provado �
 aprovado** — os gates só julgam conteúdo sobre um ambiente que já passou na prova; reprovação
 por ambiente não é sinal sobre o curso.
 
-## 1. Os SEIS gates, um por pergunta
+## 1. Os SETE gates, um por pergunta
 
-Eram quatro até 2026-09-22. São seis: a **barra** (a régua pedagógica que o orçamento não pergunta) e o
-**laço** (que transforma "passou uma vez" em ponto fixo).
+Eram quatro até 2026-09-22. São sete: a **barra** (a régua pedagógica que o orçamento não pergunta),
+o **laço** (que transforma "passou uma vez" em ponto fixo) e a **prática acumulada** (a premissa do
+dono: todo desafio mistura o que já foi ensinado — §1.1).
 
 | Gate | Responde | O que reprova | Exit |
 |---|---|---|---|
@@ -96,8 +97,32 @@ Eram quatro até 2026-09-22. São seis: a **barra** (a régua pedagógica que o 
 | `barra` | **o TAMANHO DO PASSO e a EXISTÊNCIA DA DEMONSTRAÇÃO** — agnóstica de linguagem | A17 (>2 produtivas novas) · A18 (aula 1) · A19 (declarada sem demonstração) · A20 (aula sem desafio) · A21 (>4 novas / seções insuficientes) · A23 (`derived` sem co-ocorrência de linha) · **A24** (o quiz acertável pelo COMPRIMENTO: a correta é a mais longa, sozinha, em TODA afirmação da aula, com folga > 8 chars). A22 e o A24 por afirmação isolada são **aviso** e não derrubam o exit | 0 · 1 · 2 |
 | `coverage` | **o que o teste REALMENTE cobra** — qual é o MENOR código que passa no teste? | **LACUNA**: átomo do mínimo fora do orçamento da aula (o teste cobra algo que a aula não oferece); e desafio **não medido** | 0 · 1 · 2 |
 | `requirements` | a **bijeção** entre o enunciado e o teste — `requirements[]` declarados ↔ testes do desafio, nas duas direções | um dos lados sem par | 0 · 1 · 2 |
+| `pratica` | **a premissa de revisão acumulada** — o desafio mistura o que já foi ensinado? e todo o conhecimento acaba praticado? (§1.1) | `SEM_REVISAO` (solução sem nenhum conceito de aula anterior), `SEM_ATOMOS`, aula/módulo sem desafio, faltante de fechamento de módulo, conhecimento nunca praticado | 0 · 1 · 2 |
 | `track:validate` | as **provas de execução** de TODOS os desafios (aulas + desafio de módulo + proficiência) | algum desafio reprovou em prova de execução | 0 · 1 · 2 |
 | `convergir` | **a entrega é ponto fixo?** — medir → classificar → aplicar → medir, sem teto de rodadas | tudo o que sobrou: exit **0 só em PONTO-FIXO** (achados vazios **e** nada aplicado); CICLO, SEM-PROGRESSO, TETO, DRY-RUN com achado e achado fora dos seis ramos saem 1 | 0 · 1 · 2 |
+
+### 1.1 O `pratica` — a premissa do dono, medida
+
+Pedido do dono, na íntegra: *"os desafios finais da aula englobem conteúdos das aulas anteriores,
+misturando na prova conhecimentos que ele já possui — claro, não precisamos LITERALMENTE colocar
+tudo, mas ter um controle de modo que o aluno sempre pratique num desafio de aula ou de módulo todo
+o conhecimento anterior daquele curso"*. O `pratica` é esse controle, e ele tem DUAS medidas:
+
+- **MISTURA (por desafio)** — a solução de referência tem de praticar ≥1 **átomo-conceito** ensinado
+  numa aula estritamente anterior. Conceito = eixo `decl:`/`op:`/`global:`/`api:`/`term:`; `node:` e
+  `form:` são a estrutura do código (contar `node:Call` como revisão aprovaria todo desafio que
+  imprime algo — a régua viraria teatro) e `api:todo!` (o stub do starter) nunca conta. Isento por
+  vacuidade: as primeiras aulas, onde ainda não há nada ensinado antes. "Não é para ficar gigante":
+  1–2 conceitos anteriores chegam — o alvo novo da aula continua a ser o núcleo do desafio.
+- **FECHAMENTO (por módulo e por curso)** — todo átomo **produtivo** que o módulo ensina acaba
+  praticado por algum desafio até ao desafio do módulo (`faltantesDoModulo`), e nenhum conhecimento
+  produtivo do curso fica nunca-praticado.
+
+A sugestão de O QUE misturar vem do mesmo ledger do runtime (`selecionarRevisao`): nunca-praticado
+primeiro, depois a prática mais antiga (espaçamento), intercalando aulas de origem. O `--json` traz
+`ensinadosAntes`, `revisaoContavel`, `novos` e `sugestao` por desafio — é a lista de trabalho do
+autor. A régua inteira vive em `app/electron/main/engine/coverage/praticaAcumulada.ts` (sobre o
+`practiceLedger.ts`, que é quem decide o que revisar em runtime).
 
 ## 2. Os comandos
 
@@ -106,6 +131,7 @@ cd app && npm run engine -- audit <slug> --limite 0
 cd app && npm run engine -- barra <slug>
 cd app && npm run engine -- coverage <slug>
 cd app && npm run engine -- requirements <slug>
+cd app && npm run engine -- pratica <slug>            # premissa de revisão acumulada (§1.1); --so-falhas/--json/--eixos
 cd app && npm run track -- track:validate <slug>
 cd app && npm run engine -- convergir <slug>          # dry-run: mede, classifica, planeja, registra
 ```
@@ -250,7 +276,7 @@ pelo teste**. Leitura operacional para o autor:
    `entryCriteria`, `cadeia`, `nivel`, `cursoAnterior`, `modules/` com `module.json` + `lessons/` +
    `challenges/`).
    - **1.5.** Re-prove o ambiente (`_ensure-toolchain.sh --check --language <l>`) antes de
-     re-rodar os seis gates.
+     re-rodar os sete gates.
 2. Re-rode os **seis** gates **do local publicado** (sem `--dir`):
    `audit <slug> --limite 0` · `barra <slug>` · `coverage <slug>` · `requirements <slug>` ·
    `track:validate <slug>` · `convergir <slug>`.

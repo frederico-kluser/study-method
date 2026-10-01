@@ -5,10 +5,10 @@
   "concept": "ler_campo",
   "difficulty": 3,
   "language": "rust",
-  "statement": "# A abscissa do ponto\n\nNo plano, a ABSCISSA de um ponto é o seu `x` — o valor que corre no eixo horizontal.\n\nEscreva a função `abscissa`: ela recebe a peça e devolve o campo `x` dela:\n\n- `abscissa(ponto_de(2, 3))` devolve `2`;\n- `abscissa(ponto_de(-4, 5))` devolve `-4`;\n- `abscissa(ponto_de(0, 9))` devolve `0`.\n\nO campo se lê com o ponto: `p.x` — a peça entregou o campo dela.",
-  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    todo!()\n}\n",
-  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    p.x\n}\n",
-  "testsCode": "use desafio::abscissa;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_a_abscissa_do_ponto_dois_por_tres() {\n    assert_eq!(abscissa(ponto_de(2, 3)), 2);\n}\n\n#[test]\nfn testa_a_abscissa_do_ponto_negativo_quatro_por_cinco() {\n    assert_eq!(abscissa(ponto_de(-4, 5)), -4);\n}\n\n#[test]\nfn testa_a_abscissa_do_ponto_zero_por_nove() {\n    assert_eq!(abscissa(ponto_de(0, 9)), 0);\n}\n",
+  "statement": "# A abscissa do ponto\n\nNo plano, a ABSCISSA de um ponto é o seu `x` — o valor que corre no eixo horizontal.\n\nEscreva as duas funções:\n\n1. `abscissa`: recebe a peça e devolve o campo `x` dela;\n2. `mesma_abscissa`: recebe DOIS pontos e devolve `true` quando as duas abscissas são iguais — e `false` quando são diferentes.\n\n- `abscissa(ponto_de(2, 3))` devolve `2`;\n- `abscissa(ponto_de(-4, 5))` devolve `-4`;\n- `mesma_abscissa(ponto_de(0, 9), ponto_de(0, 3))` devolve `true` — as duas abscissas são `0`;\n- `mesma_abscissa(ponto_de(2, 3), ponto_de(4, 3))` devolve `false` — as abscissas são diferentes.\n\nO campo se lê com o ponto: `p.x` — e `a.x == b.x` compara as duas abscissas.",
+  "starterCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    todo!()\n}\n\npub fn mesma_abscissa(a: Ponto, b: Ponto) -> bool {\n    todo!()\n}\n",
+  "solutionCode": "pub struct Ponto {\n    pub x: i32,\n    pub y: i32,\n}\n\npub fn ponto_de(x: i32, y: i32) -> Ponto {\n    Ponto { x: x, y: y }\n}\n\npub fn abscissa(p: Ponto) -> i32 {\n    p.x\n}\n\npub fn mesma_abscissa(a: Ponto, b: Ponto) -> bool {\n    a.x == b.x\n}\n",
+  "testsCode": "use desafio::abscissa;\nuse desafio::mesma_abscissa;\nuse desafio::ponto_de;\n\n#[test]\nfn testa_a_abscissa_do_ponto_dois_por_tres() {\n    assert_eq!(abscissa(ponto_de(2, 3)), 2);\n}\n\n#[test]\nfn testa_a_abscissa_do_ponto_negativo_quatro_por_cinco() {\n    assert_eq!(abscissa(ponto_de(-4, 5)), -4);\n}\n\n#[test]\nfn testa_a_mesma_abscissa_dos_pontos_com_zero() {\n    assert_eq!(mesma_abscissa(ponto_de(0, 9), ponto_de(0, 3)), true);\n}\n\n#[test]\nfn testa_as_abscissas_diferentes() {\n    assert_eq!(mesma_abscissa(ponto_de(2, 3), ponto_de(4, 3)), false);\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
@@ -22,9 +22,14 @@
     },
     {
       "id": "REQ-3",
-      "descricao": "abscissa(ponto_de(0, 9)) devolve o campo x do ponto: 0.",
-      "teste": "testa_a_abscissa_do_ponto_zero_por_nove"
+      "descricao": "mesma_abscissa(ponto_de(0, 9), ponto_de(0, 3)) devolve true: as duas abscissas são 0.",
+      "teste": "testa_a_mesma_abscissa_dos_pontos_com_zero"
+    },
+    {
+      "id": "REQ-4",
+      "descricao": "mesma_abscissa(ponto_de(2, 3), ponto_de(4, 3)) devolve false: as abscissas 2 e 4 são diferentes.",
+      "teste": "testa_as_abscissas_diferentes"
     }
   ],
-  "expectedTestCount": 3
+  "expectedTestCount": 4
 }

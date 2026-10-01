@@ -202,6 +202,24 @@ describe('1. guardas de fonte — o contrato de papéis que os e2e consomem', ()
     );
   });
 
+  it('ONDA-CONTROLES-NA-MESMA-LINHA: tema e idioma dividem a MESMA linha no pé da coluna', () => {
+    // Pedido do dono, verbatim: "nao gostei de a bandeira do idioma ficar
+    // embaixo e os seletornes de theme ficarem em cima, quero tudo na mesma
+    // linha". A guarda lê o CONTÊINER dos controles (o bloco que desce para o
+    // pé da coluna com marginTop: 'auto') e exige a linha (flexDirection:
+    // 'row'): empilhar tema/idioma de novo é regressão do pedido. O `wrap`
+    // fica junto porque é o que impede a linha de estourar no PISO de 180px da
+    // coluna (SC 1.4.12 — "quebra, nunca recorta").
+    const frame = codeOf(readFileSync(SESSION_FRAME_PATH, 'utf8'));
+    const controlsAt = frame.indexOf("marginTop: 'auto'");
+    assert.notEqual(controlsAt, -1, 'o bloco de controles (pé da coluna) sumiu');
+    const switcherAt = frame.indexOf('data-onboarding-target="language-switcher"');
+    assert.ok(switcherAt > controlsAt, 'o idioma saiu do bloco de controles');
+    const region = frame.slice(controlsAt, switcherAt);
+    assert.match(region, /flexDirection:\s*'row'/, 'os controles voltaram a empilhar (column)');
+    assert.match(region, /flexWrap:\s*'wrap'/, 'sem wrap a linha estoura no piso de 180px da coluna');
+  });
+
   it('SplitDivider é um separator VERTICAL com ponteiro capturado e teclado APG', () => {
     const divider = codeOf(readFileSync(SPLIT_DIVIDER_PATH, 'utf8'));
     for (const marker of [

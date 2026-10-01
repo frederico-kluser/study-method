@@ -27,7 +27,14 @@
  *      `typewriterDelayPerChar` continua 100 tps, e `TYPEWRITER_TPS.review`
  *      continua 10;
  *   5. a SAÍDA da animação existe (prop `skip`) e está ligada na LessonView —
- *      quem lê rápido não fica refém.
+ *      quem lê rápido não fica refém;
+ *   6. ONDA-SKIP-1S: o `skip` NÃO estoura mais o texto na cara — o restante é
+ *      revelado numa varredura de ~1 s, com os caracteres restantes
+ *      distribuídos uniformemente (o pedido do dono: "ela termina de mostrar
+ *      tudo em 1s ai calculamos a quantidade de caracteres para saber como
+ *      mostramos eles com mesmo tempo ate dar um segundo"). A conta é o
+ *      helper PURO `skipSweepCut`/`skipSweepDelayPerChar` (1000 ms ÷ chars
+ *      restantes), e o relógio de digitação acima continua intocado.
  *
  * ANTES DO CONSERTO: `TYPEWRITER_TPS`/`chatBubbleTps` não existiam e a bolha
  * de teoria rodava a 400 chars/s — a asserção "a seção leva mais de 14 s"
@@ -39,6 +46,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import {
+  SKIP_SWEEP_MS,
   TYPEWRITER_TPS,
   applyTutorReply,
   chatBubbleTps,
@@ -46,6 +54,8 @@ import {
   isTheoryPresentationBubble,
   pushUserMessage,
   seedChallengeError,
+  skipSweepCut,
+  skipSweepDelayPerChar,
   typewriterCut,
   typewriterDelayPerChar,
   typewriterIsDone,
@@ -272,15 +282,70 @@ describe('ONDA10 defeito 3 — o aluno PULA a animação (não fica refém)', ()
   const semComentarios = (src: string): string =>
     src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  it('TypewriterText aceita `skip` e completa o texto na hora', () => {
+  it('TypewriterText aceita `skip` e VARRE o restante em ~1 s (nunca instantâneo)', () => {
     const code = semComentarios(read('../src/components/chat/TypewriterText.tsx'));
     assert.ok(code.includes('skip = false'), 'o componente precisa do prop skip');
-    assert.match(
-      code,
-      /if \(skip\) \{[\s\S]{0,160}?setCut\(text\.length\);[\s\S]{0,120}?onDoneRef\.current\?\.\(\);/,
-      'skip deve levar o corte direto ao fim do texto e avisar o fim do stream',
+    // ONDA-SKIP-1S — o contrato NOVO (pedido do dono, literal: "ela termina de
+    // mostrar tudo em 1s ai calculamos a quantidade de caracteres para saber
+    // como mostramos eles com mesmo tempo ate dar um segundo"). O pulo NÃO
+    // estoura mais o texto num frame: o corte da varredura vem da função PURA
+    // `skipSweepCut` a cada tick de ~16 ms, derivado do tempo decorrido.
+    assert.ok(
+      code.includes('skipSweepCut('),
+      'o corte da varredura vem da função pura skipSweepCut (a conta do dono)',
     );
+    assert.ok(
+      code.includes('SKIP_SWEEP_TICK_MS'),
+      'a varredura roda num laço de tick (~16 ms) — nunca setTimeout por caractere',
+    );
+    // O caminho INSTANTÂNEO antigo (skip → setCut(text.length) direto) é o
+    // defeito que esta onda matou: ele não pode voltar como regra.
+    assert.ok(
+      !/if \(skip\) \{\s*doneRef\.current = true;\s*setCut\(text\.length\)/.test(code),
+      'skip não pode mais completar o texto instantaneamente (a varredura de ~1 s é a regra)',
+    );
+    // O branch do `skip` inteiro (até o fechamento dele na indentação raiz do
+    // efeito): é ele que prova as semânticas de callback do pulo.
+    const skipBranch = code.match(/if \(skip\) \{([\s\S]*?)\n    \}/)?.[1] ?? '';
+    assert.ok(skipBranch.length > 0, 'o branch do skip precisa existir');
+    assert.ok(
+      !skipBranch.includes('onStartRef'),
+      'pular no meio NÃO re-dispara onStart (a varredura não "recomeça" a digitação)',
+    );
+    assert.ok(
+      skipBranch.includes('sweepRef.current = {'),
+      'o skip inicia a varredura do corte ATUAL (cutAtSkip), não do início',
+    );
+    assert.ok(
+      skipBranch.includes('onDoneRef.current?.()'),
+      'as exceções instantâneas (texto já inteiro / reduced motion) também avisam onDone',
+    );
+    // A varredura em si: onTick a cada passo (auto-scroll acompanha) e onDone
+    // UMA vez no fim (o guard doneRef sela antes do disparo).
+    const sweepBody = code.match(/const startSweep[\s\S]*?SKIP_SWEEP_TICK_MS\)/)?.[0] ?? '';
+    assert.ok(sweepBody.length > 0, 'o corpo da varredura (startSweep) precisa existir');
+    assert.ok(sweepBody.includes('onTickRef.current?.()'), 'a varredura dispara onTick (auto-scroll)');
+    assert.ok(sweepBody.includes('doneRef.current = true'), 'o fim da varredura sela doneRef');
+    assert.ok(sweepBody.includes('onDoneRef.current?.()'), 'a varredura termina com onDone');
+    // SC 2.3.3 (política do projeto): sob reduced motion o pulo é instantâneo.
+    assert.ok(code.includes('prefersReducedMotion()'), 'o pulo honra prefers-reduced-motion: reduce');
     assert.match(code, /\[active, instant, skip, text, tps\]/, 'skip precisa estar nas deps do efeito');
+  });
+
+  it('a CONTA da varredura: ~1 s de orçamento, caracteres restantes por igual', () => {
+    // O helper PURO é a fórmula da fala do dono (ms por caractere =
+    // 1000 / restantes): a varredura termina EXATAMENTE em ~1 s qualquer que
+    // seja o tamanho do resto — 1 char ou 500. Fórmula do corte:
+    // cut = cutAtSkip + floor(restantes × t / 1000).
+    assert.equal(SKIP_SWEEP_MS, 1000, 'o orçamento do pulo é ~1 s');
+    assert.ok(Math.abs(skipSweepDelayPerChar(40) - 25) < 1e-9, '40 chars restantes → 25 ms cada');
+    assert.ok(Math.abs(skipSweepDelayPerChar(1) - 1000) < 1e-9, '1 char restante → os ~1 s inteiros');
+    assert.equal(skipSweepDelayPerChar(0), 0, 'sem resto não há o que agendar');
+    const total = 300;
+    const cutAtSkip = 120; // 180 caracteres restantes
+    assert.equal(skipSweepCut(total, cutAtSkip, 0), cutAtSkip, '0 ms → o corte do pulo (nada pisca)');
+    assert.equal(skipSweepCut(total, cutAtSkip, 1000), total, '1000 ms → o texto inteiro');
+    assert.equal(skipSweepCut(total, cutAtSkip, 500), 210, 'metade do tempo → metade dos restantes');
   });
 
   it('a LessonView liga o skip por CLIQUE, por TECLA e por BOTÃO acessível', () => {

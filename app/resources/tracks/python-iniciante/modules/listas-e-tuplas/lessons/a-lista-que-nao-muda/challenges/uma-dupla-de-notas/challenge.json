@@ -6,26 +6,31 @@
   "difficulty": 4,
   "language": "python",
   "outputChannel": "retorno",
-  "statement": "# Uma dupla de notas\n\nCrie a função `par_de_notas(primeiro, segundo)`, que devolve uma **tupla** com as duas notas, na ordem em que recebeu.\n\n```text\n>>> par_de_notas(7, 9)\n(7, 9)\n```\n\nA tupla se escreve com parênteses: `return (primeiro, segundo)`. Onde a resposta for uma tupla, ela aparece com parênteses e vírgula.",
-  "starterCode": "def par_de_notas(primeiro, segundo):\n    # devolva uma tupla com as duas notas, na ordem\n    pass\n",
-  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestAListaQueNaoMuda(unittest.TestCase):\n    def test_par_de_notas_guarda_o_primeiro_valor(self):\n        \"\"\"par_de_notas guarda o primeiro valor no lugar zero\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](7, 9)[0], 7)\n\n    def test_par_de_notas_guarda_o_segundo_valor(self):\n        \"\"\"par_de_notas guarda o segundo valor no lugar um\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](7, 9)[1], 9)\n\n    def test_par_de_notas_na_ordem_contraria(self):\n        \"\"\"par_de_notas devolve a ordem contraria quando recebe a ordem contraria\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](9, 7)[0], 9)\n        self.assertEqual(rodar()[\"par_de_notas\"](9, 7)[1], 7)\n",
-  "solutionCode": "def par_de_notas(primeiro, segundo):\n    return (primeiro, segundo)\n",
-  "expectedTestCount": 3,
+  "statement": "# Uma dupla de notas\n\nCrie a função `par_de_notas(primeiro, segundo)`, que devolve uma **tupla** com as duas notas, na ordem em que recebeu.\n\nCrie também a função `par_dos_extremos(notas)`, que recebe o par de notas e devolve **outra tupla** com a maior nota primeiro e a menor depois. Ache a maior com `max` e a menor com `min`, e monte o par na ordem (maior, menor).\n\n```text\n>>> par_de_notas(7, 9)\n(7, 9)\n>>> par_dos_extremos(par_de_notas(7, 9))\n(9, 7)\n>>> par_dos_extremos(par_de_notas(7, 7))\n(7, 7)\n```\n\nA tupla se escreve com parênteses: `return (primeiro, segundo)`. Onde a resposta for uma tupla, ela aparece com parênteses e vírgula — `(7, 9)`, nunca `[7, 9]`.",
+  "starterCode": "def par_de_notas(primeiro, segundo):\n    # devolva uma tupla com as duas notas, na ordem\n    pass\n\n\ndef par_dos_extremos(notas):\n    # devolva a tupla (maior, menor) das notas\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestAListaQueNaoMuda(unittest.TestCase):\n    def test_par_de_notas_na_ordem(self):\n        \"\"\"par_de_notas devolve a tupla com as duas notas na ordem\"\"\"\n        notas = rodar()[\"par_de_notas\"](7, 9)\n        self.assertEqual(str(notas), \"(7, 9)\")\n        self.assertTrue(notas != \"(7, 9)\")\n\n    def test_par_de_notas_na_ordem_contraria(self):\n        \"\"\"par_de_notas devolve a ordem contraria quando recebe a ordem contraria\"\"\"\n        self.assertEqual(str(rodar()[\"par_de_notas\"](9, 7)), \"(9, 7)\")\n\n    def test_par_dos_extremos_devolve_maior_e_menor(self):\n        \"\"\"par_dos_extremos devolve a tupla (maior, menor) das notas\"\"\"\n        extremos = rodar()[\"par_dos_extremos\"](rodar()[\"par_de_notas\"](4, 9))\n        self.assertEqual(str(extremos), \"(9, 4)\")\n        self.assertTrue(extremos != \"(9, 4)\")\n\n    def test_par_dos_extremos_com_notas_iguais(self):\n        \"\"\"par_dos_extremos com notas iguais devolve o par (nota, nota)\"\"\"\n        self.assertEqual(str(rodar()[\"par_dos_extremos\"](rodar()[\"par_de_notas\"](7, 7))), \"(7, 7)\")\n",
+  "solutionCode": "def par_de_notas(primeiro, segundo):\n    return (primeiro, segundo)\n\n\ndef par_dos_extremos(notas):\n    return (max(notas), min(notas))\n",
+  "expectedTestCount": 4,
   "requirements": [
     {
-      "id": "test_par_de_notas_guarda_o_primeiro_valor",
-      "teste": "test_par_de_notas_guarda_o_primeiro_valor",
-      "descricao": "par_de_notas guarda o primeiro valor no lugar zero"
-    },
-    {
-      "id": "test_par_de_notas_guarda_o_segundo_valor",
-      "teste": "test_par_de_notas_guarda_o_segundo_valor",
-      "descricao": "par_de_notas guarda o segundo valor no lugar um"
+      "id": "test_par_de_notas_na_ordem",
+      "teste": "test_par_de_notas_na_ordem",
+      "descricao": "par_de_notas devolve a tupla com as duas notas na ordem"
     },
     {
       "id": "test_par_de_notas_na_ordem_contraria",
       "teste": "test_par_de_notas_na_ordem_contraria",
       "descricao": "par_de_notas devolve a ordem contraria quando recebe a ordem contraria"
+    },
+    {
+      "id": "test_par_dos_extremos_devolve_maior_e_menor",
+      "teste": "test_par_dos_extremos_devolve_maior_e_menor",
+      "descricao": "par_dos_extremos devolve a tupla (maior, menor) das notas"
+    },
+    {
+      "id": "test_par_dos_extremos_com_notas_iguais",
+      "teste": "test_par_dos_extremos_com_notas_iguais",
+      "descricao": "par_dos_extremos com notas iguais devolve o par (nota, nota)"
     }
   ]
 }

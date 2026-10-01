@@ -50,7 +50,7 @@ test('e2e-fontes: fonte escolhida embebe no tabpanel; fechar (botão e Esc) reab
   page = launched.page;
 
   // Trilha → aula (mesma porta de entrada do e2e-lesson).
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Study Method: Tutor', { exact: false })).toBeVisible();
   await page.getByText('Node.js do Zero', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible();
   await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();

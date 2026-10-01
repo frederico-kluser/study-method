@@ -1,23 +1,29 @@
 /**
- * e2e-fonts.spec.ts — as três famílias do contrato CARREGARAM no app rodando.
+ * e2e-fonts.spec.ts — as famílias do contrato CARREGARAM no app rodando.
  *
  * ─── O DEFEITO QUE ESTA SPEC EXISTE PARA MORDER ────────────────────────────
- * A onda 1 empacotou Inter, Nunito e JetBrains Mono via @fontsource (arquivos
+ * A onda 1 empacotou Inter (e JetBrains Mono) via @fontsource (arquivos
  * LOCAIS — o renderer roda sob `font-src 'self'` e o app precisa abrir offline)
  * e apontou `FONT_STACK` para elas. Mas `src/fonts.ts` — módulo de efeito
  * colateral, sem exports — não era importado por ninguém. Resultado medido no
  * Electron, largura de canvas da MESMA string a 16px:
  *
  *     "Inter Variable"           223.98
- *     "Nunito Variable"          223.98
  *     "JetBrains Mono Variable"  223.98
  *     "__NoSuchFontZZZ__"        223.98   <- família INEXISTENTE, mesmo valor
  *     system-ui                  245.54
  *
- * Três famílias distintas medindo IGUAL a uma família inventada é a assinatura
+ * Famílias distintas medindo IGUAL a uma família inventada é a assinatura
  * do fallback silencioso: o navegador não achou nenhuma delas e usou o mesmo
- * default para as quatro. E a suíte inteira passou verde por cima disso, porque
+ * default para todas. E a suíte inteira passou verde por cima disso, porque
  * nenhum teste olhava para o resultado — só para o objeto de tema.
+ *
+ * ─── ONDA-UX (realinhamento ao design Apple) ───────────────────────────────
+ * O display saiu do Nunito ("a fonte nao quero retro") e hoje é o MESMO
+ * 'Inter Variable' do corpo — as stacks passaram a abrir com fontes de SISTEMA
+ * (-apple-system, 'SF Pro …'), que só resolvem no macOS. O que o @fontsource
+ * REGISTA é o token `FONT_BUNDLED` (designTokens.ts): é ele — e não a primeira
+ * entrada da stack — que esta spec confere.
  *
  * ─── POR QUE MEDIR, E NÃO PERGUNTAR ────────────────────────────────────────
  * `document.fonts.check('16px "X"')` NÃO serve como discriminador: para uma
@@ -79,7 +85,7 @@
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
-import { FONT_STACK } from '../../src/lib/designTokens';
+import { FONT_BUNDLED } from '../../src/lib/designTokens';
 import { CODE_TYPOGRAPHY } from '../../src/lib/codeTheme';
 
 let app: ElectronApplication | undefined;
@@ -95,22 +101,14 @@ const BOGUS_FAMILY = '__NoSuchFontZZZ__';
 /** String de medição — latina, larga o bastante para a diferença aparecer. */
 const SPECIMEN = 'Superficie quieta, resposta viva 0123456789';
 
-/**
- * Primeira família de uma stack CSS (`'Inter Variable', 'Inter', ...`). É a
- * ÚNICA que o @fontsource registra; as demais são fallback de sistema, e é
- * justamente para elas que o app caía quando o fio estava partido.
- */
-function firstFamily(stack: string): string {
-  return stack.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
-}
-
-/* ONDA 11: eram QUATRO papéis (o quarto era o acento pixel Press Start 2P) e
-   voltaram a ser TRÊS. O display saiu do Chakra Petch (techno/quadrada) para o
-   Nunito Variable — "a fonte nao quero retro", pedido do dono. */
+/* ONDA-UX: as famílias conferidas são as do `FONT_BUNDLED` — as que o
+   @fontsource REALMENTE registra (as stacks abrem com fontes de sistema, que
+   só resolvem no macOS). Display e corpo partilham 'Inter Variable' desde o
+   redesign Apple ("a fonte nao quero retro" tirou o Nunito), então os papéis
+   são DOIS: a do texto e a monoespaçada. */
 const EXPECTED_FAMILIES = [
-  { role: 'display (Nunito Variable — títulos h1..h6)', family: firstFamily(FONT_STACK.display) },
-  { role: 'body (Inter — corpo e UI)', family: firstFamily(FONT_STACK.body) },
-  { role: 'mono (JetBrains Mono — código e terminal)', family: firstFamily(FONT_STACK.mono) },
+  { role: 'display+body (Inter Variable — títulos, corpo e UI)', family: FONT_BUNDLED.display },
+  { role: 'mono (JetBrains Mono Variable — código e terminal)', family: FONT_BUNDLED.mono },
 ];
 
 /**
@@ -154,14 +152,14 @@ interface ComputedFont {
   lineHeight: string;
 }
 
-test('e2e-fonts: Inter, Nunito e JetBrains Mono carregam de verdade (sem fallback silencioso)', async () => {
+test('e2e-fonts: Inter e JetBrains Mono carregam de verdade (sem fallback silencioso)', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready' } });
   app = launched.app;
   page = launched.page;
 
   // App montou (o shell é o mesmo das outras specs).
   await expect(
-    page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }),
+    page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }),
   ).toBeVisible();
 
   const families = EXPECTED_FAMILIES.map((f) => f.family);
@@ -297,7 +295,7 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   page = launched.page;
 
   await expect(
-    page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }),
+    page.getByRole('banner').getByText('Study Method: Tutor', { exact: false }),
   ).toBeVisible();
 
   /* ─── (0) O VAR em si: <font-size> COM UNIDADE ──────────────────────────
@@ -330,7 +328,7 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   await page.getByRole('button', { name: 'Começar' }).click();
   await expect(page.locator('.cm-editor').first()).toBeVisible();
 
-  const MONO = firstFamily(FONT_STACK.mono);
+  const MONO = FONT_BUNDLED.mono;
   // ONDA 1 (game-foundations): código 14 → 15. O tamanho EFETIVO é o do
   // CODE_TYPOGRAPHY (o que editor e terminal renderizam de verdade); o var
   // `--mui-font-code` do tema bate com ele (ambos 15px).
@@ -340,16 +338,20 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
 
   /* ─── (1) `.cm-editor`: família E tamanho ───────────────────────────────
    * É o alvo direto de `.cm-editor { font: var(--mui-font-code) }`. Com o var
-   * quebrado media family="Inter Variable" / 16px / lh normal. */
+   * quebrado media family="Inter Variable" / 16px / lh normal. ONDA-UX: as
+   * stacks abrem com fontes de SISTEMA ('SF Mono' no macOS) — a asserção
+   * honesta é a INCLUSÃO da família que o @fontsource registra
+   * (FONT_BUNDLED.mono), não a primeira entrada da stack. */
   const cm = editor['.cm-editor'];
   expect(cm, 'o `.cm-editor` não montou — a navegação até o Desafio mudou?').not.toBeNull();
   expect(
-    cm && firstFamily(cm.family),
-    `.cm-editor computa font-family "${cm?.family}" — a stack tem que ABRIR em ` +
-      `'${MONO}'. Se veio 'Inter Variable' (a stack de CORPO), ` +
+    cm?.family ?? '',
+    `.cm-editor computa font-family "${cm?.family}" — a stack tem que INCLUIR ` +
+      `'${MONO}' (a família que o @fontsource registra). Se veio só 'Inter ` +
+      `Variable' (a stack de CORPO), ` +
       '`font: var(--mui-font-code)` de src/index.css caiu inteira: o var é ' +
       `"${fontCodeVar}".`,
-  ).toBe(MONO);
+  ).toContain(MONO);
   expect(
     cm && cm.size,
     `.cm-editor computa font-size ${cm?.size}, esperado ${CODE_SIZE} ` +

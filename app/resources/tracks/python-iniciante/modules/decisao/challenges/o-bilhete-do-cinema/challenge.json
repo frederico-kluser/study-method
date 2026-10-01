@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-bilhete-do-cinema",
+  "title": "O bilhete do cinema",
+  "concept": "composicao_da_decisao",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# O bilhete do cinema\n\nO cinema da esquina vende bilhete inteiro, meia e cortesia, e no fim do dia\nalguém fecha a conta. Este desafio não ensina nada novo: ele junta todas as\ndecisões deste módulo num programa só — o `if`, o `elif`, o `else`, as\ncomparações, o `e`, o `ou`, o `não` e a condição em uma linha.\n\n## O que o programa faz\n\nOs dados da venda já estão guardados em nomes no começo do arquivo. Você\nescreve o resto, na ordem dos comentários:\n\n1. **a faixa da idade** — menos de 12 é `infantil`, de 12 a 17 é\n   `adolescente`, 60 anos ou mais é `veterano`, e o resto é `adulto`.\n2. **o preço da meia** — quem tem menos de 18 anos paga meia; o estudante\n   que **não** passou dos 24 também. A resposta fica em `e_meia` e o preço\n   em `preco`, numa linha só.\n3. **a taxa do fim de semana** — sábado e domingo somam `5.0`; os outros\n   dias, `0.0`.\n4. **o total** — o preço mais a taxa, arredondado em duas casas.\n5. **a reserva** — quando `reserva` é `None`, o bloco fica vazio, com o\n   `pass` do bloco vazio; quando há reserva, o número aparece na tela.\n\n## A tela, exatamente assim\n\n```text\nBILHETE DO CINEMA\nfaixa: adolescente\npreco: 16.65\ntaxa do fim de semana: 5.0\ntotal: 21.65\n```\n\n## As regras da casa\n\n- **Nada de escrever o resultado à mão.** Se você digitar `adolescente`\n  direto, o programa vira bilhete.\n- A faixa usa a **comparação encadeada**: `12 <= idade < 18`.\n- A meia usa o `or`, o `and` e o `not`:\n  `idade < 18 or (estudante and not (idade > 24))`.\n- O preço sai numa linha só, com a **condição em uma linha**:\n  `valor_cheio / 2 if e_meia else valor_cheio`.\n- A pergunta do `None` é com `is`: `reserva is None`.\n- As frases saem com texto de buraco (`f\"...\"`), e o total com o `round`.\n\n## Por que este desafio existe\n\nCada aula deste módulo mostrou uma peça da decisão sozinha; aqui elas\nprecisam conversar. Se travar em alguma linha, volte à aula da peça: o\nexemplo está lá.",
+  "starterCode": "idade = 15\nestudante = True\ndia = \"sabado\"\nreserva = None\nvalor_cheio = 33.3\nprint(\"BILHETE DO CINEMA\")\n# 1. imprima  faixa: <infantil|adolescente|veterano|adulto>  com if/elif/else\n# 2. guarde em e_meia a pergunta da meia e em preco o valor que ela escolher\n# 3. imprima  preco: <preco>\n# 4. guarde em taxa 5.0 no fim de semana e 0.0 nos outros dias\n# 5. imprima  taxa do fim de semana: <taxa>\n# 6. guarde em total o preco mais a taxa e imprima  total: <total com duas casas>\n# 7. se reserva for None, o bloco fica vazio com pass; senao, imprima  reserva: <reserva>\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOBilheteDoCinema(unittest.TestCase):\n    def test_imprime_o_bilhete_completo(self):\n        \"\"\"o programa imprime o bilhete inteiro, da faixa ao total\"\"\"\n        self.assertEqual(rodar(), \"BILHETE DO CINEMA\\nfaixa: adolescente\\npreco: 16.65\\ntaxa do fim de semana: 5.0\\ntotal: 21.65\\n\")\n\n    def test_a_faixa_da_idade(self):\n        \"\"\"a faixa da idade sai do if/elif/else, nao digitada a mao\"\"\"\n        idade = 15\n        if idade < 12:\n            faixa = \"infantil\"\n        elif 12 <= idade < 18:\n            faixa = \"adolescente\"\n        elif idade >= 60:\n            faixa = \"veterano\"\n        else:\n            faixa = \"adulto\"\n        self.assertEqual(rodar(), \"BILHETE DO CINEMA\\nfaixa: \" + faixa + \"\\npreco: 16.65\\ntaxa do fim de semana: 5.0\\ntotal: 21.65\\n\")\n\n    def test_o_preco_da_meia_entrada(self):\n        \"\"\"o preco da meia e a metade do valor cheio, escolhido numa linha so\"\"\"\n        valor_cheio = 33.3\n        preco = valor_cheio / 2\n        self.assertEqual(rodar(), \"BILHETE DO CINEMA\\nfaixa: adolescente\\npreco: \" + str(preco) + \"\\ntaxa do fim de semana: 5.0\\ntotal: 21.65\\n\")\n\n    def test_a_taxa_do_fim_de_semana(self):\n        \"\"\"a taxa e 5.0 quando o dia e fim de semana e 0.0 nos outros dias\"\"\"\n        dia = \"sabado\"\n        if dia == \"sabado\" or dia == \"domingo\":\n            taxa = 5.0\n        else:\n            taxa = 0.0\n        self.assertEqual(rodar(), \"BILHETE DO CINEMA\\nfaixa: adolescente\\npreco: 16.65\\ntaxa do fim de semana: \" + str(taxa) + \"\\ntotal: 21.65\\n\")\n\n    def test_o_total_arredondado(self):\n        \"\"\"o total e o preco mais a taxa, arredondado em duas casas\"\"\"\n        total = 33.3 / 2 + 5.0\n        self.assertEqual(rodar(), \"BILHETE DO CINEMA\\nfaixa: adolescente\\npreco: 16.65\\ntaxa do fim de semana: 5.0\\ntotal: \" + str(round(total, 2)) + \"\\n\")\n",
+  "solutionCode": "idade = 15\nestudante = True\ndia = \"sabado\"\nreserva = None\nvalor_cheio = 33.3\nprint(\"BILHETE DO CINEMA\")\nif idade < 12:\n    print(\"faixa: infantil\")\nelif 12 <= idade < 18:\n    print(\"faixa: adolescente\")\nelif idade >= 60:\n    print(\"faixa: veterano\")\nelse:\n    print(\"faixa: adulto\")\ne_meia = idade < 18 or (estudante and not (idade > 24))\npreco = valor_cheio / 2 if e_meia else valor_cheio\nprint(f\"preco: {preco}\")\nif dia == \"sabado\" or dia == \"domingo\":\n    taxa = 5.0\nelse:\n    taxa = 0.0\nprint(f\"taxa do fim de semana: {taxa}\")\ntotal = preco + taxa\nprint(f\"total: {round(total, 2)}\")\nif reserva is None:\n    pass\nelse:\n    print(f\"reserva: {reserva}\")\n",
+  "expectedTestCount": 5,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_o_bilhete_completo",
+      "descricao": "O programa deve imprimir exatamente \"BILHETE DO CINEMA\\nfaixa: adolescente\\npreco: 16.65\\ntaxa do fim de semana: 5.0\\ntotal: 21.65\\n\"."
+    },
+    {
+      "id": "REQ-2",
+      "teste": "test_a_faixa_da_idade",
+      "descricao": "O bilhete inteiro deve casar com a tela esperada, com a faixa da idade saindo do if/elif/else (menos de 12, de 12 a 17, 60 ou mais, o resto): \"faixa: adolescente\" para idade 15."
+    },
+    {
+      "id": "REQ-3",
+      "teste": "test_o_preco_da_meia_entrada",
+      "descricao": "O bilhete inteiro deve casar com a tela esperada, com o preco saindo da condicao em uma linha (valor_cheio / 2 se e_meia, senao valor_cheio): \"preco: 16.65\"."
+    },
+    {
+      "id": "REQ-4",
+      "teste": "test_a_taxa_do_fim_de_semana",
+      "descricao": "O bilhete inteiro deve casar com a tela esperada, com a taxa saindo da pergunta do fim de semana (5.0 em sabado ou domingo): \"taxa do fim de semana: 5.0\"."
+    },
+    {
+      "id": "REQ-5",
+      "teste": "test_o_total_arredondado",
+      "descricao": "O bilhete inteiro deve casar com a tela esperada, com o total sendo o preco mais a taxa arredondado em duas casas: \"total: 21.65\"."
+    }
+  ]
+}

@@ -5,19 +5,19 @@
   "concept": "string_dona",
   "difficulty": 1,
   "language": "rust",
-  "statement": "# Os dois temas\n\nA função `tema` recebe a escolha e devolve o rótulo do tema como `String` DONA, montada com `String::from`:\n\n- `tema(true)` devolve `tema escuro`;\n- `tema(false)` devolve `tema claro`.\n\nCada ramo do `if` monta a própria caixa dona e a devolve. Os testes chamam com `true` e com `false`.",
-  "starterCode": "pub fn tema(escuro: bool) -> String {\n    todo!()\n}\n",
-  "solutionCode": "pub fn tema(escuro: bool) -> String {\n    if escuro {\n        String::from(\"tema escuro\")\n    } else {\n        String::from(\"tema claro\")\n    }\n}\n",
-  "testsCode": "use desafio::tema;\n\n#[test]\nfn testa_o_tema_escuro() {\n    assert_eq!(tema(true), \"tema escuro\");\n}\n\n#[test]\nfn testa_o_tema_claro() {\n    assert_eq!(tema(false), \"tema claro\");\n}\n",
+  "statement": "# Os dois temas\n\nA função `tema` recebe a escolha e a versão, e devolve o rótulo do tema como `String` DONA, montada com `String::from` e terminada pela versão seguinte (`versao + 1`):\n\n- `tema(true, 2)` devolve `tema escuro v3`;\n- `tema(false, 0)` devolve `tema claro v1`.\n\nCada ramo do `if` monta a própria caixa dona com `String::from` e a guarda em `rotulo`; depois o `format!` cola o rótulo à versão já somada. Os testes chamam com `true` e com `false`.",
+  "starterCode": "pub fn tema(escuro: bool, versao: i32) -> String {\n    todo!()\n}\n",
+  "solutionCode": "pub fn tema(escuro: bool, versao: i32) -> String {\n    let rotulo = if escuro {\n        String::from(\"tema escuro\")\n    } else {\n        String::from(\"tema claro\")\n    };\n    format!(\"{} v{}\", rotulo, versao + 1)\n}\n",
+  "testsCode": "use desafio::tema;\n\n#[test]\nfn testa_o_tema_escuro() {\n    assert_eq!(tema(true, 2), \"tema escuro v3\");\n}\n\n#[test]\nfn testa_o_tema_claro() {\n    assert_eq!(tema(false, 0), \"tema claro v1\");\n}\n",
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "tema(true) deve devolver o String dono \"tema escuro\", montado com String::from.",
+      "descricao": "tema(true, 2) deve devolver o String dono \"tema escuro v3\" — rótulo montado com String::from e a versão somada com +.",
       "teste": "testa_o_tema_escuro"
     },
     {
       "id": "REQ-2",
-      "descricao": "tema(false) deve devolver o String dono \"tema claro\", montado com String::from.",
+      "descricao": "tema(false, 0) deve devolver o String dono \"tema claro v1\" — rótulo montado com String::from e a versão somada com +.",
       "teste": "testa_o_tema_claro"
     }
   ],

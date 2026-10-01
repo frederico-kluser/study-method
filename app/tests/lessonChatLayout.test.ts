@@ -784,12 +784,15 @@ describe('3. a barra de entrada segue a referência de chat', () => {
     );
   });
 
-  it('aula ocupada trava mic, campo e enviar — cada um medido no PRÓPRIO elemento', () => {
+  it('aula ocupada trava mic e enviar — o CAMPO continua utilizável (W2)', () => {
+    // W2 (auditoria de UX — versão mínima honesta): durante um turno de até
+    // 70s o aluno pode JÁ digitar a próxima pergunta; só o ENVIO (botão e
+    // Enter) e o mic ficam travados — nada de pergunta em voo dupla, mas
+    // também nada de teclado morto enquanto espera.
     const ocupado = renderComposer({ draft: 'oi', disabled: true });
     const livre = renderComposer({ draft: 'oi' });
     for (const [nome, marker] of [
       ['mic', MIC],
-      ['campo', CAMPO],
       ['enviar', SEND],
     ] as const) {
       assert.ok(
@@ -800,6 +803,16 @@ describe('3. a barra de entrada segue a referência de chat', () => {
         !isDisabled(tagOfElementWith(livre, marker)),
         `${nome}: aula livre NÃO trava — sem este par, contar ocorrências de "disabled" ` +
           'no HTML inteiro dá verde até para um composer permanentemente morto',
+      );
+    }
+    for (const [nome, html] of [
+      ['campo (ocupado)', ocupado],
+      ['campo (livre)', livre],
+    ] as const) {
+      assert.ok(
+        !isDisabled(tagOfElementWith(html, CAMPO)),
+        `${nome}: o campo NUNCA trava — durante o turno o aluno escreve a próxima ` +
+          'pergunta enquanto espera (W2). Travar aqui reprova o contrato novo',
       );
     }
   });
@@ -897,7 +910,14 @@ describe('4. a caixa da conversa morreu', () => {
     const logTag = tree.slice(tree.indexOf('<Box\n            sx={lessonLogSx(theme)}'));
     const head = logTag.slice(0, logTag.indexOf('>') + 1);
     assert.ok(head.includes('role="log"'), 'role="log"');
-    assert.ok(head.includes('aria-live="polite"'), 'aria-live="polite"');
+    // W8 (auditoria de UX): a região viva é DINÂMICA — "off" enquanto o
+    // typewriter escreve (com "polite" o leitor de ecrã anunciava o texto
+    // parcial a cada passo, ~28 mutações/s) e "polite" no repouso (o
+    // resultado final é anunciado pelo `announceStatus` do efeito W8).
+    assert.ok(
+      head.includes(`aria-live={typingNow ? 'off' : 'polite'}`),
+      'aria-live dinâmico (W8): off durante a digitação, polite no repouso',
+    );
     assert.ok(head.includes('ref={logScrollRef}') || tree.includes('ref={logScrollRef}'), 'scroll');
     assert.ok(head.includes('requestSkipTyping'), 'clique completa a digitação');
   });

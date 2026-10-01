@@ -13,6 +13,9 @@
  * a view continua DONA do estado — aqui só há apresentação e callbacks.
  *
  * ─── DE CIMA PARA BAIXO ─────────────────────────────────────────────────────
+ *   · o CURSO em curso (sobretítulo caption, tinta secundária) — o nome da
+ *     trilha, pedido do dono "o left sidebar deve dizer qual é o curso que
+ *     estamos fazendo" (ONDA-CURSO-NO-SIDEBAR; some só se vier vazio);
  *   · o TÍTULO da aula (o único h1), quebrando linha;
  *   · o RESUMO (body2, tinta secundária) — uma ou duas frases de contexto,
  *     não prosa longa (a regra 3 de designTokens.ts reserva prosa longa para
@@ -113,6 +116,16 @@ const TOUCH_TARGET_PX = 44;
 export interface LessonSidebarHeaderProps {
   /** Título da aula (o h1 da coluna — quebra linha, nunca recorta). */
   title: string;
+  /**
+   * ONDA-CURSO-NO-SIDEBAR (pedido do dono, verbatim: *"quando estou na aula o
+   * left sidebar deve dizer qual é o curso que estamos fazendo"*): o NOME DO
+   * CURSO (a trilha) em que a aula está — `lesson.trackTitle`, que o main
+   * preenche com o título da trilha. É a linha de SOBRETÍTULO acima do h1: sem
+   * ela o sidebar só dizia a AULA, e nada identificava o curso (duas trilhas
+   * podiam ter aulas com o mesmo nome). Vazio/ausente → a linha não renderiza
+   * (chamadores e fixtures antigos sem o dado não ganham um "Curso:" vazio).
+   */
+  courseTitle?: string;
   /** Resumo da aula (body2, tinta secundária — sempre visível). */
   summary: string;
   /** lesson.challenges.length — botão "Desafios" só existe com desafios. */
@@ -146,6 +159,7 @@ export interface LessonSidebarHeaderProps {
  */
 export function LessonSidebarHeader({
   title,
+  courseTitle,
   summary,
   challengeCount,
   pendingChallengeCount,
@@ -179,11 +193,27 @@ export function LessonSidebarHeader({
         minWidth: 0,
       })}
     >
-      {/* ─── TÍTULO + RESUMO ─────────────────────────────────────────────
-          O h1 é a variante h6 (18px, display 700 — o piso da escala de
-          título): na coluna estreita um h5 quebraria em linhas demais. SEM
-          noWrap/ellipsis/overflow: o título QUEBRA (SC 1.4.12). */}
+      {/* ─── CURSO + TÍTULO + RESUMO ────────────────────────────────────
+          ONDA-CURSO-NO-SIDEBAR: o SOBRETÍTULO do curso vem ANTES do h1 — a
+          hierarquia é curso → aula → resumo (do mais geral ao mais específico,
+          regra de proximidade: os três são um bloco). O h1 continua sendo a
+          variante h6 (18px, display 700 — o piso da escala de título): na
+          coluna estreita um h5 quebraria em linhas demais. SEM noWrap/ellipsis/
+          overflow em nenhum dos três: QUEBRAM (SC 1.4.12). */}
       <Box sx={(theme) => ({ display: 'flex', flexDirection: 'column', gap: theme.spacing(0.5), minWidth: 0 })}>
+        {(courseTitle ?? '').trim().length > 0 ? (
+          <Typography
+            variant="caption"
+            sx={(theme) => ({
+              minWidth: 0,
+              color: theme.vars.palette.text.secondary,
+              whiteSpace: 'normal',
+              overflowWrap: 'anywhere',
+            })}
+          >
+            {tI('lesson.courseLabel', { course: courseTitle })}
+          </Typography>
+        ) : null}
         <Typography
           id={titleId}
           component="h1"
@@ -343,6 +373,11 @@ export function LessonSidebarHeader({
                 onClick={() => onPrerequisiteClick(pre.slug)}
                 sx={(theme) => ({
                   height: 'auto',
+                  // W10 (auditoria de UX — Fitts): chip CLICÁVEL com o piso de
+                  // alvo de toque da casa (TOUCH_TARGET_PX). `height: 'auto'`
+                  // deixa o rótulo quebrar; o `minHeight` garante que mesmo o
+                  // chip de uma linha cumpre o piso (min-height vence height).
+                  minHeight: TOUCH_TARGET_PX,
                   maxWidth: '100%',
                   '& .MuiChip-label': {
                     whiteSpace: 'normal',

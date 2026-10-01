@@ -14,7 +14,7 @@
  *   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
  *   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
  *   track:proficiency:new <slug> --title "..." --concept <id>   (desafio que cobre TUDO)
- *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (multi-arquivo OK)
+ *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (lessonSlug "challenges" = desafio de MÓDULO)
  *   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug> (validação SEMÂNTICA via LLM — exige OPENROUTER_API_KEY)
  *   track:validate <slug>          — valida a trilha inteira (loader completo)
  *   track:list                     — lista as trilhas disponíveis
@@ -107,7 +107,7 @@ comandos:
   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
   track:proficiency:new <slug> --title "..." --concept <id>
-  track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
+  track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (lessonSlug "challenges" = desafio de MÓDULO; multi-arquivo OK)
   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (validação semântica do desafio contra o contexto ensinado — exige OPENROUTER_API_KEY)
   track:validate <slug>
   track:list
@@ -470,7 +470,15 @@ async function cmdChallengeVerify(pos: string[]): Promise<void> {
   if (!track || !moduleSlug || !lessonSlug || !challengeSlug) {
     fail('track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>');
   }
-  const dir = path.join(lessonDir(track, moduleSlug, lessonSlug), 'challenges', challengeSlug);
+  // ADITIVO (fecha a dívida que o docs/18 registrava — "cmdChallengeVerify não
+  // alcança desafio de módulo"): o desafio de MÓDULO vive em
+  // `modules/<mod>/challenges/<slug>`, e o slot de aula `challenges` é o
+  // sentinela que o alcança:
+  //   npm run track -- track:challenge:verify <trilha> <mod> challenges <desafio>
+  const dir =
+    lessonSlug === 'challenges'
+      ? path.join(moduleDir(track, moduleSlug), 'challenges', challengeSlug)
+      : path.join(lessonDir(track, moduleSlug, lessonSlug), 'challenges', challengeSlug);
   const challengePath = path.join(dir, CHALLENGE_FILE);
   const challenge = JSON.parse(await fs.readFile(challengePath, 'utf8')) as TrackChallengeSource;
   const ok = await verifyAndLogChallenge(challengeSlug, challenge.title, challenge);

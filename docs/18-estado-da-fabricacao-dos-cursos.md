@@ -179,3 +179,159 @@ cd <raiz> && python3 - docs/20-trilha-rust.md <<<'…'          # 8 módulos · 
 ```
 
 > Repetindo a regra da §3.3: **cold-start do prover reprova o lote inteiro por ambiente no 1º run** — o 2º run no mesmo estado fecha os números acima (medido: coverage 109× SEM-SOLUCAO → 109/109).
+
+---
+
+## 9. A premissa de revisão acumulada (2026-09-27) — análise, régua e campanha
+
+O dono levantou a segunda premissa do produto — a primeira é negativa ("um desafio nunca cobra o
+que não foi ensinado"), esta é positiva: *"os desafios finais da aula englobem conteúdos das aulas
+anteriores, misturando na prova conhecimentos que ele já possui — claro, não precisamos
+LITERALMENTE colocar tudo, mas ter um controle de modo que o aluno sempre pratique num desafio de
+aula ou de módulo todo o conhecimento anterior daquele curso ou cursos anteriores àquele que estão
+conectados"*. A pergunta desta execução: **todos os cursos cumprem?** A resposta medida: **não** — e
+a correção foi a campanha descrita abaixo.
+
+### 9.1 A régua nova — `npm run engine -- pratica <slug>`
+
+A premissa já tinha o mecanismo de RUNTIME (`services/reviewSelection.ts` →
+`engine/coverage/practiceLedger.ts`, que seleciona O QUE revisar por nunca-praticado → espaçamento →
+intercalação), mas **nenhum gate media o conteúdo já escrito**. A régua nova é determinística (extrai
+os átomos da solução de referência — zero LLM, zero execução) e tem duas medidas:
+
+- **MISTURA (por desafio)** — `atoms(solução) ∩ ensinadoAntes(bloco)` ≠ ∅, contando só
+  **átomos-conceito** (`decl/op/global/api/term`). `node:`/`form:` são a estrutura do código: contar
+  `node:Call` como revisão aprovaria todo desafio que imprime algo — a régua viraria teatro (medido:
+  python-iniciante passava 112/113 com a régua larga e 70/113 com a régua de conceito). E
+  `api:todo!` (o stub do starter) nunca conta: era o ÚNICO "conceito" anterior dos dois primeiros
+  desafios do rust-iniciante — sem a exclusão a régua exigia revisão impossível. Isento por
+  vacuidade: as aulas onde ainda não há nada ensinado antes.
+- **FECHAMENTO (por módulo e por curso)** — `faltantesDoModulo` do `practiceLedger`: todo átomo
+  **produtivo** do módulo praticado por algum desafio até ao desafio do módulo, e nenhum
+  nunca-praticado no curso. Receptivo ("sabe ler") nunca é exigido como prática.
+
+Código: `app/electron/main/engine/coverage/praticaAcumulada.ts` (puro; importa só `atomKeys` e
+`practiceLedger`), comando `pratica` no `app/tools/track-engine/cli.ts`, suíte
+`app/tests/enginePraticaAcumulada.test.ts` (11 testes), contrato em
+[`16-engine-de-trilha.md`](16-engine-de-trilha.md) §8 e na skill (`references/validacao.md` §1.1,
+`references/autoria-aula.md` §8). O `--json` por desafio traz `atoms`/`ensinadosAntes`/
+`revisaoContavel`/`novos`/`sugestao` (a sugestão vem do MESMO `selecionarRevisao` do runtime: o que
+praticar agora, por espaçamento).
+
+### 9.2 O estado medido ANTES da correção (baseline)
+
+| Curso | Desafios | REVISAO_OK | SEM_REVISAO | Isentos | Faltantes de módulo | Nunca praticados | Sem desafio |
+|---|---|---|---|---|---|---|---|
+| python-iniciante | 113 | 69 | **43** | 1 | 0 | 0 | **6 módulos sem desafio de módulo** |
+| rust-iniciante | 111 | 91 | **17** | 3 | **1** (`api:.or_insert`) | **1** (`api:.or_insert`) | 0 |
+| c-iniciante | 117 | 116 | 0 | 1 | **2** (`op:assign:-=`, `op:update:--` no a-tela) | 0 | **4 aulas + 1 módulo** |
+
+Padrão do defeito (o mesmo em todos): o desafio praticava **só o alvo novo** mais o encanamento
+estrutural (`def`/`return`/chamada) — ex.: `garantindo-e-tirando` (dict `popitem`/`setdefault`)
+não arrastava nenhum conceito de aulas anteriores. O c-iniciante (autorado depois do
+`practiceLedger` existir) já nasceu misturando — prova de que a régua é exequível sem inflar o
+desafio.
+
+### 9.3 A correção — 19 subagents em paralelo
+
+Duas frentes, tudo verificado por `track:challenge:verify` (solução passa · starter falha) desafio a
+desafio:
+
+1. **Mistura** — os 60 desafios `SEM_REVISAO` (43 python + 17 rust) ganharam 1–2 conceitos
+   anteriores no código que resolve (o enunciado, os testes, a solução e os `requirements[]`
+   andam juntos), seguindo a `sugestao` da régua (nunca-praticado primeiro, depois espaçamento,
+   intercalando origem). O `api:.or_insert` do rust (o único nunca-praticado do curso) entrou no
+   desafio da aula `contar-as-palavras`.
+2. **Prova em falta** — 6 desafios de MÓDULO novos no python-iniciante (todos os módulos exceto
+   `a-tela`, que já tinha), o desafio de módulo de `texto-em-profundidade` (c-iniciante, o único
+   módulo do curso sem um) e as 4 aulas-esqueleto do c-iniciante autoradas por inteiro
+   (`procurar-na-lista-de-strings` · `ao-contrario` · `contar-palavras` · `consolidacao-texto` —
+   teoria + quiz + desafio, cada uma pela sua ficha `autoria` do `lesson.json`) — os desafios de
+   módulo são a vassoura da garantia *"todo o conhecimento acaba praticado num desafio de aula ou
+   de módulo"*.
+
+### 9.4 Resultado medido (gates finais, 2026-09-27)
+
+`npm run engine -- pratica <slug>` — a premissa, medida depois da campanha:
+
+| Curso | Desafios | Com revisão | SEM_REVISAO | Isentos | Faltantes de módulo | Nunca praticados | Blocos sem desafio |
+|---|---|---|---|---|---|---|---|
+| python-iniciante | 119 | 118 | **0** | 1 | 0 | 0 | 0 |
+| rust-iniciante | 111 | 108 | **0** | 3 | 0 | 0 | 0 |
+| c-iniciante | 122 | 121 | **0** | 1 | 0 | 0 | 0 |
+
+E os outros gates, com o conteúdo novo no disco (cada desafio alterado/criado passou por
+`track:challenge:verify` — solução passa · starter falha — um a um):
+
+| Gate | python-iniciante | rust-iniciante | c-iniciante |
+|---|---|---|---|
+| `audit --limite 0` | **0 violações** (112 aulas) | **0 violações** (103 aulas) | **0 violações** (115 aulas) |
+| `coverage` | 119/119 medidos · 0 lacunas | 111/111 medidos · 0 lacunas · **0 excessos** | 122/122 medidos · 0 lacunas |
+| `requirements` | bijeção 119/119 · 0 gaps | bijeção 111/111 · 0 gaps | bijeção 122/122 · 0 gaps |
+| `track:validate` | **119 ✓ · 0 reprovados** | **111 ✓ · 0 reprovados** | **122 ✓ · 0 reprovados** |
+
+E a suíte do app (`npm test`), sobre tudo isto: **7137 testes · 7135 pass · 0 fail · 2 skipped**.
+
+Os avisos que sobram (A22/A24: 102 no python, 145 no rust, 17 no C) são os pré-existentes, medidos e
+declarados — A22 sozinho nunca reprova e o A24 por afirmação isolada é aviso. E a limitação
+A13–A16 (javascript-only) continua declarada na saída de cada audit, como sempre.
+
+Além da premissa, a campanha quitou a **dívida de audit pré-existente do c-iniciante** (era o único
+curso com erros: 22 no início da execução — 4× A20 das aulas-esqueleto, mais A2/A3/A4 de ORDEM:
+`op:unary:-`, `op:binary:!=`, `op:binary:<=` usados antes de ensinados e `op:binary:>` usado sem
+nunca ser produtivo), por reescrita com construções já ensinadas (ex.: `a > b` → `b < a`;
+`x != 0` → `!(x == 0)`; sentinela `-1` → `9999`; casos de teste sem negativos).
+
+### 9.5 O que a campanha ensinou (regras medidas, agora na skill e na régua)
+
+- **A régua dos eixos é a decisão central.** Conceito = `decl/op/global/api/term`; `node:`/`form:`
+  não contam (senão `node:Call` aprovaria todo desafio que imprime algo — medido: python passava
+  112/113 com a régua larga e 70/113 com a de conceito) e `api:todo!` nunca conta (era o único
+  "conceito" anterior dos 2 primeiros desafios do rust).
+- **Revisão tem de ser ESCREVÍVEL**: só átomos que uma aula anterior ensinou a escrever
+  (`introduces.productive`) contam — tanto na mistura como na sugestão. Átomo só-receptivo no
+  `solutionCode` é violação A2 (a armadilha `api:.y` do rust, que a sugestão apontava e o audit
+  barrava; e `op:unary:-` do rust, que só vira produtivo em `decisao/o-negativo`).
+- **Armadilhas de adaptador que os fixers encontraram** (registadas na memória CoALA):
+  rust — `node:ParenthesizedExpression` fora do inventário (`(a + b) * 2` é ilegal), doc-comment
+  `///` emite `node:DocComment` (A3 reprova; o rótulo é `//` antes do `#[test]`), operador dentro
+  de argumento de macro classifica-se errado (`preco * qtd` dentro de `format!` sai
+  `op:unary:*`), `use` em lista emite `node:UseList` (A3); python — receptor literal
+  `"-".join(...)` emite `api:str.join` (usar receptor-nome), `not in`/`is not` emitem
+  `op:compare:not in` (nunca ensinado); C — bloco ```c da teoria tem de ser autossuficiente
+  (variáveis declaradas dentro do bloco) senão o A19 reprova por fail-closed, e o `testsCode` do
+  desafio de MÓDULO lê o orçamento de entrada da última aula do módulo.
+- **O extrator Rust não emite `api:.metodo`** quando o receptor é uma chamada encadeada
+  (`contagem.entry(p).or_insert(0)` só emite `api:.entry`) — a forma que extrai é a entrada nomeada.
+
+### 9.6 A premissa nos GERADORES (mesmo dia, depois da campanha)
+
+A pergunta natural depois de corrigir o disco: *"ao criar cursos e ao gerar desafios novos, o
+sistema já pensa nesta lógica?"* — sim, e foi adaptado nos dois fluxos:
+
+- **`generate` (F0..F12) — prompt do autor de desafio (F8): ADAPTADO.** O dossiê de desafio ganhou
+  a seção `REVISAO_ACUMULADA` — a lista determinística do que o aluno já sabe **escrever** antes da
+  aula (interseção `budget_teste` ∩ `budget_produtivo`, calculada do próprio dossiê; só-receptivo
+  fica de fora pela mesma razão do A2) — e a convenção da premissa: *"o solutionCode deve praticar,
+  ao lado do alvo da aula, 1 ou 2 construções da lista — misturar, não encher; o alvo novo continua
+  a ser o núcleo"*. O gate pós-geração continua o `pratica` no `validar_modulo`. (`prompts/author.ts`
+  está CONGELADO por contrato — a especificidade do desafio vive na F8, que é onde entrou.)
+- **"Gerar novo desafio" (app, `services/challengeRegenerator.ts`): JÁ TINHA a lógica** (a seção
+  `TAMBÉM REVISE`, alimentada pelo `reviewSelection` → `practiceLedger`), e foi **refinada** com as
+  descobertas da campanha: a regra passou a exigir a mistura **no caminho que o aluno escreve**
+  (`solutionCode` pratica 1–2 itens e os testes exigem esse caminho — teste sozinho não pratica
+  nada), e a seleção (`services/reviewSelection.ts`) passou a considerar só átomos **escrevíveis**
+  (`entrada.productive`) — antes podia sugerir átomos só-receptivos, a armadilha `api:.y`.
+- Pin do contrato atualizado em `app/tests/challengeReviewInjection.test.ts` (o texto do prompt é
+  travado por teste; prompt e pin mudam juntos).
+
+### 9.7 Dívidas que ficam, declaradas
+
+- Os **desafios de módulo continuam FORA do `auditTrack`** (o audit cobre só `lesson.challenges`) —
+  a contenção deles é `coverage` + `requirements` + `track:validate` + `pratica`.
+- **`statement` continua não-extraído pelo audit** (`challengeSurfaces` = starter/solution/tests).
+- **`check-trilha-c.mjs`** marca 2 achados [D6] pré-existentes (`a-string-e-o-zero` declara
+  `node:StringLiteral` no doc e não no `introduces`; `mudar-o-dado` idem com `op:assign:=`) —
+  divergência doc×disco por decidir (promover o átomo a `introduces` ou ajustar a célula do doc).
+- **A22/A24** (duas formas sintáticas × quiz acertável pelo comprimento) continuam em aviso em
+  massa (102/145/17) — material de uma onda de polimento de teoria/quiz, não de desafios.

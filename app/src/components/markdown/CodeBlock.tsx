@@ -37,10 +37,17 @@
  *   | rótulo | o nome da linguagem | `challenge.output` ("Saída"/"Output") |
  *   | fio sob o rótulo | 2px `primary.fill` (família action) | 2px `info.fill` |
  *   | tinta do rótulo | `primary.accentText` | `info.accentText` |
- *   | corpo | COLORIDO pelos 9 papéis | monocromático, tinta primária |
+ *   | corpo | COLORIDO pelos 9 papéis de SINTAXE | COLORIDO pelos papéis de ESTADO |
  *
- * O sinal mais forte é o último e é gratuito: código tem cor, resposta de
- * computador não tem. É a mesma leitura do terminal do app.
+ * ONDA-CODIGO-EDITOR (pedido do dono: "com highlight para ate o output, e
+ * ficar facil de entender as coisas"): a última linha mudou — a saída deixou
+ * de ser monocromática. A distinção deixou de ser "com cor × sem cor" e passou
+ * a ser QUAL cor: ENTRADA leva gramática (keyword/string/function…), SAÍDA
+ * leva estado (✓ passou em verde, ✗ falhou em vermelho, aviso em âmbar,
+ * valores citados e contagens destacados, durações/relogios em tinta quieta).
+ * As duas caixas continuam a dizer coisas diferentes; agora a segunda também
+ * é legível de relance. Os DOIS vocabulários vêm do `codeTheme`
+ * (`CodePaintRole`), todos medidos ≥ 4,5:1 contra o well.
  *
  * E a escolha das DUAS famílias não é gosto: `codeTheme.ts` já elegeu a família
  * `action` como o acento da superfície de código ("Cursor/caret. É o acento
@@ -78,26 +85,51 @@
  * estouro medido de 1226px num painel de 1000px (a linha longa do runner
  * empurrava a bolha inteira). O bloco rola por dentro; a bolha não cresce.
  */
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Fragment, useMemo, type ReactElement } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import CheckIcon from '@mui/icons-material/Check';
+import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 
-import { CODE_DARK, CODE_LIGHT, CODE_SYNTAX_ROLES, CODE_TYPOGRAPHY, type CodePalette } from '../../lib/codeTheme';
+import {
+  CODE_DARK,
+  CODE_LIGHT,
+  CODE_STATE_ROLES,
+  CODE_SYNTAX_ROLES,
+  CODE_TYPOGRAPHY,
+  type CodePalette,
+} from '../../lib/codeTheme';
+import { copyTextToClipboard } from '../../lib/copyToClipboard';
 import { SHAPE, TYPE } from '../../lib/designTokens';
 import { codeFenceRole, type CodeFenceRole } from '../../lib/typewriterSegments';
-import { highlightCodeLines, type CodeToken } from './codeHighlight';
+import { codeLabelFor, highlightCodeLines, highlightOutputLines, type CodeToken } from './codeHighlight';
 
-/** `& .tok-<papel> { color }` para uma polaridade inteira da paleta de código. */
+/**
+ * `& .tok-<papel> { color }` para uma polaridade inteira da paleta de código.
+ * ONDA-CODIGO-EDITOR: cobre os 9 papéis de SINTAXE (entrada) E os 5 de ESTADO
+ * (saída) — os dois vocabulários pintáveis (`CodePaintRole` do codeTheme).
+ */
 function syntaxRules(palette: CodePalette): Record<string, { color: string }> {
   const rules: Record<string, { color: string }> = {};
   for (const role of CODE_SYNTAX_ROLES) {
     rules[`& .tok-${role}`] = { color: palette.syntax[role] };
+  }
+  for (const role of CODE_STATE_ROLES) {
+    rules[`& .tok-${role}`] = { color: palette.state[role] };
   }
   return rules;
 }
 
 const SYNTAX_LIGHT = syntaxRules(CODE_LIGHT);
 const SYNTAX_DARK = syntaxRules(CODE_DARK);
+
+/**
+ * ONDA-CODIGO-EDITOR (finding-2): quanto tempo o botão fica em "Copiado ✓".
+ * O audit pede "~2s" — tempo de ler a confirmação sem o estado se arrastar.
+ */
+const COPIED_HOLD_MS = 2000;
 
 export interface CodeBlockProps {
   /** Conteúdo do bloco, SEM cercas. */
@@ -116,15 +148,53 @@ export interface CodeBlockProps {
 export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactElement {
   const { t } = useTranslation();
   const role: CodeFenceRole = codeFenceRole(lang);
-  // Só ENTRADA é colorida (ver "as duas caixas"): a saída do computador não é
-  // código-fonte e pintá-la com papéis de sintaxe seria informação falsa.
+  // ONDA-CODIGO-EDITOR (pedido do dono: "com highlight para ate o output, e
+  // ficar facil de entender as coisas"): ENTRADA continua a sair com os 9
+  // papéis de SINTAXE; SAÍDA deixa de ser monocromática e passa a sair com os
+  // papéis de ESTADO (✓ passou em verde, ✗ falhou em vermelho, aviso em
+  // âmbar, valores citados e contagens destacados) — ver
+  // `highlightOutputLines`. As DUAS caixas continuam distintas: quem é
+  // código-fonte leva gramática; quem é resposta do computador leva estado.
   const lines = useMemo(
-    () => highlightCodeLines(code, role === 'input' ? lang : ''),
+    () => (role === 'output' ? highlightOutputLines(code) : highlightCodeLines(code, lang)),
     [code, lang, role],
   );
   const visible = visibleLines ?? lines.length;
-  const label = role === 'output' ? t('translation:challenge.output') : (lang || 'code');
+  // ONDA-CODIGO-EDITOR: o chip mostra o NOME da linguagem, não a tag crua da
+  // cerca (`c`/`py`/`mjs` são apelidos de markdown — "confuso", disse o dono).
+  const label = role === 'output' ? t('translation:challenge.output') : (codeLabelFor(lang) ?? (lang || 'code'));
   const accent = role === 'output' ? 'info' : 'primary';
+
+  /**
+   * ONDA-CODIGO-EDITOR (finding-2 da auditoria uxui — "1 clique para copiar"):
+   * o botão copia o `code` CRU (sem números de linha nem o prompt decorativo —
+   * ver `copyToClipboard.ts`) e confirma com "Copiado ✓" por COPIED_HOLD_MS.
+   * A confirmação é estado curto: o timeout é limpo no desmonte (nunca um
+   * setState pós-desmonte) e o `useCallback` depende só do texto copiado.
+   */
+  const [copied, setCopied] = useState(false);
+  // W15 (auditoria de UX): a FALHA de cópia também é estado visível — antes
+  // `if (!ok) return` deixava o clique parecer morto (só o sucesso tinha
+  // feedback). Mesma duração curta do "Copiado ✓", anunciada em aria-live.
+  const [copyFailed, setCopyFailed] = useState(false);
+  const copyTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+    },
+    [],
+  );
+  const handleCopy = useCallback((): void => {
+    void copyTextToClipboard(code).then((ok) => {
+      setCopied(ok);
+      setCopyFailed(!ok);
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(() => {
+        setCopied(false);
+        setCopyFailed(false);
+      }, COPIED_HOLD_MS);
+    });
+  }, [code]);
 
   return (
     <Box
@@ -133,7 +203,13 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
           my: 1,
           maxWidth: '100%',
           borderRadius: `${SHAPE.sm}px`,
-          border: `2px solid ${theme.vars.palette.divider}`,
+          // ONDA-CODIGO-EDITOR (finding-1 da auditoria uxui — sinal de FORMA):
+          // com as DUAS caixas coloridas, a moldura passa a ser a distinção que
+          // sobrevive a percorrer a conversa depressa, a daltonismo e a
+          // impressão a preto: ENTRADA = sólida (cartão de editor), SAÍDA =
+          // tracejada (copia de impressora/terminal). A cor do fio e o chip
+          // continuam — são sinais a mais, não os únicos.
+          border: `2px ${role === 'output' ? 'dashed' : 'solid'} ${theme.vars.palette.divider}`,
           backgroundColor: theme.vars.palette.surface.level2,
           color: theme.vars.palette.text.primary,
           overflow: 'hidden',
@@ -145,50 +221,169 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
       <Box
         sx={(theme) => ({
           px: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing(1),
+          minWidth: 0,
           // O fio colorido é o que separa cabeçalho de código — não uma
           // segunda superfície (ver "acento-como-texto só até o nível 2").
           borderBottom: `2px solid ${theme.vars.palette[accent].fill}`,
         })}
       >
+        {/* ONDA-CODIGO-EDITOR (finding-1): ÍCONE por tipo de caixa — o segundo
+            sinal de forma (junto da moldura): terminal para a SAÍDA, código
+            para a ENTRADA. Decorativo (`aria-hidden`): o nome acessível da
+            caixa continua a ser o rótulo textual ("Saída"/"C"). */}
+        <Box
+          component="span"
+          aria-hidden="true"
+          sx={(theme) => ({ display: 'inline-flex', color: theme.vars.palette[accent].accentText })}
+        >
+          {role === 'output' ? <TerminalRoundedIcon fontSize="small" /> : <CodeRoundedIcon fontSize="small" />}
+        </Box>
         <Typography
           variant="pixel"
           component="span"
-          sx={(theme) => ({ color: theme.vars.palette[accent].accentText })}
+          sx={(theme) => ({
+            color: theme.vars.palette[accent].accentText,
+            flex: 1,
+            minWidth: 0,
+            // Quebra, nunca recorta (SC 1.4.12) — a linha do cabeçalho é flex.
+            whiteSpace: 'normal',
+            overflowWrap: 'anywhere',
+          })}
         >
           {label}
         </Typography>
+        {/* ONDA-CODIGO-EDITOR (finding-2 da auditoria uxui — "Copiar" em 1
+            clique, como toda a superfície editor-like): copia o `code` CRU
+            (o gutter é aria-hidden/user-select:none e o prompt é decorativo —
+            nenhum dos dois entra na cópia) e confirma "Copiado ✓" por ~2s.
+            Alvo de toque no piso de 44 (TOUCH_TARGET_PX da casa). */}
+        <Button
+          size="small"
+          variant="text"
+          onClick={handleCopy}
+          startIcon={copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+          aria-label={
+            copied
+              ? t('translation:common.copiedCode')
+              : copyFailed
+                ? t('translation:common.copyFailed')
+                : t('translation:common.copyCode')
+          }
+          sx={(theme) => ({
+            flexShrink: 0,
+            minHeight: 44,
+            color: copyFailed ? theme.vars.palette.error.accentText : theme.vars.palette.text.secondary,
+            whiteSpace: 'normal',
+            overflowWrap: 'anywhere',
+          })}
+        >
+          {/* aria-live: a troca de rótulo do botão não é anunciada sozinha —
+              a região viva garante que "Copiado ✓"/"Não foi possível copiar"
+              chega a quem usa leitor de tela. */}
+          <span role="status" aria-live="polite">
+            {copied
+              ? t('translation:common.copiedCode')
+              : copyFailed
+                ? t('translation:common.copyFailed')
+                : t('translation:common.copyCode')}
+          </span>
+        </Button>
       </Box>
-      <Box
-        component="pre"
-        sx={{
-          m: 0,
-          p: 1,
-          overflowX: 'auto',
-          maxWidth: '100%',
-          whiteSpace: 'pre',
-          fontFamily: CODE_TYPOGRAPHY.fontFamily,
-          fontSize: CODE_TYPOGRAPHY.fontSize,
-          lineHeight: TYPE.codeLineHeight,
-        }}
-      >
-        <code>
-          {lines.map((tokens, i) => (
-            <Fragment key={i}>
-              {/* `visibility` (e não `display`) é o que RESERVA a caixa: a
-                  linha ocupa o mesmo espaço antes e depois de ser revelada. */}
-              <span style={i < visible ? undefined : { visibility: 'hidden' }}>
-                {tokens.map((token: CodeToken, j: number) => (
-                  <span key={j} className={token.role === null ? undefined : `tok-${token.role}`}>
-                    {token.text}
-                  </span>
-                ))}
-              </span>
-              {/* A quebra fica FORA do span da linha: ela existe desde o
-                  primeiro quadro, então a altura do bloco nunca muda. */}
-              {i < lines.length - 1 ? '\n' : null}
-            </Fragment>
+      {/* ONDA-CODIGO-EDITOR — O GUTTER DE NÚMEROS DE LINHA (pedido do dono:
+          "mostrando o numero da linha realmente parecendo um editor").
+          Arranjo de DOIS filhos, como um editor: [números][código rolável].
+            · o gutter NÃO rola com o código (é um filho flex separado) — os
+              números ficam colados à esquerda como no CodeMirror/VS Code;
+            · `aria-hidden` + `userSelect: 'none'`: os números são ADORNO de
+              leitura. Fora do `<code>`, o copiar/colar leva só o código e o
+              leitor de ecrã não anuncia "1 2 3" antes de cada linha;
+            · cada número é um bloco com a MESMA fonte/tamanho/entrelinha da
+              linha que rotula (alinhamento 1:1 — `whiteSpace: 'pre'` garante
+              que o código nunca embrulha, então a correspondência é exata) e
+              usa a MESMA regra de `visibility` da linha: com o typewriter a
+              revelar, o número aparece JUNTO com a sua linha, e a caixa
+              reserva a altura final desde o primeiro quadro;
+            · `tabular-nums`: dígitos de largura constante, senão os números
+              "dançam" à medida que passam de 9 para 10. */}
+      <Box sx={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden' }}>
+        <Box
+          component="div"
+          aria-hidden="true"
+          sx={(theme) => ({
+            flexShrink: 0,
+            py: 1,
+            px: 1,
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+            color: theme.vars.palette.text.secondary,
+            fontFamily: CODE_TYPOGRAPHY.fontFamily,
+            fontSize: CODE_TYPOGRAPHY.fontSize,
+            lineHeight: TYPE.codeLineHeight,
+            textAlign: 'right',
+            fontVariantNumeric: 'tabular-nums',
+            userSelect: 'none',
+          })}
+        >
+          {lines.map((_tokens, i) => (
+            <span key={i} style={{ display: 'block', visibility: i < visible ? undefined : 'hidden' }}>
+              {i + 1}
+            </span>
           ))}
-        </code>
+        </Box>
+        <Box
+          component="pre"
+          sx={{
+            m: 0,
+            p: 1,
+            overflowX: 'auto',
+            maxWidth: '100%',
+            flex: 1,
+            minWidth: 0,
+            whiteSpace: 'pre',
+            fontFamily: CODE_TYPOGRAPHY.fontFamily,
+            fontSize: CODE_TYPOGRAPHY.fontSize,
+            lineHeight: TYPE.codeLineHeight,
+          }}
+        >
+          <code>
+            {lines.map((tokens, i) => (
+              <Fragment key={i}>
+                {/* `visibility` (e não `display`) é o que RESERVA a caixa: a
+                    linha ocupa o mesmo espaço antes e depois de ser revelada. */}
+                <span style={i < visible ? undefined : { visibility: 'hidden' }}>
+                  {/* ONDA-CODIGO-EDITOR (finding-1): o PREFIXO de terminal na
+                      primeira linha da saída — terceiro sinal de forma (junto
+                      da moldura tracejada e do ícone). É ADORNO: `aria-hidden`
+                      + `user-select: none`, logo não vai para o leitor de ecrã
+                      nem para a cópia (nem a seleção manual o inclui — o
+                      Chromium exclui user-select:none do copiado, e o botão
+                      "Copiar" copia o `code` cru). Vive DENTRO do span da
+                      linha 1: aparece e some COM ela na revelação do
+                      typewriter, sem mexer na altura da caixa. */}
+                  {role === 'output' && i === 0 ? (
+                    <Box
+                      component="span"
+                      aria-hidden="true"
+                      sx={(theme) => ({ userSelect: 'none', color: theme.vars.palette[accent].fill })}
+                    >
+                      {'❯ '}
+                    </Box>
+                  ) : null}
+                  {tokens.map((token: CodeToken, j: number) => (
+                    <span key={j} className={token.role === null ? undefined : `tok-${token.role}`}>
+                      {token.text}
+                    </span>
+                  ))}
+                </span>
+                {/* A quebra fica FORA do span da linha: ela existe desde o
+                    primeiro quadro, então a altura do bloco nunca muda. */}
+                {i < lines.length - 1 ? '\n' : null}
+              </Fragment>
+            ))}
+          </code>
+        </Box>
       </Box>
     </Box>
   );
