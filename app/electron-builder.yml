@@ -24,6 +24,11 @@ directories:
   output: dist
   buildResources: build
 
+# SEM auto-update/publish: com GH_TOKEN no ambiente o electron-builder tenta
+# resolver um provider e rebenta em createUpdateInfoTasks (publishConfigs=[null],
+# updateInfoBuilder.ts). `publish: null` corta a geração de latest*.yml antes.
+publish: null
+
 npmRebuild: false
 
 # Empacotamento: out/ (bundle electron-vite) + package.json. node_modules é
