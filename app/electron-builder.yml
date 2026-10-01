@@ -88,16 +88,16 @@ win:
     - target: nsis
       arch: [x64]
   files:
-    - "!node_modules/@node-llama-cpp/{linux,mac}-*/**"
-    - "!node_modules/@node-llama-cpp/win-arm64{,/**}"
-    - "!node_modules/@node-llama-cpp/win-x64-cuda*{,/**}"
-    - "!node_modules/@node-llama-cpp/win-x64-vulkan{,/**}"
-    - "!node_modules/sherpa-onnx-{darwin,linux}-*/**"
-    - "!node_modules/sherpa-onnx-win-ia32{,/**}"
-    - "!node_modules/@mariozechner/clipboard-{darwin,linux}-*/**"
-    - "!node_modules/@mariozechner/clipboard-win32-arm64-msvc{,/**}"
-    - "!node_modules/@reflink/reflink-{darwin,linux}-*/**"
-    - "!node_modules/@reflink/reflink-win32-arm64-msvc{,/**}"
+    - "!**/node_modules/@node-llama-cpp/{linux,mac}-*/**"
+    - "!**/node_modules/@node-llama-cpp/win-arm64{,/**}"
+    - "!**/node_modules/@node-llama-cpp/win-x64-cuda*{,/**}"
+    - "!**/node_modules/@node-llama-cpp/win-x64-vulkan{,/**}"
+    - "!**/node_modules/sherpa-onnx-{darwin,linux}-*/**"
+    - "!**/node_modules/sherpa-onnx-win-ia32{,/**}"
+    - "!**/node_modules/@mariozechner/clipboard-{darwin,linux}-*/**"
+    - "!**/node_modules/@mariozechner/clipboard-win32-arm64-msvc{,/**}"
+    - "!**/node_modules/@reflink/reflink-{darwin,linux}-*/**"
+    - "!**/node_modules/@reflink/reflink-win32-arm64-msvc{,/**}"
 
 # ---------------------------------------------------------------------------
 # macOS — dmg + zip, arm64 (Apple Silicon) e x64 (Intel)
@@ -116,11 +116,11 @@ mac:
     - target: zip
       arch: [arm64, x64]
   files:
-    - "!node_modules/@node-llama-cpp/{linux,win}-*/**"
-    - "!node_modules/sherpa-onnx-{linux,win}-*/**"
-    - "!node_modules/@mariozechner/clipboard-{linux,win32}-*/**"
-    - "!node_modules/@mariozechner/clipboard-darwin-universal{,/**}"
-    - "!node_modules/@reflink/reflink-{linux,win32}-*/**"
+    - "!**/node_modules/@node-llama-cpp/{linux,win}-*/**"
+    - "!**/node_modules/sherpa-onnx-{linux,win}-*/**"
+    - "!**/node_modules/@mariozechner/clipboard-{linux,win32}-*/**"
+    - "!**/node_modules/@mariozechner/clipboard-darwin-universal{,/**}"
+    - "!**/node_modules/@reflink/reflink-{linux,win32}-*/**"
 
 # ---------------------------------------------------------------------------
 # Linux — AppImage + deb x64
@@ -139,15 +139,15 @@ linux:
     - target: deb
       arch: [x64]
   files:
-    - "!node_modules/@node-llama-cpp/{mac,win}-*/**"
-    - "!node_modules/@node-llama-cpp/linux-arm*{,/**}"
-    - "!node_modules/@node-llama-cpp/linux-x64-cuda*{,/**}"
-    - "!node_modules/@node-llama-cpp/linux-x64-vulkan{,/**}"
-    - "!node_modules/sherpa-onnx-{darwin,win}-*/**"
-    - "!node_modules/sherpa-onnx-linux-arm64{,/**}"
-    - "!node_modules/@mariozechner/clipboard-{darwin,win32}-*/**"
-    - "!node_modules/@mariozechner/clipboard-linux-{arm64,riscv64}-*/**"
-    - "!node_modules/@mariozechner/clipboard-linux-x64-musl{,/**}"
-    - "!node_modules/@reflink/reflink-{darwin,win32}-*/**"
-    - "!node_modules/@reflink/reflink-linux-arm64-*/**"
-    - "!node_modules/@reflink/reflink-linux-x64-musl{,/**}"
+    - "!**/node_modules/@node-llama-cpp/{mac,win}-*/**"
+    - "!**/node_modules/@node-llama-cpp/linux-arm*{,/**}"
+    - "!**/node_modules/@node-llama-cpp/linux-x64-cuda*{,/**}"
+    - "!**/node_modules/@node-llama-cpp/linux-x64-vulkan{,/**}"
+    - "!**/node_modules/sherpa-onnx-{darwin,win}-*/**"
+    - "!**/node_modules/sherpa-onnx-linux-arm64{,/**}"
+    - "!**/node_modules/@mariozechner/clipboard-{darwin,win32}-*/**"
+    - "!**/node_modules/@mariozechner/clipboard-linux-{arm64,riscv64}-*/**"
+    - "!**/node_modules/@mariozechner/clipboard-linux-x64-musl{,/**}"
+    - "!**/node_modules/@reflink/reflink-{darwin,win32}-*/**"
+    - "!**/node_modules/@reflink/reflink-linux-arm64-*/**"
+    - "!**/node_modules/@reflink/reflink-linux-x64-musl{,/**}"

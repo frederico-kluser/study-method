@@ -142,60 +142,66 @@ npm run build
 # ---------------------------------------------------------------------------
 # 4–5. electron-builder por alvo + verificação fail-closed
 # ---------------------------------------------------------------------------
-verificar_unpacked() {
-  local unpacked="$1" alvo="$2"
-  local esperados forbidos pat hit p
+# Lista os NOMES das variantes de plataforma efetivamente empacotadas:
+# clipboard-*/reflink-*/sherpa-onnx-* em QUALQUER profundidade (o npm aninha as
+# variantes sob o pacote pai — @mariozechner/clipboard/node_modules/…) e as
+# variantes @node-llama-cpp/* (escopo por path: os prebuilds do tree-sitter-rust
+# têm nomes iguais — darwin-x64, linux-x64 — e NÃO são variantes nossas).
+listar_variantes() {
+  {
+    find "$1" -type d \( -name "clipboard-*" -o -name "reflink-*" -o -name "sherpa-onnx-*" \) -prune -print 2>/dev/null
+    find "$1" -type d -path "*/@node-llama-cpp/*" -prune -print 2>/dev/null
+  } | awk -F/ '{print $NF}' | sort -u
+}
 
-  if [[ ! -d "$unpacked" ]]; then
-    echo "FALHA ($alvo): não existe $unpacked" >&2
+verificar_unpacked() {
+  local root="$1" alvo="$2"
+  local lista nome pat
+  local esperados forbidos
+
+  if [[ ! -d "$root" ]]; then
+    echo "FALHA ($alvo): não existe $root" >&2
     exit 1
   fi
+  lista=$(listar_variantes "$root")
 
   case "$alvo" in
     win-x64)
-      esperados=(sherpa-onnx-win-x64 @node-llama-cpp/win-x64 @mariozechner/clipboard-win32-x64-msvc @reflink/reflink-win32-x64-msvc)
-      forbidos=(
-        '@node-llama-cpp/linux-*' '@node-llama-cpp/mac-*' '@node-llama-cpp/win-arm64' '@node-llama-cpp/win-x64-cuda*' '@node-llama-cpp/win-x64-vulkan'
-        'sherpa-onnx-darwin-*' 'sherpa-onnx-linux-*' 'sherpa-onnx-win-ia32'
-        '@mariozechner/clipboard-darwin-*' '@mariozechner/clipboard-linux-*' '@mariozechner/clipboard-win32-arm64-*'
-        '@reflink/reflink-darwin-*' '@reflink/reflink-linux-*' '@reflink/reflink-win32-arm64-*'
-      )
+      esperados="clipboard-win32-x64-msvc reflink-win32-x64-msvc sherpa-onnx-win-x64 win-x64"
+      forbidos="clipboard-darwin-* clipboard-linux-* clipboard-win32-arm64-* reflink-darwin-* reflink-linux-* reflink-win32-arm64-* sherpa-onnx-darwin-* sherpa-onnx-linux-* sherpa-onnx-win-ia32 mac-* linux-* win-arm64 win-x64-cuda* win-x64-vulkan"
       ;;
     linux-x64)
-      esperados=(sherpa-onnx-linux-x64 @node-llama-cpp/linux-x64 @mariozechner/clipboard-linux-x64-gnu @reflink/reflink-linux-x64-gnu)
-      forbidos=(
-        '@node-llama-cpp/mac-*' '@node-llama-cpp/win-*' '@node-llama-cpp/linux-arm*' '@node-llama-cpp/linux-x64-cuda*' '@node-llama-cpp/linux-x64-vulkan'
-        'sherpa-onnx-darwin-*' 'sherpa-onnx-win-*' 'sherpa-onnx-linux-arm64'
-        '@mariozechner/clipboard-darwin-*' '@mariozechner/clipboard-win32-*' '@mariozechner/clipboard-linux-arm64-*' '@mariozechner/clipboard-linux-riscv64-*' '@mariozechner/clipboard-linux-x64-musl'
-        '@reflink/reflink-darwin-*' '@reflink/reflink-win32-*' '@reflink/reflink-linux-arm64-*' '@reflink/reflink-linux-x64-musl'
-      )
+      esperados="clipboard-linux-x64-gnu reflink-linux-x64-gnu sherpa-onnx-linux-x64 linux-x64"
+      forbidos="clipboard-darwin-* clipboard-win32-* clipboard-linux-arm64-* clipboard-linux-riscv64-* clipboard-linux-x64-musl reflink-darwin-* reflink-win32-* reflink-linux-arm64-* reflink-linux-x64-musl sherpa-onnx-darwin-* sherpa-onnx-win-* sherpa-onnx-linux-arm64 mac-* win-* linux-arm* linux-x64-cuda* linux-x64-vulkan"
       ;;
     mac-*)
-      esperados=(sherpa-onnx-darwin-arm64 @node-llama-cpp/mac-arm64-metal @mariozechner/clipboard-darwin-arm64 @reflink/reflink-darwin-arm64)
-      forbidos=(
-        '@node-llama-cpp/linux-*' '@node-llama-cpp/win-*'
-        'sherpa-onnx-linux-*' 'sherpa-onnx-win-*'
-        '@mariozechner/clipboard-linux-*' '@mariozechner/clipboard-win32-*' '@mariozechner/clipboard-darwin-universal'
-        '@reflink/reflink-linux-*' '@reflink/reflink-win32-*'
-      )
+      # ambos os archs darwin em cada .app (decisão do config: cada instalador
+      # mac roda nativo E sob Rosetta)
+      esperados="clipboard-darwin-arm64 clipboard-darwin-x64 reflink-darwin-arm64 reflink-darwin-x64 sherpa-onnx-darwin-arm64 sherpa-onnx-darwin-x64 mac-arm64-metal mac-x64"
+      forbidos="clipboard-linux-* clipboard-win32-* clipboard-darwin-universal reflink-linux-* reflink-win32-* sherpa-onnx-linux-* sherpa-onnx-win-* linux-* win-*"
       ;;
   esac
 
-  for p in "${esperados[@]}"; do
-    [[ -e "$unpacked/$p" ]] || {
-      echo "FALHA ($alvo): variante esperada ausente em $unpacked: $p" >&2
-      exit 1
-    }
-  done
-  for pat in "${forbidos[@]}"; do
-    hit=$(compgen -G "$unpacked/$pat" || true)
-    if [[ -n "$hit" ]]; then
-      echo "FALHA ($alvo): variante estrangeira empacotada em $unpacked: $pat" >&2
-      echo "$hit" >&2
+  for nome in $esperados; do
+    if ! printf '%s\n' "$lista" | grep -qx "$nome"; then
+      echo "FALHA ($alvo): variante esperada ausente em $root: $nome" >&2
+      echo "variantes encontradas: $(printf '%s' "$lista" | tr '\n' ' ')" >&2
       exit 1
     fi
   done
-  echo "OK   ($alvo): variantes nativas corretas em $unpacked"
+  while IFS= read -r nome; do
+    [[ -n "$nome" ]] || continue
+    for pat in $forbidos; do
+      # shellcheck disable=SC2254  # padrão shell-glob vindo de variável
+      case "$nome" in
+        $pat)
+          echo "FALHA ($alvo): variante estrangeira empacotada em $root: $nome" >&2
+          exit 1
+          ;;
+      esac
+    done
+  done <<<"$lista"
+  echo "OK   ($alvo): variantes nativas corretas em $root"
 }
 
 for alvo in "${ALVOS[@]}"; do
