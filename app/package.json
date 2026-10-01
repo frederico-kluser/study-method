@@ -11,7 +11,12 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "postbuild": "node -e \"require('node:fs').cpSync('electron/main/engine/vocab','out/main/vocab',{recursive:true})\"",
     "preview": "electron-vite preview",
+    "dist": "bash tools/build-installers.sh",
+    "dist:mac": "bash tools/build-installers.sh mac-arm64 mac-x64",
+    "dist:win": "bash tools/build-installers.sh win-x64",
+    "dist:linux": "bash tools/build-installers.sh linux-x64",
     "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "bash tools/t.sh tests",
     "test:e2e": "playwright test",
