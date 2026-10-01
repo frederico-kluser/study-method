@@ -114,7 +114,13 @@ done
 
 if [[ ${#NECESSARIOS[@]} -gt 0 ]]; then
   echo "==> instalando variantes nativas (--no-save): ${NECESSARIOS[*]}"
-  npm install --no-save --no-audit --no-fund --ignore-scripts "${NECESSARIOS[@]}"
+  # --force: o npm recusa EBADPLATFORM instalar a variante de OUTRA plataforma
+  # (ex.: clipboard-darwin-x64 num host arm64) — que é exatamente o que
+  # precisamos de pôr em node_modules para empacotar cross-plataforma.
+  # --ignore-scripts: os install scripts não são necessários (koffi/web-tree-
+  # sitter carregam dos prebuilds do tarball) e o npm 11 bloqueia-os por
+  # omissão (allow-scripts) de qualquer forma.
+  npm install --no-save --force --no-audit --no-fund --ignore-scripts "${NECESSARIOS[@]}"
   for spec in "${NECESSARIOS[@]}"; do
     dir="${spec%@*}"
     [[ -d "node_modules/$dir" ]] || {
