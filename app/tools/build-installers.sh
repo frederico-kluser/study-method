@@ -40,13 +40,6 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." # .../app
 
-# Darwin: o fpm gera o .deb com `ar -qc` e o BSD ar do macOS não tem -q —
-# pôr o shim tools/ar-shim à frente do PATH (ver o próprio shim).
-if [[ "$(uname)" == "Darwin" ]]; then
-  PATH="$(pwd)/tools/ar-shim:$PATH"
-  export PATH
-fi
-
 # ---------------------------------------------------------------------------
 # Alvos
 # ---------------------------------------------------------------------------
@@ -74,8 +67,94 @@ builder_args_do_alvo() {
     mac-arm64) echo "--mac --arm64" ;;
     mac-x64) echo "--mac --x64" ;;
     win-x64) echo "--win --x64" ;;
-    linux-x64) echo "--linux --x64" ;;
+    # SÓ AppImage pelo electron-builder: o fpm empacotado dele está quebrado
+    # no macOS (ver gerar_deb abaixo) — o .deb sai do gerador próprio.
+    linux-x64) echo "--linux AppImage --x64" ;;
   esac
+}
+
+# ---------------------------------------------------------------------------
+# gerar_deb — .deb sem o fpm
+# ---------------------------------------------------------------------------
+# O fpm-1.9.3 empacotado do electron-builder falha SEMPRE no macOS ao gerar
+# deb ("Process failed: ar failed (exit code 1)"): chama `ar -qc` com
+# debian-binary/control.tar.gz relativos a um CWD onde eles não estão —
+# reproduzido isoladamente, com e sem espaços no nome de saída.
+# Um .deb não tem segredo: um arquivo `ar` de três membros — debian-binary
+# ("2.0"), control.tar.gz (control + scripts) e data.tar.gz (a árvore).
+# Os campos espelham os que o próprio fpm usava (vê-se no log da falha):
+# depends do Electron, icons em hicolor e .desktop.
+gerar_deb() {
+  local versao nome tmp data ctrl size debfinal
+  versao=$(node -p "require('./package.json').version")
+  nome="study-method-gui_${versao}_amd64.deb"
+  debfinal="dist/Study Method-${versao}-linux-amd64.deb"
+  tmp=$(mktemp -d /tmp/study-method-deb.XXXXXX)
+  data="$tmp/data"
+  ctrl="$tmp/ctrl"
+
+  mkdir -p "$data/opt" "$data/usr/share/applications"
+  mkdir -p "$data/usr/share/icons/hicolor"
+  cp -R "dist/linux-unpacked" "$data/opt/Study Method"
+  cp -R node_modules/app-builder-lib/templates/icons/electron-linux "$data/usr/share/icons/hicolor/.icons-tmp"
+  local s
+  for s in 16x16 32x32 48x48 64x64 128x128 256x256; do
+    mkdir -p "$data/usr/share/icons/hicolor/$s/apps"
+    cp "$data/usr/share/icons/hicolor/.icons-tmp/$s.png" "$data/usr/share/icons/hicolor/$s/apps/study-method-gui.png"
+  done
+  rm -rf "$data/usr/share/icons/hicolor/.icons-tmp"
+
+  cat >"$data/usr/share/applications/study-method-gui.desktop" <<'DESKTOP'
+[Desktop Entry]
+Name=Study Method
+Comment=Tutor de programação com aula, desafios validados por teste e memória de progresso
+Exec="/opt/Study Method/study-method-gui" %U
+Terminal=false
+Type=Application
+Icon=study-method-gui
+StartupWMClass=Study Method
+Categories=Education;
+DESKTOP
+
+  mkdir -p "$ctrl"
+  size=$(du -sk "$data/opt" | cut -f1)
+  cat >"$ctrl/control" <<CONTROL
+Package: study-method-gui
+Version: ${versao}
+Section: utils
+Priority: optional
+Architecture: amd64
+Installed-Size: ${size}
+Maintainer: study-method <study-method@users.noreply.github.com>
+Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0
+Recommends: libappindicator3-1
+Homepage: https://github.com/frederico-kluser/study-method#readme
+Description: Tutor de programação com aula e desafios validados por teste
+ GUI Electron para o tutor study-method — LLM local (node-llama-cpp),
+ editor de código sem autocomplete, pesquisa Brave e pi coding agent
+ (GLM 5.3 Flash via OpenRouter).
+CONTROL
+  cat >"$ctrl/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+update-desktop-database -q /usr/share/applications >/dev/null 2>&1 || true
+gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+exit 0
+POSTINST
+  chmod 755 "$ctrl/postinst"
+
+  # dono root nos membros do tar (sem os flags o tar guarda uid do build)
+  (cd "$data" && tar --uid 0 --gid 0 --uname root --gname root -czf "$tmp/data.tar.gz" .) 2>/dev/null ||
+    (cd "$data" && tar -czf "$tmp/data.tar.gz" .)
+  (cd "$ctrl" && tar --uid 0 --gid 0 --uname root --gname root -czf "$tmp/control.tar.gz" .) 2>/dev/null ||
+    (cd "$ctrl" && tar -czf "$tmp/control.tar.gz" .)
+  printf '2.0\n' >"$tmp/debian-binary"
+
+  # nome interno sem espaços (o ar de alguns hosts é sensível); mv no fim
+  (cd "$tmp" && /usr/bin/ar -rc "$tmp/pkg.deb" debian-binary control.tar.gz data.tar.gz)
+  mv "$tmp/pkg.deb" "$debfinal"
+  rm -rf "$tmp"
+  echo "OK   (linux-x64): deb gerado em $debfinal"
 }
 
 # ---------------------------------------------------------------------------
@@ -221,6 +300,7 @@ for alvo in "${ALVOS[@]}"; do
       verificar_unpacked "dist/win-unpacked/resources/app.asar.unpacked/node_modules" "$alvo"
       ;;
     linux-x64)
+      gerar_deb
       verificar_unpacked "dist/linux-unpacked/resources/app.asar.unpacked/node_modules" "$alvo"
       ;;
     mac-*)
