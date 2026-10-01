@@ -150,9 +150,11 @@ POSTINST
     (cd "$ctrl" && tar -czf "$tmp/control.tar.gz" .)
   printf '2.0\n' >"$tmp/debian-binary"
 
-  # nome interno sem espaços (o ar de alguns hosts é sensível); mv no fim
-  (cd "$tmp" && /usr/bin/ar -rc "$tmp/pkg.deb" debian-binary control.tar.gz data.tar.gz)
-  mv "$tmp/pkg.deb" "$debfinal"
+  # -S É CRÍTICO no macOS: sem ele o LLVM ar corre ranlib e reescreve o
+  # arquivo SÓ com o __.SYMDEF (os membros somem — medido: deb de 4 KB);
+  # com -S o .deb sai com os três membros. GNU ar também aceita S.
+  (cd "$tmp" && /usr/bin/ar -rcS "$tmp/pkg.deb" debian-binary control.tar.gz data.tar.gz)
+  cp "$tmp/pkg.deb" "$debfinal"
   rm -rf "$tmp"
   echo "OK   (linux-x64): deb gerado em $debfinal"
 }
@@ -334,5 +336,10 @@ if command -v sha256sum >/dev/null 2>&1; then
 else
   SHA="shasum -a 256"
 fi
-find dist -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" \) | sort | xargs $SHA >dist/SHA256SUMS.txt
+# -print0 + read -d '' — os nomes dos instaladores TÊM espaços ("Study Method…")
+: >dist/SHA256SUMS.txt
+find dist -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" \) -print0 |
+  while IFS= read -r -d '' f; do
+    $SHA "$f" >>dist/SHA256SUMS.txt
+  done
 echo "==> checksums em app/dist/SHA256SUMS.txt"
