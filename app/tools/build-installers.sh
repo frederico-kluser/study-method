@@ -40,6 +40,13 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.." # .../app
 
+# Darwin: o fpm gera o .deb com `ar -qc` e o BSD ar do macOS não tem -q —
+# pôr o shim tools/ar-shim à frente do PATH (ver o próprio shim).
+if [[ "$(uname)" == "Darwin" ]]; then
+  PATH="$(pwd)/tools/ar-shim:$PATH"
+  export PATH
+fi
+
 # ---------------------------------------------------------------------------
 # Alvos
 # ---------------------------------------------------------------------------
