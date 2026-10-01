@@ -34,6 +34,10 @@
 #
 set -euo pipefail
 
+# COMPATIBILIDADE: o bash do macOS é o 3.2.57 do sistema — este script usa só
+# recursos dele (sem declare -A, sem mapfile, sem assoc arrays). Se adicionar
+# bashismo de bash 4+, teste com `bash --posix` ou num mac real.
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.." # .../app
 
 # ---------------------------------------------------------------------------
@@ -88,25 +92,33 @@ versao_no_lock() {
   ' "$1"
 }
 
-declare -A INSTALAR=()
+# lista plana "nome@versao" — compatível com bash 3.2 do macOS (sem declare -A)
+NECESSARIOS=()
+ja_na_lista() {
+  local n="$1" x
+  for x in "${NECESSARIOS[@]:-}"; do
+    [[ "$x" == "$n@"* ]] && return 0
+  done
+  return 1
+}
+
 for alvo in "${ALVOS[@]}"; do
   # valida o alvo já aqui (a função também descreve as variantes)
   variantes_do_alvo "$alvo" >/dev/null
   for pkg in $(variantes_do_alvo "$alvo"); do
-    INSTALAR["$pkg"]="$(versao_no_lock "$pkg")"
+    if ! ja_na_lista "$pkg"; then
+      NECESSARIOS+=("${pkg}@$(versao_no_lock "$pkg")")
+    fi
   done
 done
 
-if [[ ${#INSTALAR[@]} -gt 0 ]]; then
-  PCKGS=()
-  for pkg in "${!INSTALAR[@]}"; do
-    PCKGS+=("${pkg}@${INSTALAR[$pkg]}")
-  done
-  echo "==> instalando variantes nativas (--no-save): ${PCKGS[*]}"
-  npm install --no-save --no-audit --no-fund --ignore-scripts "${PCKGS[@]}"
-  for pkg in "${!INSTALAR[@]}"; do
-    [[ -d "node_modules/$pkg" ]] || {
-      echo "FALHA: variante $pkg não ficou em node_modules/" >&2
+if [[ ${#NECESSARIOS[@]} -gt 0 ]]; then
+  echo "==> instalando variantes nativas (--no-save): ${NECESSARIOS[*]}"
+  npm install --no-save --no-audit --no-fund --ignore-scripts "${NECESSARIOS[@]}"
+  for spec in "${NECESSARIOS[@]}"; do
+    dir="${spec%@*}"
+    [[ -d "node_modules/$dir" ]] || {
+      echo "FALHA: variante $dir não ficou em node_modules/" >&2
       exit 1
     }
   done
@@ -194,15 +206,17 @@ for alvo in "${ALVOS[@]}"; do
       ;;
     mac-*)
       # cada build mac produz a sua .app; verificar TODAS as que existirem
-      # (o check é por plataforma, vale igual para arm64 e x64)
-      mapfile -t APPS < <(find dist -type d -path "*.app/Contents/Resources/app.asar.unpacked/node_modules" 2>/dev/null)
-      [[ ${#APPS[@]} -gt 0 ]] || {
+      # (o check é por plataforma, vale igual para arm64 e x64) — loop
+      # while-read em vez de mapfile (bash 3.2 do macOS)
+      napps=0
+      while IFS= read -r unpacked; do
+        napps=$((napps + 1))
+        verificar_unpacked "$unpacked" "$alvo"
+      done < <(find dist -type d -path "*.app/Contents/Resources/app.asar.unpacked/node_modules" 2>/dev/null)
+      [[ $napps -gt 0 ]] || {
         echo "FALHA ($alvo): nenhuma .app com app.asar.unpacked em dist/" >&2
         exit 1
       }
-      for unpacked in "${APPS[@]}"; do
-        verificar_unpacked "$unpacked" "$alvo"
-      done
       ;;
   esac
 done
