@@ -1,0 +1,58 @@
+{
+  "id": "nivel-3",
+  "title": "Rotear encomendas",
+  "enunciado": "Você roteia as encomendas pelo depósito. A primeira linha traz N, o número de prateleiras; a segunda traz N pesos. Cada prateleira leva o seu peso em passos e, entre prateleiras consecutivas, o robô gasta mais 1 passo de deslocação. Escreva o total de passos seguido de uma quebra de linha; se não houver prateleiras, o total é 0. Com a entrada 3 e depois 2 1 3, a saída é 8.",
+  "introduces": [
+    "arrays"
+  ],
+  "boss": false,
+  "contract": {
+    "mode": "io",
+    "cases": [
+      {
+        "name": "três prateleiras",
+        "input": "3\n2 1 3\n",
+        "expectedOutput": "8\n"
+      },
+      {
+        "name": "uma prateleira",
+        "input": "1\n5\n",
+        "expectedOutput": "5\n"
+      },
+      {
+        "name": "nenhuma prateleira",
+        "input": "0\n\n",
+        "expectedOutput": "0\n",
+        "hidden": true
+      },
+      {
+        "name": "quatro leves",
+        "input": "4\n1 1 1 1\n",
+        "expectedOutput": "7\n",
+        "hidden": true
+      }
+    ]
+  },
+  "langs": {
+    "c": {
+      "starter": "#include <stdio.h>\n\nint main(void) {\n    int n, x;\n    scanf(\"%d\", &n);\n    for (int i = 0; i < n; i++) {\n        scanf(\"%d\", &x);\n    }\n    printf(\"0\\n\");\n    return 0;\n}\n",
+      "reference": "#include <stdio.h>\n\nint main(void) {\n    int n, pesos[1024];\n    scanf(\"%d\", &n);\n    long long total = 0;\n    for (int i = 0; i < n; i++) {\n        scanf(\"%d\", &pesos[i]);\n        total += pesos[i];\n    }\n    if (n > 0) total += n - 1;\n    printf(\"%lld\\n\", total);\n    return 0;\n}\n"
+    },
+    "python": {
+      "starter": "n = int(input())\npesos = [int(x) for x in input().split()]\nprint(0)\n",
+      "reference": "n = int(input())\npesos = [int(x) for x in input().split()]\ntotal = sum(pesos) + (n - 1 if n > 0 else 0)\nprint(total)\n"
+    },
+    "rust": {
+      "starter": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let mut pesos: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        pesos.push(partes.next().unwrap().parse().unwrap());\n    }\n    println!(\"0\");\n}\n",
+      "reference": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let mut pesos: Vec<i64> = Vec::new();\n    for _ in 0..n {\n        pesos.push(partes.next().unwrap().parse().unwrap());\n    }\n    let total: i64 = pesos.iter().sum::<i64>() + if n > 0 { n as i64 - 1 } else { 0 };\n    println!(\"{}\", total);\n}\n"
+    }
+  },
+  "optimize": {
+    "lines": {
+      "par": 6
+    },
+    "timeMs": {
+      "parMs": 300
+    }
+  }
+}

@@ -97,11 +97,15 @@ const CONFIRM_TITLE_ID = 'onboarding-confirm-title';
 /** Nome acessível do painel de instruções = o título do passo em curso. */
 const PANEL_TITLE_ID = 'onboarding-panel-title';
 
-const NAV_TAB_KEY: Record<PanelKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.challenge'> = {
+// ONDA-GAMES (ajuste mínimo forçado pelo tipo): o `Record<PanelKey, ...>` é
+// TOTAL por desenho — um painel novo não compila sem entrada aqui. 'games'
+// ganhou a sua chave nav.* junto com o item do rail (ownership da onda Games).
+const NAV_TAB_KEY: Record<PanelKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.games' | 'translation:nav.challenge'> = {
   home: 'translation:nav.home',
   settings: 'translation:nav.settings',
   lesson: 'translation:nav.lesson',
   roadmap: 'translation:nav.roadmap',
+  games: 'translation:nav.games',
   challenge: 'translation:nav.challenge',
 };
 

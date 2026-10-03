@@ -34,6 +34,19 @@
     // SetupView.tsx) ficam FORA daqui — pertencem ao tsconfig.json do renderer.
     "src/gate/startupState.ts",
     "src/i18n/index.ts",
+    // ONDA-GAMES: o contrato TRAVADO de games (src/types/games.ts) é PURO
+    // (só tipos) e é alcançável por import do motor (engine/games/*), do
+    // preload (api-schema) e do shared/ipc-contract — listado aqui pelo mesmo
+    // motivo dos demais (projeto composite exige listar o que se importa).
+    "src/types/games.ts",
+    // ONDA-GAMES: os HELPERS PUROS da UI de games (gamesUi.ts — bins do
+    // histograma, formatação de métricas, estado dos nós do mapa) são testados
+    // headless de tests/gamesView.test.ts e tests/gamesLevelView.test.ts;
+    // listados aqui pelo mesmo motivo dos demais módulos puros (projeto
+    // composite exige listar o que os testes importam). Os componentes React
+    // da pasta (GamesView/GameLevelView) ficam FORA — pertencem ao
+    // tsconfig.json do renderer.
+    "src/views/GamesView/gamesUi.ts",
     // src/theme.ts é PURO (createTheme, sem JSX/DOM) e é testado de
     // tests/theme.test.ts — adicionado ao projeto composite de testes.
     "src/theme.ts",

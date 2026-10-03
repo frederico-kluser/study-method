@@ -16,12 +16,14 @@ import {
 } from '../src/lib/shellNav';
 
 describe('NAV_ITEMS — ordem canônica do rail', () => {
-  it('tem exatamente 4 abas na ordem Início→Aula→Trilha→Configurações (Desafio SAIU do rail)', () => {
+  it('tem exatamente 5 abas na ordem Início→Aula→Trilha→Games→Configurações (Desafio SAIU do rail)', () => {
     // ONDA-ORDEM-DO-RAIL (pedido do dono: "settings quero por ultimo e nao
     // embaixo de inicio, mas embaixo de trilha"): o Settings é o ÚLTIMO item.
+    // ONDA-GAMES (ajuste mínimo desta spec — pedido do orquestrador): 'games'
+    // entra DEPOIS de 'roadmap' e o Settings continua último.
     assert.deepEqual(
       NAV_ITEMS.map((n) => n.key),
-      ['home', 'lesson', 'roadmap', 'settings'],
+      ['home', 'lesson', 'roadmap', 'games', 'settings'],
     );
   });
 
@@ -32,6 +34,7 @@ describe('NAV_ITEMS — ordem canônica do rail', () => {
         'translation:nav.home',
         'translation:nav.lesson',
         'translation:nav.roadmap',
+        'translation:nav.games',
         'translation:nav.settings',
       ],
     );

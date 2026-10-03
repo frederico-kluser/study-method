@@ -1,0 +1,58 @@
+{
+  "id": "nivel-4",
+  "title": "Priorizar",
+  "enunciado": "Você organiza a fila de saída do depósito. A primeira linha traz N; as N linhas seguintes trazem duas coisas: peso e prioridade de cada encomenda. Reescreva as encomendas como peso prioridade, uma por linha, ordenadas pela prioridade mais alta primeiro; em empate de prioridade, vem primeiro a de menor peso. Com N igual a 0, não escreva nada.",
+  "introduces": [
+    "funcoes"
+  ],
+  "boss": false,
+  "contract": {
+    "mode": "io",
+    "cases": [
+      {
+        "name": "fila com empate",
+        "input": "3\n2 1\n5 3\n1 3\n",
+        "expectedOutput": "1 3\n5 3\n2 1\n"
+      },
+      {
+        "name": "uma encomenda",
+        "input": "1\n9 9\n",
+        "expectedOutput": "9 9\n"
+      },
+      {
+        "name": "empate total",
+        "input": "2\n2 1\n1 1\n",
+        "expectedOutput": "1 1\n2 1\n",
+        "hidden": true
+      },
+      {
+        "name": "fila vazia",
+        "input": "0\n\n",
+        "expectedOutput": "",
+        "hidden": true
+      }
+    ]
+  },
+  "langs": {
+    "c": {
+      "starter": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    scanf(\"%d\", &n);\n    int peso[1024], prioridade[1024];\n    for (int i = 0; i < n; i++) scanf(\"%d %d\", &peso[i], &prioridade[i]);\n    for (int i = 0; i < n; i++) printf(\"%d %d\\n\", peso[i], prioridade[i]);\n    return 0;\n}\n",
+      "reference": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct { int peso, prioridade; } Encomenda;\n\nint comparar(const void *a, const void *b) {\n    const Encomenda *x = a, *y = b;\n    if (x->prioridade != y->prioridade) return y->prioridade - x->prioridade;\n    return x->peso - y->peso;\n}\n\nint main(void) {\n    int n;\n    scanf(\"%d\", &n);\n    Encomenda v[1024];\n    for (int i = 0; i < n; i++) scanf(\"%d %d\", &v[i].peso, &v[i].prioridade);\n    qsort(v, n, sizeof(Encomenda), comparar);\n    for (int i = 0; i < n; i++) printf(\"%d %d\\n\", v[i].peso, v[i].prioridade);\n    return 0;\n}\n"
+    },
+    "python": {
+      "starter": "def ordem(encomenda):\n    peso, prioridade = encomenda\n    return -prioridade\n\nn = int(input())\nencomendas = []\nfor _ in range(n):\n    peso, prioridade = map(int, input().split())\n    encomendas.append((peso, prioridade))\nencomendas.sort(key=ordem)\nfor peso, prioridade in encomendas:\n    print(peso, prioridade)\n",
+      "reference": "def ordem(encomenda):\n    peso, prioridade = encomenda\n    return (-prioridade, peso)\n\nn = int(input())\nencomendas = []\nfor _ in range(n):\n    peso, prioridade = map(int, input().split())\n    encomendas.append((peso, prioridade))\nencomendas.sort(key=ordem)\nfor peso, prioridade in encomendas:\n    print(peso, prioridade)\n"
+    },
+    "rust": {
+      "starter": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let mut encomendas: Vec<(i64, i64)> = Vec::new();\n    for _ in 0..n {\n        let peso: i64 = partes.next().unwrap().parse().unwrap();\n        let prioridade: i64 = partes.next().unwrap().parse().unwrap();\n        encomendas.push((peso, prioridade));\n    }\n    encomendas.sort_by(|a, b| b.1.cmp(&a.1));\n    for (peso, prioridade) in &encomendas {\n        println!(\"{} {}\", peso, prioridade);\n    }\n}\n",
+      "reference": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let mut encomendas: Vec<(i64, i64)> = Vec::new();\n    for _ in 0..n {\n        let peso: i64 = partes.next().unwrap().parse().unwrap();\n        let prioridade: i64 = partes.next().unwrap().parse().unwrap();\n        encomendas.push((peso, prioridade));\n    }\n    encomendas.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));\n    for (peso, prioridade) in &encomendas {\n        println!(\"{} {}\", peso, prioridade);\n    }\n}\n"
+    }
+  },
+  "optimize": {
+    "lines": {
+      "par": 13
+    },
+    "timeMs": {
+      "parMs": 400
+    }
+  }
+}

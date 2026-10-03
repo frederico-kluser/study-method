@@ -1,0 +1,58 @@
+{
+  "id": "nivel-2",
+  "title": "Contar caixas",
+  "enunciado": "Você controla o braço do robô que descarrega as caixas. A primeira linha da entrada traz N, o número de caixas; a segunda traz N números inteiros (podem ser negativos) separados por espaço, o peso de cada caixa. Escreva a soma dos pesos seguida de uma quebra de linha. Com a entrada 3 e depois 1 2 3, a saída é 6.",
+  "introduces": [
+    "lacos"
+  ],
+  "boss": false,
+  "contract": {
+    "mode": "io",
+    "cases": [
+      {
+        "name": "três caixas",
+        "input": "3\n1 2 3\n",
+        "expectedOutput": "6\n"
+      },
+      {
+        "name": "uma caixa",
+        "input": "1\n42\n",
+        "expectedOutput": "42\n"
+      },
+      {
+        "name": "nenhuma caixa",
+        "input": "0\n\n",
+        "expectedOutput": "0\n",
+        "hidden": true
+      },
+      {
+        "name": "pesos negativos",
+        "input": "5\n-1 2 -3 4 5\n",
+        "expectedOutput": "7\n",
+        "hidden": true
+      }
+    ]
+  },
+  "langs": {
+    "c": {
+      "starter": "#include <stdio.h>\n\nint main(void) {\n    int n, x;\n    long long soma = 0;\n    scanf(\"%d\", &n);\n    for (int i = 0; i < n; i++) {\n        scanf(\"%d\", &x);\n    }\n    printf(\"%lld\\n\", soma);\n    return 0;\n}\n",
+      "reference": "#include <stdio.h>\n\nint main(void) {\n    int n, x;\n    long long soma = 0;\n    scanf(\"%d\", &n);\n    for (int i = 0; i < n; i++) {\n        scanf(\"%d\", &x);\n        soma += x;\n    }\n    printf(\"%lld\\n\", soma);\n    return 0;\n}\n"
+    },
+    "python": {
+      "starter": "n = int(input())\ncaixas = input().split()\nprint(0)\n",
+      "reference": "n = int(input())\nsoma = 0\nfor x in map(int, input().split()):\n    soma += x\nprint(soma)\n"
+    },
+    "rust": {
+      "starter": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let soma: i64 = 0;\n    for _ in 0..n {\n        let _caixa: i64 = partes.next().unwrap().parse().unwrap();\n    }\n    println!(\"{}\", soma);\n}\n",
+      "reference": "use std::io::{self, Read};\n\nfn main() {\n    let mut entrada = String::new();\n    io::stdin().read_to_string(&mut entrada).unwrap();\n    let mut partes = entrada.split_whitespace();\n    let n: usize = partes.next().unwrap().parse().unwrap();\n    let mut soma: i64 = 0;\n    for _ in 0..n {\n        soma += partes.next().unwrap().parse::<i64>().unwrap();\n    }\n    println!(\"{}\", soma);\n}\n"
+    }
+  },
+  "optimize": {
+    "lines": {
+      "par": 7
+    },
+    "timeMs": {
+      "parMs": 300
+    }
+  }
+}

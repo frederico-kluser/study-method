@@ -26,7 +26,7 @@
  */
 
 /** Destinos do RAIL (itens que renderizam tab no `NavigationRail`). */
-export type NavKey = 'home' | 'lesson' | 'roadmap' | 'settings';
+export type NavKey = 'home' | 'lesson' | 'roadmap' | 'games' | 'settings';
 
 /**
  * Painéis do shell: os destinos do rail + o Desafio (fora do rail — painel
@@ -44,6 +44,7 @@ export type NavI18nKey =
   | 'translation:nav.home'
   | 'translation:nav.lesson'
   | 'translation:nav.roadmap'
+  | 'translation:nav.games'
   | 'translation:nav.settings';
 
 export interface NavItem {
@@ -53,7 +54,7 @@ export interface NavItem {
 }
 
 /**
- * Ordem canônica das abas do rail (Início → Aula → Trilha → Configurações).
+ * Ordem canônica das abas do rail (Início → Aula → Trilha → Games → Configurações).
  *
  * ONDA-ORDEM-DO-RAIL (pedido do dono, verbatim: *"settings quero por ultimo e
  * nao embaixo de inicio, mas embaixo de trilha"*): o Settings saiu do 2º lugar
@@ -61,11 +62,17 @@ export interface NavItem {
  * Trilha. A ordem agora segue a jornada do aluno (Início → Aula → Trilha) e
  * deixa a configuração, que é destino raro, como último item; é a mesma
  * lógica de "ações de suporte no fim" que o VS Code usa no Activity Bar.
+ *
+ * ONDA-GAMES: 'games' entra DEPOIS de 'roadmap' (pedido do orquestrador) e
+ * ANTES de 'settings' — a secção Games é continuação da jornada de estudo
+ * (depois da trilha) e não destino de suporte. O Settings continua sendo o
+ * último item do rail.
  */
 export const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { key: 'home', i18nKey: 'translation:nav.home' },
   { key: 'lesson', i18nKey: 'translation:nav.lesson' },
   { key: 'roadmap', i18nKey: 'translation:nav.roadmap' },
+  { key: 'games', i18nKey: 'translation:nav.games' },
   { key: 'settings', i18nKey: 'translation:nav.settings' },
 ];
 

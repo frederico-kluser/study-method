@@ -4,7 +4,8 @@
     "settings": "Settings",
     "lesson": "Lesson",
     "challenge": "Challenge",
-    "roadmap": "Track"
+    "roadmap": "Track",
+    "games": "Games"
   },
   "app": {
     "title": "Study Method: Tutor",
@@ -808,5 +809,79 @@
     "errorGeneric": "Could not generate a new challenge.",
     "close": "Close",
     "cancel": "Cancel"
+  },
+  "games": {
+    "title": "Games",
+    "loading": "Loading worlds…",
+    "loadError": "Couldn't load the game worlds.",
+    "loadTimeout": "The games engine did not respond in time.",
+    "empty": {
+      "title": "No world installed yet",
+      "body": "Game worlds come from the modules of your current track. Install a track on the Track tab and the level map shows up here."
+    },
+    "world": {
+      "levels_one": "{{count}} level",
+      "levels_other": "{{count}} levels",
+      "bosses_one": "{{count}} boss",
+      "bosses_other": "{{count}} bosses",
+      "langHint": "The mechanics are the same in any language: you can switch at any time."
+    },
+    "lang": {
+      "aria": "Game language",
+      "c": "C",
+      "python": "Python",
+      "rust": "Rust"
+    },
+    "map": {
+      "levelsAria": "Levels of world {{world}}",
+      "nodeAria": "Level {{n}} · {{title}} · {{state}}",
+      "bossAria": "Boss · {{title}} · {{state}}",
+      "cardTitle": "Level {{n}} · {{title}}",
+      "introduces": "introduces",
+      "recordLines": "lines record: {{value}}",
+      "recordTime": "time record: {{value}}",
+      "play": "Play level {{n}}"
+    },
+    "state": {
+      "done": "completed",
+      "current": "current",
+      "locked": "locked"
+    },
+    "boss": {
+      "badge": "boss"
+    },
+    "level": {
+      "back": "‹ Back to map",
+      "loading": "Loading the level…",
+      "loadError": "Couldn't load the level.",
+      "enunciado": "Statement",
+      "editorAria": "Code editor for level {{n}}",
+      "eyebrow": "World {{world}} · Level {{n}}",
+      "summary": "{{ok}} of {{total}} tests passed",
+      "runError": "Couldn't run the tests (infrastructure failure). Try again.",
+      "casesTitle": "Test cases",
+      "casesEmpty": "No results yet: write your solution and use the \"Test answer\" button.",
+      "caseHidden": "hidden case",
+      "passed": "passed",
+      "failed": "failed",
+      "expected": "expected",
+      "actual": "actual",
+      "completedBanner": "Level completed ✓"
+    },
+    "opt": {
+      "title": "Optimization",
+      "hint": "Solving = level complete. Optimizing is optional.",
+      "lines": "lines",
+      "time": "time",
+      "par": "par: {{value}}",
+      "record": "record: {{value}}",
+      "noRecord": "no record yet",
+      "histTitle": "distribution of your attempts (lines)",
+      "you": "your solution",
+      "parMarker": "par",
+      "betterThan": "your solution: better than {{percent}}%",
+      "optimize": "Optimize",
+      "advance": "Next ›"
+    }
   }
 }

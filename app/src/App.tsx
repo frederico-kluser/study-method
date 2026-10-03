@@ -69,6 +69,10 @@ import {
   ChallengeView,
   type ViewProps,
 } from './views';
+// ONDA-GAMES: GamesView entra pelo caminho PRÓPRIO (e não por ./views) de
+// propósito — o registry `views/index.ts` está fora do ownership desta onda e
+// o VIEWS abaixo continua sendo o único mapa painel→view do shell.
+import GamesView from './views/GamesView/GamesView';
 import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProvider';
 import { SessionStateProvider } from './components/sessionState/SessionStateProvider';
 import NavigationRail from './components/shell/NavigationRail';
@@ -115,6 +119,9 @@ const VIEWS: Record<PanelKey, ComponentType<ViewProps>> = {
   settings: SettingsView,
   lesson: LessonView,
   roadmap: RoadmapView,
+  // ONDA-GAMES: o painel Games é o mapa do mundo + o nível (a troca mapa↔nível
+  // vive DENTRO da GamesView, não no shell — o shell só conhece painéis).
+  games: GamesView,
   // ONDA-SEM-DESAFIO-NO-RAIL: o painel Desafio CONTINUA montável no shell —
   // só perdeu a tab no rail. Lesson/Roadmap chegam nele via
   // useChallengeNav().navigateToChallenge() (ChallengeNavProvider abaixo).

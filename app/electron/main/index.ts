@@ -27,6 +27,9 @@ import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
 import { registerTrackHandlers } from './ipc/track-handlers';
+import { registerGamesHandlers } from './engine/games/ipc';
+import { createGamesProgressStore } from './engine/games/progress';
+import { resolveGamesDir } from './engine/games/worlds';
 import { resolveTracksDir } from './services/resourcesDir';
 import { createLessonRepo, type LessonRepo } from './db/repo';
 import { openMigratedSqlite } from './db/connection';
@@ -105,6 +108,30 @@ if (!gotLock) {
       const { join } = await import('node:path');
       app.setPath('userData', await mkdtemp(join(tmpdir(), 'study-method-e2e-user-')));
       registerE2EStubs();
+
+      // GAMES EM MODO E2E (paridade do stub — tests/e2e/e2e-games.spec.ts):
+      // este ramo faz `return` ANTES da fiação real, e sem esta ligação os
+      // canais `games:*` ficavam SEM handler em toda a suíte e2e
+      // ("No handler registered for 'games:list-worlds'" → a secção Games
+      // mostrava "Não foi possível carregar os mundos de jogo.").
+      // O motor de games é LOCAL e determinístico (stdin→stdout, sem
+      // rede/LLM/GPU) — corre REAL aqui, pela MESMA razão que o stub do
+      // `track:challenge-submit` delega para a produção
+      // (`completeLessonOnChallengePass`): o harness mede o produto, não um
+      // duplo. O userData já foi isolado ACIMA, então o `games-progress.json`
+      // de cada lançamento nasce vazio e morre com o perfil temporário do
+      // helpers.ts (nenhum teste contamina o outro).
+      await registerGamesHandlers({
+        getGamesDir: () =>
+          resolveGamesDir({
+            isPackaged: app.isPackaged,
+            resourcesPath: process.resourcesPath,
+            appPath: app.getAppPath(),
+            cwd: process.cwd(),
+          }),
+        getProgressStore: () => createGamesProgressStore({ userDataPath: app.getPath('userData') }),
+      });
+
       createWindow();
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -241,6 +268,21 @@ if (!gotLock) {
         // ONDA3 (generate-flow): o progresso do track:challenge-regenerate
         // chega ao renderer pelo canal push (o modal global escuta).
         emit: emitWindow,
+      });
+
+      // GAMES (ONDA-GAMES): o conteúdo vive em resources/games (mesmo mecanismo
+      // de paths de resources/tracks) e o progresso é JSON em userData, ao lado
+      // de settings.json/study.db (padrão settingsStore). Registro ADITIVO, fora
+      // do buildMainSetup (mesma convenção da voz/trilhas).
+      registerGamesHandlers({
+        getGamesDir: () =>
+          resolveGamesDir({
+            isPackaged: app.isPackaged,
+            resourcesPath: process.resourcesPath,
+            appPath: app.getAppPath(),
+            cwd: process.cwd(),
+          }),
+        getProgressStore: () => createGamesProgressStore({ userDataPath: app.getPath('userData') }),
       });
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);

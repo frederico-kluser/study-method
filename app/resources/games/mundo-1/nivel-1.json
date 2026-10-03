@@ -1,0 +1,58 @@
+{
+  "id": "nivel-1",
+  "title": "Saudar o depósito",
+  "enunciado": "Você é o robô do depósito e a primeira tarefa é simples: saudar quem entra. Leia uma palavra (o nome da visita) da entrada padrão e escreva na saída padrão Bem-vindo, <nome>! seguido de uma quebra de linha. Exemplo: com a entrada Ana, a saída é Bem-vindo, Ana!",
+  "introduces": [
+    "io"
+  ],
+  "boss": false,
+  "contract": {
+    "mode": "io",
+    "cases": [
+      {
+        "name": "Ana",
+        "input": "Ana\n",
+        "expectedOutput": "Bem-vindo, Ana!\n"
+      },
+      {
+        "name": "robot",
+        "input": "robot\n",
+        "expectedOutput": "Bem-vindo, robot!\n"
+      },
+      {
+        "name": "nome de uma letra",
+        "input": "Z\n",
+        "expectedOutput": "Bem-vindo, Z!\n",
+        "hidden": true
+      },
+      {
+        "name": "Lia",
+        "input": "Lia\n",
+        "expectedOutput": "Bem-vindo, Lia!\n",
+        "hidden": true
+      }
+    ]
+  },
+  "langs": {
+    "c": {
+      "starter": "#include <stdio.h>\n\nint main(void) {\n    char nome[64];\n    scanf(\"%63s\", nome);\n    printf(\"Bem-vindo!\\n\");\n    return 0;\n}\n",
+      "reference": "#include <stdio.h>\n\nint main(void) {\n    char nome[64];\n    scanf(\"%63s\", nome);\n    printf(\"Bem-vindo, %s!\\n\", nome);\n    return 0;\n}\n"
+    },
+    "python": {
+      "starter": "nome = input().strip()\nprint(\"Bem-vindo!\")\n",
+      "reference": "nome = input().strip()\nprint(f\"Bem-vindo, {nome}!\")\n"
+    },
+    "rust": {
+      "starter": "use std::io;\n\nfn main() {\n    let mut nome = String::new();\n    io::stdin().read_line(&mut nome).unwrap();\n    println!(\"Bem-vindo!\");\n}\n",
+      "reference": "use std::io;\n\nfn main() {\n    let mut nome = String::new();\n    io::stdin().read_line(&mut nome).unwrap();\n    println!(\"Bem-vindo, {}!\", nome.trim());\n}\n"
+    }
+  },
+  "optimize": {
+    "lines": {
+      "par": 4
+    },
+    "timeMs": {
+      "parMs": 300
+    }
+  }
+}

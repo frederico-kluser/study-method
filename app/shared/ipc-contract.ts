@@ -21,6 +21,29 @@ export const KEYS_CHANNELS = {
   STARTUP_STATUS: 'keys:startup-status',
 } as const;
 
+// ─── Canais: motor de games (ONDA-GAMES — aditivo) ───────────────────────────
+/**
+ * A secção Games: mapa de mundos/níveis, carga do nível sem spoilers e a
+ * submissão que corre o contrato de I/O (stdin → stdout). Os TIPOS do contrato
+ * vivem TRAVADOS em `src/types/games.ts` (fronteira motor/conteúdo/UI) e são
+ * reexportados aqui para o preload consumir num único import.
+ */
+export const GAMES_CHANNELS = {
+  LIST_WORLDS: 'games:list-worlds',
+  LOAD_LEVEL: 'games:load-level',
+  RUN: 'games:run',
+} as const;
+
+export type {
+  GameLang,
+  GameLevelSummary,
+  GameWorldSummary,
+  GameLevelPayload,
+  GameCaseResult,
+  GameRunResult,
+  GameProgress,
+} from '../src/types/games';
+
 // ─── Canais: pi coding agent ──────────────────────────────────────────────────
 export const PI_CHANNELS = {
   EXECUTE: 'pi:execute',

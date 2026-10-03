@@ -1,0 +1,13 @@
+{
+  "id": "mundo-1",
+  "title": "O robô do depósito",
+  "description": "Você programa o robô do depósito: saúda a visita, conta caixas, roteia encomendas, prioriza a fila e fecha o relatório final. Cada nível é um contrato de entrada e saída que corre igual em C, Python ou Rust.",
+  "track": "c-iniciante",
+  "levels": [
+    "nivel-1",
+    "nivel-2",
+    "nivel-3",
+    "nivel-4",
+    "chefe"
+  ]
+}

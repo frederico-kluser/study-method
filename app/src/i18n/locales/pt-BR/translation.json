@@ -4,7 +4,8 @@
     "settings": "Configurações",
     "lesson": "Aula",
     "challenge": "Desafio",
-    "roadmap": "Trilha"
+    "roadmap": "Trilha",
+    "games": "Jogos"
   },
   "app": {
     "title": "Study Method: Tutor",
@@ -808,5 +809,79 @@
     "errorGeneric": "Não foi possível gerar um novo desafio.",
     "close": "Fechar",
     "cancel": "Cancelar"
+  },
+  "games": {
+    "title": "Jogos",
+    "loading": "A carregar os mundos…",
+    "loadError": "Não foi possível carregar os mundos de jogo.",
+    "loadTimeout": "O motor de games não respondeu a tempo.",
+    "empty": {
+      "title": "Nenhum mundo instalado ainda",
+      "body": "Os mundos de jogo nascem dos módulos da tua trilha atual. Instala uma trilha na aba Trilha e o mapa dos níveis aparece aqui."
+    },
+    "world": {
+      "levels_one": "{{count}} nível",
+      "levels_other": "{{count}} níveis",
+      "bosses_one": "{{count}} chefe",
+      "bosses_other": "{{count}} chefes",
+      "langHint": "A mecânica é a mesma em qualquer linguagem: podes trocar a qualquer momento."
+    },
+    "lang": {
+      "aria": "Linguagem do jogo",
+      "c": "C",
+      "python": "Python",
+      "rust": "Rust"
+    },
+    "map": {
+      "levelsAria": "Níveis do mundo {{world}}",
+      "nodeAria": "Nível {{n}} · {{title}} · {{state}}",
+      "bossAria": "Chefe · {{title}} · {{state}}",
+      "cardTitle": "Nível {{n}} · {{title}}",
+      "introduces": "introduz",
+      "recordLines": "recorde de linhas: {{value}}",
+      "recordTime": "recorde de tempo: {{value}}",
+      "play": "Jogar nível {{n}}"
+    },
+    "state": {
+      "done": "concluído",
+      "current": "atual",
+      "locked": "bloqueado"
+    },
+    "boss": {
+      "badge": "chefe"
+    },
+    "level": {
+      "back": "‹ Voltar ao mapa",
+      "loading": "A carregar o nível…",
+      "loadError": "Não foi possível carregar o nível.",
+      "enunciado": "Enunciado",
+      "editorAria": "Editor de código do nível {{n}}",
+      "eyebrow": "Mundo {{world}} · Nível {{n}}",
+      "summary": "{{ok}} de {{total}} testes passaram",
+      "runError": "Não foi possível correr os testes (falha de infraestrutura). Tente de novo.",
+      "casesTitle": "Casos de teste",
+      "casesEmpty": "Ainda sem resultados: escreve a tua solução e usa o botão \"Testar resposta\".",
+      "caseHidden": "caso escondido",
+      "passed": "passou",
+      "failed": "falhou",
+      "expected": "esperado",
+      "actual": "obtido",
+      "completedBanner": "Nível concluído ✓"
+    },
+    "opt": {
+      "title": "Otimização",
+      "hint": "Resolver = nível completo. Otimizar é opcional.",
+      "lines": "linhas",
+      "time": "tempo",
+      "par": "par: {{value}}",
+      "record": "recorde: {{value}}",
+      "noRecord": "sem recorde ainda",
+      "histTitle": "distribuição das tuas tentativas (linhas)",
+      "you": "a tua solução",
+      "parMarker": "par",
+      "betterThan": "a tua solução: melhor que {{percent}}%",
+      "optimize": "Otimizar",
+      "advance": "Avançar ›"
+    }
   }
 }

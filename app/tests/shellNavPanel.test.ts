@@ -109,7 +109,9 @@ function codeOf(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 }
 
-const PANEL_KEYS = ['home', 'settings', 'lesson', 'roadmap', 'challenge'] as const;
+// ONDA-GAMES (ajuste mínimo desta spec — ordem/contagem de itens): 'games'
+// entra depois de 'roadmap' (é um NavKey novo E um PanelKey novo).
+const PANEL_KEYS = ['home', 'settings', 'lesson', 'roadmap', 'games', 'challenge'] as const;
 
 /** O componente REAL do rail, carregado no `before`. */
 let NavigationRail: ComponentType<NavigationRailProps>;
@@ -141,7 +143,7 @@ before(async () => {
 /* ═══════ BLOCO 1 — PanelKey no mapa puro (o -1 é um SENTINELA, não índice) ═══════ */
 
 describe('1. shellNav como PanelKey — o Desafio é painel, não tab', () => {
-  it('navIndexOf cobre TODOS os PanelKey: destinos do rail 0..3, challenge -1', () => {
+  it('navIndexOf cobre TODOS os PanelKey: destinos do rail 0..4, challenge -1', () => {
     // Cada destino do rail tem índice estável igual à posição em NAV_ITEMS.
     NAV_ITEMS.forEach((item, i) => {
       assert.equal(navIndexOf(item.key), i, `índice de ${item.key} divergiu da posição`);
@@ -150,9 +152,10 @@ describe('1. shellNav como PanelKey — o Desafio é painel, não tab', () => {
     assert.equal(navIndexOf('challenge'), -1, 'challenge NÃO pode ter índice no rail');
   });
 
-  it('navIsContiguous vale para o rail real (4 destinos, exatamente)', () => {
+  it('navIsContiguous vale para o rail real (5 destinos, exatamente)', () => {
+    // ONDA-GAMES: 5 destinos (home, lesson, roadmap, games, settings).
     assert.equal(navIsContiguous(), true);
-    assert.equal(NAV_ITEMS.length, 4);
+    assert.equal(NAV_ITEMS.length, 5);
   });
 
   it('-1 NUNCA é índice de array: navItemAt(-1) e navItemAt(n) são undefined', () => {

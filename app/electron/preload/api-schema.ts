@@ -27,6 +27,10 @@ import type {
   AppSettings,
   ChallengeInfo,
   DownloadProgress,
+  GameLang,
+  GameLevelPayload,
+  GameRunResult,
+  GameWorldSummary,
   GetLessonByIdResult,
   HardwareInfo,
   JudgeAnswerOutcome,
@@ -80,6 +84,7 @@ import type {
 } from '@shared/ipc-contract';
 
 import {
+  GAMES_CHANNELS,
   KEYS_CHANNELS,
   LOCAL_AI_CHANNELS,
   PI_CHANNELS,
@@ -115,6 +120,8 @@ export const API_GROUPS = {
   study: STUDY_CHANNELS,
   /** ADITIVO (rodada 8 — trilhas): conteúdo pré-definido por CLI + chat do tutor. */
   track: TRACK_CHANNELS,
+  /** ADITIVO (ONDA-GAMES): motor de games — mundos/níveis, carga sem spoilers, run. */
+  games: GAMES_CHANNELS,
   stt: STT_CHANNELS,
   localTts: TTS_CHANNELS,
 } as const;
@@ -306,6 +313,20 @@ export interface ApiSchema {
     quizRemedial(input: QuizRemedialRequest): Promise<QuizRemedialReply>;
     /** Histórico persistido do quiz da aula (tentativas + remediações + maestria). */
     quizHistory(input: QuizHistoryRequest): Promise<QuizHistoryReply>;
+  };
+  /**
+   * ADITIVO (ONDA-GAMES): motor de games — o contrato TRAVADO vive em
+   * `src/types/games.ts`. Os três membros são derivados dos canais
+   * (`games:list-worlds` → `listWorlds`, etc.). Argumentos posicionais, como
+   * o contrato da UI fixou: `run(worldId, levelId, lang, code)`.
+   */
+  games: {
+    /** Mundos + níveis + progresso do aluno (mapa). */
+    listWorlds(): Promise<GameWorldSummary[]>;
+    /** Nível para JOGAR — SEM spoilers (sem casos hidden, sem referência). */
+    loadLevel(worldId: string, levelId: string, lang: GameLang): Promise<GameLevelPayload>;
+    /** Corre o contrato de I/O, grava a tentativa e devolve o veredito+records. */
+    run(worldId: string, levelId: string, lang: GameLang, code: string): Promise<GameRunResult>;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
   stt: {

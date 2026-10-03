@@ -41,6 +41,7 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
+import SportsEsportsRoundedIcon from '@mui/icons-material/SportsEsportsRounded';
 import { useTranslation } from 'react-i18next';
 
 import { SHAPE } from '../../lib/designTokens';
@@ -100,12 +101,18 @@ const INDICATOR_WIDTH = 4;
  * `SettingsRoundedIcon` (engrenagem — a convenção quase universal de
  * definições), não `TuneRoundedIcon` (sliders lê-se "ajustes/filtro"): num
  * rail só-ícone o utilizador procura a engrenagem primeiro.
+ *
+ * ONDA-GAMES: Games leva `SportsEsportsRoundedIcon` (comando/arcade) — a
+ * metáfora universal de "jogar", na mesma família `*Rounded` dos restantes
+ * destinos. Comando, e não bola (`SportsSoccerRounded`): a secção é jogo de
+ * PROGRAMAÇÃO, e a bola lê-se "desporto" em qualquer idioma.
  */
 const NAV_ICON: Record<NavKey, ReactElement> = {
   home: <HomeRoundedIcon />,
   settings: <SettingsRoundedIcon />,
   lesson: <MenuBookRoundedIcon />,
   roadmap: <RouteRoundedIcon />,
+  games: <SportsEsportsRoundedIcon />,
 };
 
 export interface NavigationRailProps {
