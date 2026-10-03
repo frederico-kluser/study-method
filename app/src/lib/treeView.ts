@@ -20,6 +20,7 @@
  * "em andamento" e cada nó pode carregar o nível da trilha).
  */
 import type { DifficultyLevel } from './levels';
+import { tr } from './i18nText';
 
 /** Nó da árvore do motor (redeclarado estruturalmente; sem import de electron/). */
 export interface TreeViewSourceNode {
@@ -62,7 +63,7 @@ function mapNode(node: TreeViewSourceNode): TreeViewNode {
   const done = typeof node.completedAt === 'string' && node.completedAt.length > 0;
   return {
     lessonId: node.lessonId,
-    label: node.title && node.title.trim() ? node.title : 'Aula sem título',
+    label: node.title && node.title.trim() ? node.title : tr('translation:lesson.untitled', 'Aula sem título'),
     state: done ? 'done' : 'pending',
     completedAt: node.completedAt ?? null,
     children: (node.children ?? []).filter((c) => c && typeof c.lessonId === 'string').map(mapNode),

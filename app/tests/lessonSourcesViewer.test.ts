@@ -243,7 +243,8 @@ describe('2. LessonView — a fiação do visualizador', () => {
   });
 
   it('o overlay cobre o tabpanel INTEIRO (absolute inset:0, acima do conteúdo)', () => {
-    assert.match(VIEW, /position: 'absolute',\s*inset: 0,\s*zIndex: 40,/s);
+    // O literal 40 virou o token nomeado da camada (audit §12 — Z_INDEX.contentOverlay).
+    assert.match(VIEW, /position: 'absolute',\s*inset: 0,\s*[\s\S]{0,200}?zIndex: Z_INDEX\.contentOverlay,/s);
   });
 
   it('Esc com o visualizador aberto fecha pelo MESMO handler', () => {

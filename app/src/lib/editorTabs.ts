@@ -134,3 +134,55 @@ export function activeTab(state: EditorTabsState): EditorTab | undefined {
 export function hasDirty(state: EditorTabsState): boolean {
   return state.tabs.some((t) => t.dirty);
 }
+
+/** Devolve a aba de `path`, ou `undefined` quando não está aberta. */
+export function findTab(state: EditorTabsState, path: string): EditorTab | undefined {
+  return state.tabs.find((t) => t.path === path);
+}
+
+/**
+ * Regra de AUTOSAVE ao trocar de aba (decisão extraída do EditorPane):
+ * se a aba corrente está suja e o alvo é outra, o path a salvar ANTES da
+ * troca; `null` quando não há nada a salvar. Falhar este save NÃO autoriza a
+ * troca — o trabalho do utilizador fica onde está.
+ */
+export function pathToAutosaveBeforeActivate(
+  state: EditorTabsState,
+  targetPath: string,
+): string | null {
+  const current = activeTab(state);
+  if (!current || current.path === targetPath || !current.dirty) return null;
+  return current.path;
+}
+
+/**
+ * Regra de AUTOSAVE ao fechar uma aba (extraída do EditorPane): a aba suja é
+ * salva ANTES de fechar; se o save falhar, o fecho não acontece.
+ */
+export function needsAutosaveBeforeClose(state: EditorTabsState, path: string): boolean {
+  return findTab(state, path)?.dirty === true;
+}
+
+/**
+ * Todos os paths sujos, pela ordem das abas — o "save de C1": a ChallengeView
+ * salva TUDO antes de `study.testAnswer` (o teste roda o código DO DISCO).
+ */
+export function dirtyPaths(state: EditorTabsState): string[] {
+  return state.tabs.filter((t) => t.dirty).map((t) => t.path);
+}
+
+/**
+ * Ficheiro de uma aba recém-carregada: usa o `WorkspaceFile` da lista quando
+ * existe; senão sintetiza o mínimo a partir do path (basename), para a aba
+ * abrir também quando a lista ainda não apanhou o ficheiro novo.
+ */
+export function workspaceFileFor(files: readonly WorkspaceFile[], path: string): WorkspaceFile {
+  const found = files.find((f) => f.path === path);
+  if (found) return found;
+  return {
+    path,
+    name: path.split('/').filter(Boolean).pop() ?? path,
+    size: 0,
+    dir: false,
+  };
+}

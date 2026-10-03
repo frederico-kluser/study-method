@@ -62,3 +62,45 @@ export function applyOfflineFlags(source: StartupFlagsSource): StartupFlags {
 export function isBlockedForSetup(source: Pick<StartupStatus, 'phase'>): boolean {
   return source.phase === 'blocked';
 }
+
+/**
+ * Fase de ECRÃ do gate (decisão PURA — testável sem DOM): o que o AppGate
+ * desenha a partir do veredito do main + do estado da leitura. `readError`
+ * distingue o TIMEOUT do canal (nunca resolveu em IPC_TIMEOUT_MS) da rejeição
+ * imediata — cada um com a sua mensagem (GateError).
+ */
+export type GatePhase =
+  | 'error-rejected'
+  | 'error-timeout'
+  | 'splash'
+  | 'setup'
+  | 'offline'
+  | 'ready';
+
+export type GateReadError = 'rejected' | 'timeout' | null;
+
+export function resolveGatePhase(
+  status: Pick<StartupStatus, 'phase'> | null,
+  readError: GateReadError,
+): GatePhase {
+  if (readError === 'timeout') return 'error-timeout';
+  if (readError === 'rejected') return 'error-rejected';
+  if (!status || status.phase === 'checking') return 'splash';
+  if (status.phase === 'blocked') return 'setup';
+  if (status.phase === 'offline') return 'offline';
+  return 'ready';
+}
+
+/**
+ * W1 (onda-ux): as chaves CARREGADAS já chegam detetadas como inválidas pelo
+ * gate (configured && !valid)? Se sim, a mensagem por estado começa em
+ * `gate.invalidKeys` ("Algumas chaves são inválidas."); o convite "Valide as
+ * duas chaves para continuar" é só quando nada foi validado ainda e nada de
+ * inválido foi detetado (contrato da e2e-gate.spec.ts).
+ */
+export function loadedKeysInvalid(status: StartupStatus | null | undefined): boolean {
+  if (!status) return false;
+  const invalid = (p: StartupStatus['llm']): boolean => p.configured && !p.valid;
+  return invalid(status.llm) || invalid(status.brave);
+}
+

@@ -102,7 +102,16 @@ import {
   type CodePalette,
 } from '../../lib/codeTheme';
 import { copyTextToClipboard } from '../../lib/copyToClipboard';
+import {
+  COPIED_HOLD_MS,
+  copyFeedbackAfterCopy,
+  copyFeedbackAfterHold,
+  copyFeedbackIsFailure,
+  copyFeedbackShowsCheck,
+  type CopyFeedback,
+} from '../../lib/copyFeedbackState';
 import { SHAPE, TYPE } from '../../lib/designTokens';
+import { wrappingActionAnywhereSx } from '../../lib/layoutSx';
 import { codeFenceRole, type CodeFenceRole } from '../../lib/typewriterSegments';
 import { codeLabelFor, highlightCodeLines, highlightOutputLines, type CodeToken } from './codeHighlight';
 
@@ -126,10 +135,10 @@ const SYNTAX_LIGHT = syntaxRules(CODE_LIGHT);
 const SYNTAX_DARK = syntaxRules(CODE_DARK);
 
 /**
- * ONDA-CODIGO-EDITOR (finding-2): quanto tempo o botão fica em "Copiado ✓".
- * O audit pede "~2s" — tempo de ler a confirmação sem o estado se arrastar.
+ * ONDA-CODIGO-EDITOR (finding-2): a DURAÇÃO do "Copiado ✓" é o
+ * `COPIED_HOLD_MS` da pura `copyFeedbackState` (~2 s — tempo de ler a
+ * confirmação sem o estado se arrastar); importado aqui, não redeclarado.
  */
-const COPIED_HOLD_MS = 2000;
 
 export interface CodeBlockProps {
   /** Conteúdo do bloco, SEM cercas. */
@@ -171,12 +180,14 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
    * ver `copyToClipboard.ts`) e confirma com "Copiado ✓" por COPIED_HOLD_MS.
    * A confirmação é estado curto: o timeout é limpo no desmonte (nunca um
    * setState pós-desmonte) e o `useCallback` depende só do texto copiado.
+   *
+   * CONTRATO STATE/VIEW: as TRANSIÇÕES do feedback (idle→copied/failed→idle,
+   * W15 — a FALHA de cópia também é estado visível, nunca um clique morto) são
+   * a pura `copyFeedbackState` (tests/copyFeedbackState.test.ts); aqui fica só
+   * o fio dos timers e a leitura da view. UM estado de cada vez — os dois
+   * booleanos de antes (`copied`/`copyFailed`) admitiam combinações ilegais.
    */
-  const [copied, setCopied] = useState(false);
-  // W15 (auditoria de UX): a FALHA de cópia também é estado visível — antes
-  // `if (!ok) return` deixava o clique parecer morto (só o sucesso tinha
-  // feedback). Mesma duração curta do "Copiado ✓", anunciada em aria-live.
-  const [copyFailed, setCopyFailed] = useState(false);
+  const [feedback, setFeedback] = useState<CopyFeedback>('idle');
   const copyTimerRef = useRef<number | null>(null);
   useEffect(
     () => () => {
@@ -186,15 +197,15 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
   );
   const handleCopy = useCallback((): void => {
     void copyTextToClipboard(code).then((ok) => {
-      setCopied(ok);
-      setCopyFailed(!ok);
+      setFeedback(copyFeedbackAfterCopy(ok));
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
       copyTimerRef.current = window.setTimeout(() => {
-        setCopied(false);
-        setCopyFailed(false);
+        setFeedback(copyFeedbackAfterHold());
       }, COPIED_HOLD_MS);
     });
   }, [code]);
+  const copied = copyFeedbackShowsCheck(feedback);
+  const copyFailed = copyFeedbackIsFailure(feedback);
 
   return (
     <Box
@@ -259,7 +270,9 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
             clique, como toda a superfície editor-like): copia o `code` CRU
             (o gutter é aria-hidden/user-select:none e o prompt é decorativo —
             nenhum dos dois entra na cópia) e confirma "Copiado ✓" por ~2s.
-            Alvo de toque no piso de 44 (TOUCH_TARGET_PX da casa). */}
+            Alvo de toque no piso do design system + "quebra, nunca recorta"
+            (SC 1.4.12) — o composto `wrappingActionAnywhereSx` de
+            lib/layoutSx.ts (auditoria §1). */}
         <Button
           size="small"
           variant="text"
@@ -273,11 +286,9 @@ export function CodeBlock({ code, lang, visibleLines }: CodeBlockProps): ReactEl
                 : t('translation:common.copyCode')
           }
           sx={(theme) => ({
+            ...wrappingActionAnywhereSx,
             flexShrink: 0,
-            minHeight: 44,
             color: copyFailed ? theme.vars.palette.error.accentText : theme.vars.palette.text.secondary,
-            whiteSpace: 'normal',
-            overflowWrap: 'anywhere',
           })}
         >
           {/* aria-live: a troca de rótulo do botão não é anunciada sozinha —

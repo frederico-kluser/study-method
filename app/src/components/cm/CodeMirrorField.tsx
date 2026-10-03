@@ -12,12 +12,14 @@
  * saiu foi a polaridade única.
  *
  * ─── COMO A POLARIDADE CHEGA AQUI ─────────────────────────────────────────
- * Por `useColorScheme()` do MUI, NUNCA por `theme.palette.mode`: sob
- * `cssVariables` o MUI copia o palette do `defaultColorScheme` para o topo do
- * tema, então um ternário sobre `palette.mode` resolve UMA vez e nunca reage ao
- * toggle (ver a "MECÂNICA OBRIGATÓRIA DO MUI v9", item 2, em `src/theme.ts`).
- * `useColorScheme()` é estado de React de verdade: muda, re-renderiza, e o
- * `useMemo` abaixo reconstrói a extensão de tema.
+ * Pelo hook de tema `useCodeScheme()` (`components/cm/useCodeScheme.ts`), ou
+ * pela prop `scheme` quando o dono quer fixá-la — NUNCA por
+ * `theme.palette.mode`: sob `cssVariables` o MUI copia o palette do
+ * `defaultColorScheme` para o topo do tema, então um ternário sobre
+ * `palette.mode` resolve UMA vez e nunca reage ao toggle (ver a "MECÂNICA
+ * OBRIGATÓRIA DO MUI v9", item 2, em `src/theme.ts`). O hook é estado de
+ * React de verdade: muda, re-renderiza, e o `useMemo` abaixo reconstrói a
+ * extensão de tema.
  *
  * ─── DECISÃO: 15px (ONDA 1), e o override de 16px FOI EMBORA ──────────────
  * O componente forçava `EditorView.theme({'.cm-content': {fontSize:'16px'}})`
@@ -65,7 +67,6 @@ import { useMemo, useRef } from 'react';
 import ReactCodeMirror from '@uiw/react-codemirror';
 import { createTheme as createCodeMirrorTheme } from '@uiw/codemirror-themes';
 import { tags } from '@lezer/highlight';
-import { useColorScheme } from '@mui/material/styles';
 import { Prec, type Extension } from '@codemirror/state';
 import { keymap, EditorView } from '@codemirror/view';
 import {
@@ -74,6 +75,7 @@ import {
   type CodeScheme,
 } from '../../lib/codeTheme';
 import { extensionsForFilename } from './language';
+import { useCodeScheme } from './useCodeScheme';
 
 /**
  * Overrides do basicSetup. Autocompletar + seu keymap são os ÚNICOS defaults
@@ -88,25 +90,6 @@ const BASIC_SETUP = { autocompletion: false, completionKeymap: false } as const;
  * o editor colapsa para o conteúdo — o PISO é a prop `minHeight` de cada uso.
  */
 const EDITOR_HEIGHT = '100%';
-
-/**
- * Polaridade lida do <html> — o fallback do PRIMEIRO render.
- *
- * `useColorScheme().colorScheme` é `undefined` até o efeito de montagem do
- * provider (`useCurrentColorScheme` do `@mui/system` inicia `isClient` em
- * `false` quando há mais de um scheme suportado). Cair em `'light'` nesse frame
- * pintaria um editor claro dentro de um app escuro. O `primeColorSchemeClass()`
- * do `src/main.tsx` já grava a classe `.light`/`.dark` no <html> ANTES do
- * primeiro paint — então ela é a resposta certa, e não uma adivinhação.
- * (A mesma função existe, de propósito, em `AnswerTerminal.tsx`: os dois
- * componentes vivem em árvores diferentes e `src/lib` é compilado pelo
- * `tsconfig.node.json`, que não tem DOM — não há onde compartilhar sem criar
- * um módulo fora do escopo desta onda.)
- */
-function domColorScheme(): CodeScheme {
-  if (typeof document === 'undefined') return 'light';
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-}
 
 /**
  * Constrói a extensão de tema do CodeMirror para uma polaridade.
@@ -182,6 +165,13 @@ export interface CodeMirrorFieldProps {
    * também engole o diálogo de salvar). Omita editores sem conceito de salvar.
    */
   onSave?: () => void;
+  /**
+   * Polaridade do tema de código FORÇADA (`'light'`/`'dark'`). Omita para
+   * seguir o tema do app (hook `useCodeScheme` — reage à troca de tema). É a
+   * fronteira state/view deste componente: a VIEW recebe a cor por prop ou
+   * pelo hook de tema, nunca a decide sozinha por `palette.mode`.
+   */
+  scheme?: CodeScheme;
 }
 
 /**
@@ -200,6 +190,7 @@ export function CodeMirrorField({
   minHeight,
   readOnly,
   onSave,
+  scheme: schemeProp,
 }: CodeMirrorFieldProps): React.JSX.Element {
   // Último onSave legível do keymap (estável); a lista de extensões não pode
   // ser reconstruída a cada render do parent.
@@ -208,8 +199,10 @@ export function CodeMirrorField({
 
   const hasSave = onSave !== undefined;
 
-  const { colorScheme } = useColorScheme();
-  const scheme: CodeScheme = (colorScheme ?? domColorScheme()) === 'dark' ? 'dark' : 'light';
+  // Polaridade: prop quando o dono fixa; senão o hook de tema (partilhado com
+  // o AnswerTerminal) — reage ao toggle claro/escuro do app.
+  const themeScheme = useCodeScheme();
+  const scheme: CodeScheme = schemeProp ?? themeScheme;
 
   // O tema só é reconstruído quando a POLARIDADE muda — não a cada keystroke.
   const codeTheme = useMemo(() => buildCodeMirrorTheme(scheme), [scheme]);
@@ -240,7 +233,6 @@ export function CodeMirrorField({
       );
     }
     return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langExtensions, hasSave]);
 
   return (

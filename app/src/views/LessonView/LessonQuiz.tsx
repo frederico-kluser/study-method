@@ -75,6 +75,10 @@ import type { TrackAssertionDto } from '../../../shared/ipc-contract';
 import { optionVisualState, quizCycleOf, quizKeyFor } from '../../lib/trackLessonState';
 import type { QuizState } from '../../lib/trackLessonState';
 import { quizOptionOrder } from '../../lib/quizOptionOrder';
+// DRY (auditoria §13): a fórmula do contorno das pílulas vive em UM lugar —
+// `quizPillOutline` + os valores nomeados de `PILL_OUTLINE` (a outra cópia, a
+// do QuizOverlayHost, ainda recalcula à mão: 55% = `PILL_OUTLINE.overlay`).
+import { PILL_OUTLINE, quizPillOutline } from '../../lib/quizPill';
 
 export interface LessonQuizCardProps {
   /** A afirmação da aula com o quiz (statement/question/options/answerIndex/feedback). */
@@ -145,7 +149,13 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
   // estado em que as quatro são idênticas. O veredito (`contained`) e as
   // travadas (`disabled`) continuam com o desenho do tema, que já calibrou o
   // contraste deles — nenhuma regra daqui olha para o índice da resposta.
-  const pillOutline = `color-mix(in srgb, ${theme.vars.palette.text.primary} 72%, transparent)`;
+  //
+  // DRY (auditoria §13): a FÓRMULA não é mais escrita à mão aqui —
+  // `quizPillOutline` (src/lib/quizPill.ts) compõe o `color-mix` sobre a
+  // variável do tema, e a percentagem é o valor NOMEADO `PILL_OUTLINE.card`
+  // (72 — as contas acima). O nome local `pillOutline` mantém-se: é ele que a
+  // regra `&&` abaixo consome.
+  const pillOutline = quizPillOutline(theme, PILL_OUTLINE.card);
 
   return (
     <motion.div

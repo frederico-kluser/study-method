@@ -310,7 +310,8 @@
     "micStart": "Falar",
     "micStop": "Parar gravação",
     "micRecording": "Gravando…",
-    "regenerateFailed": "Não foi possível gerar um novo desafio."
+    "regenerateFailed": "Não foi possível gerar um novo desafio.",
+    "untitled": "Aula sem título"
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -462,6 +463,17 @@
     "copiedCode": "Copiado ✓",
     "tryAgain": "Tentar de novo",
     "copyFailed": "Não foi possível copiar"
+  },
+  "ui": {
+    "actionButton": {
+      "busy": "A processar…"
+    },
+    "loadError": {
+      "message": "Não foi possível carregar este conteúdo."
+    },
+    "retryAlert": {
+      "message": "Não foi possível concluir a operação."
+    }
   },
   "voice": {
     "engineUnavailable": "Motor de voz indisponível (muitas falhas).",
@@ -763,6 +775,14 @@
       "noTopicsCta": "Ir para a Home",
       "noLessons": "Esta matéria ainda não tem aulas. Gere a primeira aula para começar a trilha.",
       "noLessonsCta": "Gerar primeira aula"
+    },
+    "tree": {
+      "title": "Evolução da aprendizagem",
+      "empty": "Nenhuma evolução registrada ainda. Gere sua primeira aula para começar.",
+      "stateDone": "concluído",
+      "stateCurrent": "em andamento",
+      "statePending": "pendente",
+      "nodeChildren": "{{count}} sub-aula(s)"
     }
   },
   "roadmap": {
@@ -883,5 +903,15 @@
       "optimize": "Otimizar",
       "advance": "Avançar ›"
     }
+  },
+  "course": {
+    "sectionLabel": "Escolha um assunto",
+    "empty": "Nenhum assunto disponível ainda.",
+    "progress": "Progresso: {{progress}}",
+    "noLessons": "Ainda sem aulas",
+    "generate": "Gerar nova aula",
+    "continue_one": "Continuar · 1 aula feita",
+    "continue_other": "Continuar · {{count}} aulas feitas",
+    "noneActive": "Nenhuma aula em andamento"
   }
 }

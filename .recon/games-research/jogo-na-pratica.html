@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<!--
+  O jogo na prática — walkthrough + mockups da secção Games do study-method.
+  Plannotator Plan path: tokens do design-system + mockups em HTML/CSS + SVG.
+-->
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O jogo na prática — Games no study-method</title>
+<style>
+  :root {
+    --background: oklch(0.97 0.005 260);
+    --foreground: oklch(0.18 0.02 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 260);
+    --primary: oklch(0.50 0.25 280);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.50 0.18 180);
+    --secondary-foreground: oklch(1 0 0);
+    --muted: oklch(0.92 0.01 260);
+    --muted-foreground: oklch(0.40 0.02 260);
+    --accent: oklch(0.60 0.22 50);
+    --accent-foreground: oklch(0.18 0.02 260);
+    --destructive: oklch(0.50 0.25 25);
+    --destructive-foreground: oklch(1 0 0);
+    --success: oklch(0.45 0.20 150);
+    --success-foreground: oklch(1 0 0);
+    --warning: oklch(0.55 0.18 85);
+    --warning-foreground: oklch(0.18 0.02 260);
+    --border: oklch(0.88 0.01 260);
+    --input: oklch(0.92 0.01 260);
+    --ring: oklch(0.50 0.25 280);
+    --code-bg: oklch(0.92 0.01 260);
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+    --radius: 0.625rem;
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--background); color: var(--foreground); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 64px 24px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  header h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 500; margin: 8px 0 24px; line-height: 1.2; }
+  .prompt-box { background: var(--muted); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 16px 24px; }
+  .prompt-label { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); display: block; margin-bottom: 4px; }
+  .prompt-box p { font-size: 0.92rem; color: var(--muted-foreground); line-height: 1.55; }
+  section { margin-top: 64px; }
+  .section-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 1.5px solid var(--border); }
+  .section-number { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--primary); }
+  .section-header h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; }
+  h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin: 24px 0 8px; }
+  p { max-width: 65ch; font-size: 0.95rem; margin-bottom: 12px; }
+  ul, ol { max-width: 65ch; margin: 0 0 12px 20px; font-size: 0.95rem; }
+  li { margin-bottom: 6px; }
+  .code-panel { background: var(--code-bg); border-radius: var(--radius); padding: 24px; overflow-x: auto; margin: 16px 0; border: 1.5px solid var(--border); }
+  .code-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted-foreground); display: block; margin-bottom: 8px; }
+  .code-panel pre { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--foreground); }
+  .code-panel .kw { color: var(--primary); }
+  .code-panel .fn { color: var(--accent); }
+  .code-panel .str { color: var(--success); }
+  .code-panel .cm { color: var(--muted-foreground); font-style: italic; }
+  .code-panel .num { color: var(--warning); }
+  .callout { border-left: 3px solid var(--primary); padding: 16px 24px; margin: 16px 0; background: var(--card); border-radius: 0 var(--radius) var(--radius) 0; }
+  .callout h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; margin-bottom: 4px; }
+  .callout p { font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.55; }
+  .decide-with { font-family: var(--font-mono); font-size: 0.72rem; color: var(--primary); font-weight: 500; display: block; margin-top: 8px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tag { font-family: var(--font-mono); font-size: 0.68rem; padding: 2px 8px; border-radius: calc(var(--radius) - 4px); background: var(--muted); color: var(--muted-foreground); }
+  .tag.highlight { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+  .diagram-panel { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px; margin: 24px 0; background: var(--card); }
+  .diagram-caption { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted-foreground); display: block; margin-top: 8px; text-align: center; }
+  .milestones { display: flex; flex-direction: column; gap: 0; }
+  .milestone { display: grid; grid-template-columns: 120px 28px 1fr; gap: 0 18px; }
+  .milestone .when { text-align: right; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted-foreground); padding-top: 4px; }
+  .milestone .dot-col { display: flex; flex-direction: column; align-items: center; }
+  .milestone .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--card); border: 3px solid var(--primary); flex-shrink: 0; }
+  .milestone .line { width: 2px; flex: 1; background: var(--border); margin: 4px 0; }
+  .milestone:last-child .line { display: none; }
+  .milestone .body { padding-bottom: 36px; }
+  .milestone .body h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin-bottom: 4px; }
+  .milestone .body p { font-size: 0.88rem; color: var(--muted-foreground); max-width: 620px; margin-bottom: 10px; }
+
+  /* ── Mockups (imitam o app real: cartões brancos, raios 12px, MUI-ish) ── */
+  .mock { border: 1.5px solid var(--border); border-radius: calc(var(--radius) + 4px); overflow: hidden; background: #f4f5f8; margin: 20px 0; }
+  .mock-bar { background: #eceef3; padding: 8px 14px; display: flex; gap: 6px; align-items: center; border-bottom: 1px solid var(--border); }
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+  .mock-title { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted-foreground); margin-left: 8px; }
+  .mock-body { display: grid; grid-template-columns: 180px 1fr; min-height: 320px; }
+  .mock-side { background: #e8eaef; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .mock-main { padding: 18px 20px; }
+  .m-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .m-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; font-size: 0.8rem; color: var(--muted-foreground); }
+  .m-nav-item.active { background: #fff; color: var(--foreground); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); }
+  .m-ico { width: 18px; height: 18px; border-radius: 5px; background: var(--muted); display: inline-block; }
+  .m-ico.on { background: color-mix(in oklab, var(--primary) 30%, transparent); }
+  .m-h1 { font-size: 1.05rem; font-weight: 700; margin-bottom: 2px; }
+  .m-sub { font-size: 0.78rem; color: var(--muted-foreground); margin-bottom: 12px; }
+  .m-levels { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .m-level { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; border: 1.5px solid var(--border); background: #fff; color: var(--muted-foreground); }
+  .m-level.done { background: color-mix(in oklab, var(--success) 16%, #fff); border-color: var(--success); color: var(--success); }
+  .m-level.cur { background: color-mix(in oklab, var(--primary) 14%, #fff); border-color: var(--primary); color: var(--primary); }
+  .m-level.boss { border-radius: 50%; background: color-mix(in oklab, var(--accent) 14%, #fff); border-color: var(--accent); color: var(--accent); }
+  .m-level.locked { opacity: 0.55; }
+  .m-arrow { color: var(--border); font-size: 1.1rem; }
+  .m-editor { background: #14161c; border-radius: 10px; padding: 12px 14px; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.7; color: #d7dae0; margin-bottom: 10px; }
+  .m-editor .c { color: #6b7280; }
+  .m-editor .k { color: #93c5fd; }
+  .m-editor .s { color: #86efac; }
+  .m-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .m-btn { padding: 7px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid transparent; }
+  .m-btn.primary { background: var(--primary); color: var(--primary-foreground); }
+  .m-btn.ghost { background: #fff; border-color: var(--border); color: var(--foreground); }
+  .m-btn.good { background: color-mix(in oklab, var(--success) 14%, #fff); color: var(--success); border-color: color-mix(in oklab, var(--success) 40%, transparent); }
+  .m-metrics { display: flex; gap: 10px; flex-wrap: wrap; }
+  .m-metric { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; min-width: 108px; }
+  .m-metric .v { font-family: var(--font-mono); font-weight: 700; font-size: 0.95rem; }
+  .m-metric .l { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-foreground); }
+  .m-hist { height: 34px; display: flex; align-items: flex-end; gap: 3px; margin: 6px 0; }
+  .m-hist i { flex: 1; background: color-mix(in oklab, var(--primary) 25%, transparent); border-radius: 3px 3px 0 0; display: block; }
+  .m-hist i.me { background: var(--accent); }
+  .m-pass { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--success); background: color-mix(in oklab, var(--success) 12%, #fff); border: 1px solid color-mix(in oklab, var(--success) 35%, transparent); border-radius: 999px; padding: 4px 12px; }
+  .m-test { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted-foreground); display: flex; gap: 8px; padding: 3px 0; }
+  .m-test b { color: var(--success); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="eyebrow">Proposta prática · study-method · secção Games</span>
+    <h1>O jogo na prática: como seria, tela a tela</h1>
+    <div class="prompt-box">
+      <span class="prompt-label">Brief</span>
+      <p>Levar a proposta "híbrido com verificação" do plano de Games ao concreto: o loop de jogo
+      real, um nível trabalhado de ponta a ponta em C/Python/Rust, as telas como ficam no app, o que
+      se reutiliza da arquitetura existente e por onde começar a construir.</p>
+    </div>
+  </header>
+
+  <!-- ═══ 01 O LOOP EM 60 SEGUNDOS ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">01</span><h2>O loop em 60 segundos</h2></div>
+    <div class="diagram-panel">
+      <svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px">
+        <style>
+          .box { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+          .box-new { fill: color-mix(in oklab, var(--primary) 8%, transparent); stroke: var(--primary); stroke-width: 1.5; }
+          .label { font-family: var(--font-sans); font-size: 12px; font-weight: 600; fill: var(--foreground); }
+          .edge { stroke: var(--muted-foreground); stroke-width: 1.5; }
+        </style>
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted-foreground)"/></marker>
+        </defs>
+        <rect x="14" y="55" width="118" height="52" rx="10" class="box-new"/>
+        <text x="73" y="85" text-anchor="middle" class="label">1. Escrever código</text>
+        <line x1="132" y1="81" x2="168" y2="81" class="edge" marker-end="url(#a)"/>
+        <rect x="168" y="55" width="118" height="52" rx="10" class="box"/>
+        <text x="227" y="85" text-anchor="middle" class="label">2. Testar resposta</text>
+        <line x1="286" y1="81" x2="322" y2="81" class="edge" marker-end="url(#a)"/>
+        <rect x="322" y="55" width="118" height="52" rx="10" class="box"/>
+        <text x="381" y="78" text-anchor="middle" class="label">3. Veredito</text>
+        <text x="381" y="95" text-anchor="middle" class="label" style="font-size:10px;font-weight:400;fill:var(--muted-foreground)">testes passam?</text>
+        <line x1="440" y1="81" x2="476" y2="81" class="edge" marker-end="url(#a)"/>
+        <rect x="476" y="20" width="118" height="52" rx="10" class="box"/>
+        <text x="535" y="50" text-anchor="middle" class="label">4a. Otimizar</text>
+        <line x1="476" y1="128" x2="440" y2="95" class="edge" stroke-dasharray="5 4" marker-end="url(#a)"/>
+        <rect x="476" y="102" width="118" height="52" rx="10" class="box-new"/>
+        <text x="535" y="132" text-anchor="middle" class="label">4b. Próximo nível</text>
+        <line x1="594" y1="46" x2="640" y2="46" class="edge" marker-end="url(#a)"/>
+        <rect x="600" y="20" width="106" height="52" rx="10" class="box"/>
+        <text x="653" y="42" text-anchor="middle" class="label" style="font-size:11px">5. Histograma</text>
+        <text x="653" y="58" text-anchor="middle" class="label" style="font-size:10px;font-weight:400;fill:var(--muted-foreground)">a tua solução</text>
+        <path d="M600,68 C560,95 560,110 560,118" fill="none" class="edge" stroke-dasharray="5 4" marker-end="url(#a)"/>
+      </svg>
+      <span class="diagram-caption">O ciclo: escrever → testar → veredito por teste → escolher entre otimizar (replay) ou avançar</span>
+    </div>
+    <p>A grande diferença para os exercícios atuais das trilhas: <strong>passar não é o fim</strong>.
+    Passar destrava o <em>modo otimização</em> (menos linhas? menos tempo?), e é aí que o jogo vicia:
+    o histograma mostra onde a tua solução cai em relação às outras soluções daquele nível — comparação
+    assíncrona, sem leaderboard obrigatória (a evidência manda colocar rankings fora da v1).</p>
+  </section>
+
+  <!-- ═══ 02 TELA 1 — O MAPA ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">02</span><h2>Tela 1: o mapa do mundo</h2></div>
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Games · Trilha C · Mundo 1: O robô do depósito</span></div>
+      <div class="mock-body">
+        <div class="mock-side">
+          <div class="m-nav-item"><span class="m-ico"></span>Início</div>
+          <div class="m-nav-item"><span class="m-ico"></span>Configurações</div>
+          <div class="m-nav-item"><span class="m-ico"></span>Aula</div>
+          <div class="m-nav-item"><span class="m-ico"></span>Trilha</div>
+          <div class="m-nav-item active"><span class="m-ico on"></span>Games</div>
+        </div>
+        <div class="mock-main">
+          <div class="m-h1">Mundo 1 · O robô do depósito</div>
+          <div class="m-sub">5 níveis + 1 chefe · linguagem: <b>C</b> (podes trocar a qualquer momento: a mecânica é a mesma)</div>
+          <div class="m-card">
+            <div class="m-levels">
+              <div class="m-level done">1</div><span class="m-arrow">›</span>
+              <div class="m-level done">2</div><span class="m-arrow">›</span>
+              <div class="m-level cur">3</div><span class="m-arrow">›</span>
+              <div class="m-level locked">4</div><span class="m-arrow">›</span>
+              <div class="m-level locked">5</div><span class="m-arrow">›</span>
+              <div class="m-level boss">B</div>
+            </div>
+          </div>
+          <div class="m-card" style="display:flex;gap:14px;align-items:center">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:0.85rem">Nível 3 · Rotear encomendas</div>
+              <div style="font-size:0.75rem;color:var(--muted-foreground)">O robô recebe uma lista de prateleiras e tem de as visitar pela ordem mais curta que respeita as precedências.</div>
+              <div class="tags"><span class="tag highlight">introduz: laços</span><span class="tag">arrays</span><span class="tag">2 métricas de otimização</span></div>
+            </div>
+            <button class="m-btn primary">Jogar nível 3</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p>Cada <strong>mundo</strong> = um módulo da trilha atual (reutiliza o conteúdo que já existe); cada
+    <strong>nível</strong> = um desafio validado por teste; o <strong>chefe</strong> = avaliação cumulativa
+    do módulo. O mapa espelha a linguagem visual das trilhas que o app já tem: nós desbloqueados por
+    domínio, não por tempo.</p>
+  </section>
+
+  <!-- ═══ 03 TELA 2 — O NÍVEL (o coração) ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">03</span><h2>Tela 2: o nível (o coração do jogo)</h2></div>
+    <div class="mock">
+      <div class="mock-bar"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-title">Mundo 1 · Nível 3 · Rotear encomendas · C</span></div>
+      <div class="mock-body" style="grid-template-columns:1fr">
+        <div class="mock-main">
+          <div class="m-card">
+            <div style="font-weight:600;font-size:0.85rem;margin-bottom:4px">Enunciado</div>
+            <div style="font-size:0.78rem;color:var(--muted-foreground)">Escreve <code>int rota(int* prateleiras, int n)</code> que devolve o nº mínimo de passos para visitar todas as prateleiras respeitando as precedências. Exemplo: <code>rota([2,1,3], 3) → 7</code>. Os testes cobrem casos de borda (n=0, uma prateleira, precedências em cadeia).</div>
+          </div>
+          <div class="m-editor">
+            <span class="c">// o teu código</span><br>
+            <span class="k">int</span> rota(<span class="k">int</span>* p, <span class="k">int</span> n) {<br>
+            &nbsp;&nbsp;<span class="k">int</span> passos = <span class="num">0</span>;<br>
+            &nbsp;&nbsp;<span class="k">for</span> (<span class="k">int</span> i = <span class="num">0</span>; i &lt; n; i++) { ... }<br>
+            &nbsp;&nbsp;<span class="k">return</span> passos;<br>
+            }
+          </div>
+          <div class="m-row">
+            <button class="m-btn primary">Testar resposta</button>
+            <button class="m-btn ghost">Ver dica</button>
+            <span class="m-pass">✓ 6 de 6 testes passaram</span>
+          </div>
+          <div class="m-card" style="border-color:color-mix(in oklab, var(--primary) 40%, transparent)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-weight:600;font-size:0.85rem">MODO OTIMIZAÇÃO · escolhe o teu desafio</div>
+              <div class="tags" style="margin:0"><span class="tag highlight">resolver = nível completo</span></div>
+            </div>
+            <div class="m-metrics">
+              <div class="m-metric"><div class="v">23 <span style="font-size:0.7rem;color:var(--muted-foreground)">linhas</span></div><div class="l">recorde: 9 · alvo ≤ 12</div></div>
+              <div class="m-metric"><div class="v">4 ms</div><div class="l">recorde: 1 ms · alvo ≤ 2</div></div>
+              <div class="m-metric" style="min-width:180px">
+                <div class="l">distribuição das soluções (linhas)</div>
+                <div class="m-hist"><i style="height:20%"></i><i style="height:35%"></i><i style="height:60%"></i><i style="height:100%"></i><i class="me" style="height:75%"></i><i style="height:45%"></i><i style="height:25%"></i><i style="height:12%"></i></div>
+                <div class="l">a tua solução (laranja): melhor que 42%</div>
+              </div>
+            </div>
+            <div class="m-row" style="margin-top:10px;margin-bottom:0">
+              <button class="m-btn ghost">Otimizar para menos linhas</button>
+              <button class="m-btn ghost">Otimizar para velocidade</button>
+              <button class="m-btn good">Avançar para o nível 4 ›</button>
+            </div>
+          </div>
+          <div class="m-card" style="background:transparent;border-style:dashed">
+            <div class="m-test"><b>✓</b> casos básicos (3 testes)</div>
+            <div class="m-test"><b>✓</b> casos de borda (2 testes)</div>
+            <div class="m-test"><b>✓</b> precedências em cadeia (1 teste) — <span style="color:var(--primary)">forçou a construção-alvo: laço sobre array</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p>Tudo o que é branco/escuro já existe no app (editor CodeMirror, "Testar resposta", terminal,
+    provas por teste). O que é novo: o <strong>painel de otimização</strong> (métricas + alvos +
+    histograma) e a lógica de "resolver → otimizar → avançar". O histograma é local e assíncrono —
+    mostra a distribuição das soluções guardadas, à maneira Zachtronics, sem ranking social.</p>
+  </section>
+
+  <!-- ═══ 04 O NÍVEL POR BAIXO (dados) ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">04</span><h2>O que é um nível por baixo</h2></div>
+    <p>Um nível é exatamente o objeto de desafio que o app já valida (enunciado + starter + solução de
+    referência + <code>requirements[]</code> em bijeção com testes), acrescido de um bloco de jogo:</p>
+    <div class="code-panel">
+      <span class="code-label">resources/games/mundo-1/nivel-3.json (reutiliza o schema de desafio + bloco game)</span>
+      <pre><span class="kw">{</span>
+  <span class="fn">"title"</span>: <span class="str">"Rotear encomendas"</span>,
+  <span class="fn">"language"</span>: <span class="str">"c"</span>,                  <span class="cm">// ou python/rust/… — mesma mecânica, adaptador troca</span>
+  <span class="fn">"enunciado"</span>: <span class="str">"…"</span>,
+  <span class="fn">"starter"</span>: <span class="str">"int rota(int* p, int n) { /* … */ }"</span>,
+  <span class="fn">"reference"</span>: <span class="str">"…"</span>,               <span class="cm">// solução que PASSA (prova 1 das 4)</span>
+  <span class="fn">"requirements"</span>: [ <span class="cm">/* 1:1 com os 6 testes */</span> ],
+  <span class="fn">"expectedTestCount"</span>: <span class="num">6</span>,
+  <span class="fn">"game"</span>: <span class="kw">{</span>
+    <span class="fn">"world"</span>: <span class="str">"mundo-1"</span>, <span class="fn">"level"</span>: <span class="num">3</span>,
+    <span class="fn">"introduces"</span>: [<span class="str">"lacos"</span>, <span class="str">"arrays"</span>],
+    <span class="fn">"optimize"</span>: <span class="kw">{</span>
+      <span class="fn">"lines"</span>: <span class="kw">{</span> <span class="fn">"par"</span>: <span class="num">12</span>, <span class="fn">"record"</span>: <span class="num">9</span> <span class="kw">}</span>,
+      <span class="fn">"time"</span>:  <span class="kw">{</span> <span class="fn">"parMs"</span>: <span class="num">2</span>, <span class="fn">"recordMs"</span>: <span class="num">1</span> <span class="kw">}</span>
+    <span class="kw">}</span>
+  <span class="kw">}</span>
+<span class="kw">}</span></pre>
+    </div>
+    <p>As <strong>4 provas de execução</strong> que o autor já faz para desafios valem para níveis:
+    referência passa · starter falha · contagem bate · stub vazio falha. O <code>game</code> só acrescenta
+    métricas de otimização (medidas pelo mesmo runner: nº de linhas do ficheiro, tempo de execução).</p>
+  </section>
+
+  <!-- ═══ 05 O CHEFE ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">05</span><h2>Tela 3: o chefe de módulo</h2></div>
+    <div class="callout">
+      <h3>Prova final do módulo: junta tudo o que o módulo ensinou</h3>
+      <p>Um desafio cumulativo (laços + arrays + funções, no nosso exemplo) com os mesmos testes
+      rigorosos; passar desbloqueia o Mundo 2. O invólucro de "chefe" é leve e opcional (a evidência diz:
+      o ganho real vem do teste cumulativo, não do teatro) — podes resolver com a barra de vida animada
+      ou em modo "avaliação" simples. Sem ranking: o progresso é teu (delta pessoal é o sinal primário).</p>
+      <span class="decide-with">Evidência: avaliação cumulativa melhora retenção (±15 pp, heterogéneo); invólucro "boss" = motivação apenas</span>
+    </div>
+    <p>Formato concreto: <strong>problema integrador</strong> (ex.: "o robô do depósito completo:
+    roteia, prioriza e gera o relatório final") com 8–10 testes, incluindo casos que só passam se o
+    aluno dominar os 3 conceitos do módulo. O app já sabe fazer isto — é o "desafio final" das trilhas
+    com mais requisitos.</p>
+  </section>
+
+  <!-- ═══ 06 O QUE CONSTRUIR PRIMEIRO ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">06</span><h2>Por onde começar (ordem de construção)</h2></div>
+    <div class="milestones">
+      <div class="milestone">
+        <div class="when">Passo 1</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Vertical slice: 1 mundo, 4 níveis + 1 chefe, em UMA trilha</h3>
+          <p>Novo painel Games (PanelKey + view), um jogo de demonstração em C, Python e Rust (mesmo
+          mundo, 3 adaptações do mesmo enunciado), veredito por teste reutilizando o harness. É isto
+          que prova o contrato multi-linguagem na prática.</p>
+          <div class="tags"><span class="tag">games/mundo-1/*.json</span><span class="tag">GameView</span><span class="tag">exec/harness</span></div>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Passo 2</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Modo otimização + histogramas locais</h3>
+          <p>Métricas de linhas/tempo pelo runner, alvos por nível, distribuição guardada em disco,
+          "Avançar" sempre disponível (resolver basta). Medir: quantas vezes o aluno repete por
+          otimização — o indicador de que o loop vicia.</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Passo 3</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Chefe de módulo + desbloqueio por domínio</h3>
+          <p>Prova cumulativa com mastery unlock; métrica de sucesso inclui <strong>transferência</strong>:
+          tarefa nova sem invólucro de jogo (o ponto de falha da literatura — medir desde o piloto).</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Depois</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Épocas, mais mundos, arena de agentes</h3>
+          <p>Só depois de o piloto mostrar conclusão + repetição + transferência. Leaderboards? Fora
+          até haver decisão expressa (recomendação: nunca obrigatórias; pseudónimos + opt-out se
+          entrarem).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 07 AS DECISÕES QUE PRECISAS DE TOMAR ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">07</span><h2>Três decisões para avançar</h2></div>
+    <div class="callout">
+      <h3>1 · Começamos pelo vertical slice?</h3>
+      <p>1 mundo de demonstração (4 níveis + chefe) nas 3 linguagens, com modo de otimização.
+      É o menor pedaço que prova a ideia inteira.</p>
+      <span class="decide-with">Decide com: tu (é código novo no app — posso construí-lo)</span>
+    </div>
+    <div class="callout">
+      <h3>2 · Qual o tema do primeiro mundo?</h3>
+      <p>Sugestão: "O robô do depósito" (roteamento + laços + arrays) — liga-se à trilha C atual
+      (o módulo 1 já ensina laços/arrays) e traduz-se igual para Python e Rust.</p>
+      <span class="decide-with">Decide com: tu (eu proponho 3 alternativas se quiseres escolher)</span>
+    </div>
+    <div class="callout">
+      <h3>3 · Histograma local já na v1?</h3>
+      <p>Recomendo que sim (é o motor de replay) mas só com soluções do próprio + soluções de referência
+      curadas — sem qualquer dado social. Cresce para "épocas" depois.</p>
+      <span class="decide-with">Decide com: tu</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -41,6 +41,7 @@
  */
 import type { TrackAssertionDto } from '../../../shared/ipc-contract';
 import type { QuizState } from '../../lib/trackLessonState';
+import type { QuizOverlayState } from '../../lib/quizOverlayState';
 
 /**
  * Em que ponto do ciclo o card está, do ponto de vista de QUEM DESENHA. É a
@@ -141,6 +142,27 @@ export const QUIZ_CARD_ANCHOR_SELECTOR = `[${QUIZ_CARD_ANCHOR_ATTR}]`;
 export function quizCardAnchorSelector(quizKey: string): string {
   const escaped = quizKey.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   return `[${QUIZ_CARD_ANCHOR_ATTR}="${escaped}"]`;
+}
+
+/**
+ * O overlay DESENHA quando a fase pede a tela E o conteúdo publicado é o
+ * MESMO quiz. Estado → ecrã, numa função PURA (extraída do JSX do
+ * `QuizOverlayHost` na onda de stories, para que a regra seja visível nos
+ * argumentos da view e coberta por `node:test` sem DOM).
+ *
+ * As duas pernas negativas são casos REAIS, não paranoia:
+ *   - conteúdo de OUTRA chave: a view acabou de trocar de aula e publicou o
+ *     quiz novo por baixo da fase do antigo — não pode virar card órfão;
+ *   - conteúdo `null`: a LessonView desmontou (troca de aba) e o host fica
+ *     sem o que desenhar, mantendo a fase no `quizOverlayState`.
+ */
+export function quizOverlayIsShowing(
+  overlay: Pick<QuizOverlayState, 'phase' | 'quizKey'>,
+  content: Pick<QuizOverlayContent, 'quizKey'> | null,
+): boolean {
+  return (
+    overlay.phase === 'sobre-a-tela' && content !== null && content.quizKey === overlay.quizKey
+  );
 }
 
 let content: QuizOverlayContent | null = null;

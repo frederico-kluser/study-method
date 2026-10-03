@@ -750,8 +750,10 @@ describe("'aguardando-vez' — o status honesto, do módulo ao card", () => {
   });
 
   it('GUARDA DE FONTE: o statusText do QuizChatCard responde a espera ANTES dos ramos do ciclo', () => {
-    const card = codeOf(readFileSync(resolve(HERE, '../src/components/quiz/QuizChatCard.tsx'), 'utf8'));
-    const queued = card.indexOf("status === 'aguardando-vez'");
+    // Desde a extração state/view a escolha do texto é do modelo PURO
+    // (`quizChatCardState.quizChatStatusKey`) — a guarda segue-a para lá.
+    const model = codeOf(readFileSync(resolve(HERE, '../src/components/quiz/quizChatCardState.ts'), 'utf8'));
+    const queued = model.indexOf("status === 'aguardando-vez'");
     assert.ok(queued > 0, 'o ramo de espera existe');
     for (const outro of [
       "status === 'explicando'",
@@ -759,11 +761,15 @@ describe("'aguardando-vez' — o status honesto, do módulo ao card", () => {
       "status === 'indisponivel'",
       "status === 'dominado'",
     ]) {
-      const at = card.indexOf(outro);
+      const at = model.indexOf(outro);
       assert.ok(at > queued, `${outro} vem depois da espera — a fila é respondida primeiro`);
     }
-    assert.ok(card.includes("t('translation:lesson.quizChatQueued')"), 'o ramo usa a chave nova');
-    assert.ok(card.includes("status === 'aguardando-vez'"), 'e o QuizChatCard é quem desenha o status');
+    assert.ok(model.includes("'lesson.quizChatQueued'"), 'o ramo usa a chave nova');
+    const card = codeOf(readFileSync(resolve(HERE, '../src/components/quiz/QuizChatCard.tsx'), 'utf8'));
+    assert.ok(
+      card.includes('quizChatStatusKey('),
+      'e o QuizChatCard é quem desenha o status (pelo modelo puro, sem ramo próprio)',
+    );
   });
 
   it('o texto de espera é HONESTO: diz com quem se espera, nunca anuncia trabalho não pedido', () => {

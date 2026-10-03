@@ -46,17 +46,18 @@
  * o role="status" não perde nada ao não receber ponteiro.
  *
  * ─── EMPILHAMENTO (FQ10) ───────────────────────────────────────────────────
- * O overlay do quiz e o modal de geração usam zIndex 1300 (QuizOverlayHost/
- * ChallengeGenerateModal). A pílula usa 1400: acima de QUALQUER overlay — é
- * justamente sobre o overlay que ela precisa ser legível (o dono respondeu um
- * quiz enquanto a aula parecia travada).
+ * O overlay do quiz e o modal de geração vivem no degrau `overlay`/`modal` do
+ * contrato `Z_INDEX` (designTokens, 1300). A pílula usa o papel `busy` (1400):
+ * acima de QUALQUER overlay — é justamente sobre o overlay que ela precisa ser
+ * legível (o dono respondeu um quiz enquanto a aula parecia travada). A ordem
+ * das camadas é contrato do design system, não comentário.
  */
 import type { ReactElement } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
 
-import { SHAPE } from '../../lib/designTokens';
+import { SHAPE, Z_INDEX } from '../../lib/designTokens';
 import { sessionBusyLabelKey, useSessionState } from '../../lib/sessionState';
 import { effectsTransition } from '../../theme';
 
@@ -81,9 +82,10 @@ export default function GlobalBusyIndicator(): ReactElement | null {
         position: 'fixed',
         right: theme.spacing(2),
         bottom: theme.spacing(2),
-        // ACIMA do overlay do quiz e do modal de geração (1300) — FQ10: o
-        // indicador é global, visível em qualquer overlay.
-        zIndex: 1400,
+        // ACIMA do overlay do quiz e do modal de geração — FQ10: o indicador é
+        // global, visível em qualquer overlay. O papel `busy` do contrato
+        // Z_INDEX (designTokens) é a ORDEM das camadas em código: 1400 > 1300.
+        zIndex: Z_INDEX.busy,
         display: 'flex',
         alignItems: 'center',
         gap: theme.spacing(1),

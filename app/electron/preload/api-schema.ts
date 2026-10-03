@@ -21,6 +21,16 @@
  *    `onStreamEvent`; 'localAi:download-progress' → `onDownloadProgress`;
  *    'study:lesson-progress' → `onLessonProgress`; 'study:test-answer-event' →
  *    `onTestAnswerEvent`.
+ *
+ * POLÍTICA DE ENVELOPE (fix do bug `localTts:*` — ver `unwrapLocalTtsEnvelope`):
+ * os handlers de REQUEST `localTts:*` devolvem o envelope `{ success, data?,
+ * error? }` (TtsIpcResult<T> de electron/main/ipc/localTts-handlers.ts), mas o
+ * ApiSchema promete o VALOR NU (`generate(): Promise<TtsGenerateResult>`).
+ * Antes do fix o invoke seguia adiante sem desembrulhar: em runtime o
+ * consumidor recebia o envelope, `res.audioBase64` era `undefined` e a
+ * narração do onboarding nunca tocava. O `createExposedApi` desembrulha estes
+ * canais num mapa EXPLÍCITO (`LOCAL_TTS_ENVELOPE_UNWRAPPERS`), mantendo as
+ * assinaturas do ApiSchema nuas — os consumidores ficam certos sem tocar.
  */
 
 import type {
@@ -153,6 +163,75 @@ function eventTrackName(track: string): string {
   return `on${rest}`;
 }
 
+// ─── Desembrulhamento do envelope `localTts:*` (fix do bug do envelope) ───────
+// Ver POLÍTICA DE ENVELOPE no cabeçalho. Resumo do contrato exposto:
+//   `{ success: true, data }`   → resolve `data` (o valor NU do ApiSchema);
+//   `{ success: false, error }` → REJEITA com `Error(error)` — sem valor nu
+//                                 possível, a única saída honesta para
+//                                 `Promise<T>` é a rejeição (é também o que o
+//                                 ipcRenderer.invoke já faz quando um handler
+//                                 do main lança);
+//   valor JÁ nu                 → passa adiante intacto (doubles de teste — ex.:
+//                                 o mock do Storybook, que já modelava
+//                                 `generate`/`get-preference` como valor nu).
+
+/** Envelope `{ success, data?, error? }` devolvido pelos handlers `localTts:*`. */
+interface LocalTtsEnvelopeLike {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+function isLocalTtsEnvelope(res: unknown): res is LocalTtsEnvelopeLike {
+  return (
+    typeof res === 'object' &&
+    res !== null &&
+    typeof (res as { success?: unknown }).success === 'boolean'
+  );
+}
+
+function unwrapLocalTtsEnvelope(res: unknown): unknown {
+  if (!isLocalTtsEnvelope(res)) return res; // já nu — intacto
+  if (res.success) return res.data;
+  const message = typeof res.error === 'string' && res.error.length > 0 ? res.error : 'LOCAL_TTS_ERROR';
+  throw new Error(message);
+}
+
+/** Canais de REQUEST do TTS local (todos devolvem envelope no main). */
+type LocalTtsRequestChannel = Exclude<
+  (typeof TTS_CHANNELS)[keyof typeof TTS_CHANNELS],
+  (typeof TTS_CHANNELS)['DOWNLOAD_PROGRESS']
+>;
+
+type EnvelopeUnwrapper = (res: unknown) => unknown;
+
+/**
+ * Mapa EXPLÍCITO canal→desembrulhador dos canais `localTts:*` de request.
+ * `Record` sobre a união LITERAL dos canais: acrescentar um canal de request a
+ * `TTS_CHANNELS` sem o listar aqui é erro de compilação (exaustividade).
+ *
+ * `stt:*` fica DE FORA de propósito: o contrato do STT mantém o envelope à
+ * vista e o consumidor desembrulha ele próprio (useMicSTT lê
+ * `(res as { success, data }).data`) — desembrulhar aqui regrediria esse
+ * caminho, que está correto.
+ */
+const LOCAL_TTS_ENVELOPE_UNWRAPPERS: Record<LocalTtsRequestChannel, EnvelopeUnwrapper> = {
+  [TTS_CHANNELS.LIST]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.DOWNLOAD]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.CANCEL_DOWNLOAD]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.DELETE]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.GENERATE]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.CANCEL_GENERATE]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.GET_PREFERENCE]: unwrapLocalTtsEnvelope,
+  [TTS_CHANNELS.SET_PREFERENCE]: unwrapLocalTtsEnvelope,
+};
+
+function envelopeUnwrapperFor(channel: string): EnvelopeUnwrapper | undefined {
+  return Object.prototype.hasOwnProperty.call(LOCAL_TTS_ENVELOPE_UNWRAPPERS, channel)
+    ? LOCAL_TTS_ENVELOPE_UNWRAPPERS[channel as LocalTtsRequestChannel]
+    : undefined;
+}
+
 /**
  * Constroi o objeto exposto. Iterando os grupos do contrato, garante cobertura
  * total dos canais sem duplicar strings (a fonte é o próprio shared/ipc-contract).
@@ -171,7 +250,11 @@ export function createExposedApi(ipc: IpcBridgeLike): ApiSchema {
           ipc.on(channel, listener);
       } else {
         const name = trackName(channel); // 'pi:execute' → 'execute'
-        member[name] = (...args: unknown[]) => ipc.invoke(channel, ...args);
+        const unwrap = envelopeUnwrapperFor(channel);
+        // Canais com envelope no main (localTts:*): o valor exposto é o NU.
+        member[name] = unwrap
+          ? async (...args: unknown[]): Promise<unknown> => unwrap(await ipc.invoke(channel, ...args))
+          : (...args: unknown[]) => ipc.invoke(channel, ...args);
       }
     }
     out[group] = member;
@@ -328,7 +411,13 @@ export interface ApiSchema {
     /** Corre o contrato de I/O, grava a tentativa e devolve o veredito+records. */
     run(worldId: string, levelId: string, lang: GameLang, code: string): Promise<GameRunResult>;
   };
-  /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
+  /**
+   * Onda 8 (voz local): STT — envelope `{ success, data?, error? }` À VISTA:
+   * o main devolve o envelope e estes membros entregam-no SEM desembrulhar
+   * (o consumidor faz o unwrap — useMicSTT lê `(res as { success, data }).data`).
+   * Ao contrário do `localTts:*`, estes canais NÃO entram em
+   * `LOCAL_TTS_ENVELOPE_UNWRAPPERS`.
+   */
   stt: {
     modelStatus(): Promise<unknown>;
     modelDownload(modelId: string): Promise<unknown>;
@@ -342,7 +431,18 @@ export interface ApiSchema {
     onStreamPartial(cb: (ev: SttPartialPayload) => void): () => void;
     onEngineStatus(cb: (ev: { status: 'ready' | 'restarting' | 'dead' }) => void): () => void;
   };
-  /** Onda 8 (voz local): TTS — envelope { success, data?, error? }. */
+  /**
+   * Onda 8 (voz local): TTS (Piper). O MAIN devolve o envelope
+   * `{ success, data?, error? }` (TtsIpcResult<T>) em todos os canais
+   * `localTts:*`, mas o valor exposto aqui é o VALOR NU: o `createExposedApi`
+   * desembrulha o envelope (`LOCAL_TTS_ENVELOPE_UNWRAPPERS`) e REJEITA com
+   * `Error(error)` quando `success:false`.
+   *
+   * FIX DO BUG DO ENVELOPE: antes o invoke seguia sem unwrap e o consumidor
+   * lia `res.audioBase64` sobre o envelope → `undefined` → a narração do
+   * onboarding nunca tocava. Agora `generate` resolve `TtsGenerateResult` e
+   * `getPreference` resolve `LocalTtsPreference` como as assinaturas prometem.
+   */
   localTts: {
     list(): Promise<unknown>;
     download(modelId: string): Promise<unknown>;

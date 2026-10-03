@@ -60,6 +60,11 @@ import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnes
 import { useTranslation } from 'react-i18next';
 
 import { THEME_MODE_I18N_KEY, type ThemeMode } from './themeModeState';
+// DRY (auditoria de layout §1): o piso de alvo de toque vem do token
+// (`TARGET.minTouchTargetPx`) pelo helper partilhado (`touchTargetSx`) —
+// os literais 44 foram aposentados; mesmos valores, fonte única.
+import { TARGET } from '../../lib/designTokens';
+import { touchTargetSx } from '../../lib/layoutSx';
 
 /** Ordem VISUAL dos segmentos: claro → sistema → escuro. */
 const DISPLAY_MODES: readonly ThemeMode[] = ['light', 'system', 'dark'] as const;
@@ -109,12 +114,13 @@ export default function ThemeModeSelector({
             data-theme-mode={m}
             // Ícone + rótulo lado a lado (ButtonBase é inline-flex): sem o
             // `gap` o texto colava no ícone. No compacto não há rótulo.
-            // PISO DE TOQUE (TOUCH_TARGET_PX = 44 do design system): o
+            // PISO DE TOQUE (`TARGET.minTouchTargetPx` = 44 do design system,
+            // via `touchTargetSx` de `lib/layoutSx.ts` — auditoria §1): o
             // IconButton `small` que este seletor substituía tinha 32px e
             // reprovava o piso — os segmentos cumprem-no nos dois tamanhos.
             sx={{
-              minHeight: 44,
-              ...(compact ? { minWidth: 44 } : { gap: 0.75 }),
+              ...touchTargetSx,
+              ...(compact ? { minWidth: TARGET.minTouchTargetPx } : { gap: 0.75 }),
             }}
           >
             {MODE_ICON[m]}

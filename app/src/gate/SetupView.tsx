@@ -1,29 +1,22 @@
 /**
- * src/gate/SetupView.tsx — formulário OBRIGATÓRIO de chaves do GATE DE INÍCIO.
- * CHROME MUI v9 + useTranslation real (removeu o tSafe).
+ * src/gate/SetupView.tsx — formulário OBRIGATÓRIO de chaves do GATE DE INÍCIO:
+ * VIEW PURA + container (state/view split — STORY-SPEC §5).
  *
- * Renderizado pelo AppGate quando `keys:startup-status` devolve phase 'blocked'
- * (chave faltando ou inválida). O usuário NÃO pode entrar no app sem as DUAS
- * chaves validadas.
+ * `SetupViewView` é a view pura (só props — histórias/testes SSR); `SetupView`
+ * é o container que liga `useSetupView` e mantém o export público do AppGate.
  *
- * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio aqui):
- *   - TextField password com toggle de visibilidade (Visibility/VisibilityOff);
- *   - "Validar" → keys.validateLlm(typed) / keys.validateBrave(typed),
- *     validando a chave DIGITADA SEM salvar;
- *   - "Salvar" → keys.setKey(provider, key) para as DUAS, e revalida (via
- *     onDone → AppGate re-executa o gate no main); só habilitado quando AMBAS
- *     validaram.
+ * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio):
+ *  - TextField password com toggle de visibilidade (Visibility/VisibilityOff);
+ *  - "Validar" → `keys.validateLlm`/`keys.validateBrave` (a chave DIGITADA,
+ *    sem salvar); "Salvar" → `keys.setKey` para as DUAS e revalida via
+ *    `onDone` (o AppGate re-executa o gate); só habilitado quando AMBAS
+ *    validaram;
+ *  - C2: helper POR CAMPO (papel do provedor + link "Onde obter");
+ *  - W17: o veredito da validação é ANUNCIADO (role="status"/role="alert").
  *
- * O LanguageSwitcher (src/i18n) é montado no slot — o antigo
- * <div id="language-switcher-slot"> é substituído.
- *
- * RODADA 10 (onda 2b — sem spinner infinito): além do timeout do validador no
- * MAIN (apiKeyValidator, ~8s), o renderer tem uma GUARDA própria de 10s —
- * defesa em profundidade: se o IPC pendurar por qualquer motivo, o spinner
- * para com mensagem de erro clara e o botão volta a ficar habilitado. Nunca
- * spinner eterno.
+ * O LanguageSwitcher (src/i18n) é montado no slot.
  */
-import { useEffect, useState, type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -37,13 +30,13 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import type { StartupStatus, ValidationResult } from '@shared/ipc-contract';
+import type { StartupStatus } from '@shared/ipc-contract';
 import { OPENROUTER_KEY_PREFIX } from '@shared/llm/constants';
-import { getApi } from '../lib/apiBridge';
-import { humanizeValidationError } from '../lib/validationMessages';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
+import type { Provider, SetupViewViewProps } from './useSetupView';
+import { useSetupView } from './useSetupView';
 
-type Provider = 'openrouter' | 'brave';
+export type { Provider, ProviderState, SetupViewViewProps } from './useSetupView';
 
 // O rótulo/placeholder vêm do i18n e o FORMATO da chave vem do contrato
 // congelado (`shared/llm/constants.ts`), nunca de um literal escrito à mão aqui.
@@ -79,191 +72,17 @@ const PROVIDER_META: Record<
   },
 };
 
-interface ProviderState {
-  value: string;
-  visible: boolean;
-  validating: boolean;
-  valid: boolean;
-  invalidMsg: string;
-  /** W19: detalhe técnico OPCIONAL — nunca é a frase principal da UI. */
-  detail: string;
-}
-
-const IDLE: ProviderState = { value: '', visible: false, validating: false, valid: false, invalidMsg: '', detail: '' };
-
-/**
- * S5 (onda-ux): o re-check do gate que volta 'blocked' NÃO pode cuspir fora as
- * chaves digitadas. O AppGate mantém o SetupView MONTADO durante o re-check
- * (o estado vive na mesma instância); este stash de módulo cobre os caminhos
- * em que ele chega a desmontar (ex.: falha de canal → GateError) — valores e
- * estado de validação são restaurados na próxima montagem.
- */
-let savedDraft: Record<Provider, ProviderState> | null = null;
-
-/**
- * W1 (onda-ux): as chaves CARREGADAS já chegam detetadas como inválidas pelo
- * gate (configured && !valid)? Se sim, a mensagem por estado começa em
- * `gate.invalidKeys` ("Algumas chaves são inválidas."); o convite "Valide as
- * duas chaves para continuar" é só quando nada foi validado ainda e nada de
- * inválido foi detetado (contrato da e2e-gate.spec.ts).
- */
-function loadedKeysInvalid(status: StartupStatus | null | undefined): boolean {
-  if (!status) return false;
-  const invalid = (p: StartupStatus['llm']): boolean => p.configured && !p.valid;
-  return invalid(status.llm) || invalid(status.brave);
-}
-
-/**
- * Guarda do renderer contra IPC/validação pendurada (10s — acima do timeout do
- * main, ~8s, para o erro vir do validador quando possível; bem abaixo dos 15s
- * do contrato e2e "spinner some"). Corrida com timeout: a resposta atrasada
- * que chegar DEPOIS do guard é ignorada (settled), evitando que um retorno
- * tardio sobrescreva a mensagem de erro.
- */
-const VALIDATE_TIMEOUT_MS = 10_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const finish = (fn: () => void): void => {
-      if (!settled) {
-        settled = true;
-        fn();
-      }
-    };
-    const timer = setTimeout(() => finish(() => reject(new Error('timed out'))), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        finish(() => resolve(value));
-      },
-      (err) => {
-        clearTimeout(timer);
-        finish(() => reject(err));
-      },
-    );
-  });
-}
-
-export function SetupView({
-  onDone,
-  startupStatus,
-}: {
-  onDone: () => void | Promise<void>;
-  /** Status do gate (AppGate) — diz se as chaves carregadas já são inválidas. */
-  startupStatus?: StartupStatus | null;
-}): ReactElement {
+export function SetupViewView({
+  providers,
+  saving,
+  validationFailed,
+  saveError,
+  allValid,
+  patch,
+  handleValidate,
+  handleContinue,
+}: SetupViewViewProps): ReactElement {
   const { t } = useTranslation();
-  // S5: nasce do stash (valores/estado preservados entre montagens) ou virgem.
-  const [providers, setProviders] = useState<Record<Provider, ProviderState>>(() =>
-    savedDraft
-      ? { openrouter: { ...savedDraft.openrouter }, brave: { ...savedDraft.brave } }
-      : { openrouter: { ...IDLE }, brave: { ...IDLE } },
-  );
-  const [saving, setSaving] = useState(false);
-  // W1+W17 (onda-ux): a mensagem do topo é por ESTADO. `gate.invalidKeys`
-  // aparece quando houve validação falhada OU quando o gate já trouxe as
-  // chaves carregadas como inválidas; caso contrário o texto é o convite
-  // ("Valide as duas chaves para continuar").
-  const [validationFailed, setValidationFailed] = useState(() => loadedKeysInvalid(startupStatus));
-  // FALHA AO SALVAR as chaves (onda-ux). O catch do `handleContinue` engolia o
-  // erro (`void err`) e o gate obrigatório ficava sem resposta nenhuma: o
-  // utilizador clicava em "Salvar" e nada acontecia. O erro agora tem estado
-  // próprio e vira um <Alert severity="error"> ao lado do botão — que continua
-  // HABILITADO para retry, e o estado limpa a cada nova tentativa. W19: a
-  // frase principal é i18n; o `String(err)` é só detalhe técnico opcional.
-  const [saveError, setSaveError] = useState<{ message: string; detail?: string } | null>(null);
-
-  // S5: mantém o stash sempre igual ao estado vivo (última tecla digitada).
-  useEffect(() => {
-    savedDraft = { openrouter: { ...providers.openrouter }, brave: { ...providers.brave } };
-  }, [providers]);
-
-  const patch = (provider: Provider, fn: (s: ProviderState) => ProviderState): void => {
-    setProviders((prev) => ({ ...prev, [provider]: fn(prev[provider]) }));
-  };
-
-  const handleValidate = async (provider: Provider): Promise<void> => {
-    const typed = providers[provider].value.trim();
-    const validate =
-      provider === 'openrouter' ? getApi().keys.validateLlm : getApi().keys.validateBrave;
-
-    if (!typed) {
-      patch(provider, (s) => ({
-        ...s,
-        valid: false,
-        invalidMsg: t('translation:keys.needKeyBeforeValidate'),
-        detail: '',
-      }));
-      return;
-    }
-
-    patch(provider, (s) => ({ ...s, validating: true, valid: false, invalidMsg: '', detail: '' }));
-    let result: ValidationResult;
-    try {
-      result = await withTimeout(validate(typed), VALIDATE_TIMEOUT_MS);
-    } catch (err) {
-      // Timeout do guard (IPC/validação pendurada) → mensagem de rede clara;
-      // qualquer outra rejeição do canal → erro de rede genérico, com retry.
-      // W19: a FRASE PRINCIPAL é sempre i18n; o `String(err)` vira detalhe
-      // técnico opcional (legenda), nunca a frase da UI.
-      const isTimeout = err instanceof Error && /timed out/i.test(err.message);
-      setValidationFailed(true);
-      patch(provider, (s) => ({
-        ...s,
-        validating: false,
-        valid: false,
-        invalidMsg: isTimeout
-          ? t('translation:keys.errorTimeout')
-          : t('translation:keys.errorNetworkValidate'),
-        detail: isTimeout ? '' : String(err),
-      }));
-      return;
-    }
-    patch(provider, (s) =>
-      result.isValid
-        ? { ...s, validating: false, valid: true, invalidMsg: '', detail: '' }
-        : {
-            ...s,
-            validating: false,
-            valid: false,
-            invalidMsg: humanizeValidationError(result.errorMessage, result.provider),
-            detail: '',
-          },
-    );
-    // W1: o veredito NEGATIVO é o que muda a mensagem do topo para
-    // `gate.invalidKeys` — antes ela aparecia desde o primeiro frame.
-    if (!result.isValid) setValidationFailed(true);
-  };
-
-  const allValid =
-    providers.openrouter.valid && providers.brave.valid && !providers.openrouter.validating && !providers.brave.validating;
-
-  const handleContinue = async (): Promise<void> => {
-    if (!allValid) return;
-    // Nova tentativa → o erro da anterior some (o Alert só mostra a falha da
-    // tentativa em curso, nunca uma morta).
-    setSaveError(null);
-    setSaving(true);
-    try {
-      await getApi().keys.setKey('openrouter', providers.openrouter.value.trim());
-      await getApi().keys.setKey('brave', providers.brave.value.trim());
-      // onDone re-executa o gate no main (revalida as chaves guardadas). S5:
-      // aguardamos o re-check — se ele voltar 'blocked', este mesmo SetupView
-      // (montado, com os valores intactos) volta a ficar utilizável no finally.
-      await onDone();
-    } catch (err) {
-      // A FALHA DEIXA DE SER SILINCIOSA (onda-ux): o gate é obrigatório e o
-      // utilizador precisa de saber que o save não aconteceu. W19: a frase é
-      // `keys.saveError` (i18n, existente nos dois locales) e o erro bruto vira
-      // detalhe técnico opcional — nunca a frase principal.
-      setSaveError({ message: t('translation:keys.saveError'), detail: String(err) });
-    } finally {
-      // SEMPRE limpo: o botão volta a ficar habilitado para retry (o
-      // `allValid` continua true e os valores continuam no formulário).
-      setSaving(false);
-    }
-  };
 
   const renderProvider = (provider: Provider): ReactElement => {
     const meta = PROVIDER_META[provider];
@@ -427,4 +246,15 @@ export function SetupView({
       </Paper>
     </Box>
   );
+
+}
+/** Container: só liga o hook de estado à view pura (export público do gate). */
+export function SetupView({
+  onDone,
+  startupStatus,
+}: {
+  onDone: () => void | Promise<void>;
+  startupStatus?: StartupStatus | null;
+}): ReactElement {
+  return <SetupViewView {...useSetupView({ onDone, startupStatus })} />;
 }

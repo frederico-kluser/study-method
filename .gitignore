@@ -46,3 +46,4 @@ Thumbs.db
 app/out/
 app/dist/
 .deep-orchestrator-preferences/
+app/storybook-static/

@@ -49,7 +49,7 @@
  * em App.tsx isso é `setActive`. Settings/Lesson/Challenge continuam como
  * funções exportadas (o registry views/index.ts as sobrescreve pelas reais).
  */
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -74,30 +74,28 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import type { KeysStatus, SubjectSummary } from '../../shared/ipc-contract';
 import type { NavKey } from '../lib/shellNav';
-import { getApi } from '../lib/apiBridge';
-import {
-  IPC_TIMEOUT_MS,
-  isTimeoutError,
-  resolveChannelError,
-  withTimeout,
-} from '../lib/ipcTimeout';
 import {
   groupSubjectsByDomain,
   homeDomainSections,
   homeSetupStatus,
   homeTracksState,
-  splitSubjectsByOrphanSlug,
   subjectProgressCounts,
   type HomeDomain,
 } from '../lib/homeSetup';
-// ONDA-UX-TRILHAS: o CTA "Continuar" restaura a última aula aberta na sessão
-// (peek — não consome; a LessonView tem a sua própria restauração).
-import { peekLastLesson } from '../lib/lastLesson';
-import { setPendingTrackSlug } from '../lib/pendingSubject';
+import type { HomeTrackSummary, HomeViewViewProps, SubjectPick } from './useHomeView';
+import { useHomeView } from './useHomeView';
 // ONDA-UX-TRILHAS-2 (auditoria 1-trilhas, finding-10): a escala de raios do
 // design system (SHAPE.sm=8 / md=12 / base=12) — o distintivo de progresso
 // deixa o raio "pill" do Chip (999) e entra na mesma família do cartão.
-import { SHAPE } from '../lib/designTokens';
+import { LAYOUT, SHAPE } from '../lib/designTokens';
+// §8/§10/§3 (LAYOUT-DRY-AUDIT): cabeçalho de secção, cartão de lista e
+// erro+retentativa são os primitivos partilhados — a copy fica aqui.
+import { InfoCard } from '../components/ui/InfoCard';
+import { RetryAlert } from '../components/ui/RetryAlert';
+import { SectionHeader } from '../components/ui/SectionHeader';
+// §1: o piso de alvo de toque é UM objeto de estilo (`touchTargetSx`), nunca
+// `minHeight: 44` copiado — ver lib/layoutSx.ts.
+import { touchTargetSx } from '../lib/layoutSx';
 
 export interface ViewProps {
   /** Caminho do setup de estudo ativo (quando houver), vazio caso contrário. */
@@ -112,12 +110,8 @@ export interface ViewProps {
 }
 
 /* ─── Passos numerados do fluxo recém-instalado (UX notes item 3) ─────────── */
-
-/**
- * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
- * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
- */
-const TOUCH_TARGET_PX = 44;
+// (O antigo `TOUCH_TARGET_PX` local saiu: o piso de toque vive em
+// `lib/layoutSx.ts` → `touchTargetSx`, importado acima.)
 
 type HomeStepKey = 'configureKeys' | 'subject' | 'learn';
 
@@ -178,35 +172,24 @@ function SetupStatusCard({
   const aggregate = homeSetupStatus(status);
 
   if (status == null && failed) {
+    // §3 RetryAlert (LAYOUT-DRY-AUDIT): "não foi possível verificar" + retentativa
+    // é o bloco `Alert` com retry na ação — o primitivo partilhado. `warning`
+    // (e não `error`): o CANAL falhou, nada se pode dizer sobre as chaves (W2) —
+    // um erro vermelho pintaria uma conclusão que não temos.
     return (
-      <Card variant="outlined" sx={{ bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            {t('translation:home.setup.checkFailed')}
-          </Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={onRetry}
-            sx={{ mt: 1, minHeight: TOUCH_TARGET_PX }}
-          >
-            {t('translation:common.tryAgain')}
-          </Button>
-        </CardContent>
-      </Card>
+      <RetryAlert
+        severity="warning"
+        message={t('translation:home.setup.checkFailed')}
+        onRetry={onRetry}
+      />
     );
   }
 
   if (status == null) {
-    return (
-      <Card variant="outlined" sx={{ bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            {t('translation:home.setup.checking')}
-          </Typography>
-        </CardContent>
-      </Card>
-    );
+    // §10 InfoCard (LAYOUT-DRY-AUDIT): o cartão de estado "só título" é o
+    // cartão de lista canónico (título `subtitle1` + `infoCardTitleSx` = o
+    // `fontWeight: 600` da cópia antiga).
+    return <InfoCard title={t('translation:home.setup.checking')} />;
   }
 
   const ready = aggregate === 'ready';
@@ -255,10 +238,7 @@ function SetupStatusCard({
 }
 
 /** O que o usuário escolheu clicar: matéria + domínio (para o rótulo/estado). */
-export interface SubjectPick {
-  subject: string;
-  domain: HomeDomain;
-}
+export type { SubjectPick } from './useHomeView';
 
 // ONDA-UX-TRILHAS: o componente `SubjectSuggestions` ("Ideias para começar")
 // foi REMOVIDO — os chips prometiam "digitar um assunto → aula gerada", fluxo
@@ -357,10 +337,10 @@ function SubjectSections({
               `component="h2"` para o outline do documento) e deixa de empatar
               em tamanho/peso com os títulos de CARTÃO (subtitle1, 16px/600,
               que ficam como estão). Mesmo tratamento nos 3 cabeçalhos de
-              "Trilhas" — todos os títulos de seção da Home partilham estilo. */}
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
-            {sectionTitle[section.domain]}
-          </Typography>
+              "Trilhas" — todos os títulos de seção da Home partilham estilo.
+              §8 (LAYOUT-DRY-AUDIT): o cabeçalho é o `SectionHeader` partilhado
+              (nível 2 = h6/h2; o peso 700 do h6 vem do tema). */}
+          <SectionHeader title={sectionTitle[section.domain]} />
  <Stack spacing={1}>
             {section.subjects.map((subject) => (
               <SubjectCard key={subject.id} subject={subject} onPick={onPick} tI={tI} />
@@ -468,66 +448,19 @@ function TrackProgressBadge({
 }
 
 function TracksSection({
+  tracks,
+  tracksError,
+  onRetry,
   onOpen,
   tI,
 }: {
+  tracks: HomeTrackSummary[] | null;
+  tracksError: string | null;
+  onRetry: () => void;
   onOpen: (slug: string) => void;
   tI: (key: string, options?: Record<string, string | number>) => string;
 }): ReactElement | null {
   const { t } = useTranslation();
-  const [tracks, setTracks] = useState<Array<{
-    slug: string;
-    title: string;
-    description: string;
-    doneCount: number;
-    lessonCount: number;
-  }> | null>(null);
-  // ONDA 2c (blindagem): falha do track:list NÃO some em silêncio — mostra
-  // erro claro com detalhe + botão de tentar de novo (e timeout no canal mudo).
-  const [tracksError, setTracksError] = useState<string | null>(null);
-
-  /** Lista as trilhas — com timeout: canal mudo ou falha viram erro VISÍVEL
-   * (com o detalhe do erro quando o canal devolve) + botão de tentar de novo. */
-  const loadTracks = useCallback((): (() => void) => {
-    let cancelled = false;
-    setTracksError(null);
-    withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
-      .then((res) => {
-        if (cancelled) return;
-        // ok:false = falha REAL (repo indisponível etc.) → erro visível;
-        // ok:true com lista vazia = nenhuma trilha instalada (vazio legítimo).
-        if (res.ok === false) {
-          // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
-          setTracksError(resolveChannelError(res, t('translation:home.tracksLoadFailed')));
-          return;
-        }
-        setTracks(
-          res.tracks.length > 0
-            ? res.tracks.map((x) => ({
-                slug: x.slug,
-                title: x.title,
-                description: x.description,
-                doneCount: x.doneCount,
-                lessonCount: x.lessonCount,
-              }))
-            : [],
-        );
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setTracksError(
-          isTimeoutError(err)
-            ? t('translation:home.tracksTimeout')
-            : t('translation:home.tracksLoadFailed'),
-        );
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => loadTracks(), [loadTracks]);
 
   // ONDA9 (cache-reconcilia): o estado da seção é NOMEADO por uma função pura
   // (homeTracksState) — 'loading' | 'error' | 'empty' | 'list'. O que mudou é
@@ -540,17 +473,9 @@ function TracksSection({
   if (state === 'error') {
     return (
       <Box>
-        <Alert severity="error">{tracksError}</Alert>
-        {/* minHeight = piso de alvo de toque (TOUCH_TARGET_PX) — o size="small"
-            sozinho nasce ~30px de alto. */}
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={loadTracks}
-          sx={{ mt: 1, minHeight: TOUCH_TARGET_PX }}
-        >
-          {t('translation:common.tryAgain')}
-        </Button>
+        {/* §3 RetryAlert (LAYOUT-DRY-AUDIT): erro + "Tentar de novo" é o
+            primitivo partilhado (o retry mantém o piso de alvo de toque). */}
+        <RetryAlert severity="error" message={tracksError} onRetry={onRetry} />
       </Box>
     );
   }
@@ -563,9 +488,7 @@ function TracksSection({
   if (state === 'loading' || tracks === null) {
     return (
       <Box>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
-          {t('translation:home.tracksTitle')}
-        </Typography>
+        <SectionHeader title={t('translation:home.tracksTitle')} />
         <LinearProgress aria-label={t('translation:home.tracksLoading')} />
       </Box>
     );
@@ -576,9 +499,12 @@ function TracksSection({
   if (state === 'empty' || tracks.length === 0) {
     return (
       <Box>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
-          {t('translation:home.tracksTitle')}
-        </Typography>
+        <SectionHeader title={t('translation:home.tracksTitle')} />
+        {/* §10 (LAYOUT-DRY-AUDIT) — PENDENTE `InfoCard`: o cartão vazio usa
+            título `subtitle2` + descrição `body2` (o `InfoCard` desenha
+            `subtitle1` + `caption`) e o `data-testid="home-tracks-empty"` é
+            fixado por tests/areaViewsSsr.test.ts (o primitivo não tem slot de
+            atributos). Fica como está até haver variante no primitivo. */}
         <Card variant="outlined" data-testid="home-tracks-empty">
           <CardContent>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
@@ -597,10 +523,12 @@ function TracksSection({
     <Box>
       {/* ONDA-UX-TRILHAS-2 (finding-5): "Trilhas" sobe para h6/700 — um degrau
           à frente dos títulos de cartão (subtitle1/600). A string visível fica
-          ESTÁVEL ("Trilhas" — regra 5 da casa, specs e2e dependem dela). */}
-      <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
-        {t('translation:home.tracksTitle')}
-      </Typography>
+          ESTÁVEL ("Trilhas" — regra 5 da casa, specs e2e dependem dela).
+          §8 (LAYOUT-DRY-AUDIT): `SectionHeader` partilhado (nível 2 = h6/h2).
+          A descrição SEGUE em `caption`: o slot `description` do primitivo é
+          `body2` (a cópia §8 das Settings) e o contrato desta linha é
+          legenda — migração pendente de decisão de design, não de código. */}
+      <SectionHeader title={t('translation:home.tracksTitle')} />
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
         {t('translation:home.tracksDescription')}
       </Typography>
@@ -641,7 +569,7 @@ function TracksSection({
                     </Typography>
                     {/* Finding-3/4: descrição em `body2` (14px — o `caption`
                         de 12px media mal numa frase de 300+ caracteres) com
-                        medida tectada em `maxWidth: 640` (~72ch, SC 1.4.8 —
+                        medida tectada em `maxWidth: LAYOUT.readingColumnPx` (~72ch, SC 1.4.8 —
                         o mesmo padrão de RoadmapView para o mesmo campo).
                         `overflowWrap: 'break-word'` (NUNCA 'anywhere'): tokens
                         como "-std=c11." quebram em limites de palavra e só
@@ -650,7 +578,7 @@ function TracksSection({
                         recorta — o F104 do e2e-spacing reprova reticências). */}
                     <Typography
                       variant="body2"
-                      sx={{ color: 'text.secondary', overflowWrap: 'break-word', mt: 0.5, maxWidth: 640 }}
+                      sx={{ color: 'text.secondary', overflowWrap: 'break-word', mt: 0.5, maxWidth: LAYOUT.readingColumnPx }}
                     >
                       {tr.description}
                     </Typography>
@@ -666,128 +594,29 @@ function TracksSection({
   );
 }
 
-export function HomeView(props: ViewProps): ReactElement {
+export function HomeViewView({
+  keyStatus,
+  keyStatusFailed,
+  refreshKeys,
+  ready,
+  primaryLabel,
+  primaryAction,
+  openTrack,
+  orphanCount,
+  navigate,
+  handlePick,
+  visibleTopics,
+  hasSubjects,
+  tracks,
+  tracksError,
+  loadTracks,
+}: HomeViewViewProps): ReactElement {
   const { t } = useTranslation();
   // Interpolação ({{var}}): mesmo cast aprovado do ChallengeView (tI).
   const tI = useMemo(
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
   );
-  const [keyStatus, setKeyStatus] = useState<KeysStatus | null>(null);
-  // ONDA-UX-TRILHAS (auditoria W2): falha de `keys.getStatus()` NÃO é
-  // "não configurado" — é um estado próprio ("não foi possível verificar")
-  // com retentativa. Nunca inferir "em falta" de uma falha de canal.
-  const [keyStatusFailed, setKeyStatusFailed] = useState(false);
-  // Matérias PERSISTIDAS (onda 4): null = carregando → sem cartões até a
-  // resposta; [] = vazio/erro → sem cartões.
-  const [topics, setTopics] = useState<SubjectSummary[] | null>(null);
-  // ONDA9 (cache-reconcilia): slugs cujo estado persistido NÃO tem trilha no
-  // disco nem aula própria no banco — o resquício de um curso apagado. `null`
-  // enquanto a reconciliação não respondeu: nesse intervalo NADA é escondido
-  // (esconder por falta de resposta trocaria fantasma por sumiço).
-  const [orphanSlugList, setOrphanSlugList] = useState<string[] | null>(null);
-  const navigate = props.onNavigate ?? (() => {});
-
-  // O estado das chaves com timeout (S4 da auditoria: era a ÚNICA chamada sem
-  // `withTimeout` — "Verificando a configuração…" podia pendurar para sempre).
-  const refreshKeys = useCallback((): void => {
-    setKeyStatusFailed(false);
-    Promise.resolve()
-      .then(() => withTimeout(getApi().keys.getStatus(), IPC_TIMEOUT_MS, 'keys.getStatus'))
-      .then((status) => {
-        setKeyStatus(status);
-      })
-      .catch(() => {
-        setKeyStatusFailed(true);
-      });
-  }, []);
-
-  useEffect(() => {
-    refreshKeys();
-  }, [refreshKeys]);
-
-  // Onda 4: carrega as matérias persistidas. `listTopics` devolve [] sem repo
-  // (main é gracioso) e o catch defende o caso do canal ausente — nos DOIS
-  // casos caímos no onboarding atual (chips), nunca numa tela quebrada.
-  useEffect(() => {
-    let cancelled = false;
-    Promise.resolve()
-      .then(() => getApi().study.listTopics())
-      .then((list) => {
-        if (!cancelled) setTopics(Array.isArray(list) ? list : []);
-      })
-      .catch(() => {
-        if (!cancelled) setTopics([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // ONDA9 (cache-reconcilia): pergunta ao main o que está órfão. Falha, canal
-  // mudo ou build sem o canal → `[]` (nada escondido) — a reconciliação NUNCA
-  // pode ser a razão de a Home ficar vazia.
-  useEffect(() => {
-    let cancelled = false;
-    Promise.resolve()
-      .then(() => withTimeout(getApi().track.orphans(), IPC_TIMEOUT_MS, 'track.orphans'))
-      .then((res) => {
-        if (cancelled) return;
-        setOrphanSlugList(res.ok ? res.orphans.map((o) => o.slug) : []);
-      })
-      .catch(() => {
-        if (!cancelled) setOrphanSlugList([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const ready = homeSetupStatus(keyStatus) === 'ready';
-
-  // ONDA-UX-TRILHAS: o CTA é contextual de VERDADE (uma ação = um destino que
-  // sempre funciona):
-  //   · sem chaves        → Configurações (fechar o setup);
-  //   · com última aula   → Continuar (a LessonView restaura via lastLesson);
-  //   · sem última aula   → Escolher uma trilha (roadmap — o conteúdo vive lá).
-  // Antes, "Começar aula" mandava SEMPRE para a aba Aula, que sem aula aberta
-  // mostra "Escolha uma trilha" — um salto para um estado vazio (auditoria).
-  const lastLesson = peekLastLesson();
-
-  const primaryAction = (): void => {
-    if (!ready) {
-      navigate('settings');
-      return;
-    }
-    navigate(lastLesson ? 'lesson' : 'roadmap');
-  };
-
-  const primaryLabel = !ready
-    ? t('translation:home.cta.setup')
-    : lastLesson
-      ? t('translation:home.cta.continue')
-      : t('translation:home.cta.start');
-
-  /**
-   * Porta ÚNICA de escolha de matéria (cartões). ONDA-UX-TRILHAS: o clique vai
-   * para a TRILHA (roadmap), onde o conteúdo real vive — a rodada 8 retirou a
-   * geração de aula por assunto e o clique antigo caía no estado vazio da
-   * aba Aula. O aviso de "trocar de matéria" saiu junto: ir para a Trilha não
-   * abandona a aula em curso (o chat fica cacheado por trackSlug:lessonId).
-   */
-  const handlePick = (_pick: SubjectPick): void => {
-    navigate('roadmap');
-  };
-
-  // ONDA9: o veredito do main aplicado à lista. `visible` são as matérias
-  // ALCANÇÁVEIS (têm aula própria no banco ou trilha instalada); `orphaned` é
-  // o resquício — ele NÃO vira cartão (seria link morto), mas também não some
-  // calado: rende um aviso com caminho para as Configurações.
-  const { visible: visibleTopics } = splitSubjectsByOrphanSlug(topics, orphanSlugList);
-  // Resquício SEM matéria persistida (só progresso de trilha) não aparece em
-  // `orphanedTopics` — por isso o contador vem do main, não da subtração.
-  const orphanCount = orphanSlugList?.length ?? 0;
-  const hasSubjects = topics !== null && visibleTopics.length > 0;
 
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
@@ -797,7 +626,7 @@ export function HomeView(props: ViewProps): ReactElement {
           <Typography variant="h4" component="h1" gutterBottom>
             {t('translation:home.title')}
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 640 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: LAYOUT.readingColumnPx }}>
             {t('translation:home.description')}
           </Typography>
         </Box>
@@ -824,10 +653,13 @@ export function HomeView(props: ViewProps): ReactElement {
 
         {/* Rodada 8: TRILHAS — cursos prontos (criados pelo CLI de autoria).
             O aluno escolhe a trilha; os itens já vêm definidos. */}
-        <TracksSection onOpen={(slug) => {
-          setPendingTrackSlug(slug);
-          navigate('roadmap');
-        }} tI={tI} />
+        <TracksSection
+          tracks={tracks}
+          tracksError={tracksError}
+          onRetry={loadTracks}
+          onOpen={openTrack}
+          tI={tI}
+        />
 
         {/* ONDA9 (cache-reconcilia): o resquício some do caminho do aluno, mas
             NUNCA em silêncio — o aviso diz quantos são, garante que nada foi
@@ -841,7 +673,7 @@ export function HomeView(props: ViewProps): ReactElement {
                 color="inherit"
                 size="small"
                 onClick={() => navigate('settings')}
-                sx={{ minHeight: TOUCH_TARGET_PX }}
+                sx={touchTargetSx}
               >
                 {t('translation:home.orphansAction')}
               </Button>
@@ -863,4 +695,12 @@ export function HomeView(props: ViewProps): ReactElement {
       </Stack>
     </Container>
   );
+}
+
+/**
+ * Container público (`views/index.ts` → App): só liga `useHomeView` à view
+ * pura `HomeViewView` (state/view split — STORY-SPEC §5).
+ */
+export function HomeView(props: ViewProps): ReactElement {
+  return <HomeViewView {...useHomeView(props)} />;
 }

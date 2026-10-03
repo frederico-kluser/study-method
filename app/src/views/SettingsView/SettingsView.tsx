@@ -13,6 +13,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import ThemeModeSelector from '../../components/theme/ThemeModeSelector';
+import { SettingsSection } from '../../components/ui/SettingsSection';
 import { KeysPanel } from './KeysPanel';
 import { LocalAiPanel } from './LocalAiPanel';
 import { OrphanTracksPanel } from './OrphanTracksPanel';
@@ -33,39 +34,34 @@ export default function SettingsView(): ReactElement {
                 lateral — aqui fica o mesmo controlo com rótulos, o lugar que o
                 utilizador procura quando quer "mudar o tema". SELEÇÃO direTA
                 (claro/sistema/escuro), nunca ciclo. */}
-            <section aria-labelledby="settings-appearance-title">
-              <Typography variant="h6" id="settings-appearance-title">
-                {t('translation:settings.section.appearance')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {t('translation:settings.appearanceDescription')}
-              </Typography>
+            <SettingsSection
+              id="settings-appearance"
+              title={t('translation:settings.section.appearance')}
+              description={t('translation:settings.appearanceDescription')}
+            >
               <ThemeModeSelector variant="full" />
-            </section>
+            </SettingsSection>
 
             <Divider />
 
-            <section aria-labelledby="settings-keys-title" data-onboarding-target="settings-keys-section">
-              <Typography variant="h6" id="settings-keys-title">
-                {t('translation:settings.keysTitle')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {t('translation:settings.keysDescription')}
-              </Typography>
+            <SettingsSection
+              id="settings-keys"
+              onboardingTarget="settings-keys-section"
+              title={t('translation:settings.keysTitle')}
+              description={t('translation:settings.keysDescription')}
+            >
               <KeysPanel />
-            </section>
+            </SettingsSection>
 
             <Divider />
 
-            <section aria-labelledby="settings-localai-title">
-              <Typography variant="h6" id="settings-localai-title">
-                {t('translation:settings.localAiTitle')}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                {t('translation:settings.localAiDescription')}
-              </Typography>
+            <SettingsSection
+              id="settings-localai"
+              title={t('translation:settings.localAiTitle')}
+              description={t('translation:settings.localAiDescription')}
+            >
               <LocalAiPanel />
-            </section>
+            </SettingsSection>
 
             <Divider />
 

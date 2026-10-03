@@ -58,18 +58,28 @@
  * Reimprimir preserva conteúdo E corrige a cor, e é possível porque `writeLine`
  * recebe a cor pelo NOME SEMÂNTICO, não pelo hex: guardando `(texto, nome)` em
  * `historyRef`, a mesma linha é re-resolvida na paleta nova. O custo é um array
- * limitado ao mesmo teto do scrollback do xterm (`SCROLLBACK_LINES`), com
+ * limitado ao mesmo teto do scrollback do xterm (`TERMINAL_SCROLLBACK_LINES`
+ * de `lib/terminalBuffer.ts`), com
  * descarte pela frente — a memória não cresce sem limite.
  * O `reset()` (e não `clear()`) é quem apaga: `clear()` do xterm PRESERVA a
  * linha corrente, o que deixaria um resíduo da paleta velha no topo.
  *
  * ─── COMO A POLARIDADE CHEGA AQUI ─────────────────────────────────────────
- * Por `useColorScheme()` do MUI, NUNCA por `theme.palette.mode` — sob
- * `cssVariables` o ternário sobre o modo resolve UMA vez e nunca reage ao
- * toggle (ver "MECÂNICA OBRIGATÓRIA DO MUI v9", item 2, em `src/theme.ts`).
- * O fundo do <Paper> circundante nem precisa de JS: `surface.level2` é o MESMO
- * nível de rampa que `CodePalette.chrome.surface`, e como token de paleta ele
- * vira `var(--mui-palette-surface-level2)` — repinta pela classe do <html>.
+ * Pelo hook de tema `useCodeScheme()` (`components/cm/useCodeScheme.ts`), ou
+ * pela prop `scheme` quando o dono quer fixá-la — NUNCA por
+ * `theme.palette.mode`: sob `cssVariables` o ternário sobre o modo resolve UMA
+ * vez e nunca reage ao toggle (ver "MECÂNICA OBRIGATÓRIA DO MUI v9", item 2,
+ * em `src/theme.ts`). O fundo do <Paper> circundante nem precisa de JS:
+ * `surface.level2` é o MESMO nível de rampa que `CodePalette.chrome.surface`,
+ * e como token de paleta ele vira `var(--mui-palette-surface-level2)` —
+ * repinta pela classe do <html>.
+ *
+ * ─── ONDE VIVE A LÓGICA (contrato state/view) ─────────────────────────────
+ * O xterm é imperativo: a MONTAGEM é efeito (criar/fit/resize/dispose) e fica
+ * aqui. O que é lógica pura — o buffer de linhas impressas, o teto de
+ * scrollback e a re-resolução de cor por nome — vive em
+ * `lib/terminalBuffer.ts` (testável sem DOM). A polaridade vem do hook de
+ * tema partilhado com o CodeMirrorField.
  *
  * CSS do xterm precisa ser importado uma vez (é global).
  */
@@ -79,16 +89,23 @@ import { Terminal as Xterm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import Paper from '@mui/material/Paper';
-import { useColorScheme } from '@mui/material/styles';
 import { buildTestBannerLines, type TerminalBannerInput, type TerminalBannerLabels } from '../../lib/terminalBanner';
+import {
+  clearTerminalBuffer,
+  formatTerminalLine,
+  pushTerminalLine,
+  replayTerminalLines,
+  TERMINAL_SCROLLBACK_LINES,
+  type TerminalBufferLine,
+} from '../../lib/terminalBuffer';
 import {
   codeTypography,
   terminalColors,
-  truecolorForeground,
   xtermTheme,
   type CodeScheme,
   type TerminalColorName,
 } from '../../lib/codeTheme';
+import { useCodeScheme } from '../cm/useCodeScheme';
 
 /**
  * Cores nomeadas aceitas por `writeLine`. É o contrato PÚBLICO do terminal, e
@@ -96,32 +113,6 @@ import {
  * a ChallengeView não precisar importar do lib só por causa do tipo.
  */
 export type AnswerTerminalColor = TerminalColorName;
-
-/** Teto de linhas guardadas — o mesmo do scrollback do xterm (ver armadilha 3). */
-const SCROLLBACK_LINES = 5000;
-
-/** Uma linha já impressa, guardada pelo NOME da cor (não pelo hex). */
-interface PrintedLine {
-  text: string;
-  color: AnswerTerminalColor;
-}
-
-/**
- * Polaridade lida do <html> — o fallback do PRIMEIRO render.
- *
- * `useColorScheme().colorScheme` é `undefined` até o efeito de montagem do
- * provider (`useCurrentColorScheme` do `@mui/system` inicia `isClient` em
- * `false` quando há mais de um scheme suportado). O `primeColorSchemeClass()`
- * do `src/main.tsx` já grava a classe `.light`/`.dark` no <html> ANTES do
- * primeiro paint, então ela é a resposta certa nesse frame.
- * (Gêmea da função homônima em `components/cm/CodeMirrorField.tsx`: `src/lib` é
- * compilado pelo `tsconfig.node.json`, que não tem DOM, e não há módulo comum
- * de componente no escopo desta onda para hospedá-la uma vez só.)
- */
-function domColorScheme(): CodeScheme {
-  if (typeof document === 'undefined') return 'light';
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-}
 
 export interface AnswerTerminalHandle {
   /** Imprime uma linha no terminal, na cor semântica dada (default: `default`). */
@@ -135,17 +126,22 @@ export interface AnswerTerminalHandle {
 interface AnswerTerminalProps {
   /** Rótulo acessível opcional. */
   'aria-label'?: string;
+  /**
+   * Polaridade do tema de código FORÇADA. Omita para seguir o tema do app
+   * (hook `useCodeScheme`, tal como o CodeMirrorField).
+   */
+  scheme?: CodeScheme;
 }
 
 /** Terminal xterm com handle imperativo para saída dos testes. */
 export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalProps>(
-  function AnswerTerminal(_props, ref): ReactElement {
+  function AnswerTerminal(props, ref): ReactElement {
     const containerRef = useRef<HTMLDivElement>(null);
     const xtermRef = useRef<Xterm | null>(null);
     const fitRef = useRef<FitAddon | null>(null);
 
-    const { colorScheme } = useColorScheme();
-    const scheme: CodeScheme = (colorScheme ?? domColorScheme()) === 'dark' ? 'dark' : 'light';
+    const themeScheme = useCodeScheme();
+    const scheme: CodeScheme = props.scheme ?? themeScheme;
 
     // Armadilha 2: o handle imperativo tem deps vazias de propósito (identidade
     // estável para a ChallengeView), então a paleta NÃO pode viver no closure.
@@ -157,8 +153,9 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
     const schemeRef = useRef(scheme);
     schemeRef.current = scheme;
 
-    // Armadilha 3: o que já foi impresso, guardado por NOME de cor.
-    const historyRef = useRef<PrintedLine[]>([]);
+    // Armadilha 3: o que já foi impresso, guardado por NOME de cor
+    // (buffer puro em `lib/terminalBuffer.ts`).
+    const historyRef = useRef<TerminalBufferLine[]>([]);
 
     // Cria o terminal UMA vez no mount (instância única).
     useEffect(() => {
@@ -187,7 +184,7 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
         fontFamily: codeTypography().fontFamily,
         theme: xtermTheme(schemeRef.current),
         // Evita scrollback excessivo para saída de teste (ainda com memória).
-        scrollback: SCROLLBACK_LINES,
+        scrollback: TERMINAL_SCROLLBACK_LINES,
       });
       const fit = new FitAddon();
       xterm.loadAddon(fit);
@@ -231,12 +228,12 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
       xterm.options.theme = xtermTheme(scheme);
       const printed = historyRef.current;
       if (printed.length === 0) return;
-      const colors = terminalColors(scheme);
       // `reset()` e não `clear()`: `clear()` preserva a linha corrente e
-      // deixaria um resíduo com o SGR da paleta velha.
+      // deixaria um resíduo com o SGR da paleta velha. A re-resolução de cor
+      // por nome (armadilha 3) é o `replayTerminalLines` de `lib/terminalBuffer`.
       xterm.reset();
-      for (const line of printed) {
-        xterm.writeln(`${truecolorForeground(colors[line.color])}${line.text}\x1b[0m`);
+      for (const line of replayTerminalLines(printed, terminalColors(scheme))) {
+        xterm.writeln(line);
       }
     }, [scheme]);
 
@@ -248,14 +245,11 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
           const xterm = xtermRef.current;
           if (!xterm) return;
           const printed = historyRef.current;
-          printed.push({ text, color });
-          if (printed.length > SCROLLBACK_LINES) {
-            printed.splice(0, printed.length - SCROLLBACK_LINES);
-          }
-          xterm.writeln(`${truecolorForeground(colorsRef.current[color])}${text}\x1b[0m`);
+          pushTerminalLine(printed, text, color);
+          xterm.writeln(formatTerminalLine(printed[printed.length - 1], colorsRef.current));
         },
         clear() {
-          historyRef.current.length = 0;
+          clearTerminalBuffer(historyRef.current);
           xtermRef.current?.clear();
         },
         autoFit() {
@@ -299,7 +293,7 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
           // aria-label (chave `challenge.outputAria`, vinda da view) nomeia a
           // região para a AT.
           role="log"
-          aria-label={_props['aria-label']}
+          aria-label={props['aria-label']}
         />
       </Paper>
     );

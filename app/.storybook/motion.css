@@ -1,0 +1,19 @@
+/**
+ * .storybook/motion.css — neutralizador de movimento para capturas.
+ *
+ * Só ativa sob `html[data-motion='off']`, que é posto pelo toolbar global
+ * "Movimento" (preview.tsx). Serve para screenshots determinísticas do
+ * Storybook (teste visual/CI) sem tocar nas regras de movimento do app — as
+ * animações reais continuam a vir de src/lib/animationTokens.ts e a respeitar
+ * `prefers-reduced-motion` como no produto.
+ */
+html[data-motion='off'] *,
+html[data-motion='off'] *::before,
+html[data-motion='off'] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}

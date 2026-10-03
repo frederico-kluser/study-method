@@ -439,6 +439,30 @@ export const MOTION = {
   },
 } as const;
 
+/* ─── Press: as magnitudes do gesto de press/hover ──────────────────────────
+ * `PRESS` é a casca animada de `components/ui/Pressable` (auditoria de layout
+ * §2): o `scale` estava escrito à mão nas 15 cópias da casca (LessonView ×10,
+ * QuizChatCard ×3, ChallengeGenerateModal ×2) e o `hoverLiftPx` na variante
+ * com hover do QuizChatCard. Os DOIS são valores EXTRAÍDOS das cópias, não
+ * números novos.
+ *
+ * DECISÃO (contra a proposta literal da §2, que dizia `MOTION.pressScale`):
+ * estes valores NÃO entram em `MOTION`, e a razão é o próprio contrato de
+ * movimento — `MOTION` são os DOIS níveis separados por propriedade
+ * (spatial = transform, effects = cor/opacidade) e esse formato está
+ * CONGELADO por `tests/cx-views-theme-design.test.ts` ("MOTION: dois níveis").
+ * A escala de press e o lift de hover não são um nível de movimento: são
+ * MAGNITUDES de um gesto (e animam só transform — a regra 2 do contrato
+ * continua valendo para eles). Um token próprio não fala com o contrato
+ * congelado e não obriga ninguém a reabrir uma leitura fechada.
+ */
+export const PRESS = {
+  /** escala do gesto de press (`whileTap`) — 0,98 nas 15 cópias */
+  scale: 0.98,
+  /** lift espacial do hover (`whileHover`, em px) — o `y: -2` do QuizChatCard */
+  hoverLiftPx: 2,
+} as const;
+
 /** Propriedades CSS que o nível `spatial` PODE animar. Qualquer outra é bug. */
 export const SPATIAL_ALLOWED_PROPERTIES = [
   'transform',
@@ -482,6 +506,29 @@ export const SHAPE = {
   pill: 999,
   /** valor de `theme.shape.borderRadius` */
   base: 12,
+} as const;
+
+/* ─── Alvo de toque ────────────────────────────────────────────────────────
+ * DECISÃO — 44px é o PISO do alvo de toque desta app, e o piso é generoso de
+ * propósito:
+ *
+ *   - WCAG 2.2 SC 2.5.8 (Target Size, AA) exige 24 × 24 px — o mínimo legal;
+ *   - WCAG 2.2 SC 2.5.5 (Target Size, AAA) e o Human Interface Guideline da
+ *     Apple (mínimo de 44pt para controle apontável) exigem 44 × 44 px.
+ *
+ * O projeto escolhe o patamar AAA/Apple, e a auditoria de layout (§1) mostra
+ * porquê importa em código: o número 44 estava redeclarado como constante
+ * local em 12 ficheiros e escrito à mão em mais 15 pontos de 8 ficheiros —
+ * 27 definições/usos sem fonte única. É este objeto a fonte.
+ *
+ * Onde o valor entra: `lib/layoutSx.ts` publica os `sx` prontos
+ * (`touchTargetSx`, `touchTargetBoxSx`, `actionButtonSx`) e
+ * `components/ui/ActionButton` aplica o piso por omissão — quem usa o
+ * primitivo não tem de se lembrar do número.
+ */
+export const TARGET = {
+  /** piso de alvo de toque, em px (AAA / Apple HIG) */
+  minTouchTargetPx: 44,
 } as const;
 
 /* ─── Tipografia ───────────────────────────────────────────────────────────
@@ -535,6 +582,93 @@ export const TYPE = {
   largeTextBoldPx: 18.67,
   /** limiar de large text regular */
   largeTextRegularPx: 24,
+} as const;
+
+/* ─── LAYOUT: larguras de coluna e de cartão de modal ──────────────────────
+ * O molde "coluna centrada `p: 2, maxWidth: N, mx: 'auto'`" (auditoria de
+ * layout §4) estava copiado 13 vezes com SEIS larguras diferentes escritas à
+ * mão, e o `640` sozinho aparece 12 vezes em 8 ficheiros. Este objeto é a
+ * fonte única dessas larguras — cada entrada mapeia os usos reais:
+ *
+ *   readingColumnPx  640 — LessonView, LessonQuiz, RoadmapView, placeholders,
+ *                          GamesView, GameLevelView (a medida de LEITURA:
+ *                          ~72ch, o `TYPE.measureCh`, SC 1.4.8 — o contrato
+ *                          tipográfico nunca teve equivalente em px, e é
+ *                          precisamente por isso que o 640 foi escrito à mão
+ *                          12 vezes);
+ *   chooserColumnPx  680 — CourseSelector, EvolutionTree (seletores);
+ *   wideColumnPx     720 — TrackChallengePanel (coluna larga do desafio);
+ *   panelColumnPx    760 — RoadmapView (painel do mapa);
+ *   pageMaxPx       1200 — ChallengeView (teto de página);
+ *   modalCardPx      520 — QuizOverlayHost, TutorialSelectionModal, SetupView
+ *                          (cartão de modal — a família §6);
+ *   modalCardNarrowPx 440 — ChallengeGenerateModal, AppGate;
+ *   modalCardTightPx  380 — OnboardingOverlay (diálogo de confirmação).
+ *
+ * DECISÃO: a auditoria fala em "6 larguras" porque conta a família de modais
+ * (520/440/380) como uma só. O mapeamento aqui cobre os oito valores REAIS do
+ * código (cinco de coluna + três de cartão de modal) — nomear cada um é o que
+ * permite a próxima mudança de medida num lugar só, e ninguém voltar a copiar
+ * um literal.
+ */
+export const LAYOUT = {
+  /** coluna de leitura (piso da medida ~72ch — SC 1.4.8) */
+  readingColumnPx: 640,
+  /** coluna de seletor/árvore (CourseSelector, EvolutionTree) */
+  chooserColumnPx: 680,
+  /** coluna larga (painel de desafio de trilha) */
+  wideColumnPx: 720,
+  /** coluna de painel (mapa/roadmap) */
+  panelColumnPx: 760,
+  /** teto de página */
+  pageMaxPx: 1200,
+  /** cartão de modal (o default de `ModalScrim`) */
+  modalCardPx: 520,
+  /** cartão de modal estreito */
+  modalCardNarrowPx: 440,
+  /** cartão de modal apertado (diálogo de confirmação do onboarding) */
+  modalCardTightPx: 380,
+} as const;
+
+/* ─── Z_INDEX: as camadas da app, nomeadas por PAPEL ───────────────────────
+ * Os oito literais de `zIndex` espalhados por 7 ficheiros (auditoria §12)
+ * viviam em comentários: "1400 > 1300" estava escrito no App.tsx, não em
+ * código. Este objeto passa a ser o contrato de ordem:
+ *
+ *   stickyBar < contentOverlay < overlay = modal < busy < tutorial < tutorialModal
+ *
+ * Mapeamento dos 8 literais → papéis:
+ *   10     stickyBar        ChallengeView, GameLevelView (barra sticky);
+ *   40     contentOverlay   LessonView (overlay do visualizador de fontes);
+ *   1300   overlay          QuizOverlayHost (overlay do quiz);
+ *   1300   modal            ChallengeGenerateModal (e todo diálogo sobre scrim
+ *                           — é o degrau `modal` do MUI, 1300);
+ *   1400   busy             GlobalBusyIndicator (a pílula de ocupação flutua
+ *                           ACIMA dos overlays: 1400 > 1300);
+ *   14000  tutorial         OnboardingOverlay (overlay do tutorial);
+ *   14500  tutorialModal    TutorialSelectionModal (modal de seleção).
+ *
+ * DECISÃO: `overlay` e `modal` partilham o degrau 1300 porque são a MESMA
+ * camada — um diálogo sobre scrim — e nunca se empilham entre si (o overlay do
+ * quiz e o modal de geração não coexistem). Os nomes ficam separados porque os
+ * PAPEIS são diferentes e cada um é consumido por um primitivo distinto; se um
+ * dia precisarem de se empilhar, é aqui que se abre um degrau novo, num lugar.
+ */
+export const Z_INDEX = {
+  /** barra sticky de conteúdo */
+  stickyBar: 10,
+  /** overlay de conteúdo dentro da view (visualizador de fontes) */
+  contentOverlay: 40,
+  /** overlay de diálogo sobre scrim (quiz) */
+  overlay: 1300,
+  /** modal sobre scrim (ChallengeGenerateModal, ModalScrim) */
+  modal: 1300,
+  /** pílula de ocupação global — acima de todo overlay */
+  busy: 1400,
+  /** overlay do tutorial integrado */
+  tutorial: 14000,
+  /** modal de seleção de tutorial (acima do tutorial) */
+  tutorialModal: 14500,
 } as const;
 
 /* ─── Contrato da camada de celebração (SC 2.3.1 / 2.2.2 / 2.3.3 / 4.1.3) ── */

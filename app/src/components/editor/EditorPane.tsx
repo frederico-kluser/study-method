@@ -1,15 +1,21 @@
 /**
- * src/components/editor/EditorPane.tsx — painel central do editor (abas +
- * CodeMirrorField) com persistência via `study.writeWorkspaceFile`.
+ * src/components/editor/EditorPane.tsx — CONTAINER do painel central do editor:
+ * amarra o reducer puro de abas (`lib/editorTabs.ts`) ao IPC de workspace e à
+ * view pura (`EditorPaneView.tsx`).
  *
- * Estado de abas (aberta/ativa/suja/conteúdo) vive num reducer PURO
- * (`lib/editorTabs.ts`); este componente amarra o reducer ao CodeMirrorField e
- * às chamadas IPC via `getApi()` (nunca `window` direto):
+ * ─── CONTRATO STATE/VIEW (STORY-SPEC §5) ──────────────────────────────────
+ * A VIEW (`EditorPaneView`) recebe ficheiros/conteúdo por props e devolve
+ * intenções por callbacks — é o que o Storybook renderiza. O ACESSO AO DISCO
+ * vive AQUI (via `getApi()`, nunca `window` direto):
  *
  *  - abrir arquivo → `study.readWorkspaceFile` e registra a aba;
  *  - Ctrl/Cmd+S (ou botão "Salvar") → `writeWorkspaceFile` e marca `saved`;
  *  - trocar de arquivo com `dirty` → salva automaticamente antes de trocar;
  *  - fechar aba suja → salva antes de fechar (preserva o trabalho se falhar).
+ *
+ * As DECISÕES (o que salvar antes de trocar/fechar, quais os buffers sujos,
+ * qual o ficheiro de uma aba) são funções puras de `lib/editorTabs.ts`
+ * (testadas em `tests/editorTabsFlow.test.ts`); este ficheiro só orquestra.
  *
  * Nota sobre tipagem: o `ApiSchema` do preload tipa os métodos `study` ainda
  * sem parâmetros (placeholders desta onda); o runtime já espera o payload
@@ -24,20 +30,19 @@ import {
   type ReactElement,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import Box from '@mui/material/Box';
-import Alert from '@mui/material/Alert';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import SaveIcon from '@mui/icons-material/Save';
 import type { WorkspaceFile } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
 import {
-  editorTabsReducer,
-  initialEditorTabs,
   activeTab,
+  dirtyPaths,
+  editorTabsReducer,
+  findTab,
+  initialEditorTabs,
+  needsAutosaveBeforeClose,
+  pathToAutosaveBeforeActivate,
+  workspaceFileFor,
 } from '../../lib/editorTabs';
-import { CodeMirrorField } from '../cm/CodeMirrorField';
-import { EditorTabs } from './EditorTabs';
+import { EditorPaneView } from './EditorPaneView';
 
 /** Handle imperativa para a ChallengeView abrir arquivos vindo do explorer. */
 export interface EditorPaneHandle {
@@ -74,22 +79,18 @@ type ReadArgs = { workspaceDir: string; path: string };
 type DeleteArgs = { workspaceDir: string; path: string };
 
 /**
- * Painel de edição com abas. O estado vem do reducer puro; IPC sob demanda.
- * Expõe `openFile`/`createFile`/`deleteFile` via ref para o FileExplorer.
+ * Painel de edição com abas. O estado vem do reducer puro; IPC sob demanda;
+ * a apresentação é toda da `EditorPaneView`. Expõe `openFile`/`createFile`/
+ * `deleteFile` via ref para o FileExplorer.
  */
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function EditorPane(
   { workspaceDir, files, onFilesChanged }: EditorPaneProps,
   ref,
 ): ReactElement {
   const { t } = useTranslation();
-  // t() com interpolação (cast documentado na ChallengeView): `saveAria` leva
-  // {{shortcut}} — o atalho também chega a quem usa leitor de tela (S5).
-  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
   const [tabs, dispatch] = useReducer(editorTabsReducer, initialEditorTabs);
   const [error, setError] = useState('');
   const [busyPath, setBusyPath] = useState<string | null>(null);
-
-  const active = activeTab(tabs);
 
   const apiRead = useCallback(
     () =>
@@ -111,7 +112,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
   const openFile = useCallback(
     async (path: string): Promise<void> => {
       // Se já aberto, só ativa.
-      if (tabs.tabs.some((t) => t.path === path)) {
+      if (findTab(tabs, path)) {
         dispatch({ type: 'activate', path });
         return;
       }
@@ -119,24 +120,20 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
       setError('');
       try {
         const content = await apiRead()({ workspaceDir, path });
-        const found = files.find((f) => f.path === path);
-        const file: WorkspaceFile =
-          found ?? ({ path, name: path.split('/').pop() ?? path, size: 0, dir: false } as WorkspaceFile);
-        dispatch({ type: 'open', file, content });
+        dispatch({ type: 'open', file: workspaceFileFor(files, path), content });
       } catch (err) {
         setError(`${t('translation:editor.openError')} "${path}": ${String(err)}`);
       } finally {
         setBusyPath(null);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [tabs.tabs, workspaceDir, files, apiRead, t],
+    [tabs, workspaceDir, files, apiRead, t],
   );
 
   // Salva a aba informada; devolve sucesso.
   const saveTab = useCallback(
     async (path: string): Promise<boolean> => {
-      const tab = tabs.tabs.find((t) => t.path === path);
+      const tab = findTab(tabs, path);
       if (!tab) return false;
       setError('');
       try {
@@ -148,35 +145,33 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
         setError(`${t('translation:editor.saveError')} "${path}": ${String(err)}`);
         return false;
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [tabs.tabs, workspaceDir, apiWrite, onFilesChanged, t],
+    [tabs, workspaceDir, apiWrite, onFilesChanged, t],
   );
 
-  // Troca de aba — se a atual está suja, salva antes.
+  // Troca de aba — se a atual está suja, salva antes (decisão pura).
   const activateTab = useCallback(
     async (path: string): Promise<void> => {
-      const current = tabs.tabs.find((t) => t.path === tabs.activePath);
-      if (current && current.path !== path && current.dirty) {
-        const ok = await saveTab(current.path);
+      const toSave = pathToAutosaveBeforeActivate(tabs, path);
+      if (toSave) {
+        const ok = await saveTab(toSave);
         if (!ok) return; // salvar falhou — não troca, preserva o trabalho.
       }
       dispatch({ type: 'activate', path });
     },
-    [tabs.tabs, tabs.activePath, saveTab],
+    [tabs, saveTab],
   );
 
-  // Fecha aba — se suja, salva antes.
+  // Fecha aba — se suja, salva antes (decisão pura).
   const closeTab = useCallback(
     async (path: string): Promise<void> => {
-      const tab = tabs.tabs.find((t) => t.path === path);
-      if (tab?.dirty) {
+      if (needsAutosaveBeforeClose(tabs, path)) {
         const ok = await saveTab(path);
         if (!ok) return;
       }
       dispatch({ type: 'close', path });
     },
-    [tabs.tabs, saveTab],
+    [tabs, saveTab],
   );
 
   // Novo arquivo via toolbar do explorer.
@@ -211,16 +206,18 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
   // Mudança de conteúdo (buffer) — marca dirty no reducer.
   const onContentChange = useCallback(
     (value: string): void => {
-      if (active?.path) {
+      const active = activeTab(tabs);
+      if (active) {
         dispatch({ type: 'update_content', path: active.path, content: value });
       }
     },
-    [active?.path],
+    [tabs],
   );
 
   const saveActive = useCallback((): void => {
+    const active = activeTab(tabs);
     if (active) void saveTab(active.path);
-  }, [active, saveTab]);
+  }, [tabs, saveTab]);
 
   /**
    * Salva TODOS os buffers sujos (não só o ativo) e devolve sucesso (C1).
@@ -230,13 +227,12 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
    */
   const saveAllDirty = useCallback(async (): Promise<boolean> => {
     let ok = true;
-    for (const tab of tabs.tabs) {
-      if (!tab.dirty) continue;
-      const saved = await saveTab(tab.path);
+    for (const path of dirtyPaths(tabs)) {
+      const saved = await saveTab(path);
       if (!saved) ok = false;
     }
     return ok;
-  }, [tabs.tabs, saveTab]);
+  }, [tabs, saveTab]);
 
   // Expõe as operações de arquivo ao FileExplorer (pai).
   useImperativeHandle(
@@ -250,63 +246,17 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
     [openFile, createFile, deleteFile, saveAllDirty],
   );
 
-  const empty = tabs.tabs.length === 0;
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 0.5, py: 0.25 }}>
-        <Button
-          size="small"
-          variant="text"
-          startIcon={<SaveIcon />}
-          // S5 (auditoria de UX): o atalho vivia SÓ no `title` (hover) — para
-          // quem usa leitor de tela ou chega por teclado, o botão dizia apenas
-          // "Salvar". O `aria-label` passa a levar o atalho também (o title
-          // continua, para o hover); o texto do atalho vem do i18n nos dois.
-          title={`${t('translation:editor.save')} (${t('translation:editor.saveShortcut')})`}
-          aria-label={tI('translation:editor.saveAria', {
-            shortcut: t('translation:editor.saveShortcut'),
-          })}
-          onClick={saveActive}
-          disabled={!active}
-        >
-          {t('translation:editor.save')}
-        </Button>
-      </Box>
-
-      <EditorTabs
-        tabs={tabs.tabs}
-        activePath={tabs.activePath}
-        onActivate={(p) => void activateTab(p)}
-        onClose={(p) => void closeTab(p)}
-      />
-
-      <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
-        {error ? (
-          <Alert severity="error" sx={{ m: 1 }}>
-            {error}
-          </Alert>
-        ) : null}
-        {busyPath ? (
-          <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
-            {`${t('translation:editor.opening')} ${busyPath}…`}
-          </Typography>
-        ) : null}
-        {empty ? (
-          <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
-            {t('translation:editor.selectFilePrompt')}
-          </Typography>
-        ) : active ? (
-          <CodeMirrorField
-            value={active.content}
-            onChange={onContentChange}
-            filename={active.name}
-            ariaLabel={`${t('translation:editor.editorAria')} — ${active.path}`}
-            onSave={saveActive}
-          />
-        ) : null}
-      </Box>
-    </Box>
+    <EditorPaneView
+      tabs={tabs.tabs}
+      activePath={tabs.activePath}
+      error={error}
+      busyPath={busyPath}
+      onSaveActive={saveActive}
+      onActivate={(p) => void activateTab(p)}
+      onClose={(p) => void closeTab(p)}
+      onContentChange={onContentChange}
+    />
   );
 });
 

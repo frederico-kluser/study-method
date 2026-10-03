@@ -112,12 +112,20 @@ describe('onboarding targets: catálogo sincronizado com o JSX', () => {
 
   it('todo id do catálogo existe como data-onboarding-target no código', () => {
     for (const id of Object.keys(ONBOARDING_TARGET_CATALOG)) {
-      // Aceita tanto o atributo JSX literal (`data-onboarding-target="id"`)
-      // quanto a forma de prop de objeto MUI (`'data-onboarding-target': 'id'`),
-      // usada em slotProps.htmlInput (ex.: TextField da LessonView).
+      // Aceita três grafias do mesmo alvo, por ordem de aparecimento no código:
+      //   1. o atributo JSX literal (`data-onboarding-target="id"`),
+      //   2. a forma de prop de objeto MUI (`'data-onboarding-target': 'id'`),
+      //      usada em slotProps.htmlInput (ex.: TextField da LessonView);
+      //   3. a prop `onboardingTarget="id"` do primitivo `SettingsSection`
+      //      (components/ui — consolidação DRY, auditoria de layout §8), que
+      //      renderiza o atributo de verdade
+      //      (`data-onboarding-target={onboardingTarget}`). A intenção da
+      //      guarda é a mesma nas três: o id do catálogo está ancorado num
+      //      .tsx real.
       assert.ok(
         allSource.includes(`data-onboarding-target="${id}"`) ||
-          allSource.includes(`'data-onboarding-target': '${id}'`),
+          allSource.includes(`'data-onboarding-target': '${id}'`) ||
+          allSource.includes(`onboardingTarget="${id}"`),
         `faltou data-onboarding-target="${id}" em algum .tsx`,
       );
     }

@@ -939,13 +939,23 @@ describe('5. existe UM convite para responder o quiz, e ele é o do card', () =>
   });
 
   it('o caminho continua o MESMO: o card chama handleQuizReopen', () => {
-    const { tree } = activeLessonTree();
-    assert.ok(tree.includes('<QuizChatCard'), 'o card do quiz continua na conversa');
+    // O render dos cards virou bloco (blocks/LessonChatQuizCards) e a view o
+    // LIGA pelos props: o convite do card continua reabrindo o overlay pelo
+    // MESMO caminho do botão removido (handleQuizReopen), sem segunda porta.
+    const cardsCode = codeOf(
+      readFileSync(resolve(HERE, '../src/views/LessonView/blocks/LessonChatQuizCards.tsx'), 'utf8'),
+    );
+    assert.ok(cardsCode.includes('<QuizChatCard'), 'o card do quiz continua na conversa');
     assert.match(
-      VIEW,
-      /onOpen=\{\(\) => handleQuizReopen\(visible\.key\)\}/,
+      cardsCode,
+      /onOpen=\{\(\) => props\.onQuizReopen\(visible\.key\)\}/,
       'nada de uma segunda porta com regra própria: o convite do card reabre o overlay ' +
         'pelo mesmo caminho que o botão removido usava',
+    );
+    assert.match(
+      VIEW,
+      /onQuizReopen=\{handleQuizReopen\}/,
+      'e a view liga o handler de sempre ao bloco do card',
     );
   });
 
@@ -955,7 +965,11 @@ describe('5. existe UM convite para responder o quiz, e ele é o do card', () =>
     // desce. NÃO COBERTO aqui: o scroll acontecendo (é DOM; esta base não tem
     // jsdom). O que se trava é o CABEAMENTO — ref no card em cena + efeito
     // disparado pela chave do quiz e pela fase do overlay.
-    assert.match(VIEW, /ref=\{inScene \? quizCardElRef : null\}/, 'o card em cena carrega o ref');
+    const cardsCode = codeOf(
+      readFileSync(resolve(HERE, '../src/views/LessonView/blocks/LessonChatQuizCards.tsx'), 'utf8'),
+    );
+    assert.match(cardsCode, /ref=\{inScene \? props\.activeCardRef : null\}/, 'o card em cena carrega o ref');
+    assert.match(VIEW, /activeCardRef=\{\(el\) => \{\s*quizCardElRef\.current = el;/, 'e a view liga o ref do bloco ao do scroll');
     assert.match(
       VIEW,
       /quizCardElRef\.current\?\.scrollIntoView\?\.\(\{ block: 'nearest'/,

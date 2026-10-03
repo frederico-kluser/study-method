@@ -20,6 +20,10 @@ import {
   activeCourseLabel,
   type CourseSubject,
 } from '../../src/lib/lessonSelection';
+// A copy assertada vem dos resources (pt-BR): os rótulos são traduzidos pelas
+// chaves `course.*` (fallback legado em paridade — ver tests/i18nText.test.ts
+// para a resolução real via i18next nos dois idiomas).
+import ptBR from '../../src/i18n/locales/pt-BR/translation.json';
 
 const subjects: CourseSubject[] = [
   { id: '1', name: 'Árvores binárias', slug: 'arvores', lessonCount: 5, answeredCount: 3 },
@@ -32,7 +36,8 @@ describe('buildCourseList', () => {
     const list = buildCourseList(subjects);
     const arvores = list.find((c) => c.slug === 'arvores');
     assert.ok(arvores);
-    assert.equal(arvores.continueLabel, 'Continuar · 3 aulas feitas');
+    assert.equal(arvores.continueLabel, ptBR.course.continue_other.replace('{{count}}', '3'));
+    assert.equal(arvores.action, 'continue');
     assert.equal(arvores.lessonsDone, 3);
     assert.equal(arvores.progressLabel, '3/5');
   });
@@ -41,7 +46,7 @@ describe('buildCourseList', () => {
     const list = buildCourseList(subjects);
     const equacoes = list.find((c) => c.slug === 'equacoes');
     assert.ok(equacoes);
-    assert.equal(equacoes.continueLabel, 'Continuar · 1 aula feita');
+    assert.equal(equacoes.continueLabel, ptBR.course.continue_one);
     assert.equal(equacoes.progressLabel, '1/3');
   });
 
@@ -49,7 +54,8 @@ describe('buildCourseList', () => {
     const list = buildCourseList(subjects);
     const recursao = list.find((c) => c.slug === 'recursao');
     assert.ok(recursao);
-    assert.equal(recursao.continueLabel, 'Gerar nova aula');
+    assert.equal(recursao.continueLabel, ptBR.course.generate);
+    assert.equal(recursao.action, 'generate');
     assert.equal(recursao.lessonsDone, 0);
     assert.equal(recursao.progressLabel, '0');
   });
@@ -72,7 +78,8 @@ describe('buildCourseList', () => {
     ]);
     assert.equal(list[0]?.lessonsDone, 0);
     assert.equal(list[0]?.progressLabel, '0');
-    assert.equal(list[0]?.continueLabel, 'Gerar nova aula');
+    assert.equal(list[0]?.continueLabel, ptBR.course.generate);
+    assert.equal(list[0]?.action, 'generate');
   });
 });
 
@@ -104,7 +111,7 @@ describe('activeCourseLabel', () => {
   });
 
   it('fallback legível quando não há curso', () => {
-    assert.equal(activeCourseLabel(null), 'Nenhuma aula em andamento');
-    assert.equal(activeCourseLabel({ slug: 'x', label: '', lessons: [] }), 'Nenhuma aula em andamento');
+    assert.equal(activeCourseLabel(null), ptBR.course.noneActive);
+    assert.equal(activeCourseLabel({ slug: 'x', label: '', lessons: [] }), ptBR.course.noneActive);
   });
 });

@@ -287,10 +287,11 @@ automático de re-inferência).
 
 ### 2.6 Voz local — painel de voz (STT/TTS) e contrato
 
-Tudo on-device, no processo **main**; os utilitários do renderer ficam em
-`src/components/voice/` e o hook `src/hooks/useMicSTT.ts`. Nenhum dos dois componentes
-está montado numa view ainda — **a onda fecha com eles prontos para a UI plugar**; abaixo, o
-contrato de like para montar um painel de voz.
+Tudo on-device, no processo **main**; o renderer entra pela hook `src/hooks/useMicSTT.ts`
+(STT) e pelos canais `localTts:*` (TTS). Os antigos componentes `MicButton`/`SpeakButton`
+(`src/components/voice/`) foram **apagados a 2026-10-03** — nunca chegaram a ser montados
+numa view e estavam fora do design system (cores cruas fora do contrato); abaixo fica o
+contrato de like para montar um painel de voz sobre os primitivos do Storybook.
 
 **Canais** (`shared/ipc-contract.ts`):
 
@@ -305,26 +306,24 @@ contrato de like para montar um painel de voz.
 | TTS | `localTts.generate({requestId, modelId, text, speed, provider:'local'})` | `localTts:generate` | devolve `{ audioBase64, format:'wav', sampleRate }` |
 | TTS | `localTts.getPreference()` / `setPreference()` | `localTts:get/set-preference` | preferência persistida no settingsStore (`localTtsPreference`) |
 
-**Montar num botão de STT — `MicButton` (`src/components/voice/MicButton.tsx`):**
+**Montar um controlo de STT sobre `useMicSTT` (`src/hooks/useMicSTT.ts`):**
 
 ```tsx
-<MicButton
-  locale="pt-BR"
-  onTranscribed={(text) => setDraft(text)} // texto final ao parar
-  onError={(err) => toast(err)}
-/>
+const { transcribing, partial, error, start, stop, cancel } = useMicSTT('pt-BR');
+// start() → pede o microfone e abre a sessão; stop() → devolve o texto final;
+// o texto parcial chega em `partial` para compor o rascunho.
 ```
 
-`MicButton` usa `useMicSTT(locale)` e cuida de todo o ciclo: pede o microfone, abre o
+`useMicSTT` cuida de todo o ciclo: pede o microfone, abre o
 AudioContext, resampleia para 16 kHz mono, streama chunks e fecha. **Segurança de feedback:** o
 hook conecta o source a um `GainNode` com **gain 0** (o mic **nunca** sai no alto-falante), e
-abre a `stream-start` **antes** de conectar/streamar (nenhum frame é descartado). O hook expõe
-`{ transcribing, partial, error, start, stop, cancel }` para quem quiser controlar direto.
+abre a `stream-start` **antes** de conectar/streamar (nenhum frame é descartado).
 
-**Montar num `SpeakButton` (`src/components/voice/SpeakButton.tsx`)** — para ler texto em voz
-alta (TTS Piper): chamar `localTts.generate({ modelId, text, provider: 'local' })` e montar o
-resultado num `<audio src="data:audio/wav;base64,...">`. O modelId usa a preferência salva
-(`localTts.getPreference`) com fallback para um modelo embutido do catálogo pt-BR/en.
+**Ler texto em voz alta (TTS Piper)** — chamar `localTts.generate({ modelId, text,
+provider: 'local' })` e montar o resultado num `<audio src="data:audio/wav;base64,...">`. O
+modelId usa a preferência salva (`localTts.getPreference`) com fallback para um modelo
+embutido do catálogo pt-BR/en. (Nota: o preload desembrulha o envelope `{success,data}` dos
+canais `localTts:*` — o chamador recebe o valor NU; ver `api-schema.ts`.)
 
 > **Modelos embutidos no installer:** STT em `resources/stt-models/<modelId>`; TTS em
 > `resources/tts-models/<modelId>` + engine `resources/tts-engine/<platform>-<arch>/` +

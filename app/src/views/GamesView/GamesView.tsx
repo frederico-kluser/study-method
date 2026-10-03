@@ -36,14 +36,16 @@
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { SHAPE } from '../../lib/designTokens';
+import { SHAPE, LAYOUT } from '../../lib/designTokens';
+import { SR_ONLY_SX } from '../../lib/a11yStyles';
+import { wrappingActionSx } from '../../lib/layoutSx';
+import { RetryAlert } from '../../components/ui/RetryAlert';
 import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import type {
   GameLang,
@@ -56,45 +58,30 @@ import {
   formatLines,
   formatMs,
   levelNodeState,
-  nextLevelId,
   previewKey,
   worldLevelCounts,
   type GameNodeState,
 } from './gamesUi';
+import {
+  advanceLevelPick,
+  buildLevelPick,
+  focusLevelOf,
+  type LevelPick,
+} from './gamesSelection';
 import { getGamesApi } from './gamesApi';
 import GameLevelView, { GameLangSelector } from './GameLevelView';
-
-/** Piso de alvo de toque do design system (44px). */
-const TOUCH_TARGET_PX = 44;
 
 /** Lado do nó do mapa (>= 44px: o nó comunica estado e não pode ser minúsculo). */
 const NODE_PX = 48;
 
 /**
  * Texto só para leitores de tela (o nó mostra só o número; o estado e o nome
- * do nível viajam nesta etiqueta).
- *
- * CORREÇÃO (achado e2e-games.spec.ts): o `width: 1`/`height: 1` em `sx` do
- * MUI NÃO é 1px — o @mui/system transforma números ≤ 1 em FRAÇÃO (1 → 100%),
- * e as etiquetas sr-only viravam caixas de 48-66px POR CIMA dos nós do mapa
- * (invisíveis pelo `clip`, mas geometricamente sobrepostas: a régua F104
- * acusava texto-sobre-texto e recorte nelas). Os px são agora STRING
- * explícita (`'1px'`), o `margin` idem (`-1px`, e não o `-8px` do transform
- * de spacing) e o `pointerEvents: 'none'` tira a caixa do caminho do rato —
- * ela não pinta nem interage, só o leitor de tela a lê.
+ * do nível viajam nesta etiqueta). O estilo é o `SR_ONLY_SX` canónico de
+ * `src/lib/a11yStyles.ts` — a cópia CORRETA deste ficheiro (px em string,
+ * `pointerEvents: 'none'`) que virou o primitivo único depois de a régua F104
+ * ter apanhado as caixas fantasma a ocupar 100% do contentor (o bug está
+ * documentado lá).
  */
-const SR_ONLY = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: 0,
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-  pointerEvents: 'none',
-} as const;
 
 /** Chave i18n do estado de cada nó (union literal: `strictKeyChecks`). */
 const STATE_I18N_KEY: Record<
@@ -253,7 +240,7 @@ export function GameLevelNodeRow({
               {level.boss ? 'B' : i + 1}
             </Box>
             {/* Nome + estado do nó para leitores de tela (o nó mostra só o número). */}
-            <Box component="span" sx={SR_ONLY}>
+            <Box component="span" sx={SR_ONLY_SX}>
               {aria}
             </Box>
           </Box>
@@ -301,9 +288,11 @@ export function GamesMap({
   const counts = worldLevelCounts(world.levels);
   const openIndex = firstOpenLevelIndex(world.levels);
   // Mundo inteiramente concluído: o cartão mostra o ÚLTIMO nível (repetição é
-  // permitida — "Jogar nível N" continua vivo para quem quer otimizar).
-  const cardIndex = openIndex >= 0 ? openIndex : world.levels.length - 1;
-  const current = world.levels[cardIndex];
+  // permitida — "Jogar nível N" continua vivo para quem quer otimizar). A
+  // regra vive em `gamesSelection.focusLevelOf` (o mesmo alvo do pré-carga).
+  const focus = focusLevelOf(world);
+  const cardIndex = focus?.index ?? 0;
+  const current = focus?.level;
   const preview = current ? previews[previewKey(world.id, current.id)] : undefined;
 
   return (
@@ -317,7 +306,7 @@ export function GamesMap({
         <Typography
           variant="body2"
           sx={(theme) => ({
-            maxWidth: 640,
+            maxWidth: LAYOUT.readingColumnPx,
             color: theme.vars.palette.text.secondary,
             whiteSpace: 'normal',
             overflowWrap: 'break-word',
@@ -434,10 +423,8 @@ export function GamesMap({
             variant="contained"
             onClick={() => onPlay(current, cardIndex)}
             sx={{
-              minHeight: TOUCH_TARGET_PX,
+              ...wrappingActionSx,
               alignSelf: { xs: 'stretch', sm: 'center' },
-              whiteSpace: 'normal',
-              overflowWrap: 'break-word',
             }}
           >
             {tI('translation:games.map.play', { n: cardIndex + 1 })}
@@ -511,22 +498,13 @@ export function GamesScreen({
       ) : null}
 
       {status === 'error' ? (
-        <Alert
-          severity="error"
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={onRetry}
-              sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
-            >
-              {t('translation:common.tryAgain')}
-            </Button>
-          }
-          sx={{ overflowWrap: 'break-word' }}
-        >
-          {errorText ?? t('translation:games.loadError')}
-        </Alert>
+        /* Erro + retentativa (auditoria de layout §3): o `RetryAlert`
+         * canónico — Alert `error` + "Tentar de novo" com o piso de toque e a
+         * quebra de rótulo da casa. A copy do erro continua do chamador. */
+        <RetryAlert
+          message={errorText ?? t('translation:games.loadError')}
+          onRetry={onRetry}
+        />
       ) : null}
 
       {status === 'empty' ? (
@@ -537,7 +515,7 @@ export function GamesScreen({
           <Typography
             variant="body2"
             sx={(theme) => ({
-              maxWidth: 640,
+              maxWidth: LAYOUT.readingColumnPx,
               color: theme.vars.palette.text.secondary,
               whiteSpace: 'normal',
               overflowWrap: 'break-word',
@@ -594,22 +572,15 @@ export function GamesScreen({
  * GamesView — o contentor (IPC + estado)
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/** O nível escolhido no mapa (alimenta a GameLevelView). */
-interface LevelPick {
-  worldId: string;
-  worldTitle: string;
-  levelId: string;
-  levelTitle: string;
-  levelIndex: number;
-  boss: boolean;
-  nextLevelId: string | null;
-}
-
 /**
  * A view do painel Games do shell (VIEWS.games em App.tsx). Carrega os mundos
  * por `games.listWorlds()`, pré-carrega as introduções do nível atual de cada
  * mundo e alterna mapa ↔ nível SEM sair do painel (o shell só conhece painéis;
  * a troca de tela é interna, com "‹ Voltar ao mapa" a repor o mapa).
+ *
+ * STATE/VIEW (STORY-SPEC §5): a aritmética da seleção de mundo/nível vive em
+ * `gamesSelection.ts` (pura e testada); este contentor só liga estado → view e
+ * despacha eventos.
  */
 export default function GamesView(): ReactElement {
   const { t, i18n } = useTranslation();
@@ -659,23 +630,22 @@ export default function GamesView(): ReactElement {
 
   // Pré-carrega o payload do nível ATUAL de cada mundo (só as introduções/tags
   // do cartão). Best-effort: se falhar, o cartão simplesmente não mostra tags —
-  // o mapa continua completo (título, nós, recordes, botão).
+  // o mapa continua completo (título, nós, recordes, botão). O nível alvo é o
+  // de `gamesSelection.focusLevelOf` (a MESMA regra do cartão do mapa).
   useEffect(() => {
     if (worlds.length === 0) return;
     let cancelled = false;
     for (const world of worlds) {
-      const openIndex = firstOpenLevelIndex(world.levels);
-      const target =
-        openIndex >= 0 ? world.levels[openIndex] : world.levels[world.levels.length - 1];
-      if (!target) continue;
+      const focus = focusLevelOf(world);
+      if (!focus) continue;
       withTimeout(
-        Promise.resolve(getGamesApi().loadLevel(world.id, target.id, lang)),
+        Promise.resolve(getGamesApi().loadLevel(world.id, focus.level.id, lang)),
         IPC_TIMEOUT_MS,
         'games.loadLevel',
       )
         .then((payload) => {
           if (cancelled) return;
-          setPreviews((prev) => ({ ...prev, [previewKey(world.id, target.id)]: payload }));
+          setPreviews((prev) => ({ ...prev, [previewKey(world.id, focus.level.id)]: payload }));
         })
         .catch(() => undefined);
     }
@@ -687,39 +657,17 @@ export default function GamesView(): ReactElement {
 
   const play = useCallback(
     (world: GameWorldSummary, level: GameLevelSummary, index: number): void => {
-      setLevelPick({
-        worldId: world.id,
-        worldTitle: world.title,
-        levelId: level.id,
-        levelTitle: level.title,
-        levelIndex: index + 1,
-        boss: level.boss,
-        nextLevelId: nextLevelId(world.levels, index),
-      });
+      setLevelPick(buildLevelPick(world, level, index));
     },
     [],
   );
 
   // "Avançar ›": salta para o próximo nível do MESMO mundo (mantendo a tela de
-  // nível). Sem nível seguinte (fim do mundo) o botão não é renderizado.
+  // nível). Sem nível seguinte (fim do mundo) o botão não é renderizado; id
+  // desconhecido mantém a seleção atual (`advanceLevelPick`, puro).
   const advance = useCallback(
     (nextId: string): void => {
-      setLevelPick((prev) => {
-        if (!prev) return prev;
-        const world = worlds.find((w) => w.id === prev.worldId);
-        const index = world?.levels.findIndex((l) => l.id === nextId) ?? -1;
-        const level = index >= 0 ? world?.levels[index] : undefined;
-        if (!world || !level) return prev;
-        return {
-          worldId: world.id,
-          worldTitle: world.title,
-          levelId: level.id,
-          levelTitle: level.title,
-          levelIndex: index + 1,
-          boss: level.boss,
-          nextLevelId: nextLevelId(world.levels, index),
-        };
-      });
+      setLevelPick((prev) => (prev ? advanceLevelPick(worlds, prev, nextId) : prev));
     },
     [worlds],
   );

@@ -176,13 +176,21 @@ function returnBlockAfter(view: string, condIdx: number): string {
 }
 
 /** Todo arquivo de código-fonte abaixo de `dir` (recursivo, em runtime — a
- *  mesma técnica do Bloco 3 de tests/lessonSidebarWiring.test.ts). */
+ *  mesma técnica do Bloco 3 de tests/lessonSidebarWiring.test.ts).
+ *
+ *  FORA da varredura: o CATÁLOGO do Storybook (`*.stories.tsx` /
+ *  `*.stories.helpers.tsx`). O contrato deste arquivo é de CÓDIGO DE PRODUTO
+ *  — "só a LessonView publica no slot, senão dois publicadores competem pelo
+ *  mesmo contêiner" — e uma história nunca é montada pelo app: ela DOCUMENTA
+ *  o slot e o portal (as histórias `SessionFrame`/`ShellSidebarSlot` renderizam
+ *  `LessonSidebarHeader`/`ShellSidebarPortal` de propósito, para mostrar o que
+ *  a coluna publica). Decisão registada na onda do Storybook do shell. */
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, ent.name);
     if (ent.isDirectory()) out.push(...sourceFiles(full));
-    else if (/\.(tsx?|jsx?|mjs|cjs)$/.test(ent.name)) out.push(full);
+    else if (/\.(tsx?|jsx?|mjs|cjs)$/.test(ent.name) && !/\.stories(\.|$)/.test(ent.name)) out.push(full);
   }
   return out;
 }
@@ -393,7 +401,7 @@ describe('4. pendingChallengeCount nunca diverge entre o sidebar e a linha de a�
  * BLOCO 5 — UNICIDADE NO REPOSITÓRIO: só a LessonView publica no slot
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-describe('5. nenhum outro arquivo de src/ publica no slot do sidebar (varredura recursiva)', () => {
+describe('5. nenhum outro arquivo de produto de src/ publica no slot do sidebar (varredura recursiva, catálogo fora)', () => {
   const files = sourceFiles(SRC_DIR);
 
   it('a varredura enxerga src/ direito (não é um verde vacuoso)', () => {
@@ -409,7 +417,7 @@ describe('5. nenhum outro arquivo de src/ publica no slot do sidebar (varredura 
     const usam = files
       .filter((f) => /<LessonSidebarHeader\b/.test(codeOf(readFileSync(f, 'utf8'))))
       .map((f) => relative(SRC_DIR, f));
-    assert.deepEqual(usam, [relative(SRC_DIR, VIEW_PATH)], 'um segundo publicador competiria pelo MESMO slot');
+    assert.deepEqual(usam, [relative(SRC_DIR, VIEW_PATH)], 'um segundo publicador de produto competiria pelo MESMO slot');
   });
 
   it('só LessonView.tsx renderiza <ShellSidebarPortal como JSX', () => {

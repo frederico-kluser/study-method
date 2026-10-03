@@ -1,0 +1,211 @@
+{
+  "id": "Q4.2",
+  "estado": "respondida",
+  "confianca": "media",
+  "resposta": "A evidência direta de transferência de jogos/puzzles de programação para escrita de código real é escassa: as sínteses existentes medem sobretudo desempenho in-game ou conceitos de CT, e o método de avaliação é um moderador significativo dos efeitos [F1], pelo que a maioria dos ganhos relatados não demonstra transferência. As características de desenho com melhor respaldo são: (1) usar linguagem de texto real como alvo — ou uma ponte explícita blocks→texto alinhada ao paradigma — porque a transição de DSLs de blocos para linguagens profissionais é um ponto documentado de falha de transferência [F7]; (2) maximizar a congruência entre o contexto do puzzle e o contexto de escrita de código e treinar primeiro transferência próxima, pois a transferência distante ocorre raramente [F3][F4]; (3) prática espaçada/interleaved com retrieval practice, que melhora aprendizagem e transferência de longo prazo à custa de desempenho imediato [F5][F6]; (4) explicitação de conceitos — subgoal labels em exemplos trabalhados e Parsons como scaffold com fading para escrita de código — que reduzem carga cognitiva e sustentam a escrita de código, sobretudo em autoeficácia baixa [F8][F2]; e (5) scaffolding instrucional dentro do jogo, moderador altamente significativo do game-based learning [F1].",
+  "afirmacoes": [
+    {
+      "texto": "A falha de transferência é sobretudo uma falha de medição: as sínteses de CT/GBL identificam o método de avaliação como moderador significativo, e a maioria dos estudos não mede escrita de código real pós-intervenção.",
+      "fontes": ["F1"],
+      "citacao_literal": "We identified four key evidence-based moderators—learner characteristics, intervention design, instructional tools, and assessment methods—that contribute to the advancement of CT education.",
+      "central": true
+    },
+    {
+      "texto": "Linguagem real vs DSL: a transição de blocos para linguagens de texto é um ponto documentado de falha de transferência, e o alinhamento de paradigmas (ex.: Scratch orientado a objetos/Logo vs Python procedural) é o obstáculo-chave — daí exigir ponte mediada explícita em vez de presumir transferência.",
+      "fontes": ["F7"],
+      "citacao_literal": "However, challenges arise when transferring knowledge from block to text-based programming languages (TBPL). A key obstacle in this transfer lies in the compatibility of programming paradigms across environments.",
+      "central": true
+    },
+    {
+      "texto": "Semelhança de contexto: desenhar puzzles com máxima congruência com a tarefa de destino (escrever código) e treinar explicitamente transferência próxima primeiro, porque a transferência distante é rara.",
+      "fontes": ["F4", "F3"],
+      "citacao_literal": "Yet, far transfer is notoriously difficult to attain and has been argued to occur only rarely, whereas near transfer occurs more often (Detterman, 1993; Sala and Gobet, 2017).",
+      "central": true
+    },
+    {
+      "texto": "Prática espaçada/interleaved com retrieval practice tem evidência de melhorar aprendizagem e transferência de longo prazo, embora reduza o desempenho de curto prazo (o desenho do jogo tem de tolerar isso).",
+      "fontes": ["F5", "F6"],
+      "citacao_literal": "Retrieval practice, spacing, and interleaving are known to enhance long-term learning and transfer, but reduce short-term performance.",
+      "central": true
+    },
+    {
+      "texto": "Explicitação de conceitos: subgoal labels e exemplos trabalhados explicitam a estrutura do problema e reduzem carga cognitiva, base para transferir padrões de código em vez de soluções isoladas.",
+      "fontes": ["F8"],
+      "citacao_literal": "We report on a study that used subgoal labels to teach students how to write while loops with a Parsons problem learning assessment.",
+      "central": true
+    },
+    {
+      "texto": "Puzzles do tipo Parsons funcionam como scaffold da escrita de código real quando usados durante a prática de write-code (efeito maior em alunos de autoeficácia baixa) — modelo de fading puzzle→código que o app deve adotar.",
+      "fontes": ["F2"],
+      "citacao_literal": "We found that, for students with low CS self-efficacy levels, those who received scaffolding achieved significantly higher practice performance and in-practice problem-solving efficiency compared to those without any scaffolding.",
+      "central": true
+    },
+    {
+      "texto": "Scaffolding instrucional dentro do jogo é um moderador altamente significativo do game-based learning, logo a ausência de suporte instrucional é uma causa provável de nulidade de transferência.",
+      "fontes": ["F1"],
+      "citacao_literal": "Wang and Xie (2024) reported that scaffolding had a highly significant moderating effect on game-based learning (F = 46.076, p < 0.05), underscoring the value of instructional support systems in enhancing the impact of technology-driven interventions.",
+      "central": false
+    },
+    {
+      "texto": "Eficiência não é transferência: Parsons produz o mesmo nível de aprendizagem que escrever código equivalente com maior eficiência, mas isso é evidência de suficiência de prática, não de transferência para código novo — o app deve manter tarefas de write-code não assistidas como medida-alvo.",
+      "fontes": ["F2"],
+      "citacao_literal": "students can achieve the same level of learning as writing the equivalent code, but with higher learning efficiency",
+      "central": false
+    }
+  ],
+  "fontes": [
+    {
+      "ref": "F1",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12733880",
+      "doi": "",
+      "titulo": "From Evidence to Insight: An Umbrella Review of Computational Thinking Research Syntheses",
+      "autores": "não recolhidos no excerto disponível",
+      "ano": "2025",
+      "veiculo": "PMC / revisão guarda-chuva (33 meta-análises e revisões sistemáticas)",
+      "tipo": "revisão guarda-chuva",
+      "nivel": "A",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F2",
+      "url": "https://arxiv.org/abs/2311.18115",
+      "doi": "10.1145/3631802.3631832",
+      "titulo": "Understanding the Effects of Using Parsons Problems to Scaffold Code Writing for Students with Varying CS Self-Efficacy Levels",
+      "autores": "Hou, X.; Ericson, B. J.; Wang, X.",
+      "ano": "2023",
+      "veiculo": "Koli Calling '23 (preprint arXiv:2311.18115, revisado por pares)",
+      "tipo": "estudo empírico controlado (aprendizagem)",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F3",
+      "url": "https://core.ac.uk/download/pdf/250638891.pdf",
+      "doi": "",
+      "titulo": "Games for Learning (capítulo; transferência próxima/distante e congruência entre domínios de origem e destino)",
+      "autores": "Slussareff, M. et al.",
+      "ano": "2016",
+      "veiculo": "capítulo/livro (CORE)",
+      "tipo": "síntese conceptual",
+      "nivel": "C",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F4",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9902256",
+      "doi": "",
+      "titulo": "Deliberate Erring Improves Far Transfer of Learning More Than Errorless Elaboration and Spotting and Correcting Others' Errors",
+      "autores": "não recolhidos no excerto disponível",
+      "ano": "2023",
+      "veiculo": "Frontiers in Psychology (PMC)",
+      "tipo": "estudo empírico + enquadramento de transferência (Barnett & Ceci)",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F5",
+      "url": "https://dl.acm.org/doi/10.1145/3291279.3339411",
+      "doi": "10.1145/3291279.3339411",
+      "titulo": "A Spaced, Interleaved Retrieval Practice Tool that is Motivating and Effective",
+      "autores": "YeckehZaare, I.; Resnick, P.; Ericson, B.",
+      "ano": "2019",
+      "veiculo": "ACM SIGCSE '19 (há versão ICER '19 da mesma equipa)",
+      "tipo": "artigo de conferência (design e avaliação de ferramenta em CS1)",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F6",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9278410",
+      "doi": "",
+      "titulo": "Retrieval Practices Enhance Computational and Scientific Thinking Skills",
+      "autores": "não recolhidos no excerto disponível",
+      "ano": "2022",
+      "veiculo": "PMC (journal article)",
+      "tipo": "estudo de campo / action research em CT",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F7",
+      "url": "https://link.springer.com/article/10.1007/s10209-025-01271-x",
+      "doi": "10.1007/s10209-025-01271-x",
+      "titulo": "Enhancing universal access to programming education: paradigm-aligned transition from block-based to text-based languages",
+      "autores": "não recolhidos no excerto disponível",
+      "ano": "2025",
+      "veiculo": "Universal Access in the Information Society (Springer)",
+      "tipo": "estudo empírico (Python vs Python+MakeCode com mediated transfer)",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F8",
+      "url": "https://dl.acm.org/doi/pdf/10.1145/2839509.2844617",
+      "doi": "10.1145/2839509.2844617",
+      "titulo": "Subgoals Help Students Solve Parsons Problems",
+      "autores": "Morrison, B. B.; Margulieux, L. E.; Ericson, B.; Guzdial, M.",
+      "ano": "2016",
+      "veiculo": "SIGCSE '16",
+      "tipo": "estudo empírico (aprendizagem, carga cognitiva)",
+      "nivel": "B",
+      "lida": "trechos"
+    },
+    {
+      "ref": "F9",
+      "url": "https://dl.acm.org/doi/pdf/10.1145/3141880.3141895",
+      "doi": "10.1145/3141880.3141895",
+      "titulo": "Solving Parsons Problems Versus Fixing and Writing Code",
+      "autores": "Ericson, B. J.; Margulieux, L. E.; Rick, J.",
+      "ano": "2017",
+      "veiculo": "Koli Calling '17",
+      "tipo": "estudo comparativo (Parsons vs escrever/corrigir código)",
+      "nivel": "B",
+      "lida": "trechos"
+    }
+  ],
+  "contradicoes": [
+    "Tensão acessibilidade vs transferência: ambientes de blocos melhoram a compreensão de código e reduzem carga cognitiva em novatos (estudo de eye-tracking, S0360131525001988) mas o mesmo corpo de literatura documenta dificuldade de transição para linguagens de texto [F7] — a escolha blocks vs linguagem real é um trade-off, não um ganho gratuito.",
+    "Os ganhos de subgoal labeling não replicaram nalgumas tarefas de CS introdutório (Haynes/Ericson, ICER 2015, via Semantic Scholar — não lido integralmente), o que limita a generalização da característica [F8]."
+  ],
+  "lacunas": [
+    "Não foi encontrada evidência direta sobre que tipo de feedback (hints progressivos, feedback de erro, fading de feedback) reduz a falha de transferência — característica pedida sem cobertura nesta ronda.",
+    "Nenhum estudo localizado mede explicitamente transferência de jogo de programação para escrita de código autónoma em contexto real com follow-up longitudinal; as medidas são sobretudo in-game, de conceitos de CT ou de eficiência de resolução.",
+    "Metadados incompletos: autores de F1 e F7 não recolhidos; título de F5 aparece truncado em algumas fontes e há ambiguidade de venue (SIGCSE '19 vs ICER '19).",
+    "O excerto de F3 é um fragmento truncado da frase sobre congruência entre domínios.",
+    "Orçamento de consultas excedido face ao sugerido (13 pesquisas + 5 extrações em vez de 4–8), por necessidade de resolver metadados e encontrar estudos de transferência direta."
+  ],
+  "novas_perguntas": [
+    "Q4.2a: Que tipo de feedback (hints, feedback de erro, deliberate erring, fading) tem evidência de transferência para escrita de código em CS1?",
+    "Q4.2b: Quais são as medidas de transferência usadas em estudos de jogos de programação e que validade preditiva têm sobre escrita de código real?",
+    "Q4.2c: Qual o efeito de fading de scaffolds (Parsons → write-code → projeto) sobre transferência a médio prazo?"
+  ],
+  "fontes_nao_usadas": [
+    "Xu, Z.; Ritzhaupt, A. D.; Tian, F.; Umapathy, K. (2019). Block-based versus text-based programming environments on novice student learning outcomes: A meta-analysis study. Computer Science Education 29(2–3), 177–204 — referida em [F7]/[F2], não lida diretamente.",
+    "Weintrop, D.; Wilensky, U. (2017/2019). Comparing Block-Based and Text-Based Programming in High School CS Classrooms / Transitioning to professional programming languages — achados referidos em resultados de pesquisa, não lidos.",
+    "Harms, K. J.; Chen, J. C. H.; Kelleher, C. (2016). Distractors in Parsons Problems Decrease Learning Efficiency for Young Novice Programmers — relevante para desenho de distratores, não explorado em detalhe.",
+    "Kao, Y.; Brown, N. C. C. (2022). From One Language to the Next: Applications of Analogical Mapping (10.1145/3487051) — extração falhou; potencialmente relevante para pontes de transferência.",
+    "Brown, N. C. C. et al. (2022). Transitioning from Blocks to Text (SIGCSE '22) — não lido."
+  ],
+  "consultas": [
+    "tavily search: transfer of learning programming game authentic context near far transfer",
+    "tavily search: block-based vs text-based programming transfer novices learning outcomes",
+    "tavily search: spaced practice interleaving retrieval practice programming learning computer science education",
+    "tavily search: subgoal labeling Parsons problems self-explanation transfer programming worked examples",
+    "tavily search: computational thinking game intervention no transfer standardized assessment effect study",
+    "tavily search: notional machine semantic transparency blocks text transition scaffold transfer programming education design",
+    "tavily search: Parsons problems versus writing code learning efficiency transfer study Morrison subgoal labeling",
+    "tavily search: Weintrop Wilensky transitioning block-based environments professional programming languages students struggled findings",
+    "tavily search: spaced retrieval practice tool computer science course long-term retention exam performance study findings",
+    "tavily search: 2311.18115 Parsons problems scaffold code writing self-efficacy authors arXiv",
+    "tavily search: A Spaced, Interleaved Retrieval Practice Tool SIGCSE 2019 authors computer science",
+    "tavily search: 10.1145/3291279.3339411 spaced interleaved retrieval practice tool",
+    "tavily extract (falhou): link.springer.com/article/10.1007/s10209-025-01271-x",
+    "tavily extract (falhou): dl.acm.org/doi/pdf/10.1145/3141880.3141895",
+    "tavily extract (falhou): dl.acm.org/doi/10.1145/3291279.3339411",
+    "tavily extract (falhou): core.ac.uk/download/pdf/250638891.pdf",
+    "tavily extract (ok): arxiv.org/html/2311.18115v1",
+    "tavily extract (falhou): dl.acm.org/doi/fullHtml/10.1145/3487051",
+    "tavily extract (ok): pmc.ncbi.nlm.nih.gov/articles/PMC12733880"
+  ],
+  "alertas_seguranca": []
+}

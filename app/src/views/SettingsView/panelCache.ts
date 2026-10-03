@@ -33,3 +33,11 @@ export function readCached<T>(key: string): T | undefined {
 export function writeCached<T>(key: string, value: T): void {
   cache.set(key, value);
 }
+
+/**
+ * Esvazia o cache (testes/stories: cada caso recomeça sem o primeiro paint do
+ * caso anterior). NÃO é chamado pelo app — só pelos harnesses.
+ */
+export function clearPanelCache(): void {
+  cache.clear();
+}

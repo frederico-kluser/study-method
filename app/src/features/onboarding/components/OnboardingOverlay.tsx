@@ -30,28 +30,33 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { PanelKey } from '../../../lib/shellNav';
+import {
+  FOCUSABLE_SELECTOR,
+  focusElement,
+  trapTabTarget,
+} from '../../../lib/focusTrap';
 import { ONBOARDING_CHAPTERS } from '../constants/onboardingSteps';
 import type { OnboardingStepDefinition } from '../types/onboarding.types';
 import {
   calculatePanelPosition,
   getResponsiveSizeClass,
-  rectsOverlap,
   scrollTargetIntoView,
   type RevealableElement,
 } from '../utils/onboardingPositioning.utils';
+import {
+  panelOverlapsSpotlight,
+  resolveStepTargetElement,
+  resolveTargetElement,
+  shouldBlockOutsideInteraction,
+  spotlightMaskSegments,
+  spotlightRectFromBounds,
+  spotlightRectsEqual,
+  viewportSizesEqual,
+  SPOTLIGHT_RADIUS,
+  type SpotlightRect,
+  type ViewportSize,
+} from '../logic/spotlightGeometry';
 import styles from './OnboardingOverlay.module.css';
-
-interface SpotlightRect {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
-
-interface ViewportSize {
-  width: number;
-  height: number;
-}
 
 interface PanelSize {
   width: number;
@@ -81,16 +86,16 @@ export interface OnboardingOverlayProps {
   onPause: () => void;
 }
 
-const SPOTLIGHT_PADDING = 10;
-const SPOTLIGHT_RADIUS = 12;
+/* A folga (`SPOTLIGHT_PADDING`) e o raio (`SPOTLIGHT_RADIUS`) do spotlight são
+ * os de `../logic/spotlightGeometry` — a geometria pura vive lá. */
 
-/* Tudo que pode receber Tab dentro de um painel `aria-modal` — a lista canônica
- * do laço de foco, COPIADA do exemplar (QuizOverlayHost.tsx) para os dois
- * painéis deste overlay. Sem o laço, o `aria-modal="true"` mente: o leitor de
- * tela ignora o resto da tela, mas o Tab passeia pelo app inteiro atrás do
- * scrim (SC 2.4.3). */
-const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/* A lista canónica de focáveis do laço de Tab vive em `lib/focusTrap.ts`
+ * (auditoria de layout §7 — antes copiada 4×, aqui pela 4ª vez). Sem o laço, o
+ * `aria-modal="true"` mente: o leitor de tela ignora o resto da tela, mas o Tab
+ * passeia pelo app inteiro atrás do scrim (SC 2.4.3). A DECISÃO do Tab
+ * (bordas, foco escapado, painel vazio) é `trapTabTarget` do primitivo; este
+ * overlay só acrescenta a EXTENSÃO documentada abaixo (o alvo revelado entra
+ * no ciclo nos passos de ação). */
 
 /** Nome acessível do diálogo de confirmação = o título que ele renderiza. */
 const CONFIRM_TITLE_ID = 'onboarding-confirm-title';
@@ -112,38 +117,6 @@ const NAV_TAB_KEY: Record<PanelKey, 'translation:nav.home' | 'translation:nav.se
 function getViewportSize(): ViewportSize {
   if (typeof window === 'undefined') return { width: 0, height: 0 };
   return { width: window.innerWidth, height: window.innerHeight };
-}
-
-function findTargetElement(selector?: string, index?: number): Element | null {
-  if (!selector || typeof document === 'undefined') return null;
-  if (index !== undefined && index !== 0) {
-    const all = document.querySelectorAll(selector);
-    if (all.length === 0) return null;
-    if (index === -1) return all[all.length - 1];
-    return all[index] ?? null;
-  }
-  return document.querySelector(selector);
-}
-
-function toSpotlightRect(target: Element): SpotlightRect | null {
-  const rect = target.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
-  return {
-    top: Math.max(0, rect.top - SPOTLIGHT_PADDING),
-    left: Math.max(0, rect.left - SPOTLIGHT_PADDING),
-    width: rect.width + SPOTLIGHT_PADDING * 2,
-    height: rect.height + SPOTLIGHT_PADDING * 2,
-  };
-}
-
-function areViewportsEqual(a: ViewportSize, b: ViewportSize): boolean {
-  return a.width === b.width && a.height === b.height;
-}
-
-function areSpotlightsEqual(a: SpotlightRect | null, b: SpotlightRect | null): boolean {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height;
 }
 
 const RESPONSIVE_CLASS: Record<string, string | undefined> = {
@@ -310,36 +283,25 @@ export function OnboardingOverlay({
       const confirmando = confirmAction !== null;
       const container = confirmando ? confirmRef.current : panelRef.current;
       if (container === null) return;
-      const alvos = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const alvos = [...container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)];
       // O alvo revelado entra no ciclo só nos passos de AÇÃO (ver acima), e só
       // enquanto o alertdialog está fechado — quando ele abre, o foco pertence
       // ao diálogo.
       if (!confirmando && currentStep.expectedAction !== undefined) {
-        const alvo =
-          findTargetElement(currentStep.alternateTargetSelector) ??
-          findTargetElement(currentStep.targetSelector, currentStep.targetSelectorIndex);
+        const alvo = resolveStepTargetElement<Element>(document, currentStep);
         if (alvo !== null) {
-          if (alvo instanceof HTMLElement && alvo.matches(FOCUSABLE)) alvos.unshift(alvo);
-          alvos.push(...alvo.querySelectorAll<HTMLElement>(FOCUSABLE));
+          if (alvo instanceof HTMLElement && alvo.matches(FOCUSABLE_SELECTOR)) alvos.unshift(alvo);
+          alvos.push(...alvo.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
         }
       }
-      // Sem nada focável dentro, o Tab não pode sair do painel mesmo assim:
-      // o próprio painel (tabIndex -1) recebe o foco de volta.
-      if (alvos.length === 0) {
-        event.preventDefault();
-        container.focus();
-        return;
-      }
-      const primeiro = alvos[0]!;
-      const ultimo = alvos[alvos.length - 1]!;
-      const atual = document.activeElement;
-      if (event.shiftKey && (atual === primeiro || atual === container)) {
-        event.preventDefault();
-        ultimo.focus();
-      } else if (!event.shiftKey && atual === ultimo) {
-        event.preventDefault();
-        primeiro.focus();
-      }
+      // A DECISÃO do Tab é a do primitivo (`trapTabTarget`, regras 1–5 do
+      // cabeçalho de `lib/focusTrap.ts`): painel vazio devolve o próprio
+      // painel, as bordas dão a volta, e foco escapado volta a entrar — sem
+      // sequestrar o Tab no meio da lista.
+      const alvo = trapTabTarget(alvos, document.activeElement, event.shiftKey, container);
+      if (alvo === null) return;
+      event.preventDefault();
+      focusElement(alvo);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -363,24 +325,17 @@ export function OnboardingOverlay({
     if (!shouldRender) return;
 
     const blockInteraction = (e: Event): void => {
-      if (!spotlight) return;
       const target = e.target;
       if (!(target instanceof Element)) return;
 
-      if (target.closest('[data-onboarding-panel]')) return;
-      if (target.closest('[data-onboarding-confirm]')) return;
-
-      const rect = target.getBoundingClientRect();
-      const targetCenter = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      };
-      const withinSpotlight =
-        targetCenter.x >= spotlight.left &&
-        targetCenter.x <= spotlight.left + spotlight.width &&
-        targetCenter.y >= spotlight.top &&
-        targetCenter.y <= spotlight.top + spotlight.height;
-      if (withinSpotlight) return;
+      const targetRect = target.getBoundingClientRect();
+      const blocked = shouldBlockOutsideInteraction({
+        spotlight,
+        targetRect,
+        insidePanel: target.closest('[data-onboarding-panel]') !== null,
+        insideConfirm: target.closest('[data-onboarding-confirm]') !== null,
+      });
+      if (!blocked) return;
 
       e.stopPropagation();
       e.preventDefault();
@@ -406,15 +361,13 @@ export function OnboardingOverlay({
 
     const syncLayout = (): void => {
       const nextViewport = getViewportSize();
-      if (!areViewportsEqual(viewportRef.current, nextViewport)) {
+      if (!viewportSizesEqual(viewportRef.current, nextViewport)) {
         viewportRef.current = nextViewport;
         setViewport(nextViewport);
       }
-      const target =
-        findTargetElement(currentStep.alternateTargetSelector) ??
-        findTargetElement(currentStep.targetSelector, currentStep.targetSelectorIndex);
-      const rect = target ? toSpotlightRect(target) : null;
-      if (!areSpotlightsEqual(spotlightRef.current, rect)) {
+      const target = resolveStepTargetElement<Element>(document, currentStep);
+      const rect = target ? spotlightRectFromBounds(target.getBoundingClientRect()) : null;
+      if (!spotlightRectsEqual(spotlightRef.current, rect)) {
         spotlightRef.current = rect;
         setSpotlight(rect);
       }
@@ -464,7 +417,7 @@ export function OnboardingOverlay({
     const maxAttempts = 40;
     const timer = window.setInterval(() => {
       attempts += 1;
-      const target = findTargetElement(selector, currentStep.targetSelectorIndex);
+      const target = resolveTargetElement<Element>(document, selector, currentStep.targetSelectorIndex);
       if (target) {
         scrollTargetIntoView(target as unknown as RevealableElement, smooth);
         scrolledForStepRef.current = currentStep.id;
@@ -507,26 +460,10 @@ export function OnboardingOverlay({
     };
   }, [spotlight]);
 
-  const maskSegments = useMemo(() => {
-    if (!spotlight) {
-      return [
-        {
-          key: 'full',
-          style: { top: 0, left: 0, width: viewport.width, height: viewport.height },
-        },
-      ];
-    }
-    const bottomTop = spotlight.top + spotlight.height;
-    const rightLeft = spotlight.left + spotlight.width;
-    const rightWidth = Math.max(0, viewport.width - rightLeft);
-    const bottomHeight = Math.max(0, viewport.height - bottomTop);
-    return [
-      { key: 'top', style: { top: 0, left: 0, width: viewport.width, height: Math.max(0, spotlight.top) } },
-      { key: 'left', style: { top: spotlight.top, left: 0, width: Math.max(0, spotlight.left), height: spotlight.height } },
-      { key: 'right', style: { top: spotlight.top, left: rightLeft, width: rightWidth, height: spotlight.height } },
-      { key: 'bottom', style: { top: bottomTop, left: 0, width: viewport.width, height: bottomHeight } },
-    ];
-  }, [spotlight, viewport]);
+  const maskSegments = useMemo(
+    () => spotlightMaskSegments(spotlight, viewport),
+    [spotlight, viewport],
+  );
 
   const panelPosition = useMemo(() => {
     if (!viewport.width || !viewport.height) {
@@ -541,15 +478,14 @@ export function OnboardingOverlay({
     );
   }, [currentStepIndex, panelSize.height, panelSize.width, spotlight, viewport]);
 
-  const panelOverlapsSpotlight = useMemo(() => {
-    if (!spotlight) return false;
+  const panelOverlaps = useMemo(() => {
     const panelRect = {
       top: panelPosition.top,
       left: panelPosition.left,
       width: panelPosition.width,
       height: panelSize.height || 320,
     };
-    return rectsOverlap(panelRect, spotlight, 0);
+    return panelOverlapsSpotlight(panelRect, spotlight);
   }, [panelPosition, panelSize.height, spotlight]);
 
   const chapter = ONBOARDING_CHAPTERS.find((c) => c.id === currentStep.chapterId);
@@ -628,7 +564,7 @@ export function OnboardingOverlay({
           borderRadius: 2,
           border: 1,
           borderColor: 'divider',
-          ...(panelOverlapsSpotlight
+          ...(panelOverlaps
             ? { pointerEvents: 'none', '& button': { pointerEvents: 'auto' } }
             : {}),
         }}

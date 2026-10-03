@@ -21,6 +21,7 @@ import {
   countDoneNodes,
   type TreeViewSourceNode,
 } from '../../src/lib/treeView';
+import ptBR from '../../src/i18n/locales/pt-BR/translation.json';
 
 const source: TreeViewSourceNode[] = [
   {
@@ -62,6 +63,9 @@ describe('toTreeView', () => {
     const [root] = toTreeView(source) ?? [];
     assert.equal(root?.label, 'Raiz');
     const empty = toTreeView([{ lessonId: 'x', title: '   ', completedAt: null, children: [] }]);
+    // O fallback é a chave `lesson.untitled` (texto legado em paridade com o
+    // resource — ver tests/i18nText.test.ts para a resolução nos dois idiomas).
+    assert.equal(empty[0]?.label, ptBR.lesson.untitled);
     assert.equal(empty[0]?.label, 'Aula sem título');
   });
 

@@ -63,14 +63,29 @@
  * Usado pela ChatBubble nas bolhas de ERRO de execução (kind 'review' com
  * `errorFor` — o seed `formatErrorBubble` pode ter centenas de chars; a 10 tps
  * levariam ~55s). A review de APROVAÇÃO (sem `errorFor`) continua digitando.
+ *
+ * ─── CONTRATO STATE/VIEW (Storybook): as DECISÕES são puras ───────────────
+ * As três decisões da revelação — o corte de nascimento (`initialRevealCut`),
+ * o plano do pulo do aluno (`planSkipReveal`, incluindo as exceções
+ * instantâneas) e o passo do relógio de digitação (`typingRevealStep`) —
+ * vivem em `src/lib/typewriterReveal.ts`, puras e cobertas por
+ * tests/typewriterReveal.test.ts sem jsdom. Este ficheiro continua DONO do
+ * relógio (timers/refs/efeitos) e da varredura do `skip` (o corpo do
+ * `startSweep` é contrato de fonte — ver o cabeçalho daquele módulo).
  */
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
   SKIP_SWEEP_TICK_MS,
   skipSweepCut,
-  typewriterCut,
   typewriterDelayPerChar,
 } from '../../lib/trackLessonState';
+// Contrato state/view: as decisões PURAS da revelação por passos (corte de
+// nascimento, plano do pulo, passo da digitação) — testáveis sem jsdom.
+import {
+  initialRevealCut,
+  planSkipReveal,
+  typingRevealStep,
+} from '../../lib/typewriterReveal';
 // ONDA-SKIP-1S: o mesmo helper de sempre (lib/confetti.ts, reusado pela
 // RoadmapView) para honrar `prefers-reduced-motion: reduce` (SC 2.3.3) na
 // varredura do `skip`.
@@ -136,8 +151,8 @@ export function TypewriterText({
 }): ReactElement {
   // Estado de exibição: começa vazio quando vai digitar; completo quando não
   // (restaurada do cache/seed antigo OU `instant` — erro de execução que NÃO
-  // passa pelo typewriter).
-  const [cut, setCut] = useState<number>(() => (instant || !active ? text.length : 0));
+  // passa pelo typewriter). A decisão é a PURA `initialRevealCut`.
+  const [cut, setCut] = useState<number>(() => initialRevealCut(text, active, instant));
   const startedAtRef = useRef<number | null>(null);
   // ONDA-SKIP-1S: espelho do `cut` para o branch do `skip` ler o corte ATUAL
   // SEM depender do estado (o efeito do pulo roda no mesmo commit em que o
@@ -231,22 +246,18 @@ export function TypewriterText({
     // inteiro — mas o texto NÃO estoura mais na tela. Fica ANTES do onStart:
     // pular no meio não "recomeça" a digitação.
     if (skip) {
-      // Texto JÁ inteiro na tela (o pulo chegou depois do fim natural, ou
-      // texto vazio) → completa na hora: não há resto para varrer. Mesma
-      // idempotência de sempre: o `doneRef` impede re-typar/re-disparar.
-      if (cutRef.current >= text.length) {
-        doneRef.current = true;
-        cutRef.current = text.length;
-        setCut(text.length);
-        onDoneRef.current?.();
-        return;
-      }
-      // SC 2.3.3 (política do projeto, ver src/theme.ts e os blocos
-      // `@media (prefers-reduced-motion: reduce)`): sob reduced motion a
-      // varredura vira revelação INSTANTÂNEA — o movimento é dispensável, o
-      // conteúdo não. Decisão tomada AQUI (no relógio, que conhece o corte)
-      // em vez de na LessonView: o consumidor não ganha ramo novo.
-      if (prefersReducedMotion()) {
+      // O PLANO do pulo é a PURA `planSkipReveal` (tests/typewriterReveal.test.ts):
+      // texto JÁ inteiro na tela (o pulo chegou depois do fim natural, ou texto
+      // vazio) → 'complete'; SC 2.3.3 (política do projeto, ver src/theme.ts e
+      // os blocos `@media (prefers-reduced-motion: reduce)`) → 'complete' (sob
+      // reduced motion a varredura vira revelação INSTANTÂNEA — o movimento é
+      // dispensável, o conteúdo não); caso contrário → 'sweep'. Decisão tomada
+      // AQUI (no relógio, que conhece o corte) em vez de na LessonView: o
+      // consumidor não ganha ramo novo.
+      const plan = planSkipReveal(text.length, cutRef.current, prefersReducedMotion());
+      if (plan === 'complete') {
+        // Completa na hora — não há resto para varrer. Mesma idempotência de
+        // sempre: o `doneRef` impede re-typar/re-disparar.
         doneRef.current = true;
         cutRef.current = text.length;
         setCut(text.length);
@@ -263,17 +274,18 @@ export function TypewriterText({
     }
 
     // (3) Digitação normal — o relógio de sempre (`typewriterCut`/`tps`),
-    // intocado pela ONDA-SKIP-1S.
+    // intocado pela ONDA-SKIP-1S. O passo (`{ cut, done }`) vem da PURA
+    // `typingRevealStep`, que manda o corte por `typewriterCut`.
     onStartRef.current?.();
     startedAtRef.current = Date.now();
     const delay = typewriterDelayPerChar(tps);
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - (startedAtRef.current ?? 0);
-      const next = typewriterCut(text, elapsed, tps);
-      cutRef.current = next;
-      setCut(next);
+      const step = typingRevealStep(text, tps, elapsed);
+      cutRef.current = step.cut;
+      setCut(step.cut);
       onTickRef.current?.();
-      if (next >= text.length) {
+      if (step.done) {
         // Concluiu: para o interval e avisa (o indicador "digitando" sai do
         // DOM — mount condicional — e o "Gerar novo desafio" habilita).
         doneRef.current = true;

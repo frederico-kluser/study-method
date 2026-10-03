@@ -31,13 +31,13 @@
  *     `text.secondary`); o acento só entra como PREENCHIMENTO (nós, barras do
  *     histograma, badge "chefe") ou borda. As medidas de contraste estão nos
  *     comentários dos pontos de cor.
- *  3. Alvos de toque ≥ 44px (`TOUCH_TARGET_PX` local, como em
- *     `components/editor/FileExplorer.tsx`).
+ *  3. Alvos de toque ≥ 44px (piso `TARGET.minTouchTargetPx`; as ações
+ *     multilinha usam `wrappingActionSx` de `lib/layoutSx`).
  *  4. i18n: toda a copy visível vem de `t('translation:games.*')` /
  *     `challenge.testAnswer` (reuso do padrão do app). Interpolação pelo cast
  *     `tI` da casa.
  */
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useReducer, useRef, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -52,7 +52,9 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ReplayIcon from '@mui/icons-material/Replay';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
-import { SHAPE } from '../../lib/designTokens';
+import { RetryAlert } from '../../components/ui/RetryAlert';
+import { LAYOUT, SHAPE, TARGET } from '../../lib/designTokens';
+import { wrappingActionSx } from '../../lib/layoutSx';
 import {
   IPC_TIMEOUT_MS,
   isTimeoutError,
@@ -73,17 +75,19 @@ import {
   histogramParIndex,
   isHiddenCase,
 } from './gamesUi';
+import {
+  hasLevelLoadError,
+  initialGameLevelState,
+  reduceGameLevelState,
+} from './gameLevelState';
 import { getGamesApi } from './gamesApi';
-
-/** Piso de alvo de toque do design system (44px; ver cabeçalho do arquivo). */
-const TOUCH_TARGET_PX = 44;
 
 /**
  * ALTURA TOTAL da barra de ação pegajosa (W13) — medida da PRÓPRIA barra, sem
- * magic number solto: botão de `TOUCH_TARGET_PX` (44px) + o `p: 1` do Paper
- * que a envolve (8px em cima + 8px em baixo) + as duas bordas de 1px = 62px.
- * Medido no app rodando (apanhado do e2e-games.spec.ts): a caixa da barra
- * assenta em 62px exatos (rect 706..768).
+ * magic number solto: botão de `TARGET.minTouchTargetPx` (44px) + o `p: 1` do
+ * Paper que a envolve (8px em cima + 8px em baixo) + as duas bordas de 1px =
+ * 62px. Medido no app rodando (apanhado do e2e-games.spec.ts): a caixa da
+ * barra assenta em 62px exatos (rect 706..768).
  *
  * PARA QUE SERVE (achado do e2e-games sobre o print 04): a barra é
  * `position: sticky; bottom: 0` — enquanto pinned cobre a última faixa do
@@ -94,7 +98,7 @@ const TOUCH_TARGET_PX = 44;
  * reservada e as ações do painel de otimização ("Otimizar"/"Avançar ›") ficam
  * inteiramente visíveis — era exatamente elas que apareciam a meio cortadas.
  */
-const ACTION_BAR_PX = TOUCH_TARGET_PX + 2 * 8 + 2 * 1;
+const ACTION_BAR_PX = TARGET.minTouchTargetPx + 2 * 8 + 2 * 1;
 
 /**
  * Arquivo-fantasia por linguagem: o `CodeMirrorField` escolhe o realce de
@@ -154,8 +158,8 @@ export function GameLangSelector({ value, onChange }: GameLangSelectorProps): Re
         // folga entre eles (o mesmo critério visual dos chips do app).
         gap: 0.5,
         '& .MuiToggleButton-root': {
-          minHeight: TOUCH_TARGET_PX,
-          minWidth: TOUCH_TARGET_PX,
+          minHeight: TARGET.minTouchTargetPx,
+          minWidth: TARGET.minTouchTargetPx,
           px: 1.5,
           border: `1px solid ${theme.vars.palette.divider}`,
           borderRadius: `${SHAPE.sm}px`,
@@ -588,7 +592,7 @@ function OptimizationPanel({
           variant="outlined"
           startIcon={<ReplayIcon />}
           onClick={onTest}
-          sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
+          sx={wrappingActionSx}
         >
           {t('translation:games.opt.optimize')}
         </Button>
@@ -597,7 +601,7 @@ function OptimizationPanel({
             variant="contained"
             endIcon={<ArrowForwardIcon />}
             onClick={() => onAdvance(nextLevelId)}
-            sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
+            sx={wrappingActionSx}
           >
             {t('translation:games.opt.advance')}
           </Button>
@@ -712,7 +716,7 @@ function GameLevelHeader({
       <Button
         variant="text"
         onClick={onBack}
-        sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
+        sx={wrappingActionSx}
       >
         {t('translation:games.level.back')}
       </Button>
@@ -828,7 +832,7 @@ export function GameLevelPanel({
         <Typography
           variant="body2"
           sx={{
-            maxWidth: 640,
+            maxWidth: LAYOUT.readingColumnPx,
             whiteSpace: 'normal',
             overflowWrap: 'break-word',
           }}
@@ -915,7 +919,7 @@ export function GameLevelPanel({
           loadingPosition="start"
           startIcon={<PlayArrowIcon />}
           onClick={onTest}
-          sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
+          sx={wrappingActionSx}
         >
           {/* Reuso do padrão do app: MESMA copy do "Testar resposta" do
               Desafio (challenge.testAnswer) — dois rótulos iguais nunca
@@ -951,6 +955,10 @@ export interface GameLevelViewProps {
  * Contentor do nível: `games.loadLevel` para o payload (enunciado + starter),
  * `games.run` para as submissões. Estados: loading (título estável +
  * LinearProgress), erro (Alert + retentativa), ok (GameLevelPanel).
+ *
+ * STATE/VIEW (STORY-SPEC §5): o estado do editor/runner é a máquina PURA de
+ * `gameLevelState.ts` (reducer + eventos); este contentor só despacha e mapeia
+ * o estado para copy i18n.
  */
 export default function GameLevelView({
   worldId,
@@ -971,16 +979,12 @@ export default function GameLevelView({
     options?: Record<string, string | number>,
   ) => string;
 
-  const [payload, setPayload] = useState<GameLevelPayload | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [runResult, setRunResult] = useState<GameRunResult | null>(null);
-  const [runError, setRunError] = useState<string | null>(null);
-  // Retentativa do carregamento (estado, não hack): incrementar o token
-  // reexecuta o efeito de carga abaixo sem recarregar a página.
-  const [retryToken, setRetryToken] = useState(0);
+  const [levelState, dispatch] = useReducer(
+    reduceGameLevelState,
+    undefined,
+    initialGameLevelState,
+  );
+  const { loadToken, loading, payload, loadError, code, busy, runResult, runError } = levelState;
 
   // Ref para o código na submissão: `run` recebe o código ATUAL sem prender o
   // handler a um re-render por keystroke (mesmo padrão do editor do Desafio).
@@ -992,11 +996,7 @@ export default function GameLevelView({
   // à troca (a solução teria de ser reescrita de qualquer forma).
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setPayload(null);
-    setLoadError(null);
-    setRunResult(null);
-    setRunError(null);
+    dispatch({ type: 'load/start' });
     withTimeout(
       Promise.resolve(getGamesApi().loadLevel(worldId, levelId, lang)),
       IPC_TIMEOUT_MS,
@@ -1004,43 +1004,40 @@ export default function GameLevelView({
     )
       .then((level) => {
         if (cancelled) return;
-        setPayload(level);
-        setCode(level.starter);
+        dispatch({ type: 'load/success', payload: level });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setLoadError(
-          isTimeoutError(err)
-            ? t('translation:games.loadTimeout')
-            : t('translation:games.loadError'),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        dispatch({
+          type: 'load/error',
+          kind: isTimeoutError(err) ? 'timeout' : 'load',
+        });
       });
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldId, levelId, lang, retryToken]);
+  }, [worldId, levelId, lang, loadToken]);
 
   const test = useCallback((): void => {
-    setBusy(true);
-    setRunError(null);
+    dispatch({ type: 'run/start' });
     withTimeout(
       Promise.resolve(getGamesApi().run(worldId, levelId, lang, codeRef.current)),
       IPC_TIMEOUT_MS,
       'games.run',
     )
-      .then((result) => setRunResult(result))
-      .catch(() => {
-        // Erro de infraestrutura ≠ caso que falhou: a lista de casos fica como
-        // estava e o erro ganha Alert próprio (o texto é o padrão do Desafio).
-        setRunError(t('translation:games.level.runError'));
-      })
-      .finally(() => setBusy(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .then((result) => dispatch({ type: 'run/success', result }))
+      .catch(() => dispatch({ type: 'run/error' }));
   }, [worldId, levelId, lang]);
+
+  // Copy do erro de carga decidida AQUI (a máquina guarda o tipo, não texto):
+  // timeout do IPC → `games.loadTimeout`; rejeição comum → `games.loadError`;
+  // payload ausente sem erro → `games.level.loadError`.
+  const loadErrorMessage =
+    loadError === 'timeout'
+      ? t('translation:games.loadTimeout')
+      : loadError === 'load'
+        ? t('translation:games.loadError')
+        : t('translation:games.level.loadError');
 
   // Cabeçalho ESTÁVEL nos três estados (loading/erro/ok): o mesmo componente
   // do painel — o título vem das props, nunca do payload.
@@ -1073,26 +1070,16 @@ export default function GameLevelView({
     );
   }
 
-  if (loadError !== null || payload === null) {
+  if (payload === null || hasLevelLoadError(levelState)) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
         {header}
-        <Alert
-          severity="error"
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => setRetryToken((n) => n + 1)}
-              sx={{ minHeight: TOUCH_TARGET_PX, whiteSpace: 'normal', overflowWrap: 'break-word' }}
-            >
-              {t('translation:common.tryAgain')}
-            </Button>
-          }
-          sx={{ overflowWrap: 'break-word' }}
-        >
-          {loadError ?? t('translation:games.level.loadError')}
-        </Alert>
+        {/* Erro + retentativa (auditoria de layout §3): o `RetryAlert`
+         * canónico. A copy do erro continua decidida AQUI (timeout vs carga). */}
+        <RetryAlert
+          message={loadErrorMessage}
+          onRetry={() => dispatch({ type: 'retry' })}
+        />
       </Box>
     );
   }
@@ -1107,11 +1094,11 @@ export default function GameLevelView({
       onLangChange={onLangChange}
       enunciado={payload.enunciado}
       code={code}
-      onCodeChange={setCode}
+      onCodeChange={(next) => dispatch({ type: 'code/change', code: next })}
       optimize={payload.optimize}
       busy={busy}
       runResult={runResult}
-      runError={runError}
+      runError={runError ? t('translation:games.level.runError') : null}
       nextLevelId={nextLevelId}
       onBack={onBack}
       onTest={test}

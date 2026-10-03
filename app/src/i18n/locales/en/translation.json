@@ -310,7 +310,8 @@
     "micStart": "Speak",
     "micStop": "Stop recording",
     "micRecording": "Recording…",
-    "regenerateFailed": "Could not generate a new challenge."
+    "regenerateFailed": "Could not generate a new challenge.",
+    "untitled": "Untitled lesson"
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -462,6 +463,17 @@
     "copiedCode": "Copied ✓",
     "tryAgain": "Try again",
     "copyFailed": "Could not copy"
+  },
+  "ui": {
+    "actionButton": {
+      "busy": "Working…"
+    },
+    "loadError": {
+      "message": "Could not load this content."
+    },
+    "retryAlert": {
+      "message": "Could not complete the operation."
+    }
   },
   "voice": {
     "engineUnavailable": "Speech engine unavailable (too many failures).",
@@ -763,6 +775,14 @@
       "noTopicsCta": "Go to Home",
       "noLessons": "This subject has no lessons yet. Generate the first lesson to start the trail.",
       "noLessonsCta": "Generate first lesson"
+    },
+    "tree": {
+      "title": "Learning evolution",
+      "empty": "No progress recorded yet. Generate your first lesson to get started.",
+      "stateDone": "done",
+      "stateCurrent": "in progress",
+      "statePending": "pending",
+      "nodeChildren": "{{count}} sub-lesson(s)"
     }
   },
   "roadmap": {
@@ -883,5 +903,15 @@
       "optimize": "Optimize",
       "advance": "Next ›"
     }
+  },
+  "course": {
+    "sectionLabel": "Choose a subject",
+    "empty": "No subjects available yet.",
+    "progress": "Progress: {{progress}}",
+    "noLessons": "No lessons yet",
+    "generate": "Generate new lesson",
+    "continue_one": "Continue · 1 lesson done",
+    "continue_other": "Continue · {{count}} lessons done",
+    "noneActive": "No lesson in progress"
   }
 }

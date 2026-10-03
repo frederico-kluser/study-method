@@ -73,6 +73,37 @@ const LOCALAIPANEL_PATH = resolve(PANELS_DIR, 'LocalAiPanel.tsx');
 const ORPHANPANEL_PATH = resolve(PANELS_DIR, 'OrphanTracksPanel.tsx');
 const PROGRESSPANEL_PATH = resolve(PANELS_DIR, 'ProgressPanel.tsx');
 const PANELCACHE_PATH = resolve(PANELS_DIR, 'panelCache.ts');
+/**
+ * STATE/VIEW SPLIT (STORY-SPEC §5): cada painel passou a ser CONTAINER +
+ * VIEW PURA + HOOK (e, no ProgressPanel, a máquina pura). As guardas de fonte
+ * leem a fonte COMPLETA do painel (todos os ficheiros da sua unidade) — o
+ * contrato que provam não mudou com a refatoração.
+ */
+const KEYSPANEL_UNIT = ['KeysPanel.tsx', 'KeysPanelView.tsx', 'useKeysPanel.ts'];
+const LOCALAIPANEL_UNIT = [
+  'LocalAiPanel.tsx',
+  'LocalAiPanelView.tsx',
+  'useLocalAiPanel.ts',
+  'HardwareView.tsx',
+  'LocalAiModelCard.tsx',
+];
+const ORPHANPANEL_UNIT = [
+  'OrphanTracksPanel.tsx',
+  'OrphanTracksPanelView.tsx',
+  'useOrphanTracksPanel.ts',
+  'OrphanRow.tsx',
+];
+const PROGRESSPANEL_UNIT = [
+  'ProgressPanel.tsx',
+  'ProgressPanelView.tsx',
+  'useProgressPanel.ts',
+  'progressPanelState.ts',
+];
+
+/** Fonte COMPLETA da unidade de um painel (sem comentários). */
+function unitOf(files: string[]): string {
+  return codeOf(files.map((f) => readFileSync(resolve(PANELS_DIR, f), 'utf8')).join('\n'));
+}
 const SETTINGSVIEW_PATH = resolve(PANELS_DIR, 'SettingsView.tsx');
 
 // ATENÇÃO ao padrão da casa: componentes .tsx são importados DINAMICAMENTE
@@ -159,7 +190,7 @@ describe('A. panelCache — Map por sessão, funções puras read/write', () => 
 /* ═══════ BLOCO B — guardas de fonte (o contrato está no .tsx) ═══════════ */
 
 describe('B. guardas de fonte — KeysPanel (SWR de keys.status)', () => {
-  const code = codeOf(readFileSync(KEYSPANEL_PATH, 'utf8'));
+  const code = unitOf(KEYSPANEL_UNIT);
 
   it('nasce com o último status conhecido (useState initializer lê o cache)', () => {
     assert.match(
@@ -206,7 +237,8 @@ describe('B. guardas de fonte — KeysPanel (SWR de keys.status)', () => {
   });
 
   it('(b) VALIDAR atualiza o cache com o veredito (llm/brave validated)', () => {
-    const validate = sliceBetween(code, 'const handleValidate', 'const renderProvider');
+    // depois do state/view split o fim do handler é o `return` do hook
+    const validate = sliceBetween(code, 'const handleValidate', '  return {');
     assert.match(validate, /validateLlm|validateBrave/);
     assert.match(
       validate,
@@ -228,7 +260,7 @@ describe('B. guardas de fonte — KeysPanel (SWR de keys.status)', () => {
 });
 
 describe('B. guardas de fonte — LocalAiPanel (SWR de models + feedbackProvider)', () => {
-  const code = codeOf(readFileSync(LOCALAIPANEL_PATH, 'utf8'));
+  const code = unitOf(LOCALAIPANEL_UNIT);
 
   it('nasce com a última lista e o último provedor conhecidos (initializers)', () => {
     assert.match(
@@ -297,7 +329,7 @@ describe('B. guardas de fonte — LocalAiPanel (SWR de models + feedbackProvider
 });
 
 describe('B. guardas de fonte — OrphanTracksPanel (SWR de track.orphans)', () => {
-  const code = codeOf(readFileSync(ORPHANPANEL_PATH, 'utf8'));
+  const code = unitOf(ORPHANPANEL_UNIT);
 
   it('nasce com a última reconciliação conhecida (null = ainda verificando)', () => {
     assert.match(
@@ -333,7 +365,7 @@ describe('B. guardas de fonte — OrphanTracksPanel (SWR de track.orphans)', () 
 });
 
 describe('B. guardas de fonte — ProgressPanel INTACTO (sem cache, sem IPC no mount)', () => {
-  const code = codeOf(readFileSync(PROGRESSPANEL_PATH, 'utf8'));
+  const code = unitOf(PROGRESSPANEL_UNIT);
 
   it('não importa nem usa panelCache (read/write cached nunca aparecem)', () => {
     assert.ok(!code.includes('panelCache'), 'ProgressPanel não tem cache');
@@ -348,18 +380,18 @@ describe('B. guardas de fonte — ProgressPanel INTACTO (sem cache, sem IPC no m
   it('o ÚNICO getApi() do arquivo é o clearProgress dentro do handleClear', () => {
     const occurrences = code.match(/getApi\(\)/g) ?? [];
     assert.equal(occurrences.length, 1, 'exatamente uma chamada de API no arquivo');
-    const clearIdx = code.indexOf('const handleClear');
+    const clearIdx = code.indexOf('const onClear');
     const apiIdx = code.indexOf('getApi()');
-    assert.ok(apiIdx > clearIdx, 'a chamada vive dentro do handler de limpar, não no mount');
+    assert.ok(clearIdx !== -1 && apiIdx > clearIdx, 'a chamada vive dentro do handler de limpar, não no mount');
     assert.match(code, /study\.clearProgress\(\)/);
     assert.match(code, /withTimeout\(/);
   });
 
   it('as 4 chaves do cache pertencem ao painel certo (nada vaza entre painéis)', () => {
-    const keysPanel = codeOf(readFileSync(KEYSPANEL_PATH, 'utf8'));
-    const localAiPanel = codeOf(readFileSync(LOCALAIPANEL_PATH, 'utf8'));
-    const orphanPanel = codeOf(readFileSync(ORPHANPANEL_PATH, 'utf8'));
-    const progressPanel = codeOf(readFileSync(PROGRESSPANEL_PATH, 'utf8'));
+    const keysPanel = unitOf(KEYSPANEL_UNIT);
+    const localAiPanel = unitOf(LOCALAIPANEL_UNIT);
+    const orphanPanel = unitOf(ORPHANPANEL_UNIT);
+    const progressPanel = unitOf(PROGRESSPANEL_UNIT);
     // keys.status → só KeysPanel
     assert.ok(keysPanel.includes("'keys.status'"));
     assert.ok(!localAiPanel.includes("'keys.status'") && !orphanPanel.includes("'keys.status'"));

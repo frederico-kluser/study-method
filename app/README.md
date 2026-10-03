@@ -452,12 +452,14 @@ Tudo local e on-device, no **processo main** (o renderer só vê canais `stt:*`/
 
 - **STT (transcrição)** — `sherpa-onnx-node` (Nemotron streaming) num **utility process**
   (`asr-engine`). O modelo embutido viaja no instalador em `resources/stt-models/<modelId>`.
-  Os botões `MicButton` (captura) usam o hook `useMicSTT` (`src/hooks/useMicSTT.ts`), que
+  O renderer entra pela hook `useMicSTT` (`src/hooks/useMicSTT.ts`), que
   resampleia o microfone para 16 kHz mono e abre a sessão **antes** de alimentar frames.
+  (Os antigos botões `MicButton`/`SpeakButton` foram apagados a 2026-10-03 — nunca
+  chegaram a ser montados numa view e estavam fora do design system.)
 - **TTS (síntese)** — o binário `sherpa-onnx-offline-tts` (Piper, GPL isolado num processo
   filho) gera WAV; modelos Piper viajam em `resources/tts-models/<modelId>` e o engine em
-  `resources/tts-engine/<platform>-<arch>/` (+ `resources/espeak-ng-data`). `SpeakButton`
-  monta o áudio da síntese.
+  `resources/tts-engine/<platform>-<arch>/` (+ `resources/espeak-ng-data`). Quem quer ler
+  texto em voz alta chama `localTts.generate(...)` e monta o WAV num `<audio>`.
 - **Env overrides (dev/CI):**
   - `STUDY_METHOD_TTS_ENGINE_BIN` — caminho explícito do binário do engine TTS;
   - `STUDY_METHOD_TTS_MIRROR_BASE` — base URL de download dos modelos Piper;
@@ -553,8 +555,9 @@ app/
 │  ├─ views/                   Home (por domínio) / Aula (LessonView) / Desafio
 │  │                           (ChallengeView) / Trilha (RoadmapView) / Settings
 │  ├─ features/onboarding/     OnboardingHost (tutorial interativo) + overlay/modal/steps
-│  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton),
-│  │               theme (ThemeModeSelector + themeModeState)
+│  ├─ components/  editor, terminal (xterm), CodeMirror, chat, markdown, shell,
+│  │               challenge, quiz, course, tree, theme (ThemeModeSelector), ui/*
+│  │               (primitivos do design system — ver docs/storybook/PRIMITIVES.md)
 │  └─ lib/                     lógica pura (incl. codeTheme.ts, a paleta de código
 │                              bi-polar que editor e terminal compartilham,
 │                              challengeStars.ts, researchProgress.ts, roadmap.ts,

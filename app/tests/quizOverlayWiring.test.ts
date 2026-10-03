@@ -50,6 +50,33 @@
  *  12. o TECLADO: a devolução de foco tem uma âncora que sobrevive ao desmonte
  *      do CTA, e nenhum wrapper com gesto de toque deixa parada de Tab
  *      fantasma.
+ *
+ * ─── ONDA DA CONSOLIDAÇÃO DRY: O ENRAIZAMENTO MUDOU, A INTENÇÃO NÃO ──────
+ * O shell do overlay (fixed + scrim + blur + centrado seguro + cartão com a
+ * REGRA DO MODAL) deixou de ser cópia do host e do irmão e passou a ser o
+ * `ModalScrim` (`components/ui/`, auditoria §6). As asserções que mediam a
+ * GEOMETRIA e a SEMÂNTICA no fonte do host ficaram sem objeto — o que elas
+ * sempre quiseram dizer é "esta casca é UM desenho, igual nos dois irmãos e
+ * com o contrato de diálogo cumprido". Então elas mudam de raiz, não de
+ * intenção:
+ *
+ *   (a) os dois irmãos PASSAM A USAR o `ModalScrim` (import + JSX, mais nada
+ *       que a casca faça por eles);
+ *   (b) `role="dialog"`/`aria-modal`/nome acessível passam a ser provados NO
+ *       primitivo (que também tem os testes de render em
+ *       tests/uiPrimitivesRender.test.ts) e aqui como CONTRATO DE USO — o nome
+ *       acessível continua a ser o do chamador, traduzido;
+ *   (c) scrim/blur/zIndex/centrado seguro passam a ser provados no primitivo
+ *       (`ModalScrim.state.ts`, um só lugar) e pelo `Z_INDEX.modal` que os
+ *       dois entregam — nunca mais por literal crua no fonte do host;
+ *   (d) o laço de foco continua provado NO USO: a dispensa (`onDismiss`) e a
+ *       âncora (`getReturnAnchor`) são do chamador, o `useFocusTrap` pode viver
+ *       no primitivo — a intenção é Escape a dispensar e o foco a voltar;
+ *   (e) `useReducedMotion`/`reducedFadeVariants` ficam provados onde ficarem
+ *       (hoje o primitivo, que anima o cartão).
+ * O que NÃO muda: nenhuma cor crua em components/quiz/**, `alpha()` e o
+ * ternário de `palette.mode` fora, os botões do aviso em TINTA, e o cartão a
+ * chamar a regra de superfície do tema (agora via primitivo).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -72,10 +99,27 @@ function codeOf(text: string): string {
 const APP_SRC = src('src/App.tsx');
 const HOST_SRC = src('src/components/quiz/QuizOverlayHost.tsx');
 const CHAT_CARD_SRC = src('src/components/quiz/QuizChatCard.tsx');
+/** O modelo PURO do card (linha de estado + ações de resposta) — é lá que a
+ *  decisão `QuizOverlayStatus` → texto vive desde a extração state/view. */
+const MODEL_SRC = src('src/components/quiz/quizChatCardState.ts');
 const CONTENT_SRC = src('src/components/quiz/quizOverlayContent.ts');
 const BRIDGE_SRC = src('src/components/quiz/quizOverlayBridge.ts');
 const VIEW_SRC = src('src/views/LessonView/LessonView.tsx');
+/** A LessonView foi dividida em blocos (views/LessonView/blocks/**) — o agru-
+ *  pamento do ChatBubble (`previous={prev}`) vive hoje no bloco do log. O
+ *  recorte de "view" desta guarda é a VIEW + os blocos dela. */
+const CHAT_LOG_SRC = src('src/views/LessonView/blocks/LessonChatLog.tsx');
 const SIBLING_SRC = src('src/components/challenge/ChallengeGenerateModal.tsx');
+/** O SHELL do overlay/modal (auditoria §6): é nele que a geometria (fixed +
+ *  scrim + blur + centrado seguro), o `role="dialog"` e o laço de foco moram
+ *  DESDE a consolidação DRY — os irmãos só o montam e entregam o contrato de
+ *  uso (nome acessível, dispensa, âncora). */
+const PRIMITIVE_SRC = src('src/components/ui/ModalScrim.tsx');
+const PRIMITIVE_STATE_SRC = src('src/components/ui/ModalScrim.state.ts');
+/** O adapter React do laço de foco do design system (auditoria §7): é nele
+ *  que a entrada de foco, o Esc e a recusa do `<body>` como abridor moram
+ *  AGORA (o exemplar era a cópia deste host — ver `lib/focusTrap`). */
+const FOCUS_TRAP_SRC = src('src/components/ui/useFocusTrap.ts');
 /** O TEMA: é nele que a regra do papel do modal e o token do scrim moram
  *  agora, e é contra ele que se prova que o host não tem uma cópia. */
 const THEME_SRC = codeOf(src('src/theme.ts'));
@@ -83,7 +127,13 @@ const THEME_SRC = codeOf(src('src/theme.ts'));
 const APP = codeOf(APP_SRC);
 const HOST = codeOf(HOST_SRC);
 const CHAT_CARD = codeOf(CHAT_CARD_SRC);
+const MODEL = codeOf(MODEL_SRC);
 const VIEW = codeOf(VIEW_SRC);
+const VIEW_ALL = codeOf(VIEW_SRC + CHAT_LOG_SRC);
+const SIBLING = codeOf(SIBLING_SRC);
+const FOCUS_TRAP = codeOf(FOCUS_TRAP_SRC);
+const PRIMITIVE = codeOf(PRIMITIVE_SRC);
+const PRIMITIVE_STATE = codeOf(PRIMITIVE_STATE_SRC);
 
 describe('1. o overlay do quiz é montado NO SHELL, como o modal irmão', () => {
   it('App.tsx importa o host de components/quiz', () => {
@@ -123,8 +173,23 @@ describe('2 e 3. o host lê o store e anima a saída', () => {
     assert.ok(HOST.includes('peekQuizOverlayContent,'));
   });
 
-  it('o host NUNCA retorna null: o AnimatePresence envolve a condicional', () => {
-    assert.ok(HOST.includes('<AnimatePresence>'), 'o retorno é sempre um AnimatePresence');
+  it('o host NUNCA retorna null: o exit anima porque o AnimatePresence é do primitivo', () => {
+    // ENRAIZAMENTO NOVO (consolidação DRY, §6): a casca — e portanto o
+    // `AnimatePresence` com a condicional DENTRO — vive no `ModalScrim`. O que
+    // este teste sempre travou continua de pé: o fechado NÃO pode virar
+    // `return null` do componente (mataria o exit) e a condicional tem de
+    // estar dentro do `AnimatePresence` (agora: o `open` do primitivo).
+    assert.ok(
+      PRIMITIVE.includes('<AnimatePresence>'),
+      'o retorno é sempre um AnimatePresence — no shell comum dos dois modais',
+    );
+    const inicio = PRIMITIVE.indexOf('<AnimatePresence>');
+    const cond = PRIMITIVE.indexOf('? (', inicio);
+    assert.ok(inicio >= 0 && cond > inicio, 'a condicional vive dentro do AnimatePresence');
+    assert.ok(
+      HOST.includes('open={showing && content !== null}'),
+      'e o host entrega essa condicional ao primitivo por `open`',
+    );
     // O RECORTE É O COMPONENTE, não o arquivo. Desde a ONDA12 o módulo também
     // exporta a função pura `focusReturnTarget`, e ela devolve `null` quando
     // não há a quem devolver o foco — o que é a resposta CERTA dela. O que não
@@ -135,29 +200,62 @@ describe('2 e 3. o host lê o store e anima a saída', () => {
       !/return\s+null\s*;/.test(componente),
       'com return null o exit do "minimizar" não animaria (o conserto BAIXO-1 do irmão)',
     );
-    // A condicional tem de estar DENTRO do AnimatePresence.
-    const inicio = HOST.indexOf('<AnimatePresence>');
-    const cond = HOST.indexOf('? (', inicio);
-    assert.ok(inicio >= 0 && cond > inicio, 'a condicional vive dentro do AnimatePresence');
   });
 
   it('prefers-reduced-motion desliga o overshoot (§8.1)', () => {
-    assert.ok(HOST.includes('useReducedMotion()'), 'o host precisa consultar a preferência');
-    assert.ok(HOST.includes('REDUCED_VARIANTS'), 'com movimento reduzido a entrada vira fade puro');
+    // Onde a animação ficou: o cartão é animado pelo `ModalScrim`, então é
+    // lá que a preferência é consultada e lá que o fade puro entra (§13 —
+    // `reducedFadeVariants`, o token que unificou as duas cópias).
+    assert.ok(
+      PRIMITIVE.includes('useReducedMotion()'),
+      'o primitivo (quem anima o cartão) precisa consultar a preferência',
+    );
+    assert.ok(
+      PRIMITIVE_STATE.includes('reducedFadeVariants'),
+      'com movimento reduzido a entrada vira fade puro (token do design system)',
+    );
+    assert.ok(
+      SIBLING.includes('useReducedMotion()'),
+      'e o irmão ChallengeGenerateModal consulta a MESMA preferência (pulso, check e glow)',
+    );
   });
 
-  it('o diálogo é anunciado como diálogo modal e recebe foco', () => {
-    assert.ok(HOST.includes('role="dialog"'));
-    assert.ok(HOST.includes('aria-modal="true"'));
-    assert.ok(HOST.includes('aria-label={t(\'translation:lesson.quizOverlayAria\')}'));
-    assert.ok(HOST.includes('cardRef.current?.focus()'), 'o teclado entra no diálogo ao abrir');
+  it('o diálogo é anunciado como diálogo modal e recebe foco (contrato de uso)', () => {
+    // ENRAIZAMENTO NOVO: `role="dialog"`/`aria-modal`/`aria-label` são do
+    // PRIMITIVO (provados no render dele, tests/uiPrimitivesRender.test.ts);
+    // o que o chamador deve é cumprir o contrato de uso — nome acessível
+    // TRADUZIDO, dispensa e âncora. A semântica é a mesma de sempre.
+    assert.ok(PRIMITIVE.includes('role="dialog"'));
+    assert.ok(PRIMITIVE.includes('aria-modal="true"'));
+    assert.ok(PRIMITIVE.includes('aria-label={ariaLabel}'), 'o nome acessível vem do chamador');
+    assert.ok(
+      HOST.includes('ariaLabel={t(\'translation:lesson.quizOverlayAria\')}'),
+      'e o host passa o SEU nome acessível, traduzido (nada de rótulo em linha no primitivo)',
+    );
+    // O teclado ENTRA no diálogo ao abrir: a entrada de foco é a do laço do
+    // design system (`useFocusTrap` foca o painel `tabIndex={-1}` no ativar) —
+    // ligado pelo primitivo ao cartão que ele próprio desenha.
+    assert.ok(
+      PRIMITIVE.includes('useFocusTrap({ containerRef: cardRef, active: open'),
+      'o foco entra no diálogo ao abrir (o useFocusTrap foca o painel)',
+    );
+    assert.ok(
+      FOCUS_TRAP.includes('containerRef.current?.focus()'),
+      'e o adapter do design system é quem move o foco para o painel',
+    );
   });
 });
 
 describe('4. as saídas MINIMIZAM — nenhuma delas fecha o ciclo', () => {
   it('Esc, backdrop e botão chamam o mesmo minimize', () => {
-    assert.match(HOST, /e\.key === 'Escape'\s*\)\s*minimize\(\)/, 'Esc minimiza');
-    assert.ok(HOST.includes('onClick={minimize}'), 'backdrop e botão do cabeçalho minimizam');
+    // Esc E o clique no backdrop são DISPENSA, e a dispensa do diálogo é o
+    // `onDismiss` do laço do design system — que este host liga ao `minimize`
+    // (nunca a fechar). O botão do rodapé continua com `onClick={minimize}`.
+    assert.ok(
+      HOST.includes('onDismiss={minimize}'),
+      'Esc e backdrop minimizam (o onDismiss do ModalScrim é o minimize)',
+    );
+    assert.ok(HOST.includes('onClick={minimize}'), 'e o botão do rodapé minimiza');
     assert.ok(HOST.includes('onMinimize()'), 'o minimize delega ao callback publicado pela view');
   });
 
@@ -178,16 +276,43 @@ describe('4. as saídas MINIMIZAM — nenhuma delas fecha o ciclo', () => {
 });
 
 describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado)', () => {
-  it('blur, zIndex e geometria continuam byte a byte os do irmão', () => {
+  it('blur, zIndex e geometria são os DO PRIMITIVO — um desenho, os dois irmãos', () => {
+    // ENRAIZAMENTO NOVO (consolidação DRY, §6): "byte a byte os do irmão" era
+    // uma boa razão para copiar a casca e uma péssima para a manter copiada.
+    // Hoje os dois CHAMAM o `ModalScrim`, então a igualdade é por construção —
+    // não existe segundo lugar onde a geometria esteja escrita para divergir.
     for (const valor of [
-      "backdropFilter: 'blur(6px)'",
-      "WebkitBackdropFilter: 'blur(6px)'",
-      'zIndex: 1300',
       "position: 'fixed'",
-      'inset: 0,',
+      'inset: 0',
+      "alignItems: 'flex-start'",
+      "justifyContent: 'center'",
+      "overflowY: 'auto'",
+      'backdropFilter: blur',
+      'WebkitBackdropFilter: blur',
     ]) {
-      assert.ok(SIBLING_SRC.includes(valor), `o irmão precisa continuar com ${valor}`);
-      assert.ok(HOST_SRC.includes(valor), `o overlay do quiz precisa usar ${valor}`);
+      assert.ok(PRIMITIVE_STATE.includes(valor), `o shell do primitivo precisa de ${valor}`);
+    }
+    assert.ok(
+      PRIMITIVE_STATE.includes('MODAL_SCRIM_BLUR_PX'),
+      'o blur tem um valor NOMEADO — a cópia tinha o literal nos dois lados',
+    );
+    // O zIndex deixou de ser o literal 1300 copiado nos dois lados: é o
+    // TOKEN `Z_INDEX.modal` do design system (auditoria §12) — um valor,
+    // um lugar, e os dois modais obrigatoriamente iguais.
+    assert.ok(
+      PRIMITIVE.includes('zIndex = Z_INDEX.modal'),
+      'a camada por omissão do primitivo é o token do contrato',
+    );
+    for (const [nome, texto] of [
+      ['QuizOverlayHost', HOST],
+      ['ChallengeGenerateModal', SIBLING],
+    ] as const) {
+      assert.ok(texto.includes('<ModalScrim'), `${nome} monta o shell comum (a casca não é dele)`);
+      assert.ok(
+        texto.includes('zIndex={Z_INDEX.modal}'),
+        `${nome} mantém a camada do modal pelo token — um valor, um lugar`,
+      );
+      assert.ok(!texto.includes('backdropFilter'), `${nome} não tem cópia do blur do scrim`);
     }
   });
 
@@ -210,8 +335,8 @@ describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado
    * ──────────────────────────────────────────────────────────────────────── */
   it('o scrim é o TOKEN do tema (palette.scrim), não um valor copiado', () => {
     assert.ok(
-      HOST.includes('theme.vars.palette.scrim'),
-      'o scrim é lido do tema — o mesmo token que o MuiBackdrop aplica',
+      PRIMITIVE.includes('theme.vars.palette.scrim'),
+      'o scrim é lido do tema NO PRIMITIVO — o mesmo token que o MuiBackdrop aplica',
     );
     assert.ok(
       !HOST.includes('rgba(8, 10, 20, 0.66)'),
@@ -230,20 +355,23 @@ describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado
   /* O IRMÃO fecha o ciclo: o ChallengeGenerateModal era a FONTE da cópia (o
    * quiz herdou dele o `rgba(8, 10, 20, 0.66)`). Enquanto ele ficasse no
    * literal azulado, "os quatro scrims são um só" seria falso — e o cabeçalho
-   * do tema afirma exatamente isso. Um teste que só olhasse o host deixaria a
-   * afirmação do tema sem prova. */
-  it('o irmão (ChallengeGenerateModal) lê o MESMO token — a cópia acabou nos dois lados', () => {
+   * do tema afirma exatamente isso. Hoje a prova é mais forte ainda: os dois
+   * montam o MESMO shell, que é quem lê o token. */
+  it('o irmão (ChallengeGenerateModal) monta o MESMO shell — a cópia acabou nos dois lados', () => {
     // `codeOf` porque o COMENTÁRIO daquele arquivo cita o literal antigo de
     // propósito (contar o defeito é o estilo desta base); o que não pode
     // sobreviver é o literal no CÓDIGO.
-    const irmao = codeOf(SIBLING_SRC);
     assert.ok(
-      irmao.includes('theme.vars.palette.scrim'),
-      'o desafio também consome palette.scrim',
+      SIBLING.includes('<ModalScrim'),
+      'o desafio também consome o primitivo — o scrim vem do token, não de uma cópia',
     );
     assert.ok(
-      !irmao.includes('rgba(8, 10, 20, 0.66)'),
+      !SIBLING.includes('rgba(8, 10, 20, 0.66)'),
       'a última cor crua de modal da base saiu',
+    );
+    assert.ok(
+      !SIBLING.includes('theme.vars.palette.scrim'),
+      'e o desafio nem sequer lê o scrim: quem pinta o fundo é o primitivo',
     );
   });
 
@@ -278,15 +406,17 @@ describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado
     // certo — e era exatamente a forma de erro que a onda estava consertando,
     // porque foi reescrever à mão que deixou este modal no nível 3 por onze
     // ondas sem que nada acusasse. O tema publicou `modalSurfaceStyles()` e o
-    // `MuiDialog` a consome; a asserção agora exige a CHAMADA, não o desenho:
-    // enquanto ela estiver de pé, o quiz e o Dialog não podem divergir, porque
-    // não há dois lugares onde o degrau esteja escrito.
+    // `MuiDialog` a consome; a asserção exige a CHAMADA, e ela vive hoje no
+    // `ModalScrim` (a superfície base do cartão é a REGRA DO MODAL — o chrome
+    // de cada modal compõe por cima, em `cardSx`): enquanto ela estiver de pé,
+    // quiz, geração e Dialog não podem divergir, porque não há dois lugares
+    // onde o degrau esteja escrito.
     assert.ok(
-      HOST.includes('modalSurfaceStyles'),
-      'o cartão chama a função do tema — a mesma do MuiDialog',
+      PRIMITIVE.includes('modalSurfaceStyles'),
+      'o cartão do primitivo chama a função do tema — a mesma do MuiDialog',
     );
     assert.ok(
-      /import \{ modalSurfaceStyles \} from '\.\.\/\.\.\/theme'/.test(HOST),
+      /import \{ modalSurfaceStyles \} from '\.\.\/\.\.\/theme'/.test(PRIMITIVE),
       'e a importa do tema, em vez de manter uma cópia local',
     );
     // A prova de que a função é MESMO a do Dialog, e não uma homônima: o tema
@@ -297,23 +427,26 @@ describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado
       'o MuiDialog do tema aplica a MESMA função',
     );
     // Os níveis continuam cobrados, mas agora NO TEMA, que é onde passaram a
-    // morar. `surface.level3` segue proibido no host: era o degrau fixo nos
-    // dois esquemas, o defeito original.
+    // morar. `surface.level3` segue proibido nos dois irmãos: era o degrau
+    // fixo nos dois esquemas, o defeito original.
     assert.ok(
       /modalSurfaceStyles[\s\S]{0,400}surface\.level1[\s\S]{0,200}applyStyles\('dark'[\s\S]{0,200}surface\.level4/.test(
         THEME_SRC,
       ),
       'a função dá nível 1 no claro e nível 4 no escuro, com applyStyles por último',
     );
-    assert.ok(
-      !HOST.includes('surface.level3'),
-      'o degrau fixo nos dois esquemas era exatamente o defeito',
-    );
+    for (const [nome, texto] of [
+      ['QuizOverlayHost', HOST],
+      ['ChallengeGenerateModal', SIBLING],
+    ] as const) {
+      assert.ok(!texto.includes('surface.level3'), `${nome}: o degrau fixo nos dois esquemas era o defeito`);
+      assert.ok(!texto.includes('modalSurfaceStyles'), `${nome} não reescreve a regra — ele a herda do primitivo`);
+    }
     assert.ok(
       HOST.includes('color-mix(in srgb, ${black} 45%, transparent)'),
-      'profundidade por preto diluído (color-mix, nunca alpha()) em vez de halo colorido',
+      'profundidade por preto diluído (color-mix, nunca alpha()) em vez de halo colorido — o CHROME do cartão continua sendo do chamador',
     );
-    assert.ok(HOST.includes('SHAPE.md'), 'o raio ~16px vem do token, não de um número solto');
+    assert.ok(PRIMITIVE.includes('SHAPE.md'), 'o raio do cartão vem do token, não de um número solto');
     assert.ok(HOST.includes('SHAPE.pill'), 'as alternativas são pílulas (raio stadium)');
   });
 
@@ -551,8 +684,8 @@ describe('7.5. a janela do veredito: ver se acertou antes de sumir', () => {
     );
     // A espera não mente: o card diz 'aguardando-vez' enquanto o turno roda.
     assert.ok(
-      VIEW.includes("return 'aguardando-vez'") && CHAT_CARD.includes("status === 'aguardando-vez'"),
-      'o status honesto de espera é ligado ao QuizChatCard',
+      VIEW.includes("return 'aguardando-vez'") && MODEL.includes("status === 'aguardando-vez'"),
+      'o status honesto de espera é ligado ao QuizChatCard (via o modelo puro do card)',
     );
     // E a chave nova existe nos dois idiomas (o par de locales é contrato).
     assert.ok(
@@ -571,7 +704,7 @@ describe('7.5. a janela do veredito: ver se acertou antes de sumir', () => {
 describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
   it('previous={prev} chegou ao ChatBubble', () => {
     assert.ok(
-      VIEW.includes('previous={prev}'),
+      VIEW_ALL.includes('previous={prev}'),
       'sem o prop, groupsWithPrevious devolve false sempre e o agrupamento fica inerte',
     );
   });
@@ -656,7 +789,7 @@ describe('10. as chaves i18n citadas existem em pt-BR e em en', () => {
 
   /** Toda chave `lesson.<algo>` citada nos arquivos desta onda. */
   const citadas = new Set<string>();
-  for (const texto of [HOST_SRC, CHAT_CARD_SRC, VIEW_SRC]) {
+  for (const texto of [HOST_SRC, CHAT_CARD_SRC, MODEL_SRC, VIEW_SRC]) {
     for (const m of texto.matchAll(/'(?:translation:)?lesson\.([A-Za-z0-9_]+)'/g)) {
       citadas.add(m[1]);
     }
@@ -835,27 +968,51 @@ describe('12. teclado: devolução de foco e paradas de Tab', () => {
   // O que este teste passa a travar é a INVERSÃO que consertou isso — as duas
   // propriedades estruturais que a substring não distinguia:
   //   1. a âncora é resolvida no FECHAMENTO, no documento vivo (`querySelector`
-  //      dentro do ramo `!showing`), não gravada como nó na abertura;
+  //      dentro do getter `getReturnAnchor`, que o `useFocusTrap` só invoca ao
+  //      fechar), não gravada como nó na abertura;
   //   2. o `<body>` é recusado explicitamente como abridor.
   // A prova de que o foco CHEGA ao card é e2e (tests/e2e/e2e-quiz.spec.ts) —
   // aqui não há DOM, e fingir que há foi exatamente o erro anterior.
   it('a devolução de foco resolve a âncora no FECHAMENTO, e recusa o <body>', () => {
-    // O ramo de saída do efeito: entre `if (!showing) {` e o `return;` dele.
-    const saida = /if \(!showing\) \{([\s\S]*?)\n      return;/.exec(HOST);
-    assert.ok(saida !== null, 'o efeito precisa ter o ramo de saída (!showing)');
+    // O getter da âncora: `getReturnAnchor` só é invocado no FECHAMENTO (o
+    // cleanup do `useFocusTrap` chama-o quando a flag `active` cai).
+    const saida = /const getReturnAnchor = useCallback\(\(\): HTMLElement \| null => \{([\s\S]*?)\n  \}, \[\]\);/.exec(HOST);
+    assert.ok(saida !== null, 'a âncora é um getter — resolvida no fechamento, não gravada na abertura');
     assert.match(
       saida[1]!,
       /document\.querySelector/,
       'a âncora tem de ser procurada no documento VIVO no fechamento: ' +
         'gravada na abertura ela ainda não existe (o card só renasce ao minimizar)',
     );
-    assert.match(saida[1]!, /focusReturnTarget\(/, 'a escolha do alvo é a função pura');
-
     assert.match(
-      HOST,
+      saida[1]!,
+      /quizCardAnchorSelector\(/,
+      'a âncora é ENDEREÇADA pela chave do quiz (com dois cards, o genérico erraria)',
+    );
+    // ENRAIZAMENTO NOVO (consolidação DRY, §6/§7): o `useFocusTrap` vive no
+    // `ModalScrim` (que desenha o painel que recebe o foco), mas o CONTRATO DE
+    // USO continua do chamador — a dispensa (`onDismiss` = minimize) e a
+    // âncora (`getReturnAnchor`) têm de chegar ao laço. A intenção é a mesma
+    // de sempre: Escape dispensa e o foco VOLTA para o card da conversa.
+    assert.ok(
+      HOST.includes('onDismiss={minimize}') && HOST.includes('getReturnAnchor={getReturnAnchor}'),
+      'o host entrega ao primitivo a dispensa (Esc/backdrop) e a âncora de devolução',
+    );
+    assert.ok(
+      PRIMITIVE.includes('useFocusTrap({ containerRef: cardRef, active: open, onDismiss, getReturnAnchor })'),
+      'e o primitivo liga as duas ao laço (focusReturnTarget, via useFocusTrap)',
+    );
+    // A recusa do `<body>` como abridor mudou de dono com a consolidação do
+    // laço (auditoria §7): a guarda segue a regra até onde ela vive agora.
+    assert.match(
+      FOCUS_TRAP,
       /!==\s*document\.body/,
       'o <body> precisa ser recusado como abridor: ele é instanceof HTMLElement e ' +
         'sempre isConnected, então passava como alvo válido para um focus() no-op',
+    );
+    assert.ok(
+      FOCUS_TRAP.includes('focusReturnTarget('),
+      'a devolução usa a função pura de três pernas (abridor, âncora, ninguém)',
     );
     assert.ok(
       !/if \(opener !== null && opener\.isConnected\) opener\.focus\(\);/.test(HOST),

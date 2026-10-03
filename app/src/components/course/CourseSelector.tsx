@@ -16,28 +16,34 @@
  * perdido; o alvo `course-continue` é NOVO (ainda não catalogado).
  */
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
 import PlayArrowRounded from '@mui/icons-material/PlayArrowRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import type { CourseItem } from '../../lib/lessonSelection';
-import { effectsTransition, FOCUS_RING, focusRingStyles, spatialTransition } from '../../theme';
+import { LAYOUT } from '../../lib/designTokens';
+import { effectsTransition, focusRingStyles } from '../../theme';
+import { ActionButton } from '../ui/ActionButton';
+import { EmptyState } from '../ui/EmptyState';
+import { courseActionKind, courseProgressText } from './courseSelectionState';
 
 export interface CourseSelectorProps {
   /** Lista de cursos pronta para render (saída de `buildCourseList`). */
   courses: CourseItem[];
   /** Navega para a aula do assunto (`slug`). */
   onContinue: (slug: string) => void;
-  /** Rótulo de seção (opcional; default "Escolha um assunto"). */
+  /** Rótulo de seção (opcional; default: `course.sectionLabel`, com o texto legado por omissão). */
   sectionLabel?: string;
-  /** Mensagem quando não há cursos (opcional). */
+  /** Mensagem quando não há cursos (opcional; default: `course.empty`, com o texto legado por omissão). */
   emptyLabel?: string;
 }
 
+/** Defaults LEGADOS em pt-BR — hoje o defaultValue das chaves `course.*`. */
 const EMPTY = 'Nenhum assunto disponível ainda.';
 const SECTION_LABEL = 'Escolha um assunto';
 
@@ -49,32 +55,39 @@ function continueIcon(isNew: boolean): ReactElement {
 export default function CourseSelector({
   courses,
   onContinue,
-  sectionLabel = SECTION_LABEL,
-  emptyLabel = EMPTY,
+  sectionLabel,
+  emptyLabel,
 }: CourseSelectorProps): ReactElement {
   const list = courses ?? [];
+  // i18n da casa: os defaults são as chaves `course.sectionLabel`/`course.empty`
+  // (chave tipada `translation:…`, strictKeyChecks) com o texto legado em pt-BR
+  // como defaultValue — "mantém os defaults, aponta-os para as chaves".
+  const { t } = useTranslation();
+  const label = sectionLabel ?? t('translation:course.sectionLabel', SECTION_LABEL);
+  const empty = emptyLabel ?? t('translation:course.empty', EMPTY);
+  // Tema no corpo (view pura — `useTheme` é permitido): o `sx` do `ActionButton`
+  // é um objeto puro (contrato do primitivo) e as transições/anel de foco vêm
+  // dos helpers do tema, sem hex nem valores novos.
+  const theme = useTheme();
 
   if (list.length === 0) {
-    return (
-      <Box component="section" sx={{ maxWidth: 680, mx: 'auto' }}>
-        <Typography variant="h6" component="h2" gutterBottom>
-          {sectionLabel}
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {emptyLabel}
-        </Typography>
-      </Box>
-    );
+    // Empty-state CANÓNICO do design system (`EmptyState` — PRIMITIVES.md §4):
+    // título + descrição centrados, sem bloco de layout copiado. A largura é a
+    // mesma coluna do seletor (`LAYOUT.chooserColumnPx`).
+    return <EmptyState title={label} description={empty} width={LAYOUT.chooserColumnPx} />;
   }
 
   return (
-    <Box component="section" sx={{ maxWidth: 680, mx: 'auto' }}>
+    <Box component="section" sx={{ maxWidth: LAYOUT.chooserColumnPx, mx: 'auto' }}>
       <Typography variant="h6" component="h2" gutterBottom>
-        {sectionLabel}
+        {label}
       </Typography>
       <Stack spacing={1}>
         {list.map((course) => {
-          const isFresh = course.continueLabel === 'Gerar nova aula';
+          // Estado de SELEÇÃO/AÇÃO puro (courseSelectionState.ts): qual a
+          // ação do curso — decidido no módulo testado, nunca por comparação
+          // de texto de rótulo dentro da view.
+          const isNew = courseActionKind(course) === 'generate';
           return (
             <Card
               key={course.slug}
@@ -95,31 +108,30 @@ export default function CourseSelector({
                       {course.label}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {course.progressLabel ? `Progresso: ${course.progressLabel}` : 'Ainda sem aulas'}
+                      {courseProgressText(course.progressLabel)}
                     </Typography>
                   </Box>
-                  <Button
+                  <ActionButton
                     variant="contained"
-                    startIcon={continueIcon(isFresh)}
+                    startIcon={continueIcon(isNew)}
                     onClick={() => onContinue(course.slug)}
                     data-onboarding-target="course-continue"
-                    sx={(theme) => ({
+                    sx={{
                       // Mobile: largura cheia; desktop: conteúdo próprio.
                       alignSelf: { xs: 'stretch', sm: 'flex-start' },
                       minWidth: { xs: '100%', sm: 180 },
-                      whiteSpace: 'nowrap',
-                      transition: [
-                        effectsTransition(theme, ['background-color', 'color'], 'fast'),
-                        spatialTransition(theme, ['transform'], 'fast'),
-                      ].join(', '),
-                      '&:active': { transform: 'scale(0.98)' },
+                      // DRY (auditoria de layout §2): o press-feedback
+                      // (`&:active` scale 0.98 + transition espacial +
+                      // guarda de prefers-reduced-motion) vive na casca
+                      // `Pressable` do `ActionButton` — bloco aposentado.
+                      // `actionButtonSx` já traz o piso de toque + `nowrap`.
+                      transition: effectsTransition(theme, ['background-color', 'color'], 'fast'),
                       '&.Mui-focusVisible': focusRingStyles(theme),
                       '&:focus-visible': focusRingStyles(theme),
-                      '@media (prefers-reduced-motion: reduce)': { '&:active': { transform: 'none' } },
-                    })}
+                    }}
                   >
                     {course.continueLabel}
-                  </Button>
+                  </ActionButton>
                 </Stack>
               </CardContent>
             </Card>

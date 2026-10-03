@@ -1,0 +1,81 @@
+================================================================================
+PROMPT-TELA-INICIAL — Study Method × Estilo Nintendo Switch
+Este prompt gera a IMAGEM DE REFERÊNCIA DE ESTILO para todas as outras telas.
+Guarde o resultado: ele é a "segunda imagem" que acompanha os prompts das
+pastas em ~/Documents/study-method-prompts-switch/.
+================================================================================
+
+Você receberá UMA imagem anexada: o PRINT ORIGINAL da tela inicial (Home) do
+aplicativo de desktop "Study Method" — um tutor de estudo de programação com IA,
+em português, tema claro, janela 16:10.
+
+SUA MISSÃO: repensar este software por completo e recriar esta mesma tela —
+com TODOS os elementos respeitando a interface fornecida (mesma informação,
+mesma arquitetura, mesmos textos em pt-BR) — vestida com a linguagem visual do
+SISTEMA OPERACIONAL DO NINTENDO SWITCH (menu HOME do console).
+
+O QUE EXISTE NA TELA ORIGINAL (tudo isso precisa continuar existindo):
+1. Rail de navegação vertical à esquerda com 5 destinos: Início (casa), Aula
+   (livro), Trilha (mapa/rota), Jogos (gamepad), Configurações (engrenagem) —
+   mais, no rodapé do rail: seletor de tema (Claro / Sistema / Escuro),
+   seletor de idioma (bandeira do Brasil) e botão de Ajuda (?).
+2. Painel lateral com o título do produto "Study Method: Tutor" e um card de
+   estado da sessão: "ASSUNTO — Nenhum assunto ainda" e "FASE — Pronto para
+   começar".
+3. Área principal com título de boas-vindas "Aprenda programação e matemática
+   com trilhas guiadas por IA" e o subtítulo "Escolha uma trilha pronta (C,
+   Python, Rust...) e estude aula a aula com o tutor: teoria em seções, quiz e
+   desafios validados por testes, com feedback do avaliador. O progresso fica
+   guardado neste computador."
+4. Card de status "Pronto para começar" com os chips "OpenRouter: configurada"
+   e "Brave Search: configurada".
+5. Botão principal "Escolher uma trilha".
+6. Seção "Trilhas — Cursos prontos, do zero ao profissional" com o card da
+   trilha "Node.js do Zero", sua descrição e o contador "0 de 2 aulas
+   concluídas".
+
+COMO DEIXAR O LAYOUT MELHOR E MAIS CHAMATIVO (aplique na recriação):
+- Transforme a lista de trilhas num CARROSSEL HORIZONTAL DE TILES GRANDES, como
+  a fileira de jogos do menu do Switch: cada trilha vira uma "capa" colorida com
+  arte/ícone temático, nome em bold e progresso como selo/estrelas; o tile em
+  foco ganha borda branca luminosa, leve zoom e sombra suave.
+- Vire "console de sala": barra de status no topo (avatar circular do usuário à
+  esquerda; notificações, bateria e hora à direita) e fila de botões circulares
+  do sistema no rodapé (notícias, loja de trilhas, conquistas, controle,
+  configurações, dormir) — reutilizando as funções reais do app (tema, idioma,
+  ajuda, configurações).
+- O card de status das chaves vire um painel HUD discreto (tipo overlay do
+  Switch) com dois "slots" iluminados em verde (OpenRouter e Brave Search).
+- O título de boas-vindas ganhe escala de pôster, centralizado, com o subtítulo
+  em caixa-baixa e respiro generoso.
+- O card de estado ASSUNTO/FASE vire um "cartão de perfil/jogador" flutuante no
+  rail lateral, com avatar e nível.
+- Hierarquia por escala e espaço, nunca por linhas/divisórias; sombras suaves e
+  difusas; cantos generosos.
+
+ESTILO DESEJADO — INTERFACE DO SISTEMA OPERACIONAL DO NINTENDO SWITCH (HOME):
+- Tema escuro neutro "Basic Black": fundo grafite uniforme (#2D2D2D), liso, sem
+  ruído; profundidade criada por cards levemente mais claros (#3A3A3A) e
+  sombras macias.
+- Tipografia sans-serif limpa e levemente arredondada (estilo "Nintendo
+  Standard"): títulos bold, texto em branco/cinza-claro (#E6E6E6), poucos
+  tamanhos, altíssima legibilidade (UI de sala de estar, legível à distância).
+- Paleta: neutros escuros + branco; acentos vívidos SÓ em estado/ação — vermelho
+  Nintendo (#E60012) para marca/destaque, azul de seleção, verde de sucesso,
+  dourado para conquistas.
+- Elementos focados ganham glow branco suave e leve escala; cantos arredondados
+  (~12–20 px); espaçamento generoso; superfícies planas (flat), sem
+  skeuomorfismo, sem fotos, sem texturas ruidosas.
+- Layout de "console": barra de status superior, carrossel central de tiles,
+  fileira de botões circulares do sistema no rodapé.
+
+RESTRIÇÕES:
+- Mockup de INTERFACE DE APLICATIVO (flat, vetorial), não uma foto de tela de
+  TV nem de console físico; a imagem deve parecer um screenshot do próprio
+  sistema redesenhado.
+- Proporção 16:10, alta resolução (3200×2000 ou superior).
+- TODOS os textos da tela original em pt-BR, legíveis e escritos CORRETAMENTE —
+  nada de texto inventado, nada de "lorem ipsum", nada de letras embaralhadas.
+- Mantenha a arquitetura de informação: rail de 5 destinos + painel de estado +
+  hero + status das chaves + catálogo de trilhas.
+- Sem marcas d'água, sem logos de terceiros, sem texto em inglês.

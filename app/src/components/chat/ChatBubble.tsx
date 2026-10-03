@@ -104,6 +104,8 @@ import type { ReactElement } from 'react';
 import { formatChatTime, type TutorChatMessage } from '../../lib/trackLessonState';
 import { chatBubbleTone, groupsWithPrevious, isUserTone } from '../../lib/chatBubbleStyle';
 import { springs } from '../../lib/animationTokens';
+import { touchTargetSx } from '../../lib/layoutSx';
+import { Pressable } from '../ui/Pressable';
 import { TypewriterText } from './TypewriterText';
 import { SegmentedMarkdown } from './SegmentedMarkdown';
 import { ChatAvatar, bubbleRestShadow, bubbleShellStyle } from './chatSurfaces';
@@ -305,17 +307,13 @@ export function ChatBubble({
                 )}
               </TypewriterText>
               {isErrorReview ? (
-                <motion.span
-                  whileTap={wantsMotion ? { scale: 0.98 } : undefined}
-                  transition={springs.snappy}
-                  // W9 (auditoria de UX): o motion marca tabIndex=0 em cascas
-                  // com gesto quando o autor não declara um — criava uma parada
-                  // de tab muda antes das ações ("Ver a aula"/"Refazer
-                  // desafio"). A casca nunca recebe foco: quem recebe são os
-                  // botões dentro dela (regra ONDA12, cumprida no composer).
-                  tabIndex={-1}
-                  style={{ display: 'inline-block' }}
-                >
+                // Casca de press-feedback (auditoria §2): o `Pressable` do
+                // design system (`components/ui/Pressable.tsx`) — a única
+                // diferença é a origem. W9 (auditoria de UX): a casca NUNCA
+                // recebe foco (`tabIndex=-1` é contrato do primitivo — o fix
+                // do `tabIndex=0` que o motion injeta); quem recebe são os
+                // botões dentro dela (regra ONDA12, cumprida no composer).
+                <Pressable>
                   {/* ONDA2 (falha-ver-aula): o review de erro tem UMA ação de
                       SAÍDA — "Ver a aula" quando a falha veio do desafio
                       tentado antes da aula (1ª falha; o clique limpa o chat e
@@ -338,8 +336,12 @@ export function ChatBubble({
                         startIcon={<ReplayIcon />}
                         // "quebra, nunca recorta": rótulo longo quebra linha em
                         // contêiner estreito em vez de ser cortado; alvo de
-                        // toque no piso de 44px (TOUCH_TARGET_PX).
-                        sx={{ minHeight: 44, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                        // toque no piso de 44px (`touchTargetSx` do design
+                        // system). Os literais `whiteSpace`/`overflowWrap` ficam
+                        // aqui por contrato de fonte de
+                        // tests/challengeRetry.test.ts — o composto completo é
+                        // `wrappingActionAnywhereSx` (lib/layoutSx.ts).
+                        sx={{ ...touchTargetSx, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
                       >
                         {t('translation:challenge.retryButton')}
                       </Button>
@@ -367,7 +369,7 @@ export function ChatBubble({
                       </Button>
                     )}
                   </Box>
-                </motion.span>
+                </Pressable>
               ) : null}
             </>
           )}

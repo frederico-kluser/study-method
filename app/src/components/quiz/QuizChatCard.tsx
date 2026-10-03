@@ -79,8 +79,10 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { motion } from 'motion/react';
 import { useMemo, type ReactElement } from 'react';
 
-import { springs } from '../../lib/animationTokens';
+import { touchTargetSx } from '../../lib/layoutSx';
+import { Pressable } from '../ui/Pressable';
 import { QUIZ_CARD_ANCHOR_ATTR, type QuizOverlayStatus } from './quizOverlayContent';
+import { quizChatActions, quizChatStatusKey } from './quizChatCardState';
 
 export interface QuizChatCardProps {
   /**
@@ -130,30 +132,20 @@ export function QuizChatCard({
     [t],
   );
 
-  // A linha de estado: o que está acontecendo com ESTE quiz, agora.
-  // ONDA16-CICLO-CARGA: o estado 'aguardando-vez' é novo e HONESTO — o ciclo
-  // quer rodar, mas um turno do tutor está em voo e o motor espera (a fila
-  // FIFO do LLM local estourava o timeout do renderer). Dizer "explicando"/
-  // "gerando" ali seria anunciar um trabalho que ainda nem foi pedido.
-  const statusText = onScreen
-    ? t('translation:lesson.quizChatOnScreen')
-    : status === 'aguardando-vez'
-      ? t('translation:lesson.quizChatQueued')
-      : status === 'explicando'
-      ? t('translation:lesson.quizChatExplaining')
-      : status === 'gerando'
-        ? t('translation:lesson.quizChatGenerating')
-        : status === 'indisponivel'
-          ? t('translation:lesson.quizChatUnavailable')
-          : status === 'dominado'
-            ? t('translation:lesson.quizChatMastered')
-            : t('translation:lesson.quizChatWaiting');
+  // A linha de estado: o que está acontecendo com ESTE quiz, agora. A ESCOLHA
+  // do texto é do modelo PURO (`quizChatCardState.quizChatStatusKey`) — aqui
+  // só se traduz (pelo `tI` da casa: a chave é computada, não literal).
+  // ONDA16-CICLO-CARGA: o estado 'aguardando-vez' é HONESTO — o
+  // ciclo quer rodar, mas um turno do tutor está em voo e o motor espera (a
+  // fila FIFO do LLM local estourava o timeout do renderer). Dizer
+  // "explicando"/"gerando" ali seria anunciar um trabalho que ainda nem foi
+  // pedido.
+  const statusText = tI(`translation:${quizChatStatusKey(status, onScreen)}`);
 
-  // O ciclo em ANDAMENTO (explicando/gerando) não tem botão: não há nada que o
-  // clique do aluno adiante, e um botão morto é pior que nenhum botão. Um quiz
-  // DOMINADO também não aparece aqui — a LessonView troca o card compacto pelo
-  // card cheio (com o veredito) assim que a afirmação fecha.
-  const canOpen = !onScreen && status === 'aguardando';
+  // As AÇÕES DE RESPOSTA (o CTA "Responder" e as duas saídas do ciclo
+  // travado) são decididas pelo modelo puro `quizChatActions` — o que o card
+  // desenha vem de lá, o gesto fica aqui.
+  const acoes = quizChatActions({ status, onScreen, onRetry, onReopen });
 
   // ONDA12-FOCO: a ÂNCORA de devolução de foco. O CTA lá embaixo é desmontado
   // enquanto o modal está na tela, então ele não pode ser o alvo do retorno;
@@ -236,19 +228,13 @@ export function QuizChatCard({
         </Stack>
       ) : null}
 
-      {canOpen ? (
+      {acoes.canOpen ? (
         // O CTA. `whileTap`/`whileHover` são nível `spatial` (só transform) —
-        // cor e opacidade nunca entram no overshoot (§5).
-        <motion.span
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.98 }}
-          transition={springs.snappy}
-          // O `motion` marca `tabIndex=0` em quem tem gesto — o que criaria uma
-          // PARADA DE TAB extra na frente do próprio botão. O elemento animado
-          // é uma casca: quem recebe foco é o Button.
-          tabIndex={-1}
-          style={{ display: 'inline-block' }}
-        >
+        // cor e opacidade nunca entram no overshoot (§5). A casca animada é o
+        // PRIMITIVO `Pressable` (auditoria §2): ele traz o gesto, o hover de
+        // lift e o `tabIndex={-1}` obrigatório (o `motion` marca `tabIndex=0`
+        // em quem tem gesto — parada de Tab extra na frente do botão).
+        <Pressable hover>
           <Button
             variant="contained"
             size="large"
@@ -262,18 +248,13 @@ export function QuizChatCard({
           >
             {t('translation:lesson.quizChatAnswer')}
           </Button>
-        </motion.span>
+        </Pressable>
       ) : null}
 
-      {onRetry || onReopen ? (
+      {acoes.showActions ? (
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1, justifyContent: 'center' }}>
-          {onRetry ? (
-            <motion.span
-              whileTap={{ scale: 0.98 }}
-              transition={springs.snappy}
-              tabIndex={-1}
-              style={{ display: 'inline-block' }}
-            >
+          {acoes.showRetry ? (
+            <Pressable>
               {/* W10 (auditoria de UX — Fitts): `size="small"` nasce ~30px de
                   alto; o piso da casa para controlo apontável é 44px. */}
               <Button
@@ -281,11 +262,11 @@ export function QuizChatCard({
                 variant="text"
                 onClick={onRetry}
                 startIcon={<ReplayIcon />}
-                sx={{ minHeight: 44 }}
+                sx={touchTargetSx}
               >
                 {t('translation:lesson.quizChatRetry')}
               </Button>
-            </motion.span>
+            </Pressable>
           ) : null}
           {/* ONDA4-SAÍDA-DO-CICLO: a segunda saída, e a que não depende da
               IA — responder de novo a MESMA pergunta. `outlined` (e não
@@ -293,24 +274,19 @@ export function QuizChatCard({
               gesto ao aluno quando o pedido à IA não tem mais o que
               entregar. A redação é informacional: diz o que o clique faz,
               sem prometer nada e sem cobrar nada (§8 item 3 / §8.2). */}
-          {onReopen ? (
-            <motion.span
-              whileTap={{ scale: 0.98 }}
-              transition={springs.snappy}
-              tabIndex={-1}
-              style={{ display: 'inline-block' }}
-            >
+          {acoes.showReopen ? (
+            <Pressable>
               {/* W10: o mesmo piso de 44px do irmão de cima. */}
               <Button
                 size="small"
                 variant="outlined"
                 onClick={onReopen}
                 startIcon={<RestartAltIcon />}
-                sx={{ minHeight: 44 }}
+                sx={touchTargetSx}
               >
                 {t('translation:lesson.quizChatReopen')}
               </Button>
-            </motion.span>
+            </Pressable>
           ) : null}
         </Stack>
       ) : null}

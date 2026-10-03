@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<!--
+  Propostas — secção "Games" do study-method.
+  ESQUELETO do Plan path (plannotator-visual-explainer): tokens Plannotator +
+  componentes de design-system.md + padrões SVG de svg-patterns.md.
+  Blocos marcados <!-- PREENCHER: ... --> são preenchidos pela síntese da
+  pesquisa profunda (docs/research/2026-10-02-games-de-programacao.md).
+-->
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propostas — Games no study-method</title>
+<style>
+  :root {
+    --background: oklch(0.97 0.005 260);
+    --foreground: oklch(0.18 0.02 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 260);
+    --primary: oklch(0.50 0.25 280);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.50 0.18 180);
+    --secondary-foreground: oklch(1 0 0);
+    --muted: oklch(0.92 0.01 260);
+    --muted-foreground: oklch(0.40 0.02 260);
+    --accent: oklch(0.60 0.22 50);
+    --accent-foreground: oklch(0.18 0.02 260);
+    --destructive: oklch(0.50 0.25 25);
+    --destructive-foreground: oklch(1 0 0);
+    --success: oklch(0.45 0.20 150);
+    --success-foreground: oklch(1 0 0);
+    --warning: oklch(0.55 0.18 85);
+    --warning-foreground: oklch(0.18 0.02 260);
+    --border: oklch(0.88 0.01 260);
+    --input: oklch(0.92 0.01 260);
+    --ring: oklch(0.50 0.25 280);
+    --code-bg: oklch(0.92 0.01 260);
+
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+    --radius: 0.625rem;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--background);
+    color: var(--foreground);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; padding: 64px 24px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+  }
+
+  header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    margin: 8px 0 24px;
+    line-height: 1.2;
+  }
+
+  .prompt-box {
+    background: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+  }
+
+  .prompt-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .prompt-box p { font-size: 0.92rem; color: var(--muted-foreground); line-height: 1.55; }
+
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .stat-card {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    text-align: center;
+    background: var(--card);
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 500;
+    display: block;
+    color: var(--foreground);
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+    display: block;
+  }
+
+  section { margin-top: 64px; }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .section-header h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 500; }
+  h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin: 24px 0 8px; }
+
+  p { max-width: 65ch; font-size: 0.95rem; margin-bottom: 12px; }
+  ul { max-width: 65ch; margin: 0 0 12px 20px; font-size: 0.95rem; }
+
+  .code-panel {
+    background: var(--code-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1.5px solid var(--border);
+  }
+
+  .code-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .code-panel pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--foreground);
+  }
+
+  .code-panel .kw  { color: var(--primary); }
+  .code-panel .fn  { color: var(--accent); }
+  .code-panel .str { color: var(--success); }
+  .code-panel .cm  { color: var(--muted-foreground); font-style: italic; }
+  .code-panel .num { color: var(--warning); }
+
+  .risk-grid {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .risk-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1.5fr;
+    gap: 24px;
+    padding: 16px 24px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .risk-row:last-child { border-bottom: none; }
+  .risk-name { font-weight: 500; }
+  .risk-mitigation { font-size: 0.9rem; color: var(--muted-foreground); }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: calc(var(--radius) - 4px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .badge.high { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); }
+  .badge.med  { background: color-mix(in oklab, var(--warning) 15%, transparent); color: var(--warning); }
+  .badge.low  { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); }
+
+  .callout {
+    border-left: 3px solid var(--primary);
+    padding: 16px 24px;
+    margin: 16px 0;
+    background: var(--card);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+  .callout h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; margin-bottom: 4px; }
+  .callout p { font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.55; }
+
+  .decide-with {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--primary);
+    font-weight: 500;
+    display: block;
+    margin-top: 8px;
+  }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: calc(var(--radius) - 4px);
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  .tag.highlight { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+
+  .diagram-panel {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin: 24px 0;
+    background: var(--card);
+  }
+
+  .diagram-caption {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+    display: block;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+  details {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin: 16px 0;
+  }
+
+  summary {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    padding: 16px 24px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.2s;
+  }
+
+  details[open] summary::before { transform: rotate(90deg); }
+  .details-body { padding: 0 24px 24px; }
+
+  .milestones { display: flex; flex-direction: column; gap: 0; }
+
+  .milestone {
+    display: grid;
+    grid-template-columns: 120px 28px 1fr;
+    gap: 0 18px;
+  }
+
+  .milestone .when {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    padding-top: 4px;
+  }
+
+  .milestone .dot-col { display: flex; flex-direction: column; align-items: center; }
+
+  .milestone .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--card);
+    border: 3px solid var(--primary);
+    flex-shrink: 0;
+  }
+
+  .milestone .dot.done { background: var(--success); border-color: var(--success); }
+  .milestone .line { width: 2px; flex: 1; background: var(--border); margin: 4px 0; }
+  .milestone:last-child .line { display: none; }
+  .milestone .body { padding-bottom: 36px; }
+  .milestone .body h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; margin-bottom: 4px; }
+  .milestone .body p { font-size: 0.88rem; color: var(--muted-foreground); max-width: 620px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══ HEADER ═══ -->
+  <header>
+    <span class="eyebrow">Proposta de produto · study-method · secção Games</span>
+    <h1>Games para aprender a programar: catálogo, jogo infinito, ou híbrido</h1>
+    <div class="prompt-box">
+      <span class="prompt-label">Brief</span>
+      <p>Que formatos de games de programação podem sustentar uma secção "Games" do study-method
+      (multi-linguagem C, Python, Rust…): um catálogo de jogos por linguagem à CodinGame, ou um
+      único jogo de possibilidades infinitas treinável em qualquer linguagem à EXAPUNKS? E que
+      mecânicas concretas têm evidência de eficácia para aprender a programar? Resposta baseada em
+      pesquisa profunda (benchmark de plataformas, jogos de puzzle programável, geração de conteúdo,
+      evidência pedagógica) com propostas mapeadas para a arquitetura existente do app.</p>
+    </div>
+  </header>
+
+  <!-- ═══ SUMMARY STRIP ═══ -->
+  <div class="summary-strip">
+    <div class="stat-card"><span class="stat-value">8</span><span class="stat-label">Plataformas analisadas</span></div>
+    <div class="stat-card"><span class="stat-value">10</span><span class="stat-label">Famílias de mecânica</span></div>
+    <div class="stat-card"><span class="stat-value">3</span><span class="stat-label">Propostas</span></div>
+    <div class="stat-card"><span class="stat-value">118</span><span class="stat-label">Fontes [S#]</span></div>
+  </div>
+
+  <!-- ═══ 01 DECISÃO CENTRAL ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">01</span><h2>Decisão central: catálogo, jogo infinito ou híbrido</h2></div>
+    <div class="callout">
+      <h3>Híbrido com verificação: catálogo curado + motor de variação + veredito por teste</h3>
+      <p>A pesquisa (8 plataformas, 5 famílias de puzzle programável, 5 famílias de conteúdo infinito,
+      meta-análises de eficácia e a perspetiva cética) converge: <strong>nem um catálogo fechado por
+      linguagem, nem um único jogo infinito</strong>. Os formatos que sobrevivem 2023–2026 combinam um
+      catálogo curado com um motor de variação (comunidade, épocas ou IA) atrás de um <em>gate</em> de
+      verificação [S106][S108][S109]. A variação de CONTEXTO infinita existe (mundo procedural,
+      oponentes); a geração de EXERCÍCIOS por IA <em>com</em> verificação iterativa tem evidência
+      recente de qualidade comparável à curada (exames gerados com refinamento em paridade
+      psicométrica; exercícios avaliados como corretos e bem testados) — mas a co-geração de código e
+      testes mascara defeitos (14% vs 25% de deteção) e sem gate a qualidade não é garantida. Ou seja:
+      o "infinito" desbloqueia-se pelo <strong>loop de verificação</strong>, não pela geração em si
+      (verificação adversarial da afirmação A: a versão "geração bloqueada/degrada" foi refutada;
+      mantém-se "gate obrigatório").</p>
+      <span class="decide-with">Decide com: autor do projecto (avançar pelas 3 propostas da secção 04)</span>
+    </div>
+    <div class="two-col">
+      <div>
+        <h3>Catálogo por linguagem (à CodinGame/Exercism)</h3>
+        <ul>
+          <li>Qualidade garantida: cada desafio curado e validado por teste [S5][S7][S106]</li>
+          <li>Custo por linguagem: N suítes por exercício (padrão B) ou contrato único de I/O (padrão A) [S1][S68]</li>
+          <li>Risco: catálogo esgota-se; renovação manual é cara (mas comunidade/épocas resolvem) [S106][S111]</li>
+        </ul>
+      </div>
+      <div>
+        <h3>UM jogo infinito (à EXAPUNKS/Screeps)</h3>
+        <ul>
+          <li>Variedade ilimitada de contexto (oponentes, mundos, inputs) [S16][S94][S18]</li>
+          <li>Engajamento de nicho: só ~2% terminam jogos de dificuldade opressiva [S26]</li>
+          <li>Sem oráculo de correção, "aprender" não é verificável [S16][S65]</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 02 O QUE EXISTE (BENCHMARK) ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">02</span><h2>O que existe hoje: benchmark e famílias de mecânicas</h2></div>
+    <div class="risk-grid">
+      <div class="risk-row"><div class="risk-name">CodinGame</div><div><span class="tag">25+ linguagens · I/O</span></div><div class="risk-mitigation">puzzles + bots multiplayer + Clash of Code; Level/Rank [S1][S3]</div></div>
+      <div class="risk-row"><div class="risk-name">Codewars</div><div><span class="tag">20+ linguagens · kata</span></div><div class="risk-mitigation">autoria comunitária com gate beta + testes escondidos; kyu/honor [S5][S106]</div></div>
+      <div class="risk-row"><div class="risk-name">Exercism</div><div><span class="tag">78 linguagens · tracks</span></div><div class="risk-mitigation">stub + testes idiomáticos por track; análise automática + mentoria [S7][S68]</div></div>
+      <div class="risk-row"><div class="risk-name">Advent of Code</div><div><span class="tag">qualquer linguagem</span></div><div class="risk-mitigation">época anual; 2 fases com twist; input por participante [S18][S19]</div></div>
+      <div class="risk-row"><div class="risk-name">Zachtronics (TIS-100, EXAPUNKS, HRM…)</div><div><span class="tag">DSL própria</span></div><div class="risk-mitigation">puzzle aberto + otimização sob métricas antagónicas + histogramas [S25][S26][S27]</div></div>
+      <div class="risk-row"><div class="risk-name">Screeps / Battlesnake</div><div><span class="tag">jogo-sistema</span></div><div class="risk-mitigation">variação infinita por oponentes/mundo; sem oráculo de aprendizagem [S16][S94]</div></div>
+      <div class="risk-row"><div class="risk-name">Code Hunt / Pex4Fun</div><div><span class="tag">verificação automática</span></div><div class="risk-mitigation">duels ESCRITOS por especialistas; só testes/pistas automáticos (Pex/DSE); calibração manual instável (outliers a ~10% de conclusão) [S95][S96]</div></div>
+      <div class="risk-row"><div class="risk-name">LeetCode</div><div><span class="tag">~20 linguagens</span></div><div class="risk-mitigation">testes ocultos + vereditos normalizados (Accepted/WA/TLE/MLE/CE/RE) [S66][S15]</div></div>
+    </div>
+    <p style="margin-top:16px">Famílias de mecânica identificadas: máquina virtual de assembly limitado · blocos visuais com
+    metáfora concreta · linguagens reais tipadas · simulação de sistemas · programação paralela
+    multi-agente [S25]; e famílias de conteúdo infinito: mundo persistente procedural · variação
+    adversária · autoria comunitária com gate · variação por input com twist · geração por análise de
+    programa [S101]. Números completos e citações no dossiê (§2/§6, 118 fontes).</p>
+  </section>
+
+  <!-- ═══ 03 ARQUITETURA PROPOSTA ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">03</span><h2>Arquitetura proposta no study-method</h2></div>
+    <p>A secção Games entra como um novo painel do shell (o mesmo mecanismo das abas atuais:
+    <code>PanelKey</code> + view) e reaproveita a costura que já existe: o registro de adaptadores de
+    linguagem (<code>engine/lang/registry.ts</code>, com C, Python, Rust, JavaScript e TypeScript) e o
+    harness de execução com provas por teste (<code>engine/exec/</code>: solução passa, starter falha,
+    contagem bate, stub falha). A mecânica do jogo nunca fala a linguagem do aluno: fala um contrato.</p>
+    <div class="diagram-panel">
+      <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px">
+        <style>
+          .box { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+          .box-new { fill: color-mix(in oklab, var(--primary) 8%, transparent); stroke: var(--primary); stroke-width: 1.5; }
+          .label { font-family: var(--font-sans); font-size: 13px; font-weight: 600; fill: var(--foreground); }
+          .sublabel { font-family: var(--font-mono); font-size: 10.5px; fill: var(--muted-foreground); }
+          .sublabel-new { font-family: var(--font-mono); font-size: 10.5px; fill: var(--primary); }
+          .edge { stroke: var(--muted-foreground); stroke-width: 1.5; }
+          .edge-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--muted-foreground); }
+        </style>
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--muted-foreground)"/>
+          </marker>
+        </defs>
+
+        <!-- Aluno / painel Games (novo) -->
+        <rect x="20" y="30" width="150" height="56" rx="10" class="box-new"/>
+        <text x="95" y="54" text-anchor="middle" class="label">Painel Games</text>
+        <text x="95" y="70" text-anchor="middle" class="sublabel-new">novo · PanelKey + view</text>
+
+        <!-- Motor de games (novo) -->
+        <rect x="280" y="30" width="160" height="56" rx="10" class="box-new"/>
+        <text x="360" y="54" text-anchor="middle" class="label">Motor de games</text>
+        <text x="360" y="70" text-anchor="middle" class="sublabel-new">novo · mecânica + contrato</text>
+
+        <!-- Conteúdo curado + gerador -->
+        <rect x="280" y="130" width="160" height="56" rx="10" class="box-new"/>
+        <text x="360" y="154" text-anchor="middle" class="label">Conteúdo + gate</text>
+        <text x="360" y="170" text-anchor="middle" class="sublabel-new">novo · curado + variação</text>
+
+        <!-- Adaptadores de linguagem (existente) -->
+        <rect x="540" y="30" width="160" height="56" rx="10" class="box"/>
+        <text x="620" y="54" text-anchor="middle" class="label">lang/registry</text>
+        <text x="620" y="70" text-anchor="middle" class="sublabel">existente · 5 linguagens</text>
+
+        <!-- Harness de testes (existente) -->
+        <rect x="540" y="130" width="160" height="56" rx="10" class="box"/>
+        <text x="620" y="154" text-anchor="middle" class="label">exec/harness</text>
+        <text x="620" y="170" text-anchor="middle" class="sublabel">existente · 4 provas</text>
+
+        <!-- Veredito -->
+        <rect x="280" y="230" width="160" height="48" rx="10" class="box"/>
+        <text x="360" y="252" text-anchor="middle" class="label">Veredito por teste</text>
+        <text x="360" y="267" text-anchor="middle" class="sublabel">passa / falha / métricas</text>
+
+        <!-- Edges -->
+        <line x1="170" y1="58" x2="280" y2="58" class="edge" marker-end="url(#a)"/>
+        <text x="225" y="50" text-anchor="middle" class="edge-label">código do aluno</text>
+        <line x1="440" y1="58" x2="540" y2="58" class="edge" marker-end="url(#a)"/>
+        <text x="490" y="50" text-anchor="middle" class="edge-label">executa em</text>
+        <line x1="360" y1="86" x2="360" y2="130" class="edge" marker-end="url(#a)"/>
+        <text x="425" y="112" text-anchor="middle" class="edge-label">alimenta</text>
+        <line x1="440" y1="158" x2="540" y2="158" class="edge" marker-end="url(#a)"/>
+        <text x="490" y="150" text-anchor="middle" class="edge-label">casos de teste</text>
+        <line x1="620" y1="186" x2="440" y2="250" class="edge" marker-end="url(#a)"/>
+        <text x="560" y="228" text-anchor="middle" class="edge-label">verifica</text>
+        <line x1="280" y1="254" x2="120" y2="86" class="edge" stroke-dasharray="5 4" marker-end="url(#a)"/>
+        <text x="165" y="185" text-anchor="middle" class="edge-label">estado + progresso</text>
+      </svg>
+      <span class="diagram-caption">Fluxo: o painel Games submete código do aluno ao harness por adaptador de linguagem;
+      o conteúdo é curado com variação (comunidade/épocas/geração com gate); o veredito é sempre por teste</span>
+    </div>
+    <p>A <strong>regra de ouro</strong> da arquitetura: a mecânica do jogo define apenas o <em>contrato</em>
+    (entradas, saídas, limites, métricas de otimização); o veredito sai do mesmo harness de testes que
+    já valida os desafios das trilhas — uma linguagem nova (um adaptador a mais) desbloqueia todos os
+    jogos de uma vez.</p>
+  </section>
+
+  <!-- ═══ 04 PROPOSTAS DE MECÂNICAS ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">04</span><h2>Propostas de mecânicas</h2></div>
+
+    <h3>Proposta 1 · Percurso em níveis (o núcleo)</h3>
+    <div class="tags"><span class="tag highlight">evidência direta em programação</span><span class="tag">fase 1</span></div>
+    <p><strong>Mecânica:</strong> cada jogo da secção é uma sequência de níveis curados com desbloqueio
+    progressivo; o jogador escreve código real (C, Python, Rust…) e o nível passa quando os testes
+    passam. <strong>Porquê:</strong> é a ÚNICA mecânica com efeito significativo direto na aprendizagem
+    de programação na meta-análise de Costa 2023 (d = 0.4 global, "essentially due to the use of
+    levels"; badges/pontos/leaderboards sem efeito de aprendizagem) [S41] (ronda 2, Q4.1).
+    <strong>Encaixe:</strong> reutiliza o desbloqueio por domínio já existente nas trilhas
+    (<code>completedAt</code> → próxima aula) e o schema de desafio com <code>requirements</code>↔testes;
+    conteúdo novo = níveis de jogo, não um novo motor.</p>
+
+    <h3>Proposta 2 · Dojo de otimização (o loop de replay)</h3>
+    <div class="tags"><span class="tag highlight">loop de vitória em 2 estágios</span><span class="tag">fase 1</span></div>
+    <p><strong>Mecânica:</strong> cada nível tem dois estágios: <em>resolver</em> (testes passam) e
+    <em>otimizar</em> (melhorar sob métricas antagónicas: ciclos, tamanho, memória). A comparação é
+    ASSÍNCRONA: histogramas de distribuição de soluções (o padrão Zachtronics que faz os jogadores
+    repetir níveis por conta própria), nunca leaderboard obrigatória [S26][S25]. <strong>Porquê:</strong>
+    a dificuldade "opt-in" resolve o risco de nicho (completar = fácil; otimizar = difícil) [S27] e as
+    métricas refletem esforço real (a "pointsification" sem métrica de competência é percebida como
+    sem sentido) [S57]. <strong>Encaixe:</strong> o harness já mede testes; as métricas de otimização
+    são extraídas do mesmo runner (linhas de código, tempo) pelo adaptador de linguagem.</p>
+
+    <h3>Proposta 3 · Chefes de módulo (a avaliação cumulativa)</h3>
+    <div class="tags"><span class="tag">retenção de longo prazo</span><span class="tag">fase 2</span></div>
+    <p><strong>Mecânica:</strong> ao fim de cada módulo, um desafio-chave cumulativo que exige combinar
+    os conceitos do módulo; passar desbloqueia o módulo seguinte (mastery). O invólucro narrativo
+    ("chefe") é leve e opcional. <strong>Porquê:</strong> avaliação cumulativa melhora retenção de longo
+    prazo vs. não-cumulativa (evidência direta em psicologia/matématas/biologia/medicina; efeito
+    heterogéneo ±15 pp por perfil) [S62] (ronda 2, Q5.1); mas o invólucro "boss" em si só tem evidência
+    de motivação (não de retenção) e o testing effect é o mecanismo real [S62][S58]. <strong>Encaixe:</strong>
+    é o "desafio gerado" do app com as 4 provas de execução; nasce do material já curado do módulo.</p>
+
+    <div class="callout">
+      <h3>Fase mais tarde (não v1): Épocas e Arena de agentes</h3>
+      <p><strong>Épocas:</strong> eventos recorrentes sobre o catálogo curado (modelo Advent of Code:
+      2 fases com twist, input por participante, qualquer linguagem) mantêm um catálogo fixo relevante
+      para sempre [S18][S111]. <strong>Arena de agentes:</strong> programação de bots contra oponentes
+      (Battlesnake/Robocode) dá variação infinita por adversidade, mas sem oráculo de aprendizagem —
+      só depois do motor de verificação estar sólido [S94][S16].</p>
+      <span class="decide-with">Decide com: autor do projecto, após métricas de retenção da fase 1</span>
+    </div>
+  </section>
+
+  <!-- ═══ 05 EVIDÊNCIA PEDAGÓGICA ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">05</span><h2>O que a evidência diz (e o que não diz)</h2></div>
+    <div class="two-col">
+      <div>
+        <h3>A favor (com calibração)</h3>
+        <ul>
+          <li>Costa 2023: d = 0.4 em aquisição de conhecimento/desempenho em programação — devido essencialmente a "levels"; base quasi-experimental (I²≈45%) [S41]</li>
+          <li>Gamificação geral: g≈.49 cognitivo / .36 motivacional / .25 comportamental (pequeno-moderado) [S43]</li>
+          <li>Avaliação cumulativa → retenção a longo prazo (heterogéneo por perfil) [S62]</li>
+          <li>Badges significativas + feedback visível: motivação/competência percebida [S52][S53]</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Contra / a desenhar contra (verificação adversarial aplicada)</h3>
+        <ul>
+          <li>Transferência jogo→código real é o elo fraco NOS ESTUDOS COM JOGOS (a transferência CT em geral é possível: far transfer g≈0.47 em meta-análise CT-STEM) [S47][S48]</li>
+          <li>Comparações sociais: o sinal depende do DESIGN — leaderboard isolada/publica dana (exposição obrigatória −24%); leaderboard com goal-setting/rubrica explícita MELHORA desempenho; Hanus & Fox testou um pacote completo, não leaderboard isolada [S56][S84]</li>
+          <li>Sobrejustificação limitada a sub-condições (recompensa tangível, esperada, contingente, tarefa já interessante; d ≈ −0.40 aí) — pontos/levels NÃO minam motivação (Mekler: d≈0, mais desempenho) [S83][S63]</li>
+          <li>Badges triviais: resultado nulo sem dano documentado (mais fraco do que se supunha); efeito novidade: motivação decai com exposição prolongada [S58]</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:16px">
+      <h3>Princípios de desenho para transferência (ronda 2, Q4.2)</h3>
+      <p>Cinco características com evidência: (1) linguagem de texto real como alvo (a transição
+      blocos→texto é ponto documentado de falha); (2) congruência máxima entre o contexto do puzzle e a
+      escrita de código, treinando transferência próxima primeiro; (3) prática espaçada/interleaved com
+      retrieval (ganho de longo prazo à custa do desempenho imediato — o jogo tem de tolerar isso);
+      (4) explicitação de conceitos (subgoal labels; Parsons como scaffold com fading para write-code,
+      com maior efeito em autoeficácia baixa); (5) scaffolding instrucional dentro do jogo (moderador
+      altamente significativo, F = 46.076). Eficiência não é transferência: manter tarefas write-code
+      não assistidas como medida-alvo.</p>
+      <span class="decide-with">Fontes da ronda 2 (Q4.2): umbrella review de CT (2025), Hou/Ericson 2023, Morrison 2016, YeckehZaare 2019</span>
+    </div>
+    <p style="margin-top:12px">Tradução para design: usar <strong>níveis</strong> como espinha, métricas de
+    otimização como motivação de replay (sem pontos decorativos), evitar rankings obrigatórios, e tratar
+    o invólucro narrativo como camada motivacional — o ganho cognitivo vem do teste cumulativo e do
+    retrieval, não do desenho de jogo em si.</p>
+  </section>
+
+  <!-- ═══ 06 RISCOS ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">06</span><h2>Riscos e custos</h2></div>
+    <div class="risk-grid">
+      <div class="risk-row">
+        <div class="risk-name">Execução de código do aluno no desktop</div>
+        <div><span class="badge high">HIGH</span></div>
+        <div class="risk-mitigation">processo filho SEM rede e sem acesso aos testes; nunca no processo Electron; grader fora do código do aluno [S73][S79][S80]; lacuna: isolamento Windows/macOS por confirmar (ronda 2, Q7.1)</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-name">Conteúdo gerado sem gate de verificação</div>
+        <div><span class="badge high">HIGH</span></div>
+        <div class="risk-mitigation">co-gerar código+testes mascara defeitos (14% vs 25% de deteção) [S99]; geração só com verificação iterativa + rejeição medida (evidência 2025-2026 mostra paridade possível com refinamento); v1 = conteúdo curado</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-name">Gamificação que desmotiva (ranking, pontos)</div>
+        <div><span class="badge med">MED</span></div>
+        <div class="risk-mitigation">sem leaderboard obrigatória; métricas = esforço real; histogramas assíncronos; salvaguardas em avaliação (ronda 2, Q8.1) [S84][S56]</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-name">Manutenção por linguagem</div>
+        <div><span class="badge low">LOW</span></div>
+        <div class="risk-mitigation">contrato único (I/O + testes) + adaptadores existentes: 5 linguagens desbloqueiam todos os jogos [S1][S68]</div>
+      </div>
+      <div class="risk-row">
+        <div class="risk-name">Transferência não medida</div>
+        <div><span class="badge med">MED</span></div>
+        <div class="risk-mitigation">linguagens reais (não DSL), conceitos explicitados, prática espaçada nos chefes de módulo; medir transferência na avaliação do piloto [S47][S48]</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 07 FASES (SEM ESTIMATIVAS DE TEMPO) ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">07</span><h2>Fases de implementação</h2></div>
+    <div class="milestones">
+      <div class="milestone">
+        <div class="when">Fase 1</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Níveis + Dojo de otimização (piloto)</h3>
+          <p>Painel Games no shell + motor de contrato único (I/O + testes) sobre os adaptadores
+          existentes; 1 jogo de níveis curado por trilha (C, Python, Rust) com estágio de otimização e
+          histogramas locais. Medir: conclusão, repetição por otimização, transferência.</p>
+          <div class="tags"><span class="tag">PanelKey + view</span><span class="tag">lang/registry</span><span class="tag">exec/harness</span></div>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Fase 2</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Chefes de módulo + progressão por domínio</h3>
+          <p>Desafio-chave cumulativo por módulo com desbloqueio por mastery; vereditos normalizados
+          (Accepted/WA/TLE/MLE/CE/RE) para feedback consistente entre linguagens.</p>
+          <div class="tags"><span class="tag">mastery unlock</span><span class="tag">vereditos</span></div>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Fase 3</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Épocas sobre o catálogo</h3>
+          <p>Eventos recorrentes (modelo AoC: 2 fases com twist, input por participante) para renovar
+          relevância sem gerar conteúdo novo; opt-in, sem ranking obrigatório.</p>
+          <div class="tags"><span class="tag">seasons</span><span class="tag">streak repair</span></div>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="when">Fase 4</div>
+        <div class="dot-col"><span class="dot"></span><span class="line"></span></div>
+        <div class="body">
+          <h3>Arena de agentes (opcional)</h3>
+          <p>Bots contra oponentes (variação infinita por adversidade) com avaliação por vitória/derrota
+          + explicação — só depois de o motor de verificação estar sólido.</p>
+          <div class="tags"><span class="tag">adversarial</span><span class="tag">JS/Python/Rust</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 08 PERGUNTAS EM ABERTO ═══ -->
+  <section>
+    <div class="section-header"><span class="section-number">08</span><h2>Decisões em aberto</h2></div>
+    <div class="callout">
+      <h3>Leaderboards: incluir ou não?</h3>
+      <p>A evidência de aprendizagem é nula (Costa 2023) e o risco de dano é real (notas mais baixas;
+      exposição pública obrigatória derruba o desempenho −24%, −40% no quartil superior). Se entrarem:
+      <strong>pseudónimos por omissão + opt-out real, nunca ranking público obrigatório</strong>;
+      rubrica transparente que combina desempenho e envolvimento; leaderboard curto/local (micro);
+      progresso pessoal (delta) como sinal PRIMÁRIO e ranking como secundário; sem "reset periódico"
+      como mitigação (sem evidência causal — gap declarado). Fontes: revisão sistemática de
+      leaderboards em ensino superior, 2 experiências randomizadas com pseudónimos (neutras/positivas),
+      experimento natural de exposição pública [S61] (ronda 2, Q8.1).</p>
+      <span class="decide-with">Decide com: autor do projecto (recomendação: fora da v1)</span>
+    </div>
+    <div class="callout">
+      <h3>Geração de conteúdo por IA: sim ou não?</h3>
+      <p>Só com <strong>gate de verificação iterativa + taxa de rejeição medida</strong>: a co-geração
+      de código e testes mascara defeitos [S99], mas a evidência 2025-2026 mostra que geração com
+      refinamento repetido atinge qualidade comparável à curada (o próprio Sarsa 2022 propõe regenerar
+      até os testes passarem como estratégia válida). v1 usa conteúdo curado; a geração entra quando o
+      pipeline de rejeição existir e for medido (pergunta aberta Q3.2/Q9.2 do dossiê).</p>
+      <span class="decide-with">Decide com: autor do projecto, fase 3+</span>
+    </div>
+    <div class="callout">
+      <h3>Medir transferência desde o piloto</h3>
+      <p>O ponto de falha documentado dos games é a transferência para código real. O piloto deve medir
+      explicitamente (tarefa nova sem o invólucro de jogo) — senão repetimos a falha da literatura.</p>
+      <span class="decide-with">Decide com: autor do projecto (métrica de sucesso da fase 1)</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+{
+  "id": "Q6",
+  "estado": "respondida",
+  "confianca": "moderada",
+  "resposta": "As plataformas resolvem N linguagens separando a mecânica do contrato de avaliação: o motor/árbitro implementa-se numa única linguagem e as submissões interagem apenas por um contrato textual (I/O, testes ou API de jogo), nunca pela linguagem do motor [F1][F2]. Padrão A — contrato de I/O + output-matching: CodinGame liga mais de 25 linguagens por stdin/stdout com protocolos de texto específicos de cada jogo [F1], e o Advent of Code leva isto ao limite ao submeter apenas o resultado em texto, logo a linguagem é irrelevante [F4], formalizável como um verificador de output sobre strings [F5]. Padrão B — stub + suíte de testes idiomática por linguagem: o exercício define-se uma vez e cada track/comando de testes próprio (`go test`, `pnpm test`) valida uma implementação cujo stub falha inicialmente [F8][F9]. Padrão C — submissão + casos de teste ocultos + vereditos normalizados: LeetCode avalia contra testes ocultos com vereditos fixos (Accepted/WA/TLE/MLE/Compile Error/Runtime Error) em cerca de 20 linguagens [F6][F7], com o judge genérico a compilar, executar e verificar a saída de cada caso de teste [F3]. Padrão D — a linguagem é uma DSL/VM definida pelo jogo (Redcode/Core War, Human Resource Machine, Hack/Nand2Tetris), o que dissolve o problema multi-linguagem ao fixar um ISA [F5][F10][F11]. Screeps surge nas fontes apenas como jogo de programação em JavaScript (API de jogo, linguagem única), funcionando como contra-exemplo e não como evidência do padrão multi-linguagem [F13].",
+  "afirmacoes": [
+    {
+      "texto": "CodinGame resolve N linguagens através de um contrato de I/O textual por jogo: agentes em qualquer linguagem comunicam com o motor por stdin/stdout, e o motor é escrito numa única linguagem (Java), separado dos agentes.",
+      "fontes": ["F1", "F2"],
+      "citacao_literal": "More than 25 programming languages, communication based on standard input/output using game-specific text protocols, and an in-browser coding environment allowed it to gather a sizable agent programming community.",
+      "central": true
+    },
+    {
+      "texto": "A separação motor/linguagem-do-agente é explícita: o árbitro tem de ser em Java e a comunicação tem de ser baseada em texto, mas o jogador escolhe livremente a linguagem do agente.",
+      "fontes": ["F1", "F2"],
+      "citacao_literal": "Users can program their agents in their preferred programming language instead of being restricted, as usually happens, to use just the one used to develop the game.",
+      "central": true
+    },
+    {
+      "texto": "No extremo do output-matching, o Advent of Code nunca executa código: o participante submete apenas o resultado textual e o site diz se está correto, sendo o puzzle resolvível em qualquer linguagem.",
+      "fontes": ["F4"],
+      "citacao_literal": "Eventually, the participant submits the result to the AoC website, which returns whether the result is correct for that day.",
+      "central": true
+    },
+    {
+      "texto": "A avaliação por output-matching é formalizável como verificador sobre strings, com serialização textual de entradas/saídas para que programas em qualquer linguagem produzam outputs avaliáveis.",
+      "fontes": ["F5"],
+      "citacao_literal": "We also provide code for serializing Python objects to and from strings in a json-like format, so that programs implemented in any language can produce outputs.",
+      "central": true
+    },
+    {
+      "texto": "Exercism desacopla linguagem de mecânica mantendo o enunciado do exercício partilhado e empurrando a avaliação para suítes de testes idiomáticas por track: o aluno recebe um stub e um ficheiro de testes que falha no início e só passa quando todos os testes passam; o comando de testes é específico da linguagem (`go test`, `pnpm test`).",
+      "fontes": ["F8", "F9"],
+      "citacao_literal": "A file with the implementation stubbed out has been created for you, along with a test file (the tests should be failing initially). To successfully complete the exercise, you must pass all the tests in the test file.",
+      "central": true
+    },
+    {
+      "texto": "LeetCode usa submissão + casos de teste ocultos com vereditos normalizados e métricas uniformes para quaisquer linguagens suportadas.",
+      "fontes": ["F6", "F7"],
+      "citacao_literal": "The extracted code is submitted to the LeetCode online judge for execution-based evaluation against hidden test cases. The judge returns a verdict (Accepted, Wrong Answer, Time Limit Exceeded, Memory Limit Exceeded, Compile Error, or Runtime Error)",
+      "central": true
+    },
+    {
+      "texto": "O contrato de avaliação de um online judge genérico independe da linguagem: compilar (se necessário), executar cada caso de teste e verificar se a saída cumpre as regras do problema, sob limites de recursos.",
+      "fontes": ["F3"],
+      "citacao_literal": "For each test case execution of the particular submission it is verified whether: (1) the execution process proceeded without errors, (2) any problem-specific resource limitations have not been exceeded, (3) the obtained output complies to the rules described in the problem definition.",
+      "central": true
+    },
+    {
+      "texto": "O padrão alternativo é a DSL/VM própria do jogo: quando o jogo define um conjunto mínimo de instruções ou um ISA simulado, a 'linguagem' do puzzle é a própria VM e o problema multi-linguagem desaparece (ou passa a ser um compilador-alvo a apontar para a VM).",
+      "fontes": ["F10", "F11", "F5"],
+      "citacao_literal": "They all use virtual systems with minimal instruction sets.",
+      "central": false
+    }
+  ],
+  "fontes": [
+    {"ref": "F1", "url": "https://arxiv.org/html/2305.11814v2", "doi": "arXiv:2305.11814", "titulo": "Summarizing Strategy Card Game AI Competition", "autores": "Jakub Kowalski, Radosław Miernik (University of Wrocław)", "ano": "2023", "veiculo": "arXiv (série de competições IEEE CIG/CoG)", "tipo": "preprint", "nivel": "B", "lida": "trechos"},
+    {"ref": "F2", "url": "https://arxiv.org/html/2009.08696v1", "doi": "arXiv:2009.08696", "titulo": "TotalBotWar: A New Pseudo Real-time Multi-action Game Challenge and Competition for AI", "autores": "Alejandro Esteban, César Díaz, Raul Montoliu (Jaume I University), Diego Pérez-Liébana (QMUL)", "ano": "2020", "veiculo": "arXiv", "tipo": "preprint", "nivel": "B", "lida": "trechos"},
+    {"ref": "F3", "url": "https://arxiv.org/html/1710.05913v1", "doi": "arXiv:1710.05913", "titulo": "A Survey on Online Judge Systems and Their Applications", "autores": "Bartosz Wasik, Tymoteusz Antczak et al.", "ano": "2017", "veiculo": "arXiv (survey)", "tipo": "preprint", "nivel": "B", "lida": "trechos"},
+    {"ref": "F4", "url": "https://arxiv.org/html/2412.02290v1", "doi": "arXiv:2412.02290", "titulo": "Characterizing Information Shared by Participants to Coding Challenges: The Case of Advent of Code", "autores": "F. Cauteruccio et al.", "ano": "2024", "veiculo": "arXiv", "tipo": "preprint", "nivel": "B", "lida": "trechos"},
+    {"ref": "F5", "url": "https://datasets-benchmarks-proceedings.neurips.cc/paper_files/paper/2021/file/3988c7f88ebcb58c6ce932b957b6f332-Paper-round1.pdf", "doi": "", "titulo": "Programming Puzzles (Python Programming Puzzles, P3)", "autores": "Tal Schuster (MIT), Ashwin Kalyan (AI2), Oleksandr Polozov, Adam Tauman Kalai (Microsoft Research)", "ano": "2021", "veiculo": "NeurIPS Datasets & Benchmarks", "tipo": "artigo-revisto", "nivel": "B", "lida": "trechos"},
+    {"ref": "F6", "url": "https://arxiv.org/html/2602.10171v1", "doi": "arXiv:2602.10171", "titulo": "EvoCodeBench: A Human-Performance Benchmark for Self-Evolving LLM-Driven Coding Systems", "autores": "(vários)", "ano": "2026", "veiculo": "arXiv", "tipo": "preprint", "nivel": "C", "lida": "trechos"},
+    {"ref": "F7", "url": "https://arxiv.org/html/2509.23261v2", "doi": "arXiv:2509.23261", "titulo": "The Matthew Effect of AI Programming Assistants: A Hidden Bias in Software Evolution", "autores": "(vários)", "ano": "2025", "veiculo": "arXiv", "tipo": "preprint", "nivel": "C", "lida": "trechos"},
+    {"ref": "F8", "url": "https://huggingface.co/datasets/lvogel123/exercism/viewer", "doi": "", "titulo": "lvogel123/exercism — dataset derivado de tracks do Exercism (Go/Java/JavaScript/Python/Rust)", "autores": "lvogel123 / Roo Code (RooCodeInc/Roo-Code-Evals)", "ano": "2025-2026", "veiculo": "Hugging Face Datasets", "tipo": "documentacao", "nivel": "C", "lida": "trechos"},
+    {"ref": "F9", "url": "https://arxiv.org/html/2607.19592v1", "doi": "arXiv:2607.19592", "titulo": "Knowledge-Centric Self-Improvement", "autores": "(vários)", "ano": "2026", "veiculo": "arXiv", "tipo": "preprint", "nivel": "C", "lida": "trechos"},
+    {"ref": "F10", "url": "https://dl.acm.org/doi/abs/10.1109/MSPEC.2017.7906890", "doi": "10.1109/MSPEC.2017.7906890", "titulo": "Some assembly (language) required — Three games that teach programming", "autores": "S. Cass", "ano": "2017", "veiculo": "IEEE Spectrum", "tipo": "imprensa", "nivel": "C", "lida": "trechos"},
+    {"ref": "F11", "url": "https://dl.acm.org/doi/fullHtml/10.1145/3626513", "doi": "10.1145/3626513", "titulo": "Artigo de S. Schocken na Communications of the ACM sobre a plataforma Nand2Tetris (hierarquia assembler/VM/compilador)", "autores": "S. Schocken", "ano": "2024", "veiculo": "Communications of the ACM", "tipo": "artigo-revisto", "nivel": "B", "lida": "trechos"},
+    {"ref": "F13", "url": "https://ieeexplore.ieee.org/iel8/11624144/11623655/11624347.pdf", "doi": "", "titulo": "Escaping JavaScript Sandboxes with Objective-driven (fuzzing de sandboxes JS; cita Screeps como MMO sandbox game em JavaScript)", "autores": "(vários)", "ano": "s.d.", "veiculo": "IEEE", "tipo": "artigo-revisto", "nivel": "C", "lida": "trechos"}
+  ],
+  "contradicoes": [
+    {
+      "tema": "Quantas linguagens suportam realmente os judges/plataformas",
+      "posicoes": [
+        {"fonte": "F3", "diz": "Supported programming languages are usually limited to the most popular in the industry, such as C/C++, C#, Java, JavaScript, Python, PHP."},
+        {"fonte": "F1", "diz": "CodinGame: more than 25 programming languages via stdin/stdout text protocols."},
+        {"fonte": "F7", "diz": "LeetCode accommodates nearly 20 programming languages (incl. Rust, Scala, Elixir)."}
+      ],
+      "explicacao_provavel": "A survey (2017) descreve o caso típico de judges clássicos; plataformas com investimento em adaptadores por linguagem (CodinGame, LeetCode, CodeChef com 40+ compiladores) ultrapassam esse limite. Não é contradição de facto, mas escala de investimento em adaptadores."
+    },
+    {
+      "tema": "Screeps como exemplo de multi-linguagem",
+      "posicoes": [
+        {"fonte": "F13", "diz": "Screeps é citado como 'MMO sandbox game for JavaScript' (jogo de programação em JavaScript)."},
+        {"fonte": "F1", "diz": "O padrão multi-linguagem documentado vem de motores que falam stdin/stdout (CodinGame, 25+ linguagens)."}
+      ],
+      "explicacao_provavel": "Screeps é provavelmente um contra-exemplo útil: fixa uma única linguagem (JS) e define a mecânica por uma API de jogo em vez de contrato multi-linguagem; a pergunta pode estar a presumir capacidade multi-linguagem que as fontes não confirmam."
+    }
+  ],
+  "lacunas": [
+    "Screeps: não foi encontrada documentação técnica primária (docs.screeps.com não surgiu nos resultados); o seu contrato real (loop por tick, API Game, CPU por tick, eventual suporte a outras linguagens) fica por confirmar — apenas se sabe que é um jogo de programação MMO em JavaScript [F13].",
+    "Não foi possível abrir documentação oficial do Exercism (exercism.org/docs sobre test runners) nem o SDK do CodinGame (repositórios GitHub) porque esses URLs não apareceram nos resultados de pesquisa; o padrão Exercism foi reconstruído a partir de datasets derivados dos tracks e de papers que os reutilizam [F8][F9].",
+    "O detalhe de implementação do 'special judge'/checker (aceitar múltiplas saídas válidas) não foi confirmado com fonte primária; o survey só fala em verificar se 'the obtained output complies to the rules described in the problem definition' [F3].",
+    "O mecanismo concreto do LeetCode para injetar um driver por linguagem (code stub com assinatura de função + wrapper de leitura/comparação) é inferido dos templates por linguagem e dos papers que submetem soluções, não de documentação oficial do judge [F6][F7].",
+    "Não há dados de custo/engenharia sobre manter suítes de testes idiomáticas por linguagem vs. um único contrato de output-matching (relevante para decidir a arquitetura da secção Games do app-alvo)."
+  ],
+  "novas_perguntas": [
+    {"pergunta": "Para a secção Games do app-alvo (C, Python, Rust e futuras), qual contrato de avaliação minimiza o custo por nova linguagem: protocolo de texto stdin/stdout com verificador único, stubs + testes idiomáticos por linguagem, ou uma DSL/VM do jogo?", "origem": "aprofundamento", "prioridade": "alta", "porque": "É a decisão de arquitetura direta que a Q6 se propunha informar; as fontes mostram os três contratos a funcionar em produção com trade-offs distintos."},
+    {"pergunta": "Como estruturam as plataformas os 'language adapters' (compilação/execução/comparação) para que um veredito normalizado (Accepted/WA/TLE/MLE/CE/RE) seja independente da linguagem?", "origem": "lacuna", "prioridade": "alta", "porque": "O app-alvo tem adaptadores de linguagem; o contrato de veredito é a interface que permite jogos em qualquer linguagem sem duplicar a mecânica."},
+    {"pergunta": "Que papel tem a API de jogo (loop por tick, orçamento de CPU por tick, estado observado) em contraste com I/O por lote quando o jogo é contínuo/competitivo?", "origem": "lacuna", "prioridade": "media", "porque": "Screeps/CodinGame multiplayer sugerem contratos incrementais; útil para jogos não deterministas da secção Games."},
+    {"pergunta": "Como é que Exercism mantém enunciados partilhados entre tracks (problem-specifications/canonical data) e o que isso implica para versionar puzzles multi-linguagem?", "origem": "lacuna", "prioridade": "media", "porque": "Determina como o app-alvo deve versionar o mesmo jogo/puzzle quando as suítes de testes divergem por linguagem."}
+  ],
+  "fontes_nao_usadas": [
+    {"url": "https://dl.acm.org/doi/pdf/10.1145/2157136.2157267", "porque_pode_importar": "Jutge.org (judge educacional com 22 linguagens) poderia confirmar o padrão de adaptadores por linguagem + comparação de output num contexto educacional; não foi extraído."},
+    {"url": "https://arxiv.org/html/2602.11481v1", "porque_pode_importar": "Mostra o ciclo de feedback de testes do Exercism por track (compile → run tests → reenviar), útil para desenhar feedback multi-linguagem, mas tangencia pedagogia (Q4)."},
+    {"url": "https://arxiv.org/html/2602.20167", "porque_pode_importar": "Playsemble: jogos com conjunto de instruções assembly próprio (padrão DSL/VM); corroboraria o padrão D além dos exemplos clássicos."},
+    {"url": "https://arxiv.org/html/2502.15770v1", "porque_pode_importar": "Corrobora métricas do judge do LeetCode (testes passados, runtime, memória) — redundante com F6/F7."},
+    {"url": "https://ieeexplore.ieee.org/iel8/11624144/11623655/11624347.pdf", "porque_pode_importar": "Usado só para situar Screeps (JavaScript); o restante conteúdo é sobre sandboxes JS, território de Q7."}
+  ],
+  "consultas": [
+    "CodinGame multiplayer game engine supported programming languages referee",
+    "Exercism test runner architecture tracks languages",
+    "Exercism test runner interface tracks languages architecture",
+    "LeetCode judge system design online judge hidden test cases multiple languages evaluation",
+    "Screeps documentation game engine JavaScript runtime sandbox VM simulation",
+    "Advent of Code about how it works answer puzzle input any programming language stars",
+    "CodinGame SDK create your own multiplayer game referee stdin stdout protocol boss",
+    "online judge special judge output comparison multiple programming languages arbitrary languages support architecture",
+    "exercism.org docs building tracks test runner interface test-results.json",
+    "docs.screeps.com Screeps documentation game runtime programming language",
+    "github CodinGame codingame-game-referee SDK game engine abstract referee",
+    "adventofcode.com about Advent of Code frequently asked questions answer boxes programming language",
+    "exercism problem-specifications canonical-data.json tests generators shared exercises across tracks",
+    "programming game custom assembly language virtual machine DSL Redcode core wars TIS-100 agents language independent",
+    "Exercism test runner github build an exercise track tests must fail before passing stub",
+    "Screeps MMO programming game JavaScript code executed game world API loop CPU limit isolated",
+    "Screeps game docs screeps.com learn getting started module exports loop Game object"
+  ],
+  "alertas_seguranca": []
+}

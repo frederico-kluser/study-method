@@ -214,6 +214,11 @@ describe('ONDA1-MAESTRIA — guarda de FONTE: a LessonView não computa chave de
   const code = src
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  /** Fonte sem comentários de um ficheiro (os blocos extraídos da view). */
+  const codeOf = (rel: string): string =>
+    readFileSync(resolve(HERE, rel), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
   it('a fórmula ANTIGA da chave não existe no código da view', () => {
     assert.ok(
@@ -247,8 +252,11 @@ describe('ONDA1-MAESTRIA — guarda de FONTE: a LessonView não computa chave de
   });
 
   it('o card RENDERIZA e SUBMETE a partir do mesmo objeto de visibleQuizFor', () => {
+    // O render do card virou bloco (blocks/LessonChatQuizCards); a submissão
+    // continua na view (handleQuizAnswer). Os dois lados são guardados.
+    const cardsCode = codeOf('../src/views/LessonView/blocks/LessonChatQuizCards.tsx');
     for (const prop of ['assertion={visible.assertion}', 'quiz={visible.quiz}']) {
-      assert.ok(code.includes(prop), `o LessonQuizCard deve receber ${prop}`);
+      assert.ok(cardsCode.includes(prop), `o LessonQuizCard deve receber ${prop}`);
     }
     assert.ok(
       code.includes('visible.key'),

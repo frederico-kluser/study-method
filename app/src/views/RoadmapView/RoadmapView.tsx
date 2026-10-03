@@ -1,616 +1,99 @@
 /**
- * src/views/RoadmapView/RoadmapView.tsx — TRILHA (rodada 8).
+ * src/views/RoadmapView/RoadmapView.tsx — TRILHA (rodada 8): VIEW PURA +
+ * container (state/view split — STORY-SPEC §5).
+ *
+ * `RoadmapViewView` é a VIEW PURA (só props — o que as histórias e os testes
+ * SSR renderizam); `RoadmapView` é o CONTAINER que liga `useRoadmapView` e
+ * mantém o export público do registry de views.
  *
  * A trilha JÁ VEM com os itens (módulos e aulas pré-definidos pelo CLI de
- * autoria) — o aluno escolhe a aula, nunca gera. Esta view mostra o detalhe da
- * trilha selecionada (Home → trilha ou seletor local):
- *
+ * autoria) — o aluno escolhe a aula, nunca gera:
  *   - módulos em ordem, com as aulas (título, resumo, dificuldade) e os
  *     estados done/current/pending + TRAVAMENTO sequencial (locked);
- *   - o TESTE DE PROFICIÊNCIA no topo: desafio que cobre TUDO — destrava a
- *     trilha inteira quando passado. Só começa quando o aluno lê o enunciado
- *     e clica em "Começar" (na ChallengeView);
- *   - ADITIVO (rodada 9): o DESAFIO DO MÓDULO — card/botão por módulo (quando
- *     module.json declara challenge) com o estado do aluno; clicar → seleção
- *     track com target 'module' + moduleSlug → aba Desafio;
- *   - clicar numa aula → pendingTrackLesson + navega para a aba Aula (chat);
- *   - clicar na proficiência → seleção track (ChallengeView, fluxo track).
- *
- * Entrada: pendingTrackSlug (Home → Trilha) drenado na MONTAGEM.
+ *   - o TESTE DE PROFICIÊNCIA no topo (ProficiencyCard);
+ *   - ADITIVO (rodada 9): o DESAFIO DO MÓDULO (ModuleCard);
+ *   - clicar numa aula → pendingTrackLesson + navega para a aba Aula;
+ *   - entrada: pendingTrackSlug (Home → Trilha) drenado na montagem (hook).
  */
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-} from 'react';
+import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '@mui/material/styles';
-import { motion } from 'motion/react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Chip,
-  Collapse,
-  Divider,
-  IconButton,
-  LinearProgress,
-  Stack,
-  Typography,
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import LockIcon from '@mui/icons-material/Lock';
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
-import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined';
-import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-// ONDA-UX-AUDIT-2-AULA (finding-3): metáfora de DESAFIO é checklist funcional
-// (`AssignmentOutlined`), nunca troféu/gamificação — varredura de ícones.
-import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import LinearProgress from '@mui/material/LinearProgress';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-
-import { getApi } from '../../lib/apiBridge';
-import { springs, transitions } from '../../lib/animationTokens';
-import { prefersReducedMotion } from '../../lib/confetti';
-import {
-  IPC_TIMEOUT_MS,
-  isTimeoutError,
-  resolveChannelError,
-  withTimeout,
-} from '../../lib/ipcTimeout';
-import { useChallengeNav } from '../../lib/challengeNav';
-import { drainPendingTrackSlug, setPendingTrackLesson } from '../../lib/pendingSubject';
-import { createUnlockDiffHolder, peekLastTrackSlug, setLastTrackSlug } from '../../lib/roadmapNav';
-import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
+import { ModuleCard } from './ModuleCard';
+import { ProficiencyCard } from './ProficiencyCard';
+import type { RoadmapViewViewProps } from './useRoadmapView';
+import { useRoadmapView } from './useRoadmapView';
 import type { ViewProps } from '../placeholders';
+import { LAYOUT } from '../../lib/designTokens';
+import { CenteredColumn } from '../../components/ui/CenteredColumn';
+// §10/§3 (LAYOUT-DRY-AUDIT): cartão de lista acionável e erro+retentativa são
+// os primitivos partilhados (a copy fica aqui).
+import { InfoCard } from '../../components/ui/InfoCard';
+import { RetryAlert } from '../../components/ui/RetryAlert';
+// §1: o piso de alvo de toque é UM objeto de estilo (`touchTargetSx`).
+import { touchTargetSx } from '../../lib/layoutSx';
 
-/**
- * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
- * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
- */
-const TOUCH_TARGET_PX = 44;
+export type { RoadmapViewViewProps, RoadmapTrackSummary } from './useRoadmapView';
 
-/**
- * Span visualmente escondido que carrega o ESTADO da aula por extenso para o
- * `aria-describedby` do tile (mesma receita do `HIDDEN_HINT_SX` do SplitDivider).
- * Fica FORA do botão de propósito: o nome acessível do tile é só o conteúdo
- * visível (título, resumo, dificuldade — SC 2.5.3 label-in-name) e o estado
- * chega como DESCRIÇÃO, sem duplicar texto na leitura.
- */
-const HIDDEN_STATE_SX = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  margin: -1,
-  padding: 0,
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const;
+// (O antigo `TOUCH_TARGET_PX` local saiu — ver `lib/layoutSx.ts` → `touchTargetSx`.)
 
-/**
- * Estado visual de uma aula (ícone + cor) e a chave i18n do estado por extenso.
- *
- * O `labelKey` deixou de ser letra morta: ele alimenta o span escondido que o
- * `aria-describedby` do tile aponta (ver LessonRow) — sem ele o leitor de tela
- * não sabia NADA do estado (o ícone é aria-hidden). E os íCONES diferem por
- * FORMA, não só por cor: "Em andamento" (play_circle CHEIO) vs "Disponível"
- * (play_circle VAZADO) era o par que se distinguia apenas pela tinta —
- * SC 1.4.1 proíbe cor como único meio visual de transmitir a informação.
- */
-function lessonStateMeta(state: { locked: boolean; done: boolean; current: boolean }): {
-  icon: ReactElement;
-  labelKey: string;
-} {
-  if (state.done) return { icon: <CheckCircleIcon fontSize="small" color="success" />, labelKey: 'roadmap.done' };
-  if (state.current) return { icon: <PlayCircleIcon fontSize="small" color="primary" />, labelKey: 'roadmap.current' };
-  if (state.locked) return { icon: <LockIcon fontSize="small" color="disabled" />, labelKey: 'roadmap.locked' };
-  return { icon: <PlayCircleOutlinedIcon fontSize="small" color="disabled" />, labelKey: 'roadmap.pending' };
-}
-
-/** Uma aula da trilha (clique abre o chat da aula). */
-function LessonRow({
-  lesson,
-  onOpen,
+export function RoadmapViewView({
+  track,
+  loading,
+  loadError,
+  selected,
+  tracks,
+  noTracks,
   justUnlocked,
-  tI,
-}: {
-  lesson: TrackLessonEntry;
-  onOpen: (lesson: TrackLessonEntry) => void;
-  /** ONDA11-CADEADO: esta aula ABRIU desde a última visita a esta trilha. */
-  justUnlocked: boolean;
-  tI: (key: string, options?: Record<string, string | number>) => string;
-}): ReactElement {
-  const theme = useTheme();
-  const meta = lessonStateMeta(lesson);
-  // ONDA (a11y — estado da aula): o tile NÃO substitui mais o nome acessível
-  // por um aria-label ("Aula concluída: …") — aquilo engolia o resumo e a
-  // dificuldade visíveis (SC 2.5.3 label-in-name). O nome passa a ser o
-  // CONTEÚDO VISÍVEL do botão e o estado viaja como descrição
-  // (`aria-describedby` → span escondido), incluído na leitura do tile.
-  const stateId = useId();
-  // ONDA 4 (next-glow): cor do glow = success do tema (= ACCENT_*.success.fill
-  // do designTokens — o mapping do theme.ts faz success.main === pair.fill; o
-  // CheckCircleIcon de done já usa success.main). Família success NUNCA
-  // dispara red flash (R/(R+G+B) ≈ 0,125 — teto 0,8 do contrato).
-  const glowColor = theme.vars.palette.success.main;
-  // prefers-reduced-motion: reduce → SEM animação, só a borda estática de
-  // sucesso (mesma leitura do confetti.ts — SC 2.3.3).
-  const reduced = prefersReducedMotion();
-  // Keyframes do pulso: MESMA estrutura de sombras nos dois extremos (o motion
-  // interpola sombra a sombra). Memoizados — referência nova a cada render
-  // reiniciaria o loop. Animação de EFEITO (boxShadow): easing effects via
-  // transitions.pulse, nunca o easing spatial (SPATIAL_FORBIDDEN_PROPERTIES).
-  const glowKeyframes = useMemo(
-    () => [
-      `0 0 0 1px ${glowColor}40, 0 0 8px 1px ${glowColor}4D`,
-      `0 0 0 1px ${glowColor}, 0 0 14px 3px ${glowColor}99`,
-      `0 0 0 1px ${glowColor}40, 0 0 8px 1px ${glowColor}4D`,
-    ],
-    [glowColor],
-  );
-  // Entrada com a mola playful (escala — spatial) + loop do pulso (boxShadow —
-  // effects): cada propriedade com a transição certa, no mesmo objeto.
-  const glowTransition = useMemo(
-    () => ({ scale: springs.playful, boxShadow: transitions.pulse }),
-    [],
-  );
-
-  const tile = (
-    <>
-      <Box
-        component="button"
-        onClick={() => onOpen(lesson)}
-        // W16 (onda-ux): lições TRANCADAS continuam FOCÁVEIS com
-        // `aria-disabled` (em vez de `disabled`) — o leitor de tela consegue
-        // chegar ao tile e ouvir o estado ("Travada: …", via aria-describedby);
-        // o clique continua guardado em `openLesson` (não abre) e o cursor
-        // continua "not-allowed". `disabled` tirava o tile da navegação
-        // inteira: a restrição existia, mas ninguém a podia ouvir.
-        aria-disabled={lesson.locked ? true : undefined}
-        aria-describedby={stateId}
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-          width: '100%',
-          textAlign: 'left',
-          // ONDA 1 (game-foundations): tile da trilha — borda de jogo 2px.
-          // Transparente em repouso (o hover continua só o fundo), mas o tile da
-          // AULA ATUAL vira um quadro de acento (borda = preenchimento, não
-          // texto — regra 3b do contrato).
-          border: '2px solid transparent',
-          background: 'none',
-          cursor: lesson.locked ? 'not-allowed' : 'pointer',
-          p: 0.75,
-          borderRadius: 1,
-          opacity: lesson.locked ? 0.55 : 1,
-          '&:hover:not([aria-disabled="true"])': { bgcolor: 'action.hover' },
-          ...(lesson.current
-            ? { borderColor: 'primary.main' }
-            : {}),
-          // ONDA 4 (next-glow): reduce → glow ESTÁTICO (borda de sucesso, sem
-          // animação) — o pulso fica só para quem não pediu menos movimento.
-          ...(lesson.done && reduced ? { borderColor: glowColor } : {}),
-          // ONDA11-CADEADO: a aula que ACABOU de abrir ganha o quadro de
-          // sucesso ESTÁTICO (cor, nunca animação — quem pediu menos movimento
-          // vê exatamente o mesmo quadro). É moldura, não texto: a informação
-          // continua no selo escrito ao lado, nunca só na cor.
-          ...(justUnlocked ? { borderColor: glowColor } : {}),
-          color: 'inherit',
-        }}
-      >
-        <Box sx={{ mt: 0.25 }}>{meta.icon}</Box>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: lesson.current ? 700 : 500 }}>
-            {lesson.title}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {lesson.summary}
-          </Typography>
-        </Box>
-        {/* ONDA11-CADEADO — A INFORMAÇÃO, que NUNCA depende da animação.
-            O selo é TEXTO dentro do próprio botão: quem desligou o movimento o
-            lê igual, e o leitor de tela o inclui no nome acessível do tile ("…
-            Destravou agora"). Ele é INFORMATIVO, não comemorativo (§8.2 do
-            ux-redesign: feedback informativo d=+0,43; elogio ritualizado
-            d=-0,40) — diz que aquilo abriu, e para. Cor: `success` do tema (a
-            mesma família do glow de conclusão), nunca hex cru. */}
-        {justUnlocked ? (
-          <Chip
-            size="small"
-            color="success"
-            variant="outlined"
-            label={tI('roadmap.justUnlockedBadge')}
-            sx={{ ml: 1, flexShrink: 0 }}
-          />
-        ) : null}
-        {/* `flexShrink: 0`: com título longo o chip de dificuldade era o único
-            que encolhia (e truncava o rótulo) — os chips são moldura fixa. */}
-        <Chip
-          size="small"
-          variant="outlined"
-          label={tI('roadmap.difficulty', { n: lesson.difficulty })}
-          sx={{ ml: 1, flexShrink: 0 }}
-        />
-      </Box>
-      {/* O ESTADO por extenso ("Em andamento" / "Disponível" / …) — visível só
-          para o leitor de tela (span escondido), ligado ao tile por
-          `aria-describedby`. Sem ele o estado era só ícone+cor. */}
-      <Box component="span" id={stateId} sx={HIDDEN_STATE_SX}>
-        {tI(meta.labelKey)}
-      </Box>
-    </>
-  );
-
-  // ONDA11-CADEADO — O EFEITO do destravamento: a aula que abriu ENTRA na
-  // lista (escala + deslocamento), em vez de já estar lá como se sempre
-  // tivesse estado. É movimento SPATIAL puro (transform/geometria), o único
-  // nível que pode ultrapassar; nada de cor nem de opacidade animadas (o bug
-  // do texto que cintila). Com `prefers-reduced-motion: reduce` a mola nem é
-  // montada — o caminho é o tile estático, sem overshoot (SC 2.3.3) —, e a
-  // informação chega inteira mesmo assim: o selo escrito, a moldura de
-  // sucesso e o anúncio em role="status" da view.
-  if (justUnlocked && !reduced) {
-    return (
-      <motion.div
-        initial={{ scale: 0.94, x: -12 }}
-        animate={{ scale: 1, x: 0 }}
-        transition={springs.playful}
-        style={{ borderRadius: theme.shape.borderRadius }}
-      >
-        {tile}
-      </motion.div>
-    );
-  }
-
-  // Aula concluída + movimento permitido → GLOW pulsante de sucesso em volta
-  // do tile (boxShadow com a cor de sucesso; NUNCA vermelho — regra de red
-  // flash do designTokens). Com reduce (ou aula não concluída) o tile é o
-  // próprio botão, sem wrapper de animação.
-  if (!lesson.done || reduced) return tile;
-
-  return (
-    <motion.div
-      initial={{ scale: 0.97 }}
-      animate={{ scale: 1, boxShadow: glowKeyframes }}
-      transition={glowTransition}
-      style={{ borderRadius: theme.shape.borderRadius }}
-    >
-      {tile}
-    </motion.div>
-  );
-}
-
-/** Um módulo da trilha (card colapsável). */
-function ModuleCard({
-  mod,
-  onOpenLesson,
-  onOpenModuleChallenge,
-  justUnlocked,
-  defaultOpen,
-  tI,
-}: {
-  mod: TrackModuleEntry;
-  onOpenLesson: (l: TrackLessonEntry) => void;
-  onOpenModuleChallenge: (mod: TrackModuleEntry) => void;
-  /** ONDA11-CADEADO: slugs que ABRIRAM desde a última visita a esta trilha. */
-  justUnlocked: ReadonlySet<string>;
-  defaultOpen: boolean;
-  tI: (key: string, options?: Record<string, string | number>) => string;
-}): ReactElement {
-  const [open, setOpen] = useState(defaultOpen);
-  const doneCount = mod.lessons.filter((l) => l.done).length;
-  return (
-    <Card variant="outlined">
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
- <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {mod.title}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {tI('roadmap.moduleCount', { done: doneCount, total: mod.lessons.length })}
-            </Typography>
-          </Box>
-          {/* Piso de alvo de toque (TOUCH_TARGET_PX): o IconButton small nasce
-              30×30 — a caixa cresce, o ícone continua pequeno. */}
-          <IconButton
-            size="small"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={tI('roadmap.toggleModule', { module: mod.title })}
-            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
-          >
-            <ExpandMoreIcon sx={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-          </IconButton>
-        </Stack>
-        <Collapse in={open}>
-          <Divider sx={{ my: 1 }} />
- <Stack spacing={0.25}>
-            {mod.lessons.map((l) => (
-              <LessonRow
-                key={l.slug}
-                lesson={l}
-                onOpen={onOpenLesson}
-                justUnlocked={justUnlocked.has(l.slug)}
-                tI={tI}
-              />
-            ))}
-          </Stack>
-          {/* ADITIVO (rodada 9): DESAFIO DO MÓDULO — o desafio elaborado do fim
-              do módulo (mexe em VÁRIOS arquivos), com o estado do aluno. */}
-          {mod.challengeAvailable && mod.challenge ? (
-            <Box sx={{ mt: 1 }}>
-              <Button
-                fullWidth
-                size="small"
-                variant="outlined"
-                color="secondary"
-                onClick={() => onOpenModuleChallenge(mod)}
-                startIcon={<AssignmentOutlinedIcon fontSize="small" />}
-                aria-label={`${tI('roadmap.moduleChallenge')} ${mod.challenge.title}`}
-                sx={{ minHeight: TOUCH_TARGET_PX }}
-              >
-                {tI('roadmap.moduleChallenge')}
-                {mod.challengeLastVerdict === 'passed'
-                  ? ` · ${tI('roadmap.moduleChallengeDone')}`
-                  : mod.challengeLastVerdict
-                    ? ` · ${tI('roadmap.moduleChallengeTried')}`
-                    : ''}
-              </Button>
-            </Box>
-          ) : null}
-        </Collapse>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function RoadmapView(props: ViewProps): ReactElement {
+  unlockedTitles,
+  openLesson,
+  openTrack,
+  goBackToList,
+  openProficiency,
+  openModuleChallenge,
+  loadTrack,
+  loadTracks,
+}: RoadmapViewViewProps): ReactElement {
   const { t } = useTranslation();
   const tI = useMemo(
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
   );
-  const navigate = props.onNavigate ?? (() => {});
-  const nav = useChallengeNav();
-
-  const [track, setTrack] = useState<TrackDetailPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<Array<{ slug: string; title: string; doneCount: number; lessonCount: number }> | null>(null);
-  // ONDA9 (cache-reconcilia): "nenhuma trilha instalada" é um estado LEGÍTIMO,
-  // não um erro. Antes ele era enfiado no `loadError` e saía como <Alert
-  // severity="warning"> com botão de "Tentar de novo" — o app se acusando de
-  // quebrado por uma pasta vazia, que é exatamente o estado normal depois de
-  // "apaga e regera". Agora tem estado próprio e sai como informação.
-  const [noTracks, setNoTracks] = useState(false);
-  // ─── ONDA11-CADEADO: o que ABRIU desde a última visita a esta trilha ──────
-  // O dono pediu o destravamento "com efeito". O efeito é só da aula que MUDOU
-  // de estado nesta volta — o porquê da escolha (e por que não veio do main)
-  // está no cabeçalho de `diffUnlockedSinceLastVisit`, em src/lib/roadmapNav.
-  // O HOLDER é o padrão anti-StrictMode da casa: em dev a view monta duas
-  // vezes e o diff é one-shot, então sem ele a 2ª passada — a que fica na
-  // tela — veria "nada mudou" e o efeito sumiria justamente no ambiente onde
-  // ele é olhado.
-  const [justUnlocked, setJustUnlocked] = useState<ReadonlySet<string>>(() => new Set<string>());
-  const [unlockedTitles, setUnlockedTitles] = useState<string[]>([]);
-  const unlockDiffRef = useRef<ReturnType<typeof createUnlockDiffHolder> | null>(null);
-  if (unlockDiffRef.current === null) unlockDiffRef.current = createUnlockDiffHolder();
-
-  const loadTrack = useCallback((trackSlug: string): void => {
-    setLoading(true);
-    setLoadError(null);
-    let cancelled = false;
-    // Timeout: canal mudo (IPC nunca resolve) vira loadError com retry —
-    // nenhum spinner eterno no detalhe da trilha.
-    withTimeout(getApi().track.get({ trackSlug }), IPC_TIMEOUT_MS, 'track.get')
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok === false) {
-          // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
-          setLoadError(resolveChannelError(res, t('translation:roadmap.loadFailed')));
-          return;
-        }
-        if (!res.track) {
-          setLoadError(t('translation:roadmap.notFound'));
-          return;
-        }
-        setTrack(res.track);
-        // O diff roda com o payload RECÉM-CHEGADO (nunca com o estado antigo
-        // da tela): a lista achatada na ordem em que a trilha é lida.
-        const aulas = res.track.modules.flatMap((m) => m.lessons);
-        const abriram = unlockDiffRef.current!.get(trackSlug, aulas);
-        setJustUnlocked(new Set(abriram));
-        setUnlockedTitles(
-          abriram
-            .map((slug) => aulas.find((l) => l.slug === slug)?.title)
-            .filter((t): t is string => typeof t === 'string'),
-        );
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoadError(
-          isTimeoutError(err)
-            ? t('translation:roadmap.loadTimeout')
-            : t('translation:roadmap.loadFailed'),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /** Lista as trilhas instaladas (seletor) — com timeout (mesmo princípio). */
-  const loadTracks = useCallback((): void => {
-    // FIX W2 (onda 4): setLoading(true) NO INÍCIO — o retry da lista mostra o
-    // spinner (feedback imediato) em vez de área em branco até o timeout; o
-    // finally limpa nos DOIS caminhos (ok e erro).
-    setLoading(true);
-    setLoadError(null);
-    setNoTracks(false);
-    let cancelled = false;
-    withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok === false) {
-          // ok:false = falha REAL (repo indisponível etc.) → erro com o DETALHE
-          // do canal; "Nenhuma trilha instalada" fica só para ok:true com []
-          // (vazio legítimo) — nunca uma mensagem enganosa para falha real.
-          setLoadError(resolveChannelError(res, t('translation:roadmap.listFailed')));
-          return;
-        }
-        if (res.tracks.length > 0) {
-          setTracks(res.tracks.map((x) => ({ slug: x.slug, title: x.title, doneCount: x.doneCount, lessonCount: x.lessonCount })));
-        } else {
-          // ONDA9: vazio LEGÍTIMO — informação, não erro (ver `noTracks`).
-          setTracks([]);
-          setNoTracks(true);
-        }
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoadError(
-          isTimeoutError(err)
-            ? t('translation:roadmap.loadTimeout')
-            : t('translation:roadmap.listFailed'),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Montagem: drena a trilha pendente (Home → Trilha) OU restaura a última
-  // trilha aberta (onda1-nav-ui — o histórico de navegação sobrevive à troca
-  // de aba via src/lib/roadmapNav.ts). Ordem: pendência nova > última aberta.
-  // O `setLastTrackSlug(pending)` no branch da pendência grava a trilha que
-  // ACABOU de ser aberta — a próxima montagem (voltar de Settings/Desafio)
-  // a restaura sem pendência. O peek NÃO é one-shot: no double-invoke do
-  // StrictMode (dev) cada passada re-restaura a MESMA trilha (idempotente —
-  // setSelected com o mesmo valor + loadTrack repetido convergem).
-  useEffect(() => {
-    const pending = drainPendingTrackSlug();
-    if (pending) {
-      setSelected(pending);
-      setLastTrackSlug(pending);
-      loadTrack(pending);
-    } else {
-      const last = peekLastTrackSlug();
-      if (last) {
-        setSelected(last);
-        loadTrack(last);
-      }
-    }
-    loadTracks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const openLesson = useCallback(
-    (lesson: TrackLessonEntry): void => {
-      if (!track || lesson.locked) return;
-      setPendingTrackLesson(track.slug, lesson.slug);
-      navigate('lesson');
-    },
-    [track, navigate],
-  );
-
-  /** VOLTAR para a LISTA (onda1-nav-ui): zera o detalhe (selected + track),
-   *  o erro do carregamento e o roadmapNav — a próxima montagem volta a
-   *  abrir a lista, não este detalhe. Sem o setTrack(null), a lista E o
-   *  detalhe antigo renderizariam JUNTOS (o `track` persistia no estado). */
-  const goBackToList = useCallback((): void => {
-    setSelected(null);
-    setTrack(null);
-    setLoadError(null);
-    setLastTrackSlug(null);
-    // ONDA11-CADEADO: o anúncio é do detalhe que está saindo de cena.
-    setJustUnlocked(new Set<string>());
-    setUnlockedTitles([]);
-  }, []);
-
-  /** Teste de proficiência → ChallengeView (fluxo track). */
-  const openProficiency = useCallback((): void => {
-    if (!track || !track.proficiencyAvailable) return;
-    nav.selectTrackChallenge({
-      trackSlug: track.slug,
-      target: 'proficiency',
-      challengeId: 'proficiencia',
-      title: t('translation:roadmap.proficiencyTitle'),
-    });
-    nav.navigateToChallenge();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track, nav]);
-
-  /** ADITIVO (rodada 9): DESAFIO DO MÓDULO → ChallengeView (fluxo track, target 'module'). */
-  const openModuleChallenge = useCallback(
-    (mod: TrackModuleEntry): void => {
-      if (!track || !mod.challenge) return;
-      nav.selectTrackChallenge({
-        trackSlug: track.slug,
-        target: 'module',
-        moduleSlug: mod.slug,
-        challengeId: mod.challenge.slug,
-        title: mod.challenge.title,
-      });
-      nav.navigateToChallenge();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    },
-    [track, nav],
-  );
 
   // Seletor de trilha (quando nenhuma veio pendente).
   if (selected === null && !loading && tracks && tracks.length > 0) {
     return (
-      <Box sx={{ p: 2, maxWidth: 640, mx: 'auto' }}>
+      <CenteredColumn>
         <Typography variant="h5" component="h1" gutterBottom>
           {t('translation:roadmap.pickTitle')}
         </Typography>
  <Stack spacing={1}>
           {tracks.map((tr) => (
-            // CardActionArea (o padrão do SubjectCard) em vez de `onClick` no
-            // <Card>: um div não é alcançável por teclado — o cartão inteiro
-            // passa a ser um botão real (Tab + Enter/Espaço), com o mesmo
-            // visual e os mesmos handlers.
-            <Card key={tr.slug} variant="outlined">
-              <CardActionArea
-                onClick={() => {
-                  // ONDA1-NAV-UI: abrir uma trilha GRAVA no roadmapNav — a próxima
-                  // montagem (voltar de outra aba) restaura o detalhe.
-                  setSelected(tr.slug);
-                  setLastTrackSlug(tr.slug);
-                  loadTrack(tr.slug);
-                }}
-              >
-                <CardContent>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {tr.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {tI('roadmap.trackCount', { done: tr.doneCount, total: tr.lessonCount })}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+            // §10 InfoCard (LAYOUT-DRY-AUDIT) ACIONÁVEL: `CardActionArea` — o
+            // cartão inteiro vira botão real (Tab + Enter/Espaço), nunca uma
+            // div com onClick (o antigo bloco Card+CardActionArea+CardContent).
+            // ONDA1-NAV-UI: abrir uma trilha GRAVA no roadmapNav — a próxima
+            // montagem (voltar de outra aba) restaura o detalhe.
+            <InfoCard
+              key={tr.slug}
+              title={tr.title}
+              subtitle={tI('roadmap.trackCount', { done: tr.doneCount, total: tr.lessonCount })}
+              selectable
+              onClick={() => openTrack(tr.slug)}
+            />
           ))}
         </Stack>
-      </Box>
+      </CenteredColumn>
     );
   }
 
   return (
-    <Box sx={{ p: 2, maxWidth: 760, mx: 'auto' }}>
+    <CenteredColumn width={LAYOUT.panelColumnPx}>
       {/* Spinner do DETALHE: só com trilha selecionada e ainda sem conteúdo
           (nem erro). O spinner da LISTA (sem seleção) usa o `loading` — ambos
           têm timeout: canal mudo vira loadError com retry, nunca spinner
@@ -658,34 +141,30 @@ export function RoadmapView(props: ViewProps): ReactElement {
       ) : null}
       {loadError !== null ? (
         <Box sx={{ mt: 1 }}>
-          <Alert severity="warning">{loadError}</Alert>
-          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-            {/* minHeight = piso de alvo de toque (TOUCH_TARGET_PX): o
-                size="small" sozinho nasce ~30px de alto. */}
+          {/* §3 RetryAlert (LAYOUT-DRY-AUDIT): erro + "Tentar de novo" é o
+              primitivo partilhado (o retry mantém o piso de alvo de toque).
+              A ação EXTRA "Voltar" fica no chamador: o primitivo não tem slot
+              de segunda ação (pendente registado no relatório desta onda). */}
+          <RetryAlert
+            severity="warning"
+            message={loadError}
+            onRetry={() => (selected !== null ? loadTrack(selected) : loadTracks())}
+          />
+          {/* ONDA1-NAV-UI: sem este VOLTAR, uma trilha que FALHOU ao carregar
+              (timeout/canal mudo) prenderia o usuário no detalhe quebrado —
+              o roadmapNav ainda aponta para ela e a próxima montagem a
+              restauraria de novo. Voltar zera o store e libera a lista. */}
+          {selected !== null ? (
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              onClick={() => (selected !== null ? loadTrack(selected) : loadTracks())}
-              sx={{ minHeight: TOUCH_TARGET_PX }}
+              startIcon={<ArrowBackIcon fontSize="small" />}
+              onClick={goBackToList}
+              sx={{ ...touchTargetSx, mt: 1 }}
             >
-              {t('translation:common.tryAgain')}
+              {t('translation:roadmap.backButton')}
             </Button>
-            {/* ONDA1-NAV-UI: sem este VOLTAR, uma trilha que FALHOU ao carregar
-                (timeout/canal mudo) prenderia o usuário no detalhe quebrado —
-                o roadmapNav ainda aponta para ela e a próxima montagem a
-                restauraria de novo. Voltar zera o store e libera a lista. */}
-            {selected !== null ? (
-              <Button
-                variant="text"
-                size="small"
-                startIcon={<ArrowBackIcon fontSize="small" />}
-                onClick={goBackToList}
-                sx={{ minHeight: TOUCH_TARGET_PX }}
-              >
-                {t('translation:roadmap.backButton')}
-              </Button>
-            ) : null}
-          </Stack>
+          ) : null}
         </Box>
       ) : null}
 
@@ -704,15 +183,15 @@ export function RoadmapView(props: ViewProps): ReactElement {
               aria-label={t('translation:roadmap.backButton')}
               // O visual de link (variant text, px curtinho) fica; o antigo
               // `minHeight: 0` encolhia o ALVO abaixo do piso de toque — a
-              // caixa cresce até TOUCH_TARGET_PX, o glifo continua igual.
-              sx={{ mb: 0.5, px: 1, textTransform: 'none', minHeight: TOUCH_TARGET_PX }}
+              // caixa cresce até ao piso (`touchTargetSx`), o glifo igual.
+              sx={{ mb: 0.5, px: 1, textTransform: 'none', ...touchTargetSx }}
             >
               {t('translation:roadmap.backButton')}
             </Button>
             <Typography variant="h4" component="h1" gutterBottom>
               {track.title}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 640 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: LAYOUT.readingColumnPx }}>
               {track.description}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -723,45 +202,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
 
           {/* Teste de proficiência: desafio que cobre TUDO. */}
           {track.proficiencyAvailable ? (
-            <Card variant="outlined" sx={{ bgcolor: 'action.hover' }}>
-              <CardContent
-                sx={{
-                  display: 'flex',
-                  // Onda 1 (botões com ícone): `flexWrap: 'wrap'` — em largura
-                  // apertada o botão "Fazer o teste" (nowrap) PULA para a
-                  // linha própria em vez de esmagar/estourar o card. O texto
-                  // com `minWidth: 0` quebra normalmente.
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: 2,
-                  p: 1.5,
-                  '&:last-child': { pb: 1.5 },
-                }}
-              >
-                <WorkspacePremiumIcon color="primary" sx={{ fontSize: 40 }} />
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {t('translation:roadmap.proficiencyTitle')}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {t('translation:roadmap.proficiencyDescription')}
-                  </Typography>
-                </Box>
-                <Button
-                  variant="contained"
-                  onClick={openProficiency}
-                  startIcon={<WorkspacePremiumIcon />}
-                  // Onda 1 (botões com ícone): `flexShrink: 0` + `flexWrap`
-                  // no CardContent — o label inteiro ("Fazer o teste"/
-                  // "Refazer") fica sempre visível, sem corte nem quebra.
-                  sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                >
-                  {track.proficient
-                    ? t('translation:roadmap.proficiencyRetake')
-                    : t('translation:roadmap.proficiencyStart')}
-                </Button>
-              </CardContent>
-            </Card>
+            <ProficiencyCard proficient={track.proficient} onOpen={openProficiency} />
           ) : null}
 
           {/* Módulos com as aulas (itens JÁ PRONTOS da trilha). */}
@@ -801,6 +242,11 @@ export function RoadmapView(props: ViewProps): ReactElement {
           </Typography>
         </Stack>
       ) : null}
-    </Box>
+    </CenteredColumn>
   );
+}
+
+/** Container: só liga o hook de estado à view pura (export público do app). */
+export function RoadmapView(props: ViewProps): ReactElement {
+  return <RoadmapViewView {...useRoadmapView(props)} />;
 }

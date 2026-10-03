@@ -479,16 +479,22 @@ describe('(fiação) bolha de erro da aula — refazer o MESMO desafio pela bolh
   });
 
   it('o mapa de bolhas passa o retry para toda review COM desafio identificado', () => {
-    assert.ok(
-      LESSON_VIEW.includes('onRetryChallenge={'),
-      'a LessonView não plugou o onRetryChallenge na ChatBubble',
+    // O mapa de bolhas virou bloco (blocks/LessonChatLog, extração state/view):
+    // a view LIGA o handler e o bloco passa o alvo da bolha (errorFor).
+    const LESSON_CHAT_LOG = readFileSync(
+      resolve(HERE, '../src/views/LessonView/blocks/LessonChatLog.tsx'),
+      'utf8',
     );
     assert.ok(
-      LESSON_VIEW.includes('handleRetryChallengeFromBubble(retryAlvo)'),
+      LESSON_VIEW.includes('onRetryChallenge={handleRetryChallengeFromBubble}'),
+      'a LessonView não plugou o onRetryChallenge no bloco do log',
+    );
+    assert.ok(
+      LESSON_CHAT_LOG.includes('props.onRetryChallenge(retryAlvo)'),
       'o callback do retry não recebe o alvo da bolha (errorFor)',
     );
     assert.ok(
-      LESSON_VIEW.includes("m.kind === 'review' && m.errorFor !== undefined"),
+      LESSON_CHAT_LOG.includes("m.kind === 'review' && m.errorFor !== undefined"),
       'o alvo do retry não é a review COM errorFor — bolha sem desafio ganharia botão morto',
     );
   });

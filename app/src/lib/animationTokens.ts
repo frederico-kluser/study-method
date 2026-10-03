@@ -90,3 +90,20 @@ export const windowVariants: Variants = {
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: 10, scale: 0.98 },
 };
+
+/**
+ * O MESMO ciclo de janela para `prefers-reduced-motion: reduce`: fade puro
+ * (só opacidade), sem deslocamento nem escala (§8.1 do contrato de movimento —
+ * quem pediu menos movimento não recebe transform).
+ *
+ * Estava copiado em `components/quiz/QuizOverlayHost.tsx` e
+ * `components/challenge/ChallengeGenerateModal.tsx` (auditoria de layout §13);
+ * aqui é a fonte única, e é o que `components/ui/ModalScrim` consome. Transição
+ * pelo prop — a forma de quem anima é `springs.snappy`/`springs.window`, nunca
+ * uma `transition` embutida no alvo (ver FIX de TIPAGEM no cabeçalho).
+ */
+export const reducedFadeVariants: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};

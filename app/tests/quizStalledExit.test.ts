@@ -559,13 +559,19 @@ describe('7. guarda de FONTE: o botão só existe com o ciclo travado', () => {
   });
 
   it('a saída só é publicada com o status "indisponivel" (nas duas metades do quiz)', () => {
-    const ocorrencias = VIEW.split('onReopen').length - 1;
+    // O card compacto virou bloco (blocks/LessonChatQuizCards): a varredura
+    // cobre a view + o bloco — as TRÊS publicações (overlay, card compacto,
+    // janela do veredito) continuam únicas na área.
+    const AREA =
+      VIEW +
+      readFileSync(resolve(HERE, '../src/views/LessonView/blocks/LessonChatQuizCards.tsx'), 'utf8');
+    const ocorrencias = AREA.split('onReopen').length - 1;
     // ONDA16-VEREDITO: a publicação CONGELADA da janela do veredito passa
     // `onReopen: null` de propósito — durante a janela o ciclo NÃO está
     // travado (o overlay só está mostrando o veredito antes de minimizar),
     // então a terceira ocorrência é um null explícito, não uma condicional.
     assert.equal(ocorrencias, 3, 'o overlay, o card compacto e o congelamento da janela — e nada além disso');
-    for (const trecho of VIEW.split('onReopen').slice(1)) {
+    for (const trecho of AREA.split('onReopen').slice(1)) {
       const janela = trecho.slice(0, 200);
       // A ocorrência da janela do veredito é `onReopen: null` — o split corta
       // ANTES do ": null", e é exatamente isso que a guarda reconhece.
@@ -594,7 +600,15 @@ describe('7. guarda de FONTE: o botão só existe com o ciclo travado', () => {
       assert.ok(texto.includes('quizChatReopen'), `${nome} precisa rotular a saída pela i18n`);
       assert.ok(!/useState\(/.test(texto), `${nome} não pode inventar estado local do ciclo`);
     }
-    assert.ok(CARD.includes('onReopen ? ('), 'o card só desenha o botão quando o prop existe');
+    // Desde a extração state/view a decisão "o botão existe?" vive no modelo
+    // PURO (`quizChatCardState`) e deriva da PRESENÇA do prop — null = nada a
+    // reabrir. O card só desenha o que o modelo diz; nenhum dos dois tem estado.
+    const MODEL = codeOf('src/components/quiz/quizChatCardState.ts');
+    assert.ok(
+      MODEL.includes('onReopen !== null'),
+      'o modelo deriva a saída da presença do prop (null = nada a reabrir)',
+    );
+    assert.ok(CARD.includes('acoes.showReopen ? ('), 'o card só desenha o botão quando o prop existe');
     assert.ok(HOST.includes('content.onReopen ? ('), 'o overlay idem');
   });
 });

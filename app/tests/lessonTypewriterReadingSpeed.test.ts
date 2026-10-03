@@ -350,7 +350,11 @@ describe('ONDA10 defeito 3 — o aluno PULA a animação (não fica refém)', ()
 
   it('a LessonView liga o skip por CLIQUE, por TECLA e por BOTÃO acessível', () => {
     const code = semComentarios(read('../src/views/LessonView/LessonView.tsx'));
-    assert.ok(code.includes('skip={skipTyping}'), 'a bolha precisa receber o skip');
+    // O log virou bloco (blocks/LessonChatLog): a view LIGA o sinal e o bloco
+    // o entrega à bolha — os dois lados da fiação são guardados.
+    const logCode = semComentarios(read('../src/views/LessonView/blocks/LessonChatLog.tsx'));
+    assert.ok(code.includes('skipTyping={skipTyping}'), 'a view precisa ligar o skip ao bloco do log');
+    assert.ok(logCode.includes('skip={props.skipTyping}'), 'a bolha precisa receber o skip');
     assert.ok(code.includes("window.addEventListener('keydown'"), 'qualquer tecla deve pular');
     assert.ok(code.includes('onClick={typingNow ? requestSkipTyping : undefined}'), 'clique no painel deve pular');
     assert.ok(
@@ -360,7 +364,7 @@ describe('ONDA10 defeito 3 — o aluno PULA a animação (não fica refém)', ()
   });
 
   it('a LessonView usa chatBubbleTps (nada de tps decidido no JSX)', () => {
-    const code = semComentarios(read('../src/views/LessonView/LessonView.tsx'));
+    const code = semComentarios(read('../src/views/LessonView/blocks/LessonChatLog.tsx'));
     assert.ok(code.includes('tps={chatBubbleTps(chat.history, i)}'), 'o tps vem da função pura');
     assert.ok(
       !code.includes("tps={m.kind === 'review' ? 10 : undefined}"),

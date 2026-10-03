@@ -82,6 +82,13 @@ function balanced(src: string, openIdx: number, open: string, close: string): nu
 }
 
 const VIEW_SRC = readFileSync(VIEW_PATH, 'utf8');
+// O card e o convite de abertura viraram blocos de VIEW PUROS
+// (extração state/view — STORY-SPEC §5); a renderização e o copy vivem lá e a
+// fiação (cardDecision → props → openChallengeFromCard) continua na view.
+const CHAT_START_PATH = resolve(HERE, '../src/views/LessonView/blocks/LessonChatStart.tsx');
+const INTRO_CARD_PATH = resolve(HERE, '../src/views/LessonView/blocks/LessonChallengeIntroCard.tsx');
+const CHAT_START_SRC = readFileSync(CHAT_START_PATH, 'utf8');
+const INTRO_CARD_SRC = readFileSync(INTRO_CARD_PATH, 'utf8');
 const VIEW = codeOf(VIEW_SRC);
 
 /** A condição de abertura do chat (history vazio) — usada nos Blocos 1–3. */
@@ -113,18 +120,21 @@ describe('BLOCO 1 — o card do desafio só existe na abertura da aula (history 
 
   it('o card nasce DENTRO do ramo de history vazio — abaixo da bolha inicial', () => {
     const truthy = openingBranch();
-    // a bolha inicial e o botão "Começar a aula" estão no MESMO ramo
-    assert.ok(truthy.includes('lesson.chatStart'), 'a bolha inicial deveria estar no ramo vazio');
-    assert.ok(truthy.includes('lesson.startButton'), 'o "Começar a aula" deveria estar no ramo vazio');
-    // ...e o card também, marcado pelo seu título i18n
-    assert.ok(
-      truthy.includes('challengeIntroCardTitle'),
-      'o card do desafio deveria renderizar no ramo de history vazio',
-    );
-    // a condição de render é a decisão do módulo puro
+    // a bolha inicial, o botão "Começar a aula" e o card saem JUNTOS, pelo
+    // bloco de abertura (LessonChatStart) — renderizado só neste ramo
+    assert.ok(truthy.includes('<LessonChatStart'), 'o convite de abertura deveria estar no ramo vazio');
+    // a condição de render continua sendo a decisão do módulo puro, e passa
+    // da view para o bloco como prop
     assert.ok(
       truthy.includes('cardDecision.show && cardDecision.challenge'),
       'a renderização deveria ser guardada por cardDecision.show && cardDecision.challenge',
+    );
+    // o copy da abertura vive no bloco (e SÓ nele)
+    assert.ok(CHAT_START_SRC.includes('lesson.chatStart'), 'a bolha inicial mora no bloco LessonChatStart');
+    assert.ok(CHAT_START_SRC.includes('lesson.startButton'), 'o "Começar a aula" mora no bloco LessonChatStart');
+    assert.ok(
+      CHAT_START_SRC.includes('<LessonChallengeIntroCard'),
+      'o card do desafio é composto PELO bloco de abertura (abaixo do convite)',
     );
   });
 
@@ -140,14 +150,14 @@ describe('BLOCO 1 — o card do desafio só existe na abertura da aula (history 
     );
   });
 
-  it('exatamente UMA renderização do card no arquivo inteiro', () => {
+  it('exatamente UMA renderização do card (área da aula inteira)', () => {
     assert.equal(
-      count(VIEW, 'challengeIntroCardTitle'),
+      count(INTRO_CARD_SRC, 'challengeIntroCardTitle'),
       1,
-      'o título do card não pode ter cópia em outro lugar da view',
+      'o título do card não pode ter cópia em outro lugar da área',
     );
-    // e a única ocorrência é a do ramo vazio (coerência com os testes acima)
-    assert.equal(count(openingBranch(), 'challengeIntroCardTitle'), 1);
+    // o bloco de compõe o card UMA vez — nenhum segundo ponto de render
+    assert.equal(count(CHAT_START_SRC, '<LessonChallengeIntroCard'), 1);
   });
 });
 
@@ -181,24 +191,30 @@ describe('BLOCO 2 — fiação do módulo puro na view', () => {
     // a anti-regressão aqui é ZERO lógica de status que NÃO venha de
     // `lessonChallengeCardStatus` (nenhuma regex/manual/paralela na view).
     assert.equal(
-      count(VIEW, 'lessonChallengeCardStatus('),
-      3,
-      'o status deve vir do módulo puro lessonChallengeCardStatus, e de nenhum outro lugar (esperado: 1 card + 2 da onda 2)',
+      count(INTRO_CARD_SRC, 'lessonChallengeCardStatus('),
+      1,
+      'o bloco do card consulta o módulo puro UMA vez (o resultado serve as 3 decisões)',
+    );
+    assert.equal(
+      count(INTRO_CARD_SRC, 'lessonChallengeCardStatus(') + count(VIEW, 'lessonChallengeCardStatus('),
+      1,
+      'o status deve vir do módulo puro lessonChallengeCardStatus, e de nenhum outro lugar',
     );
   });
 
   it('o card mostra título, conceito, dificuldade e estado do desafio destacado', () => {
-    const branch = openingBranch();
-    assert.ok(branch.includes('cardDecision.challenge.title'), 'título do desafio no card');
-    assert.ok(branch.includes('cardDecision.challenge.concept'), 'conceito do desafio no card');
+    const card = INTRO_CARD_SRC;
+    assert.ok(card.includes('challenge.title'), 'título do desafio no card');
+    assert.ok(card.includes('challenge.concept'), 'conceito do desafio no card');
     assert.ok(
-      branch.includes('lesson.difficulty') && branch.includes('cardDecision.challenge.difficulty'),
+      card.includes('lesson.difficulty') && card.includes('challenge.difficulty'),
       'dificuldade do desafio no card',
     );
     assert.ok(
-      branch.includes('lesson.challengeUntried') &&
-        branch.includes('lesson.challengeFailedCount'),
-      'estado (nunca tentado / falhas) do desafio no card',
+      card.includes('lesson.challengeUntried') &&
+        card.includes('lesson.challengeFailedCount') &&
+        card.includes('lesson.challengeNotPassed'),
+      'estado (nunca tentado / falhas / não passou) do desafio no card',
     );
   });
 });
@@ -224,12 +240,16 @@ describe('BLOCO 3 — openChallengeFromCard: caminho do fluxo track sem o gate',
     assert.equal(
       count(VIEW, 'openChallengeFromCard'),
       2,
-      'esperava declaração + 1 uso (o onClick do card)',
+      'esperava declaração + 1 uso (o onTryChallenge do bloco de abertura)',
     );
     const truthy = openingBranch();
     assert.ok(
-      truthy.includes('onClick={() => openChallengeFromCard(cardDecision.challenge!)}'),
-      'o botão do card deve chamar openChallengeFromCard com o desafio destacado',
+      truthy.includes('onTryChallenge={() => {'),
+      'o card recebe o clique pelo prop onTryChallenge (o bloco não navega sozinho)',
+    );
+    assert.ok(
+      truthy.includes('openChallengeFromCard(cardDecision.challenge)'),
+      'o handler do card deve chamar openChallengeFromCard com o desafio destacado',
     );
   });
 
@@ -295,9 +315,11 @@ describe('BLOCO 4 — chaves lesson.challengeIntroCard* em pt-BR e en (paridade)
     );
   });
 
-  it('toda chave challengeIntroCard* usada na view existe nos dois locales', () => {
-    const used = new Set(VIEW_SRC.match(/challengeIntroCard\w+/g) ?? []);
-    assert.ok(used.size > 0, 'a view deveria usar chaves challengeIntroCard*');
+  it('toda chave challengeIntroCard* usada na área da aula existe nos dois locales', () => {
+    const used = new Set(
+      `${VIEW_SRC}\n${CHAT_START_SRC}\n${INTRO_CARD_SRC}`.match(/challengeIntroCard\w+/g) ?? [],
+    );
+    assert.ok(used.size > 0, 'a área da aula deveria usar chaves challengeIntroCard*');
     for (const key of used) {
       assert.ok(key in ptLesson, `pt-BR: chave usada na view ausente — lesson.${key}`);
       assert.ok(key in enLesson, `en: chave usada na view ausente — lesson.${key}`);

@@ -6,8 +6,18 @@
  * (`piper-en-amy` e `piper-pt-br-faber`, sampleRate 22050) e a função pura
  * `defaultVoiceFor(lng)` que a UI usa para escolher o modelo por idioma.
  *
- * Shared entre o main (download/load/generate) e o renderer (hook/componentes
- * de voz). Fonte única de verdade para os modelos on-device.
+ * Shared entre o main (download/load/generate) e o renderer (narração do
+ * onboarding + hook `useMicSTT`/UI de voz). Fonte única de verdade para os
+ * modelos on-device.
+ *
+ * NOTA DE CONTRATO (fix do envelope `localTts:*`): os handlers do main devolvem
+ * o envelope `{ success, data?, error? }` (TtsIpcResult<T>), mas o preload
+ * desembrulha-o antes de expor — `window.api.localTts.generate(...)` e
+ * `getPreference()` resolvem o VALOR NU (`TtsGenerateResult` / `LocalTtsPreference`)
+ * e rejeitam com `Error(error)` quando `success:false`. Antes do fix o envelope
+ * chegava cru ao renderer e `res.audioBase64` era `undefined` (a narração do
+ * onboarding nunca tocava). Ver `electron/preload/api-schema.ts`
+ * (`LOCAL_TTS_ENVELOPE_UNWRAPPERS`).
  *
  * O engine é **Piper** (VITS family): um modelo single-speaker por língua,
  * voiced por um `sid` embutido (0). Piper phonemiza via espeak-ng data
@@ -198,9 +208,13 @@ export function resolveTtsModelForLocale(locale: string | undefined): TtsModelEn
 }
 
 /**
- * Pure helper for the SpeakButton/voice UI: given an app locale, return the
- * default VOICE ID (Amy for en, Faber for pt-BR). Falls back to the default
- * English voice for unknown locales.
+ * Pure helper for the voice UI (today: the onboarding narration —
+ * `speakOnboardingText` in features/onboarding/services/onboardingAudio.service.ts):
+ * given an app locale, return the default VOICE ID (Amy for en, Faber for
+ * pt-BR). Falls back to the default English voice for unknown locales.
+ *
+ * (The old MicButton/SpeakButton voice components were deleted; the narration
+ * service above is the current consumer.)
  */
 export function defaultVoiceFor(lng: string | undefined): string {
   const code = normalizeTtsLocale(lng);

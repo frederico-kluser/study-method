@@ -46,6 +46,7 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import { theme } from '../src/theme';
+import { Z_INDEX } from '../src/lib/designTokens';
 import ptBR from '../src/i18n/locales/pt-BR/translation.json';
 import en from '../src/i18n/locales/en/translation.json';
 import {
@@ -141,7 +142,11 @@ describe('1. guardas de fonte — o loader global no shell', () => {
   it('a pílula é fixa, acima dos overlays e o texto quebra (FQ10 / SC 1.4.12)', () => {
     const code = codeOf(readFileSync(INDICATOR_PATH, 'utf8'));
     assert.match(code, /position:\s*'fixed'/, 'fixa — fora do fluxo de scroll do chat');
-    assert.match(code, /zIndex:\s*1400/, 'acima do overlay do quiz e do modal (1300)');
+    // §12 do LAYOUT-DRY-AUDIT: o degrau é o PAPEL `busy` do contrato Z_INDEX
+    // (designTokens) — e a ordem relativa é o que se tranca aqui: a pílula
+    // flutua ACIMA dos overlays (1400 > 1300) em código, não em comentário.
+    assert.match(code, /zIndex:\s*Z_INDEX\.busy/, 'a pílula usa o papel `busy` do contrato Z_INDEX');
+    assert.ok(Z_INDEX.busy > Z_INDEX.overlay, 'busy tem de flutuar acima do overlay do quiz');
     // FIX DO REVISOR: a pílula mora no canto onde fica o botão ENVIAR do
     // composer (habilitado durante o streaming) — ela é um anúncio, nunca um
     // alvo de ponteiro: pointerEvents 'none' garante que não come cliques.

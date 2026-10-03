@@ -148,14 +148,13 @@ import Typography from '@mui/material/Typography';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-
-/**
- * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
- * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
- * Os botões de ação vêm em `size="small"` para não competir com o título na
- * coluna estreita: a CAIXA cresce até o piso, o glifo e o rótulo continuam.
- */
-const TOUCH_TARGET_PX = 44;
+// DRY (auditoria de layout §1): o piso de alvo de toque e o composto de ação
+// de rótulo quebrável vivem UMA vez em `lib/layoutSx.ts`
+// (`touchTargetSx`/`wrappingActionSx` — derivados de `TARGET.minTouchTargetPx`
+// em `lib/designTokens.ts`). A regra local `TOUCH_TARGET_PX = 44` foi
+// aposentada: mesmos valores, fonte única.
+import { touchTargetSx, wrappingActionSx } from '../../lib/layoutSx';
+import { SHAPE } from '../../lib/designTokens';
 
 export interface LessonSidebarHeaderProps {
   /** Título da aula (o h1 da coluna — quebra linha, nunca recorta). */
@@ -318,7 +317,10 @@ export function LessonSidebarHeader({
           value={theoryProgress}
           sx={(theme) => ({
             height: 6,
-            borderRadius: 3,
+            // Geometria de PÍLULA (ver o bloco FRONTEIRA DE NÍVEL): o raio vem
+            // do vocabulário único `SHAPE` (auditoria §11) — `borderRadius: 3`
+            // (=36px, fora da rampa) foi aposentado; pílula pintada igual.
+            borderRadius: `${SHAPE.pill}px`,
             backgroundColor: theme.vars.palette.nonText.neutral,
             '& .MuiLinearProgress-bar': {
               backgroundColor: theme.vars.palette.primary.fill,
@@ -404,11 +406,10 @@ export function LessonSidebarHeader({
                 // Quebra, nunca recorta (ver o bloco AÇÕES acima):
                 // `break-word` + `minWidth: 0` (finding-5) — nada de
                 // ellipsis, nada de quebra a meio da palavra por preguiça.
-                whiteSpace: 'normal',
-                overflowWrap: 'break-word',
+                // O composto (piso de toque + quebra) é o `wrappingActionSx`
+                // de `lib/layoutSx.ts` (auditoria §1).
+                ...wrappingActionSx,
                 minWidth: 0,
-                // Piso de alvo de toque (TOUCH_TARGET_PX).
-                minHeight: TOUCH_TARGET_PX,
               })}
             >
               {t('translation:lesson.challengesButton')}
@@ -423,12 +424,10 @@ export function LessonSidebarHeader({
           sx={(theme) => ({
             color: theme.vars.palette.text.primary,
             borderColor: theme.vars.palette.nonText.neutral,
-            // Quebra, nunca recorta: `break-word` + `minWidth: 0` (finding-5).
-            whiteSpace: 'normal',
-            overflowWrap: 'break-word',
+            // Quebra, nunca recorta: `break-word` + `minWidth: 0` (finding-5)
+            // — o composto vive em `wrappingActionSx` (auditoria §1).
+            ...wrappingActionSx,
             minWidth: 0,
-            // Piso de alvo de toque (TOUCH_TARGET_PX).
-            minHeight: TOUCH_TARGET_PX,
           })}
         >
           {t('translation:lesson.sourcesButton')}
@@ -487,10 +486,11 @@ export function LessonSidebarHeader({
                 sx={(theme) => ({
                   height: 'auto',
                   // W10 (auditoria de UX — Fitts): chip CLICÁVEL com o piso de
-                  // alvo de toque da casa (TOUCH_TARGET_PX). `height: 'auto'`
-                  // deixa o rótulo quebrar; o `minHeight` garante que mesmo o
-                  // chip de uma linha cumpre o piso (min-height vence height).
-                  minHeight: TOUCH_TARGET_PX,
+                  // alvo de toque da casa (`touchTargetSx` de `lib/layoutSx.ts`
+                  // — auditoria §1). `height: 'auto'` deixa o rótulo quebrar;
+                  // o `minHeight` garante que mesmo o chip de uma linha cumpre
+                  // o piso (min-height vence height).
+                  ...touchTargetSx,
                   maxWidth: '100%',
                   // Afordância de navegação no hover (finding-9) — ver o
                   // comentário do bloco para as medições de contraste.

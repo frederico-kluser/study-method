@@ -38,6 +38,7 @@ import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, t
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 
+import { SR_ONLY_SX } from '../../lib/a11yStyles';
 import { SHAPE } from '../../lib/designTokens';
 import {
   ratioFromPointer,
@@ -72,18 +73,12 @@ export interface SplitDividerProps {
   readonly dividerId: string;
 }
 
-/** Span visualmente escondido — carrega o texto da dica para `aria-describedby`. */
-const HIDDEN_HINT_SX = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  margin: -1,
-  padding: 0,
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const;
+/**
+ * O span da dica usa o sr-only canónico (`SR_ONLY_SX` de `lib/a11yStyles` — §5
+ * do LAYOUT-DRY-AUDIT): a grafia `width: 1`/`margin: -1` que aqui vivia era
+ * bug latente (`sx` transforma `1` em 100% e `-1` em -8px) e estava copiada
+ * noutros 4 ficheiros. Carrega o texto da dica para `aria-describedby`.
+ */
 
 export default function SplitDivider({
   ratio,
@@ -235,7 +230,7 @@ export default function SplitDivider({
       })}
     >
       {hint ? (
-        <Typography id={hintId} component="span" sx={HIDDEN_HINT_SX}>
+        <Typography id={hintId} component="span" sx={SR_ONLY_SX}>
           {hint}
         </Typography>
       ) : null}

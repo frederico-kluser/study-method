@@ -198,9 +198,22 @@ describe('ONDA-UMA-PERGUNTA-POR-VEZ — guarda de FONTE: a view renderiza só o 
   });
 
   it('o card pendente só renderiza para a pergunta em cena (o head)', () => {
+    // O render dos cards virou bloco (blocks/LessonChatQuizCards, extração
+    // state/view): a view LIGA a pergunta em cena e o bloco pula o render de
+    // qualquer pendente que não seja ela.
+    const cardsCode = readFileSync(
+      resolve(HERE, '../src/views/LessonView/blocks/LessonChatQuizCards.tsx'),
+      'utf8',
+    )
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
     assert.ok(
-      code.includes("questionInScene?.visible.key !== visible.key"),
-      'a view precisa pular o render de qualquer pendente que NÃO seja a pergunta em cena',
+      code.includes('questionInSceneKey={questionInScene?.visible.key ?? null}'),
+      'a view precisa passar a pergunta em cena ao bloco do log',
+    );
+    assert.ok(
+      cardsCode.includes('props.questionInSceneKey !== visible.key'),
+      'o bloco precisa pular o render de qualquer pendente que NÃO seja a pergunta em cena',
     );
   });
 

@@ -40,16 +40,27 @@ import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import type { DifficultyLevel } from '../../lib/levels';
 import type { TreeViewNode } from '../../lib/treeView';
+import { LAYOUT } from '../../lib/designTokens';
 import { effectsTransition, FOCUS_RING, focusRingStyles, spatialTransition } from '../../theme';
+import {
+  defaultStateLabels,
+  defaultTreeEmpty,
+  defaultTreeTitle,
+  initialTreeOpenState,
+  isTreeOpen,
+  nodeAriaLabel,
+  nodeIndent,
+  nodeIsFolder,
+  toggleTreeOpenState,
+  type TreeOpenState,
+  type TreeStateLabels,
+} from './evolutionTreeState';
 
-/** Rótulos de estado do nó — usados no `aria-label` (i18n quando fornecido). */
-export interface TreeStateLabels {
-  done: string;
-  current: string;
-  pending: string;
-  /** Rótulo do nível (semântico — entra no aria-label; o selo é aria-hidden). */
-  level?: (level: DifficultyLevel) => string;
-}
+/**
+ * Rótulos de estado do nó — o contrato de i18n vive em `evolutionTreeState.ts`
+ * (lógica pura, testada sem jsdom); a re-exportação mantém o export público.
+ */
+export type { TreeStateLabels };
 
 export interface EvolutionTreeProps {
   /** Árvore pronta para render (saída de `toTreeView`). */
@@ -65,14 +76,6 @@ export interface EvolutionTreeProps {
   /** Mensagem de árvore vazia i18n (onda2-trilha; default legado preservado). */
   emptyLabel?: string;
 }
-
-const DEFAULT_TITLE = 'Evolução da aprendizagem';
-const DEFAULT_EMPTY = 'Nenhuma evolução registrada ainda. Gere sua primeira aula para começar.';
-const DEFAULT_STATE_LABELS: TreeStateLabels = {
-  done: 'concluído',
-  current: 'em andamento',
-  pending: 'pendente',
-};
 
 /** Selo visual do nível (aria-hidden: o nível já vai no aria-label do nó). */
 function LevelBadge({
@@ -105,31 +108,30 @@ function LevelBadge({
 function TreeNode({
   node,
   depth,
-  defaultCollapsed,
+  openState,
+  onToggle,
   onSelectLesson,
   stateLabels,
   levelLabel,
 }: {
   node: TreeViewNode;
   depth: number;
-  defaultCollapsed: boolean;
+  openState: TreeOpenState;
+  onToggle: (node: TreeViewNode) => void;
   onSelectLesson: (lessonId: string) => void;
   stateLabels: TreeStateLabels;
   levelLabel?: (level: DifficultyLevel) => string;
 }): ReactElement {
-  const hasChildren = node.children.length > 0;
-  // Nós com filhos colapsam (pasta); folhas não têm o que dobrar.
-  const [open, setOpen] = useState(!defaultCollapsed);
+  const hasChildren = nodeIsFolder(node);
+  // Estado de LAYOUT do grafo: a abertura das pastas vive na RAIZ como
+  // conjunto imutável (evolutionTreeState.ts — lógica pura, testada sem
+  // jsdom). Aqui só se lê (`isTreeOpen`) e se pede o toggle ao dono.
+  const open = isTreeOpen(openState, node.lessonId);
 
-  const stateText =
-    node.state === 'done' ? stateLabels.done : node.state === 'current' ? stateLabels.current : stateLabels.pending;
-  const levelText = node.level && levelLabel ? ` · ${levelLabel(node.level)}` : '';
-  const nodeAriaLabel = hasChildren
-    ? `${node.label} — ${stateText}, ${node.children.length} sub-aula(s)${levelText}`
-    : `${node.label} — ${stateText}${levelText}`;
+  const nodeAria = nodeAriaLabel(node, stateLabels);
 
   const handleClick = (): void => {
-    if (hasChildren) setOpen((o) => !o);
+    if (hasChildren) onToggle(node);
     onSelectLesson(node.lessonId);
   };
 
@@ -139,8 +141,8 @@ function TreeNode({
     <Box
       role="treeitem"
       aria-expanded={hasChildren ? open : undefined}
-      aria-label={nodeAriaLabel}
-      sx={{ pl: depth * 16 }}
+      aria-label={nodeAria}
+      sx={{ pl: nodeIndent(depth) }}
     >
       <Button
         variant={node.state === 'done' ? 'contained' : 'outlined'}
@@ -215,7 +217,8 @@ function TreeNode({
                 key={child.lessonId}
                 node={child}
                 depth={depth + 1}
-                defaultCollapsed={defaultCollapsed}
+                openState={openState}
+                onToggle={onToggle}
                 onSelectLesson={onSelectLesson}
                 stateLabels={stateLabels}
                 levelLabel={levelLabel}
@@ -231,13 +234,22 @@ function TreeNode({
 export default function EvolutionTree({
   nodes,
   onSelectLesson,
-  title = DEFAULT_TITLE,
+  title = defaultTreeTitle(),
   collapsed = false,
-  stateLabels = DEFAULT_STATE_LABELS,
-  emptyLabel = DEFAULT_EMPTY,
+  stateLabels = defaultStateLabels(),
+  emptyLabel = defaultTreeEmpty(),
 }: EvolutionTreeProps): ReactElement {
   const list = nodes ?? [];
   const levelLabel = stateLabels.level;
+  // Estado de LAYOUT do grafo (puro — evolutionTreeState.ts, testado em
+  // tests/evolutionTreeState.test.ts): que pastas estão abertas. Nasce
+  // `!collapsed`, tal como o `useState(!defaultCollapsed)` de cada nó antigo.
+  const [openState, setOpenState] = useState<TreeOpenState>(() =>
+    initialTreeOpenState(list, collapsed),
+  );
+  const handleToggle = (node: TreeViewNode): void => {
+    setOpenState((current) => toggleTreeOpenState(current, node, collapsed));
+  };
 
   if (list.length === 0) {
     return (
@@ -255,7 +267,7 @@ export default function EvolutionTree({
       role="tree"
       aria-label={title}
       sx={{
-        maxWidth: 680,
+        maxWidth: LAYOUT.chooserColumnPx,
         maxHeight: 420,
         overflow: 'auto',
         mx: 'auto',
@@ -271,7 +283,8 @@ export default function EvolutionTree({
             key={root.lessonId}
             node={root}
             depth={0}
-            defaultCollapsed={collapsed}
+            openState={openState}
+            onToggle={handleToggle}
             onSelectLesson={onSelectLesson}
             stateLabels={stateLabels}
             levelLabel={levelLabel}

@@ -10,17 +10,16 @@
  *    atualizar (→ `onRefresh()`), excluir (→ diálogo de confirmação e só
  *    depois `onDeleteFile(path)` — C2: excluir NUNCA é 1 clique).
  *
- * O controle de expandir é estado local (não precisa sobreviver à navegação).
- * Nenhuma dependência nova (sem @mui/x-tree-view) — usa List aninhado.
+ * O controle de expandir/selecionar/formulários é estado de UI PURO
+ * (`lib/fileExplorerState.ts` — reducer testável sem DOM, ver o contrato
+ * state/view do STORY-SPEC §5); este componente é apresentação + emissão de
+ * callbacks. Nenhuma dependência nova (sem @mui/x-tree-view) — usa List
+ * aninhado.
  */
-import { useMemo, useState, type ReactElement } from 'react';
+import { useMemo, useReducer, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -31,21 +30,30 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import FolderIcon from '@mui/icons-material/Folder';
 import DescriptionIcon from '@mui/icons-material/Description';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { WorkspaceFile } from '../../../shared/ipc-contract';
 import { buildTreeFromFiles, sortTree, type FileTreeNode } from '../../lib/editorFiles';
+import {
+  canSubmitNewFile,
+  fileExplorerReducer,
+  initialFileExplorerState,
+  pendingDeleteName,
+} from '../../lib/fileExplorerState';
+import { touchTargetBoxSx, touchTargetSx } from '../../lib/layoutSx';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 /**
- * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
- * qualquer controle apontável (mesma receita do LessonView/TrackChallengePanel).
- * Os botões/ícones da toolbar nascem pequenos (`size="small"`): a CAIXA cresce
- * até o piso, o glifo continua do tamanho compacto.
+ * Alvo de toque mínimo — o piso de 44 que o design system cobra para qualquer
+ * controle apontável. Era uma constante local (`TOUCH_TARGET_PX`, auditoria
+ * §1); agora vem dos primitivos `touchTargetBoxSx` (caixa de botão de ícone) e
+ * `touchTargetSx` (minHeight) de `lib/layoutSx.ts`, que leem
+ * `TARGET.minTouchTargetPx` de `designTokens.ts`. Os botões/ícones da toolbar
+ * nascem pequenos (`size="small"`): a CAIXA cresce até o piso, o glifo
+ * continua do tamanho compacto.
  */
-const TOUCH_TARGET_PX = 44;
 
 /** Callbacks de ação da toolbar/árvore. */
 export interface FileExplorerCallbacks {
@@ -159,66 +167,47 @@ export function FileExplorer({
   // strict-typed desta base não resolve InterpolationMap, mas o runtime
   // interpola normal — `editor.confirmDelete` leva {{name}}.
   const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
-  // Diretórios expandidos (default: todos expandidos inicialmente).
-  const [openDirs, setOpenDirs] = useState<ReadonlySet<string>>(() => {
-    const all = new Set<string>();
-    for (const f of files) {
-      if (f.dir) all.add(f.path);
-    }
-    return all;
-  });
-  const [newName, setNewName] = useState('');
-  const [showNew, setShowNew] = useState(false);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  // C2: exclusão confirmada num diálogo — `pendingDelete` é o path AGUARDANDO
-  // confirmação (null = diálogo fechado). Excluir arquivo é destrutivo e
-  // irreversível: 1 clique nunca apaga.
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  // Estado de UI PURO (expansão/seleção/formulários) — reducer de
+  // `lib/fileExplorerState.ts`; inicializado com os diretórios todos abertos.
+  const [state, dispatch] = useReducer(
+    fileExplorerReducer,
+    files,
+    initialFileExplorerState,
+  );
+  const { openDirs, selectedPath, newName, showNew, pendingDelete } = state;
 
   const tree = useMemo(() => sortTree(buildTreeFromFiles(files)), [files]);
 
-  const toggleDir = (path: string): void => {
-    setOpenDirs((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
-
   const submitNew = (): void => {
-    const name = newName.trim();
-    if (!name) return;
-    onCreateFile(name);
-    setNewName('');
-    setShowNew(false);
+    if (!canSubmitNewFile(state)) return;
+    onCreateFile(newName.trim());
+    dispatch({ type: 'new_file_submitted' });
   };
 
-  // Botão excluir: abre o diálogo de confirmação (C2). Só o "Excluir" do
-  // diálogo chama `onDeleteFile` — o risco de clique errado some.
+  // Botão excluir: ENFILEIRA a confirmação (C2). Só o "Excluir" do diálogo
+  // chama `onDeleteFile` — o risco de clique errado some.
   const confirmDelete = (): void => {
-    if (selectedPath) setPendingDelete(selectedPath);
+    dispatch({ type: 'request_delete' });
   };
 
-  // Confirmação dada: apaga e limpa a seleção.
+  // Confirmação dada: apaga (o reducer limpa seleção + diálogo).
   const acceptDelete = (): void => {
     if (pendingDelete) {
       onDeleteFile(pendingDelete);
-      setSelectedPath(null);
     }
-    setPendingDelete(null);
+    dispatch({ type: 'delete_confirmed' });
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Toolbar — alvos no piso de toque (TOUCH_TARGET_PX) */}
+      {/* Toolbar — alvos no piso de toque (`touchTargetBoxSx`) */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, py: 0.25 }}>
         <Tooltip title={t('translation:editor.newFile')}>
           <IconButton
             size="small"
             aria-label={t('translation:editor.newFile')}
-            onClick={() => setShowNew((s) => !s)}
-            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+            onClick={() => dispatch({ type: 'toggle_new_form' })}
+            sx={touchTargetBoxSx}
           >
             <NoteAddIcon fontSize="small" />
           </IconButton>
@@ -228,7 +217,7 @@ export function FileExplorer({
             size="small"
             aria-label={t('translation:editor.refresh')}
             onClick={onRefresh}
-            sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+            sx={touchTargetBoxSx}
           >
             <RefreshIcon fontSize="small" />
           </IconButton>
@@ -241,7 +230,7 @@ export function FileExplorer({
               disabled={!selectedPath}
               onClick={confirmDelete}
               color="error"
-              sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+              sx={touchTargetBoxSx}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -261,23 +250,23 @@ export function FileExplorer({
             // i18n: o placeholder era string crua em pt ("novo.txt (path
             // relativo)") — a chave `editor.newFilePlaceholder` já existe.
             placeholder={t('translation:editor.newFilePlaceholder')}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={(e) => dispatch({ type: 'set_new_name', name: e.target.value })}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submitNew();
-              if (e.key === 'Escape') setShowNew(false);
+              if (e.key === 'Escape') dispatch({ type: 'close_new_form' });
             }}
             sx={{
-              // Piso de alvo de toque (TOUCH_TARGET_PX): o campo small nasce
-              // ~34px — o ALVO é o próprio input, então o minHeight vai para ele.
-              '& .MuiInputBase-input': { minHeight: TOUCH_TARGET_PX },
+              // Piso de alvo de toque: o campo small nasce ~34px — o ALVO é o
+              // próprio input, então o minHeight vai para ele.
+              '& .MuiInputBase-input': { minHeight: touchTargetSx.minHeight },
             }}
           />
           <Button
             size="small"
             variant="contained"
             onClick={submitNew}
-            disabled={!newName.trim()}
-            sx={{ minHeight: TOUCH_TARGET_PX }}
+            disabled={!canSubmitNewFile(state)}
+            sx={touchTargetSx}
           >
             {t('translation:editor.create')}
           </Button>
@@ -298,37 +287,29 @@ export function FileExplorer({
                 node={node}
                 depth={0}
                 openDirs={openDirs}
-                toggleDir={toggleDir}
+                toggleDir={(path) => dispatch({ type: 'toggle_dir', path })}
                 activePath={activePath}
                 onOpenFile={onOpenFile}
-                onSelect={setSelectedPath}
+                onSelect={(path) => dispatch({ type: 'select_file', path })}
               />
             ))}
           </List>
         )}
       </Box>
 
-      {/* C2 — CONFIRMAÇÃO de exclusão (mesmo padrão do OrphanTracksPanel):
-          pergunta pelo NOME do arquivo e só apaga no botão destrutivo. */}
-      <Dialog
+      {/* C2 — CONFIRMAÇÃO de exclusão (primitivo `ConfirmDialog`, auditoria
+          §9): pergunta pelo NOME do arquivo e só apaga no botão destrutivo.
+          `initialFocus="confirm"` mantém o padrão histórico deste explorador
+          (o foco no destrutivo), tal como o primitivo documenta. */}
+      <ConfirmDialog
         open={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        aria-labelledby="editor-confirm-delete-title"
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle id="editor-confirm-delete-title">
-          {tI('translation:editor.confirmDelete', {
-            name: (pendingDelete ?? '').split('/').pop() ?? pendingDelete ?? '',
-          })}
-        </DialogTitle>
-        <DialogActions>
-          <Button onClick={() => setPendingDelete(null)}>{t('translation:common.cancel')}</Button>
-          <Button onClick={acceptDelete} color="error" variant="contained" autoFocus>
-            {t('translation:editor.deleteFile')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title={tI('translation:editor.confirmDelete', { name: pendingDeleteName(state) })}
+        confirmLabel={t('translation:editor.deleteFile')}
+        cancelLabel={t('translation:common.cancel')}
+        initialFocus="confirm"
+        onCancel={() => dispatch({ type: 'cancel_delete' })}
+        onConfirm={acceptDelete}
+      />
     </Box>
   );
 }

@@ -47,6 +47,16 @@
     // da pasta (GamesView/GameLevelView) ficam FORA — pertencem ao
     // tsconfig.json do renderer.
     "src/views/GamesView/gamesUi.ts",
+    // ONDA-GAMES + onda Storybook (contrato state/view): a SELEÇÃO de
+    // mundo/nível (gamesSelection.ts) e a MÁQUINA do editor/runner do nível
+    // (gameLevelState.ts) são PUROS (sem React/DOM/MUI — só tipos de
+    // src/types/games.ts), extraídos dos contentores GamesView/GameLevelView.
+    // São testados headless de tests/gamesSelection.test.ts e
+    // tests/gamesLevelState.test.ts; estarem aqui é a prova mecânica de que não
+    // podem voltar a depender de DOM (projeto composite, lib ES2022 sem DOM).
+    // Os componentes React (.tsx) ficam FORA — tsconfig.json do renderer.
+    "src/views/GamesView/gamesSelection.ts",
+    "src/views/GamesView/gameLevelState.ts",
     // src/theme.ts é PURO (createTheme, sem JSX/DOM) e é testado de
     // tests/theme.test.ts — adicionado ao projeto composite de testes.
     "src/theme.ts",
@@ -54,6 +64,16 @@
     // sem React/DOM) e é testado de tests/themeModeState.test.ts — listado aqui
     // como os demais módulos puros alcançáveis por import nos testes.
     "src/components/theme/themeModeState.ts",
+    // src/components/course/courseSelectionState.ts e
+    // src/components/tree/evolutionTreeState.ts são PUROS (lógica de estado da
+    // seleção de curso e do layout da árvore de evolução — sem React/DOM/MUI;
+    // só tipos de src/lib). São testados de tests/courseSelectionState.test.ts
+    // e tests/evolutionTreeState.test.ts, e estarem aqui é a prova mecânica de
+    // que não podem voltar a depender de DOM: este projeto compila com lib
+    // ES2022 SEM DOM. Os componentes React (CourseSelector, EvolutionTree)
+    // ficam FORA — pertencem ao tsconfig.json do renderer.
+    "src/components/course/courseSelectionState.ts",
+    "src/components/tree/evolutionTreeState.ts",
     // src/components/markdown/codeHighlight.ts é PURO (dado + parser do
     // @lezer/highlight; sem React e sem DOM — ele devolve o PAPEL de sintaxe de
     // cada trecho, e quem pinta é o CSS do CodeBlock). É testado headless de
@@ -71,6 +91,11 @@
     // ficam FORA — pertencem ao tsconfig.json do renderer.
     "src/components/quiz/quizOverlayContent.ts",
     "src/components/quiz/quizOverlayBridge.ts",
+    // src/components/quiz/quizChatCardState.ts é PURO (o modelo do card do quiz
+    // na conversa: a chave do texto de estado + as ações de resposta que o card
+    // desenha — sem React/DOM/i18n). É testado de tests/quizChatCardState.test.ts
+    // e listado aqui pela mesma razão dos irmãos acima.
+    "src/components/quiz/quizChatCardState.ts",
     // src/features/onboarding/* (onda 12 — tutorial): módulos PUROS (storage,
     // posicionamento, steps/alvos, regra de oferta) testados de tests/onboarding*.test.ts
     // sem jsdom. Os componentes React (overlay/modal/host) ficam FORA daqui —
@@ -83,6 +108,12 @@
     "src/features/onboarding/logic/evaluateStepAction.ts",
     "src/features/onboarding/logic/onboardingSignals.ts",
     "src/features/onboarding/logic/stepTargetPresence.ts",
+    // spotlightGeometry.ts é PURO (geometria do spotlight do overlay: resolução
+    // do alvo, rect com folga, segmentos de máscara, bloqueio de interação —
+    // DOM por injeção, como em onboardingSignals). Testado de
+    // tests/onboardingSpotlightGeometry.test.ts; listado aqui é a prova
+    // mecânica de que não pode voltar a depender de DOM (composite, sem DOM).
+    "src/features/onboarding/logic/spotlightGeometry.ts",
     "src/features/onboarding/services/onboardingStorage.service.ts",
     // ONDA-BOTAO-AJUDA: lançador global do tutorial (registo do host ↔ botão de
     // ajuda do shell). PURO (sem DOM/React) — testado de tests/tutorialLauncher.test.ts.
@@ -90,6 +121,49 @@
     "src/features/onboarding/utils/onboardingPositioning.utils.ts",
     "src/features/onboarding/components/tutorialSelectionHelpers.ts",
     "src/features/onboarding/hooks/firstRunTutorial.rule.ts",
-    "src/features/onboarding/hooks/helpHint.rule.ts"
+    "src/features/onboarding/hooks/helpHint.rule.ts",
+    // ONDA-STORYBOOK-FUNDACAO: os módulos de ESTADO dos primitivos de
+    // components/ui/*.state.ts são PUROS (sem React, sem DOM, sem MUI — só
+    // dado e função) e são testados headless de tests/uiPrimitivesState.test.ts;
+    // listados aqui pelos mesmos motivos dos demais (projeto composite exige
+    // listar o que os testes importam; lib ES2022 SEM DOM é a prova mecânica
+    // de que não podem voltar a depender de DOM). As views (.tsx) e o adapter
+    // useFocusTrap.ts ficam FORA — pertencem ao tsconfig.json do renderer.
+    // Os módulos puros de src/lib (designTokens, animationTokens, a11yStyles,
+    // focusTrap, layoutSx) já entram pela entrada "src/lib" de cima.
+    "src/components/ui/ActionButton.state.ts",
+    "src/components/ui/ConfirmDialog.state.ts",
+    "src/components/ui/InfoCard.state.ts",
+    "src/components/ui/ModalScrim.state.ts",
+    "src/components/ui/Pressable.state.ts",
+    "src/components/ui/RetryAlert.state.ts",
+    "src/components/ui/SectionHeader.state.ts",
+    // ONDA-STORYBOOK-DRY (auditoria §13): src/lib/quizPill.ts é PURO (o
+    // contorno das pílulas do quiz — a fórmula `color-mix` que estava copiada
+    // em LessonQuiz.tsx e QuizOverlayHost.tsx; sem React/DOM/MUI) e é testado
+    // de tests/quizPill.test.ts. A entrada "src/lib" de cima já o alcança;
+    // fica listado explicitamente pela convenção dos módulos puros sob teste —
+    // o registo do que é puro (e portanto compilado SEM DOM) num lugar só.
+    "src/lib/quizPill.ts",
+    // ONDA-STORYBOOK-VISTAS: a MÁQUINA DE ESTADOS do painel de limpeza de
+    // progresso (progressPanelState.ts) é PURA (sem React/DOM/MUI) e é testada
+    // headless de tests/settingsPanelsState.test.ts; listada aqui pelos mesmos
+    // motivos dos demais módulos puros (projeto composite, lib ES2022 SEM DOM).
+    // O hook (useProgressPanel.ts) e as views (.tsx) ficam FORA — pertencem ao
+    // tsconfig.json do renderer.
+    "src/views/SettingsView/progressPanelState.ts",
+    // ONDA-STORYBOOK-DESAFIO: os HELPERS PUROS da UI do desafio
+    // (challengeUi.ts — acumulador de blocos do stream do pi, identidade da
+    // tentativa, veredito; trackChallengeUi.ts — payload multi-arquivo do
+    // submit, ficheiro em falta, triagem do relatório de domínio) são
+    // testados headless de tests/challengeUi.test.ts e
+    // tests/trackChallengeUi.test.ts; listados aqui pelo mesmo motivo dos
+    // demais módulos puros (projeto composite exige listar o que os testes
+    // importam) e a prova mecânica de que não podem voltar a depender de DOM
+    // (este projeto compila com lib ES2022 SEM DOM). Os componentes React da
+    // pasta (ChallengeView/TrackChallengePanel/blocks/hooks) ficam FORA —
+    // pertencem ao tsconfig.json do renderer.
+    "src/views/ChallengeView/challengeUi.ts",
+    "src/views/ChallengeView/trackChallengeUi.ts"
   ]
 }

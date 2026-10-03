@@ -117,3 +117,51 @@ export function extensionsForFilename(filename: string): readonly Extension[] {
   const ext = dot > 0 && dot < base.length - 1 ? base.slice(dot + 1) : '';
   return languageForExt(ext).extensions;
 }
+
+/**
+ * Família de ÍCONE por ficheiro — vocabulário decorativo da UI (abas do
+ * EditorPane, árvore do FileExplorer). É dado PURO: quem escolhe o componente
+ * de ícone é a view; aqui só se decide a família, testável sem DOM.
+ */
+export type EditorIconKind = 'code' | 'data' | 'doc' | 'file';
+
+const ICON_KIND_BY_EXT: Readonly<Record<string, EditorIconKind>> = {
+  js: 'code',
+  mjs: 'code',
+  cjs: 'code',
+  jsx: 'code',
+  ts: 'code',
+  tsx: 'code',
+  py: 'code',
+  rust: 'code',
+  rs: 'code',
+  c: 'code',
+  h: 'code',
+  cpp: 'code',
+  hpp: 'code',
+  cc: 'code',
+  cxx: 'code',
+  hxx: 'code',
+  'c++': 'code',
+  go: 'code',
+  sh: 'code',
+  bash: 'code',
+  zsh: 'code',
+  json: 'data',
+  md: 'doc',
+  markdown: 'doc',
+  txt: 'file',
+  text: 'file',
+  log: 'file',
+};
+
+/**
+ * Família de ícone para um caminho/arquivo (mesma extração de extensão de
+ * {@link extensionsForFilename}); desconhecidos caem em `file`.
+ */
+export function iconKindForFilename(filename: string): EditorIconKind {
+  const base = filename.split('/').pop() ?? '';
+  const dot = base.lastIndexOf('.');
+  const ext = dot > 0 && dot < base.length - 1 ? normalizeExt(base.slice(dot + 1)) : '';
+  return ICON_KIND_BY_EXT[ext] ?? 'file';
+}
