@@ -50,9 +50,13 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Tooltip from '@mui/material/Tooltip';
 import { useColorScheme } from '@mui/material/styles';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
+// Família ÚNICA `*Rounded` no chrome do shell (ONDA-UX-RAIL-ICON, achado 7 da
+// auditoria UX): o rail de navegação é todo `*Rounded` e este seletor vive no
+// MESMO nível de chrome (pé da sidebar) — duas famílias de ícone lado a lado
+// eram uma rachadura de consistência silenciosa (C.1.1.01).
+import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
+import LightModeRoundedIcon from '@mui/icons-material/LightModeRounded';
+import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded';
 import { useTranslation } from 'react-i18next';
 
 import { THEME_MODE_I18N_KEY, type ThemeMode } from './themeModeState';
@@ -61,9 +65,9 @@ import { THEME_MODE_I18N_KEY, type ThemeMode } from './themeModeState';
 const DISPLAY_MODES: readonly ThemeMode[] = ['light', 'system', 'dark'] as const;
 
 const MODE_ICON: Record<ThemeMode, ReactElement> = {
-  light: <LightModeIcon fontSize="small" />,
-  system: <SettingsBrightnessIcon fontSize="small" />,
-  dark: <DarkModeIcon fontSize="small" />,
+  light: <LightModeRoundedIcon fontSize="small" />,
+  system: <SettingsBrightnessRoundedIcon fontSize="small" />,
+  dark: <DarkModeRoundedIcon fontSize="small" />,
 };
 
 export interface ThemeModeSelectorProps {

@@ -9,26 +9,28 @@
  *
  *     [mic 44px] [campo flexível, minWidth: 240] [Avançar, nowrap]
  *
- * — um PISO RÍGIDO de ~435px de linha. Mas a coluna da aula chega a ~331px
+ * — um PISO RÍGIDO de ~435px de linha. Mas a coluna da aula chega a ~343px
  * numa configuração SUPORTADA e PERSISTIDA:
  *
  *   janela   `minWidth: 900`          (electron/main/index.ts, createWindow)
- *   − rail   104                      (components/shell/NavigationRail.tsx, RAIL_WIDTH)
- *   = 796    container do split
+ *   − rail   80                       (components/shell/NavigationRail.tsx, RAIL_WIDTH —
+ *                                     M3 narrow, rail só-ícone desde a onda
+ *                                     ONDA-UX-RAIL-ICON; era 104 com rótulo)
+ *   = 820    container do split
  *   − 6      divider                  (lib/splitRatio.ts, SHELL_SPLIT_CONSTRAINTS.dividerPx)
  *   × 0.5    maxRatio PERSISTIDO      (lib/splitRatio.ts, SHELL_SPLIT_CONSTRAINTS.maxRatio)
- *   = 395    main
+ *   = 407    main
  *   − 64     padding do tabpanel md   (App.tsx, `p: { xs: 2, sm: 3, md: 4 }`;
  *                                     breakpoint md default do MUI = 900px —
  *                                     a própria janela mínima)
- *   = 331    coluna da aula na pior hipótese
+ *   = 343    coluna da aula na pior hipótese
  *
  * Com o piso de 240, a linha pedia 44 + 16 + ~135 + 240 ≈ 435px: estoura a
- * coluna em TODAS as faixas de padding do tabpanel (xs 363 / sm 347 / md 331)
+ * coluna em TODAS as faixas de padding do tabpanel (xs 375 / sm 359 / md 343)
  * — scrollbar horizontal ou botão cortado, contrariando o contrato do App
  * ("as views são flexíveis e nenhum conteúdo trunca", SC 1.4.12). O conserto:
- * o piso do campo desceu para 128px (44 + 16 + ~135 + 128 = 323 ≤ 331, folga
- * de 8) e o Stack da linha ganhou `flexWrap: 'wrap'` como cinto-e-suspensório.
+ * o piso do campo desceu para 128px (44 + 16 + ~135 + 128 = 323 ≤ 343, folga
+ * de 20) e o Stack da linha ganhou `flexWrap: 'wrap'` como cinto-e-suspensório.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * COMO SE PROVA ISSO SEM jsdom
@@ -186,15 +188,15 @@ before(async () => {
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 describe('1. o piso do campo do composer cabe na pior coluna', () => {
-  it('o CSS emitido do campo declara min-width: 128px (≤ o teto de 136 da conta)', () => {
+  it('o CSS emitido do campo declara min-width: 128px (≤ o teto de 148 da conta)', () => {
     const html = renderComposer();
     // O `sx` do TextField desce no root do FormControl (é ele o item da linha).
     const css = cssOfClass(html, classOfElementWith(html, 'MuiFormControl-root'));
     assert.match(css, /min-width:\s*128px/, `CSS emitido do campo: ${css}`);
-    // O teto que a pior coluna deixa para o piso: 331 − 44 (mic) − 16 (gaps)
-    // − ~135 (min-content do Avançar) = 136. O piso escolhido, 128, deixa
-    // folga de 8px (o bloco 3 faz a conta inteira).
-    const tetoDoPiso = 331 - 44 - 16 - 135;
+    // O teto que a pior coluna deixa para o piso: 343 − 44 (mic) − 16 (gaps)
+    // − ~135 (min-content do Avançar) = 148. O piso escolhido, 128, deixa
+    // folga de 20px (o bloco 3 faz a conta inteira).
+    const tetoDoPiso = 343 - 44 - 16 - 135;
     assert.ok(
       128 <= tetoDoPiso,
       `o piso 128 precisa caber no teto ${tetoDoPiso} da pior coluna`,
@@ -258,8 +260,8 @@ describe('2. o Stack da linha do composer quebra em vez de truncar', () => {
 describe('3. a CONTA do piso da linha na pior coluna documentada', () => {
   /** `minWidth: 900` da BrowserWindow (app/electron/main/index.ts). */
   const WINDOW_MIN_PX = 900;
-  /** `RAIL_WIDTH = 104` (app/src/components/shell/NavigationRail.tsx). */
-  const RAIL_PX = 104;
+  /** `RAIL_WIDTH = 80` (app/src/components/shell/NavigationRail.tsx — M3 narrow, rail só-ícone). */
+  const RAIL_PX = 80;
   /** `SHELL_SPLIT_CONSTRAINTS.dividerPx = 6` (app/src/lib/splitRatio.ts). */
   const DIVIDER_PX = 6;
   /** `SHELL_SPLIT_CONSTRAINTS.maxRatio = 0.5` — e a razão é PERSISTIDA. */
@@ -267,22 +269,22 @@ describe('3. a CONTA do piso da linha na pior coluna documentada', () => {
   /** Padding do tabpanel no md (App.tsx `p: { md: 4 }` → 4 × 8px) de CADA lado. */
   const TAB_PANEL_PADDING_MD_PX = 32;
 
-  // Configuração da pior hipótese: janela 900, rail 104, split 0.5,
+  // Configuração da pior hipótese: janela 900, rail 80, split 0.5,
   // padding md 32×2 (comentário-cabeçalho traz o arquivo:linha de cada uma).
   const PIOR_COLUNA_PX =
     (WINDOW_MIN_PX - RAIL_PX - DIVIDER_PX) * SPLIT_MAX_RATIO - TAB_PANEL_PADDING_MD_PX * 2;
 
-  it('a pior coluna é 331px — a configuração suportada e persistida do achado', () => {
+  it('a pior coluna é 343px — a configuração suportada e persistida do achado', () => {
     assert.equal(
       PIOR_COLUNA_PX,
-      331,
-      '(900 − 104 − 6) × 0.5 − 32 × 2 = 331 — se este número mudou, a conta do ' +
+      343,
+      '(900 − 80 − 6) × 0.5 − 32 × 2 = 343 — se este número mudou, a conta do ' +
         'piso abaixo precisa ser refeita junto (o comentário do `sx` do campo ' +
         'em LessonView.tsx documenta a mesma aritmética)',
     );
   });
 
-  it('44 (mic) + 16 (gaps) + 135 (min-content do Avançar) + 128 (piso) = 323 ≤ 331', () => {
+  it('44 (mic) + 16 (gaps) + 135 (min-content do Avançar) + 128 (piso) = 323 ≤ 343', () => {
     const html = renderComposer();
 
     // Parcela 1 — MIC 44px: MEDIDA no CSS emitido do IconButton do mic.
@@ -353,8 +355,8 @@ describe('3. a CONTA do piso da linha na pior coluna documentada', () => {
     assert.ok(
       pisoDaLinha <= PIOR_COLUNA_PX,
       `o piso da linha (${pisoDaLinha}px) cabe na pior coluna (${PIOR_COLUNA_PX}px) — ` +
-        `folga de ${PIOR_COLUNA_PX - pisoDaLinha}px. Configuração: janela 900 − rail 104 = 796 ` +
-        'de split; usable 790 × 0.5 (persistido) = 395 de main; padding md 32×2 → coluna 331.',
+        `folga de ${PIOR_COLUNA_PX - pisoDaLinha}px. Configuração: janela 900 − rail 80 = 820 ` +
+        'de split; usable 814 × 0.5 (persistido) = 407 de main; padding md 32×2 → coluna 343.',
     );
   });
 });

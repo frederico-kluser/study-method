@@ -95,9 +95,11 @@ export type OnboardingI18nKey =
   | 'translation:tutorial.selection.fullTutorialTitle'
   | 'translation:tutorial.selection.fullTutorialDescription'
   | 'translation:tutorial.selection.badgeRecommended'
-  | 'translation:tutorial.selection.badgeFull'
   | 'translation:tutorial.selection.requiresKeys'
   | 'translation:tutorial.selection.openSettings'
   | 'translation:tutorial.selection.dismiss'
+  // nota de verdade da dispensa + rótulo do "×" (oferta de tour, não tour)
+  | 'translation:tutorial.selection.reopenHint'
+  | 'translation:tutorial.selection.close'
   // botão de ajuda do shell (reabre o modal de seleção)
   | 'translation:tutorial.helpButton.label';

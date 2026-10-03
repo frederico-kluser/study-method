@@ -58,7 +58,12 @@
    (typewriter: 21 s × 28 chars/s = 588).
 10. **Quiz.** 2–3 `assertions`, `options` com exatamente 4 itens, `sectionId` apontando a seção que
    demonstra, `feedback` que ensina.
-11. **Fontes.** 2–3 `sources[]` oficiais, URL real e verificável.
+11. **Fontes.** 2–3 `sources[]` oficiais, URL real e verificável. O `title` é o NOME REAL da
+   fonte (ex.: "Function definition", "ISO/IEC 9899 (N3220)") — nunca o padrão
+   "Nome — qualificador" (travessão + recheio tipo "a referência oficial da linguagem"):
+   o `qualityGate` reprova (`REPROVACOES.FONTE_TITULO_PADRAO_IA`) e o qualificador é
+   informação de apresentação, que a UI deriva sozinha (app/src/lib/sourceTitle.ts
+   normaliza os títulos antigos na exibição: host + qualificador sem travessão).
 12. **O desafio prova.** As quatro provas de execução por desafio (solução passa · starter falha ·
     `expectedTestCount` == executado · stub vazio falha), `requirements[]` em bijeção 1:1 com os
     testes, e o teste FORÇA a construção-alvo (J5: o código mínimo que passa contém o alvo).

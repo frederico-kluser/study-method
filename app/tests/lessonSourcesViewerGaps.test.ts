@@ -30,6 +30,12 @@
  *     1.4.10 — SSR emite o texto todo, o corte é visual); o foco nasce no
  *     "Fechar" (pré-requisito do Esc do fechar único — sem foco, o keydown
  *     morre num nó órfão); o diálogo de Fontes anuncia o estado vazio.
+ *   G6 — O NORMALIZADOR DE EXIBIÇÃO (ONDA5-FONTES, finding-3): o título
+ *     "<Nome> — <qualificador>" vira Nome + tagline sem travessão (o conteúdo
+ *     nunca se reescreve); recheio sai de todo, parêntese de rascunho sobe
+ *     para o Nome, qualificador que repete a abertura da descrição cede à
+ *     descrição. Ancorado em `src/lib/sourceTitle.ts` + o portão de qualidade
+ *     que reprova o padrão em conteúdo NOVO (`FONTE_TITULO_PADRAO_IA`).
  *
  * Padrão SSR de tests/lessonSourcesViewer.test.ts (sem jsdom): o componente é
  * montado com o tema e o i18n REAIS; o que é efeito/estado da VIEW é cobrado
@@ -52,6 +58,14 @@ import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { theme } from '../src/theme';
 import { navPanelId } from '../src/lib/shellNav';
 import { createAppI18n } from '../src/i18n/index';
+// ONDA5-FONTES (G6): o normalizador de exibição dos títulos de fonte.
+import { dedupeQualifier, normalizeSourceTitle, sourceHost } from '../src/lib/sourceTitle';
+// ONDA5-FONTES (G6): o portão que impede o padrão de voltar em conteúdo novo.
+import {
+  portaoDeQualidade,
+  REPROVACOES,
+  type ColheitaParaGate,
+} from '../electron/main/engine/research/qualityGate';
 import ptBR from '../src/i18n/locales/pt-BR/translation.json';
 import en from '../src/i18n/locales/en/translation.json';
 
@@ -376,5 +390,139 @@ describe('G5. Arestas — fonte sem description, título longo, foco no Fechar, 
       VIEW.includes("t('translation:lesson.sourcesEmpty')"),
       'o estado vazio deve renderizar a chave lesson.sourcesEmpty',
     );
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * G6 — o normalizador de exibição (ONDA5-FONTES, finding-3) e o portão que
+ * impede o padrão de voltar em conteúdo NOVO. Contrato de
+ * src/lib/sourceTitle.ts: partir no primeiro separador, recheio FORA,
+ * parêntese de rascunho sobe para o Nome, travessão nunca aparece na saída,
+ * idempotente.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+describe('G6. sourceTitle — Nome/qualificador sem travessão, recheio fora', () => {
+  it('recheio sai DE TODO; o parêntese do rascunho sobe para o Nome', () => {
+    assert.deepEqual(normalizeSourceTitle('Function definition — a referência oficial da linguagem'), {
+      name: 'Function definition',
+      qualifier: null,
+    });
+    assert.deepEqual(normalizeSourceTitle('ISO/IEC 9899 — o rascunho público do padrão (N3220)'), {
+      name: 'ISO/IEC 9899 (N3220)',
+      qualifier: null,
+    });
+  });
+
+  it('qualificador NÃO-recheio preservado como tagline; título sem separador sai como está', () => {
+    assert.deepEqual(normalizeSourceTitle('X — The Rust Programming Language'), {
+      name: 'X',
+      qualifier: 'The Rust Programming Language',
+    });
+    assert.deepEqual(normalizeSourceTitle('Título limpo'), { name: 'Título limpo', qualifier: null });
+  });
+
+  it('a saída NUNCA contém travessão (—): só separamos, nunca truncamos (SC 1.4.12)', () => {
+    const cases = [
+      'Function definition — a referência oficial da linguagem',
+      'ISO/IEC 9899 — o rascunho público do padrão (N3220)',
+      'A — B — C',
+      'Separador —solto no meio',
+      'Título limpo',
+    ];
+    for (const raw of cases) {
+      const { name, qualifier } = normalizeSourceTitle(raw);
+      assert.ok(!name.includes('—'), `name de "${raw}" não pode conter travessão`);
+      assert.ok(!(qualifier ?? '').includes('—'), `qualifier de "${raw}" não pode conter travessão`);
+    }
+  });
+
+  it('idempotente: normalizar o PRÓPRIO nome é fixpoint', () => {
+    for (const raw of ['Function definition — a referência oficial da linguagem', 'A — B — C', 'X — The Rust Programming Language']) {
+      const { name } = normalizeSourceTitle(raw);
+      assert.deepEqual(normalizeSourceTitle(name), { name, qualifier: null });
+    }
+  });
+
+  it('sourceHost: domínio sem www. (destino visível antes do clique); URL quebrada devolve ""', () => {
+    assert.equal(
+      sourceHost('https://en.cppreference.com/w/c/language/function_definition'),
+      'en.cppreference.com',
+    );
+    assert.equal(sourceHost('https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3220.pdf'), 'open-std.org');
+    assert.equal(sourceHost('não é URL'), '');
+  });
+
+  it('dedupeQualifier: qualificador que repete a abertura da descrição cede à descrição', () => {
+    assert.equal(
+      dedupeQualifier(
+        'A página oficial da linguagem C',
+        'A página oficial da definição de função em C: assinatura, corpo e a chamada pelo nome.',
+      ),
+      null,
+    );
+    assert.equal(
+      dedupeQualifier('The Rust Programming Language', 'O livro de referência da linguagem.'),
+      'The Rust Programming Language',
+    );
+    assert.equal(dedupeQualifier(null, 'qualquer descrição'), null);
+  });
+
+  it('o PORTÃO reprova título novo com o padrão, com dica de reparo (anti-regressão)', () => {
+    const URL_A = 'https://en.cppreference.com/w/c/language/function_definition';
+    const colheita: ColheitaParaGate = {
+      fontes: [
+        {
+          link: { title: 'Function definition — a referência oficial da linguagem', url: URL_A, description: 'd' },
+          citacao: 1,
+          queries: ['q1'],
+          publicadaEm: null,
+        },
+      ],
+      afirmacoes: [{ id: 'a1', texto: 'x', fontes: [URL_A] }],
+    };
+    const r = portaoDeQualidade(colheita);
+    assert.equal(r.aprovado, false);
+    const rep = r.reprovacoes.find((x) => x.motivo === REPROVACOES.FONTE_TITULO_PADRAO_IA);
+    assert.ok(rep, 'o padrão de IA no título tem de reprovar com o motivo próprio');
+    assert.match(rep.mensagem, /nome real da fonte/, 'a mensagem carrega a dica de reparo');
+  });
+
+  it('o PORTÃO continua a aprovar título limpo (a regra só pega o padrão)', () => {
+    const URL_A = 'https://en.cppreference.com/w/c/language/function_definition';
+    const r = portaoDeQualidade({
+      fontes: [
+        {
+          link: { title: 'Function definition', url: URL_A, description: 'd' },
+          citacao: 1,
+          queries: ['q1'],
+          publicadaEm: null,
+        },
+      ],
+      afirmacoes: [{ id: 'a1', texto: 'x', fontes: [URL_A] }],
+    });
+    assert.equal(r.aprovado, true);
+  });
+
+  it('en-raya + nome do site é título REAL do surf — o portão NÃO o reprova (medido)', () => {
+    // Forma medida na execução real de 2026-09-05 (engineResearchCamadas:93):
+    // a en-raya seguida do nome do site é sufixo legítimo, não tell de LLM.
+    // Rejeitá-la reprovaria colheita honesta — o tell é o TRAVESSÃO + recheio.
+    const URL_B = 'https://realpython.com/python-print-function/';
+    const r = portaoDeQualidade({
+      fontes: [
+        {
+          link: {
+            title: 'Your Guide to the Python print() Function – Real Python',
+            url: URL_B,
+            description: 'd',
+          },
+          citacao: 1,
+          queries: ['q1'],
+          publicadaEm: null,
+        },
+      ],
+      afirmacoes: [{ id: 'a1', texto: 'x', fontes: [URL_B] }],
+    });
+    assert.equal(r.aprovado, true);
   });
 });

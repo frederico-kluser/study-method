@@ -45,6 +45,15 @@
  *      calibração inteira deste contrato sai de `tools/design/palette.ts`, que
  *      chama as MESMAS funções que os testes, e por isso nenhum número aqui é
  *      lembrança.
+ *   6. POLÍTICA DE ÍCONES E EMOJI (ONDA-UX-AUDIT-2-AULA, finding-3):
+ *      NENHUM emoji em controle interativo; emoji de celebração só em copy
+ *      de status de uso único (ex.: "Aula concluída! 🎉"). Glifo de controle
+ *      é MUI funcional, uma metáfora por significado (`AutoStories` é a
+ *      persona Tutor e de mais ninguém; `EmojiEvents`/troféu foi aposentado
+ *      por ler como gamificação). E UMA regra de tinta por nível de ação: a
+ *      ação destacada leva o acento (borda/ícone/preenchimento) e as
+ *      irmãs ficam em tinta neutra — nunca duas linguagens de tinta na
+ *      mesma fileira.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * DECISÃO 1 — ONDE A APPLE DIZ UMA COISA E A ACESSIBILIDADE EXIGE OUTRA

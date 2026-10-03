@@ -278,7 +278,7 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // dominado — o desafio está LIBERADO (o mesmo gate do passo 'desafio'),
   // então o badge existe e mostra 1. Durante a teoria ele não existe (o
   // toHaveCount(0) lá em cima é a outra metade deste contrato).
-  const desafiosBtn = page.getByRole('button', { name: 'Desafios da aula (1 pendentes)', exact: true });
+  const desafiosBtn = page.getByRole('button', { name: 'Desafios da aula (1 pendente)', exact: true });
   await expect(desafiosBtn).toHaveAttribute('aria-haspopup', 'true');
   await expect(desafiosBtn).toHaveAttribute('aria-expanded', 'false');
   await expect(desafiosBtn.locator('xpath=..').locator('.MuiBadge-badge')).toHaveText('1');
@@ -287,7 +287,7 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // sai da a11y tree (aria-hidden) — o getByRole não o vê mais. O ATRIBUTO
   // aria-expanded="true" continua no DOM — o locator CSS (que não filtra pela
   // a11y tree) lê o estado real.
-  await expect(page.locator('button[aria-label="Desafios da aula (1 pendentes)"]')).toHaveAttribute(
+  await expect(page.locator('button[aria-label="Desafios da aula (1 pendente)"]')).toHaveAttribute(
     'aria-expanded',
     'true',
   );

@@ -80,7 +80,7 @@
  *
  * ─── AS DUAS AULAS (nenhuma aula fixture tem desafio E pré-requisito) ──────
  *   · "Aula E2E sobre funções" (trilha `nodejs-do-zero`, a MESMA do
- *     e2e-lesson.spec.ts): tem desafio — o "Desafios da aula (1 pendentes)" com
+ *     e2e-lesson.spec.ts): tem desafio — o "Desafios da aula (1 pendente)" com
  *     o badge VISÍVEL (a teoria é lida até o fim, como no e2e-lesson, para o
  *     desafio liberar e a bolha do badge existir na varredura) — e fontes;
  *   · "Segunda porta (E2E)" (trilha do cadeado, tests/e2e/cadeadoFixture.ts):
@@ -169,7 +169,10 @@ const TEXTOS: Record<
   }
 > = {
   'pt-BR': {
-    desafios: (n) => `Desafios da aula (${n} pendentes)`,
+    // finding-10a (auditoria 2-aula): plural CORRETO do pt-BR — 1 é
+    // singular ("(1 pendente)"), os demais valores pluralizam. Espelha as
+    // chaves `lesson.challengesButtonAria_one`/`_other`.
+    desafios: (n) => `Desafios da aula (${n} ${n === 1 ? 'pendente' : 'pendentes'})`,
     desafiosTitulo: 'Desafios desta aula',
     fontes: 'Fontes',
     fontesTitulo: 'Fontes desta aula',

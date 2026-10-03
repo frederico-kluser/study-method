@@ -36,8 +36,9 @@
 import type { ReactElement } from 'react';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Tooltip from '@mui/material/Tooltip';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
 import { useTranslation } from 'react-i18next';
@@ -47,16 +48,25 @@ import { NAV_ITEMS, navIndexOf, navPanelId, navTabId, type NavKey, type PanelKey
 import { effectsTransition, FOCUS_RING, focusRingStyles, spatialTransition } from '../../theme';
 
 /**
- * Largura do rail. O M3 usa 80dp para o rail estreito; aqui vamos a 104px
- * porque o rótulo é palavra inteira em pt-BR ("Configurações" não, mas
- * "Início"/"Trilha" sim) e porque o SC 1.4.12 exige sobreviver a
- * `letter-spacing: 0.12em` SEM truncar — daí `whiteSpace: 'normal'` no rótulo e
- * folga horizontal de sobra, em vez de `overflow: hidden` (que é a causa nº 1
- * listada pela falha F104).
+ * Largura do rail — ONDA-UX-RAIL-ICON (fixe da auditoria UX, achados 1-3).
+ *
+ * O rail é SÓ-ÍCONE (M3 *narrow* = 80px): os nomes dos destinos vivem no
+ * `aria-label` de cada tab e no `<Tooltip placement="right">` (hover E foco de
+ * teclado — o MUI mostra os dois por default), e a largura NUNCA depende do
+ * rótulo. A versão anterior media a caixa contra o texto e PERDIA: 104px −
+ * 2×6 de marginInline − 2×4 de paddingInline = 84px de caixa contra os
+ * ≈88-92px de "Configurações" (13 glifos em caption 14px) — o rótulo partia-se
+ * a meio da palavra ("Configuraç/ões") com `overflow-wrap: anywhere`. Com
+ * ícone só, o comprimento do rótulo deixa de ser input de layout (cabe
+ * qualquer idioma ou rótulo futuro tipo "Ajuda e tutorial") e o orçamento
+ * horizontal do composer ganha folga: a pior coluna sobe de
+ * (900 − 104 − 6) × 0.5 − 64 = 331 (folga de 8px) para
+ * (900 − 80 − 6) × 0.5 − 64 = 343 (folga de 20px — ver
+ * tests/composerMinWidth.test.ts, que tranca a conta).
  */
-const RAIL_WIDTH = 104;
+const RAIL_WIDTH = 80;
 
-/** Altura mínima do alvo — generosa de propósito (ícone em cima, rótulo embaixo). */
+/** Altura mínima do alvo — generosa de propósito (ícone centrado, sem rótulo). */
 const RAIL_ITEM_MIN_HEIGHT = 76;
 
 /**
@@ -84,10 +94,16 @@ const INDICATOR_WIDTH = 4;
  * DOM). O `Record` completo é a trava: um `NavKey` novo não compila sem ícone.
  * O painel Desafio (PanelKey) NÃO está aqui de propósito: sem tab no rail,
  * não há ícone a renderizar.
+ *
+ * Família ÚNICA `*Rounded` (chrome do shell — mesmo critério do seletor de
+ * tema). ONDA-UX-RAIL-ICON (achado 6 da auditoria): Settings leva
+ * `SettingsRoundedIcon` (engrenagem — a convenção quase universal de
+ * definições), não `TuneRoundedIcon` (sliders lê-se "ajustes/filtro"): num
+ * rail só-ícone o utilizador procura a engrenagem primeiro.
  */
 const NAV_ICON: Record<NavKey, ReactElement> = {
   home: <HomeRoundedIcon />,
-  settings: <TuneRoundedIcon />,
+  settings: <SettingsRoundedIcon />,
   lesson: <MenuBookRoundedIcon />,
   roadmap: <RouteRoundedIcon />,
 };
@@ -154,18 +170,17 @@ export default function NavigationRail({ active, onChange }: NavigationRailProps
           paddingInline: theme.spacing(0.5),
           paddingBlock: theme.spacing(1),
           borderRadius: `${SHAPE.md}px`,
-          // Fronteira de nível: no chrome o rótulo é TINTA, nunca acento.
+          // Fronteira de nível: no chrome o ícone do item é TINTA, nunca acento.
           color: theme.vars.palette.text.secondary,
           fontSize: theme.typography.caption.fontSize,
           lineHeight: 1.25,
-          // SC 1.4.12 / F104 no rótulo: sem nowrap e sem `text-overflow`, o
-          // rótulo QUEBRA em duas linhas e o item CRESCE (`minHeight` é mínimo,
-          // não altura fixa). O `overflow: hidden` que o próprio MuiTab traz
-          // (Tab.js:61, para conter o ripple no raio) continua ali e fica: com
-          // o rótulo quebrando e `overflow-wrap: anywhere`, não sobra o que
-          // recortar — nem no eixo inline, nem no de bloco.
-          whiteSpace: 'normal',
-          overflowWrap: 'anywhere',
+          // ONDA-UX-RAIL-ICON: sem rótulo não há política de quebra — a antiga
+          // `whiteSpace: 'normal'` + `overflowWrap: 'anywhere'` saiu JUNTO com o
+          // rótulo (era ela que partia "Configuraç/ões" ao meio; o nome vive em
+          // `aria-label` + Tooltip). Nada resta para quebrar nem para recortar
+          // neste chrome (SC 1.4.12: quebra, nunca recorta — sem texto, sem
+          // risco). O `overflow: hidden` do MuiTab (Tab.js, para conter o
+          // ripple no raio) continua ali e fica.
           transition: [
             effectsTransition(theme, ['background-color', 'color'], 'fast'),
             spatialTransition(theme, ['transform'], 'fast'),
@@ -190,7 +205,11 @@ export default function NavigationRail({ active, onChange }: NavigationRailProps
         },
 
         '& .MuiTab-icon': {
-          marginBottom: theme.spacing(0.5),
+          // ONDA-UX-RAIL-ICON: sem rótulo por baixo do ícone, o margin-bottom
+          // do wrapper cai para 0 (o MUI só aplica os 6px do iconPosition="top"
+          // com label) — o glifo de 24px fica opticamente centrado no item de
+          // 76px de altura.
+          marginBottom: 0,
         },
 
         // SC 2.3.3: sem movimento, o rail continua inteiramente funcional —
@@ -202,16 +221,21 @@ export default function NavigationRail({ active, onChange }: NavigationRailProps
       })}
     >
       {NAV_ITEMS.map((item, i) => (
-        <Tab
-          key={item.key}
-          id={navTabId(item.key)}
-          // O vínculo aponta para o painel VIVO (só a view ativa é montada).
-          aria-controls={item.key === active ? panelId : undefined}
-          icon={NAV_ICON[item.key]}
-          iconPosition="top"
-          label={t(item.i18nKey)}
-          value={i}
-        />
+        // Nome do destino: Tooltip para a VISTA (hover e foco de teclado) e
+        // `aria-label` para o NOME ACESSÍVEL — este último nunca depende do
+        // Tooltip (que pode não abrir): as specs e2e continuam a resolver as
+        // tabs por `getByRole('tab', { name })`. ONDA-UX-RAIL-ICON (achado 4).
+        <Tooltip key={item.key} title={t(item.i18nKey)} placement="right">
+          <Tab
+            id={navTabId(item.key)}
+            // O vínculo aponta para o painel VIVO (só a view ativa é montada).
+            aria-controls={item.key === active ? panelId : undefined}
+            aria-label={t(item.i18nKey)}
+            icon={NAV_ICON[item.key]}
+            iconPosition="top"
+            value={i}
+          />
+        </Tooltip>
       ))}
     </Tabs>
   );

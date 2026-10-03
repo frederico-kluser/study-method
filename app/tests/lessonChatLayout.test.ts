@@ -707,7 +707,8 @@ describe('3. a barra de entrada segue a referência de chat', () => {
       css,
       /min-width:\s*128px/,
       'e tem PISO de 128px — a conta da pior coluna: 44 (mic) + 16 (os dois gaps de ' +
-        "spacing={1}) + ~135 (min-content do \"Avançar\") + 128 = 323 ≤ 331 (a pior coluna). " +
+        "spacing={1}) + ~135 (min-content do \"Avançar\") + 128 = 323 ≤ 343 (a pior coluna — " +
+        'rail 80 desde ONDA-UX-RAIL-ICON, ver tests/composerMinWidth.test.ts). ' +
         'O abraço do flex nunca o apaga de vez com o avanço em cena',
     );
     assert.ok(

@@ -208,9 +208,9 @@
     "emptyDescription": "Escolha uma trilha na aba Trilha e depois abra uma aula: o conteúdo já está pronto, é só estudar.",
     "emptyCta": "Ver trilhas",
     "sourcesButton": "Fontes",
-    "courseLabel": "Curso: {{course}}",
+    "courseLabel": "Curso · {{course}}",
     "theoryProgress": "Progresso da teoria: {{percent}}%",
-    "theoryCount": "Seção {{current}} de {{total}}",
+    "theoryCount": "{{current}} de {{total}} seções",
     "prerequisitesLabel": "Não entendeu? Revisar:",
     "chatStart": "Esta aula é um chat com o tutor. Clique abaixo para começar a primeira seção da teoria.",
     "loading": "Carregando aula…",
@@ -229,7 +229,7 @@
     "quizFeedback": "Por quê:",
     "quizGateNext": "O quiz desta seção ainda espera a resposta certa. Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra, e um quiz novo sobre o mesmo trecho.",
     "quizGateTyping": "Termine de ler esta seção: o quiz dela aparece na conversa assim que o texto acabar de ser escrito. Você pode clicar (ou apertar qualquer tecla) para mostrar tudo de uma vez.",
-    "revealGateTyping": "Esta seção ainda está sendo escrita. “Mostrar tudo” revela a seção inteira — Avançar fica para depois.",
+    "revealGateTyping": "Esta seção ainda está sendo escrita. “Mostrar tudo” revela a seção inteira. Avançar fica para depois.",
     "revealTypingTooltip": "Mostrar a seção inteira agora (não avança)",
     "challengeGateFinish": "A teoria acabou. Falta o desafio desta aula: ele é o próximo passo, e concluí-lo libera a conclusão da aula.",
     "challengeGateQuiz": "O desafio abre depois que o quiz da aula tiver a resposta certa ({{n}} ainda sem): é a prova de que o trecho foi entendido.",
@@ -269,6 +269,8 @@
     "challengesTitle": "Desafios desta aula",
     "challengesButton": "Desafios",
     "challengesButtonAria": "Desafios da aula ({{pending}} pendentes)",
+    "challengesButtonAria_one": "Desafios da aula ({{pending}} pendente)",
+    "challengesButtonAria_other": "Desafios da aula ({{pending}} pendentes)",
     "challengeStepButton": "Fazer o desafio",
     "challengeStepButtonAria": "Fazer o desafio ({{pending}} pendentes)",
     "challengeIntroCardTitle": "O desafio desta aula",
@@ -287,6 +289,8 @@
     "challengeUntried": "Nunca tentado",
     "viewLessonButton": "Ver a aula",
     "sourcesTitle": "Fontes desta aula",
+    "sourcesClose": "Fechar",
+    "sourcesItemOpen": "Abrir fonte",
     "sourcesViewerClose": "Fechar",
     "sourcesViewerOpenExternal": "Abrir no navegador",
     "sourcesViewerFrameHint": "Algum site proíbe ser exibido dentro do app: nesse caso use “Abrir no navegador”.",
@@ -385,11 +389,11 @@
     "requestingFeedback": "A pedir avaliação ao avaliador…",
     "verdictLabel": "Veredito do avaliador",
     "errorMovedToChat": "A discussão deste erro segue aqui no chat da aula.",
-    "timeoutDuringSubmit": "Tempo esgotado durante a execução — o resultado da tentativa segue.",
+    "timeoutDuringSubmit": "Tempo esgotado durante a execução: o resultado da tentativa segue.",
     "masteryTitle": "O que esta tentativa demonstrou",
     "masteryDemonstrated": "Você demonstrou dominar:",
     "masteryRedo": "Vamos refazer:",
-    "masteryNothing": "Nada ficou provado nesta tentativa: nenhuma aula é dispensada sem evidência forte. Refazer não é punição — é a prática do que ainda não firmou.",
+    "masteryNothing": "Nada ficou provado nesta tentativa: nenhuma aula é dispensada sem evidência forte. Refazer não é punição: é a prática do que ainda não firmou.",
     "proficiencyPassed": "Proficiência aprovada: a trilha inteira está destravada!",
     "filesTitle": "Arquivos do desafio",
     "fileTabAria": "Arquivo {{file}}",
@@ -526,9 +530,10 @@
     "tracksDescription": "Cursos prontos, do zero ao profissional. Escolha uma trilha e comece.",
     "tracksLoadFailed": "Não foi possível carregar as trilhas.",
     "tracksTimeout": "As trilhas não responderam a tempo. Tente novamente.",
-    "trackProgress": "{{done}} de {{total}} aulas concluídas",
+    "trackProgressCount": "{{done}} de {{total}}",
+    "trackProgressUnit": "aulas concluídas",
     "tracksEmptyTitle": "Nenhuma trilha instalada",
-    "tracksEmptyDescription": "Este app não gera trilha sozinho: o conteúdo vive em resources/tracks e é criado pelo CLI de autoria (npm run track -- track:new). Enquanto não houver trilha instalada, esta seção fica assim mesmo: não é erro.",
+    "tracksEmptyDescription": "Este app não cria trilhas sozinho: o conteúdo é adicionado por quem produz os cursos. Enquanto não houver nenhuma trilha instalada, esta seção fica assim mesmo: não é erro.",
     "orphansAction": "Ver em Configurações",
     "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado: nada foi apagado.",
     "tracksLoading": "A carregar as trilhas…"
@@ -608,7 +613,7 @@
       },
       "openSettings": {
         "title": "Vá para Configurações",
-        "description": "Clique na aba Configurações para cadastrar suas chaves de API."
+        "description": "Clique no ícone de Configurações para cadastrar suas chaves de API."
       },
       "openLesson": {
         "title": "Vá para Aula",
@@ -645,16 +650,15 @@
     "selection": {
       "title": "Quer um tour?",
       "subtitle": "Um breve tutorial apresenta a interface e mostra como estudar numa trilha e resolver desafios.",
-      "quickTourTitle": "Tour rápido",
-      "quickTourDescription": "Veja a coluna lateral e a navegação, e aprenda a abrir uma aula e testar uma solução.",
       "badgeRecommended": "Recomendado",
       "dismiss": "Agora não",
-      "quickStartTitle": "Quick Start",
+      "reopenHint": "Você pode abrir o tour a qualquer momento pelo botão Ajuda e tutorial.",
+      "close": "Fechar",
+      "quickStartTitle": "Tour rápido",
       "quickStartDescription": "Uma visão rápida da interface, sem exigir configurar chaves. Ideal para começar agora.",
-      "fullTutorialTitle": "Tutorial Completo",
-      "fullTutorialDescription": "Guia passo a passo: configure as chaves, siga uma aula e teste uma solução.",
-      "badgeFull": "Simplificado",
-      "requiresKeys": "Requer as chaves de API (OpenRouter + Brave).",
+      "fullTutorialTitle": "Tour completo",
+      "fullTutorialDescription": "Guia passo a passo: configure as chaves (OpenRouter + Brave), siga uma aula e teste uma solução.",
+      "requiresKeys": "Requer chaves de API",
       "openSettings": "Configurar chaves"
     },
     "status": {
@@ -667,7 +671,7 @@
     },
     "helpHint": {
       "title": "Digite qualquer dúvida",
-      "description": "Este é o chat com o tutor da aula. Digite aqui as suas dúvidas sobre o material — ele responde no meio da conversa."
+      "description": "Este é o chat com o tutor da aula. Digite aqui as suas dúvidas sobre o material: ele responde no meio da conversa."
     },
     "helpButton": {
       "label": "Ajuda e tutorial"

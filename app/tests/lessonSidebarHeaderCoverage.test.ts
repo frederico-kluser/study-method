@@ -379,7 +379,13 @@ describe('5. título de 300 chars sem espaço, resumo vazio, pré-requisito long
     const label = cssRulesOf(html).find((r) => /MuiChip-root \.MuiChip-label$/.test(r.selector));
     assert.ok(label, 'a regra do rótulo multilinha do chip existe mesmo com um dado extremo');
     assert.match(label.body, /white-space:normal/);
-    assert.match(label.body, /overflow-wrap:anywhere/);
+    // ONDA-UX-AUDIT-2-AULA (finding-5, lockstep): a quebra do rótulo passou a
+    // `break-word` (regra da casa 2 — `anywhere` comprimia o min-content a ~1
+    // glifo e deixava o flexbox esmagar a caixa). O texto longo continua
+    // INTEIRO: com `minWidth: 0` + `maxWidth: '100%'` a caixa encolhe e a
+    // palavra parte dentro dela (provado no navegador por
+    // e2e-sidebar-aula-spacing.spec.ts, a 180px sob os overrides SC 1.4.12).
+    assert.match(label.body, /overflow-wrap:break-word/);
   });
 });
 

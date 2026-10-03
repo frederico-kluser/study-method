@@ -33,8 +33,10 @@ test('e2e-onboarding: modal com 2 opções → overlay no alvo → concluir/skip
 
   // App destravado e o modal de tutorial aparece (primeira execução), com as duas opções.
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Quick Start/ })).toBeVisible();
-  const fullButton = page.getByRole('button', { name: /Tutorial Completo/ });
+  // data-testid (e não o nome do botão): os rótulos das opções são copy viva
+  // ("Tour rápido"/"Tour completo") e as specs não podem travar a redação.
+  await expect(page.getByTestId('tutorial-option-quick-start')).toBeVisible();
+  const fullButton = page.getByTestId('tutorial-option-full');
   await expect(fullButton).toBeVisible();
   await expect(fullButton).toBeEnabled(); // chaves válidas no stub → Completo habilitado
 
@@ -80,7 +82,7 @@ test('e2e-onboarding: Quick Start atinge qs-challenge-test-answer sem desafio at
   page = launched.page;
 
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
-  await page.getByRole('button', { name: /Quick Start/ }).click();
+  await page.getByTestId('tutorial-option-quick-start').click();
 
   const overlay = page.locator('[data-onboarding-panel]');
   await expect(overlay).toBeVisible();

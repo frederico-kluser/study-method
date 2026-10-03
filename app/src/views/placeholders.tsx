@@ -94,6 +94,10 @@ import {
 // (peek — não consome; a LessonView tem a sua própria restauração).
 import { peekLastLesson } from '../lib/lastLesson';
 import { setPendingTrackSlug } from '../lib/pendingSubject';
+// ONDA-UX-TRILHAS-2 (auditoria 1-trilhas, finding-10): a escala de raios do
+// design system (SHAPE.sm=8 / md=12 / base=12) — o distintivo de progresso
+// deixa o raio "pill" do Chip (999) e entra na mesma família do cartão.
+import { SHAPE } from '../lib/designTokens';
 
 export interface ViewProps {
   /** Caminho do setup de estudo ativo (quando houver), vazio caso contrário. */
@@ -348,7 +352,13 @@ function SubjectSections({
  <Stack spacing={2}>
       {sections.map((section) => (
         <Box key={section.domain}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+          {/* ONDA-UX-TRILHAS-2 (auditoria 1-trilhas, finding-5): hierarquia
+              visual — o título de SEÇÃO sobe um degrau inteiro (h6, 20px/700;
+              `component="h2"` para o outline do documento) e deixa de empatar
+              em tamanho/peso com os títulos de CARTÃO (subtitle1, 16px/600,
+              que ficam como estão). Mesmo tratamento nos 3 cabeçalhos de
+              "Trilhas" — todos os títulos de seção da Home partilham estilo. */}
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
             {sectionTitle[section.domain]}
           </Typography>
  <Stack spacing={1}>
@@ -364,6 +374,98 @@ function SubjectSections({
 
 /** View inicial (Início) — tela inicial guiada do tutor (onda 17A + onda 4). */
 /* ─── Trilhas (rodada 8) — cursos prontos, criados pelo CLI de autoria ────── */
+
+/**
+ * Distintivo de progresso da trilha — ONDA-UX-TRILHAS-2 (auditoria 1-trilhas,
+ * findings 1/2/7/10). O que estava ERRADO (medido na auditoria): o Chip vivia
+ * numa linha flex encolhível sem `flexShrink: 0` nem coluna reservada, com
+ * `overflowWrap: 'anywhere'` no rótulo — o flexbox esmagava a caixa para
+ * ~55px e o texto partia a meio do token ("conclu/ídas", "1 de/115"), o
+ * stat primária do cartão ilegível nos 3 cartões visíveis. O contrato novo:
+ *   · DUAS linhas fixas de conteúdo ("1 de 115" / "aulas concluídas") via as
+ *     chaves separadas `home.trackProgressCount` / `home.trackProgressUnit`
+ *     (contrato de largura i18n, finding-2: rótulo +30% e totais de 4
+ *     dígitos sobrevivem sem overflow nem ellipsis);
+ *   · a coluna do grid que o hospeda é `auto` (largura natural, não encolhe)
+ *     e o texto do cartão é que se adapta — nunca o stat;
+ *   · quebra SÓ em limites de palavra: `overflowWrap: 'break-word'` (regra da
+ *     casa nº 2; min-content = a maior palavra). NUNCA `'anywhere'`, que
+ *     reduz o min-content a ~1 glifo e convida o flexbox a esmagar a caixa.
+ *     No piso de 180px (larga mínima suportada, sob stress SC 1.4.12) as
+ *     linhas que não couberem QUEBRAM em limites de palavra — nunca recortam,
+ *     nunca truncam;
+ *   · OBRIGATÓRIO: reset do `overflow: hidden` + `text-overflow: ellipsis`
+ *     herdados do `.MuiChip-label` do MUI — qualquer ellipsis computada
+ *     reprova a régua F104 do `e2e-spacing.spec.ts`/`spacingScan.ts`
+ *     (política "quebra, nunca recorta", SC 1.4.12);
+ *   · semântica de STATUS (finding-7): raio `SHAPE.sm` (8px) em vez do pill
+ *     999 do Chip — a mesma família de raios do cartão (`SHAPE.base` = 12),
+ *     não parece uma tag clicável; alinhado ao topo da linha do título
+ *     (`alignSelf: 'start'` / `alignItems: 'start'` no grid);
+ *   · contraste (regra 3b: só TINTA em superfície de chrome): linha 1 em
+ *     `text.primary`, linha 2 em `text.secondary` — este último já medido no
+ *     designTokens ("medido: ~7,8:1" sobre branco, AAA; testemunhado por
+ *     tests/theme.test.ts). Sem cor nova, sem acento como rótulo.
+ */
+function TrackProgressBadge({
+  done,
+  total,
+  tI,
+}: {
+  done: number;
+  total: number;
+  tI: (key: string, options?: Record<string, string | number>) => string;
+}): ReactElement {
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      sx={{
+        height: 'auto',
+        py: 0.5,
+        px: 1,
+        alignSelf: 'start',
+        maxWidth: '100%',
+        borderRadius: `${SHAPE.sm}px`,
+        '& .MuiChip-label': {
+          display: 'block',
+          // Reset do default do Chip (hidden + ellipsis): o F104 do e2e-spacing
+          // acusa qualquer `text-overflow: ellipsis` computado no frame da Home.
+          overflow: 'visible',
+          textOverflow: 'clip',
+          whiteSpace: 'normal',
+          overflowWrap: 'break-word',
+          px: 0.5,
+        },
+      }}
+      label={
+        <Box component="span" sx={{ display: 'block', textAlign: 'center' }}>
+          {/* Linha 1 (contagem) e linha 2 (unidade): blocos separados, cada
+              um quebra em limites de palavra quando a coluna `auto` do grid
+              não lhe dá a largura natural (piso de 180px + rótulo +30% /
+              totais de 4 dígitos) — nunca a meio de um token. */}
+          <Box
+            component="span"
+            sx={{ display: 'block', overflowWrap: 'break-word', fontWeight: 700, lineHeight: 1.35 }}
+          >
+            {tI('home.trackProgressCount', { done, total })}
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              display: 'block',
+              overflowWrap: 'break-word',
+              lineHeight: 1.35,
+              color: 'text.secondary',
+            }}
+          >
+            {tI('home.trackProgressUnit')}
+          </Box>
+        </Box>
+      }
+    />
+  );
+}
 
 function TracksSection({
   onOpen,
@@ -461,7 +563,7 @@ function TracksSection({
   if (state === 'loading' || tracks === null) {
     return (
       <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
           {t('translation:home.tracksTitle')}
         </Typography>
         <LinearProgress aria-label={t('translation:home.tracksLoading')} />
@@ -474,7 +576,7 @@ function TracksSection({
   if (state === 'empty' || tracks.length === 0) {
     return (
       <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
           {t('translation:home.tracksTitle')}
         </Typography>
         <Card variant="outlined" data-testid="home-tracks-empty">
@@ -493,7 +595,10 @@ function TracksSection({
 
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+      {/* ONDA-UX-TRILHAS-2 (finding-5): "Trilhas" sobe para h6/700 — um degrau
+          à frente dos títulos de cartão (subtitle1/600). A string visível fica
+          ESTÁVEL ("Trilhas" — regra 5 da casa, specs e2e dependem dela). */}
+      <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }} gutterBottom>
         {t('translation:home.tracksTitle')}
       </Typography>
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
@@ -511,39 +616,47 @@ function TracksSection({
           >
             <CardActionArea onClick={() => onOpen(tr.slug)}>
               <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
- <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                {/* ONDA-UX-TRILHAS-2 (finding-1): a linha deixa de ser flex
+                    encolhível por GRID `minmax(0, 1fr) auto` — a coluna do
+                    distintivo é `auto` (largura natural, não encolhe; ver
+                    TrackProgressBadge) e a coluna do texto é que se adapta
+                    (`minWidth: 0` + quebra em limites de palavra). Antes o
+                    flexbox esmagava o Chip para ~55px e partia palavras a meio
+                    do token. `alignItems: 'start'` alinha o distintivo à linha
+                    do título (finding-7); `columnGap: 1.5` (12px) é o gutter
+                    real entre texto e stat — o gap de 8px era comido quando o
+                    texto corria contra a borda do chip. */}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' },
+                    columnGap: 1.5,
+                    rowGap: 0.75,
+                    alignItems: 'start',
+                  }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, overflowWrap: 'break-word' }}>
                       {tr.title}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {/* Finding-3/4: descrição em `body2` (14px — o `caption`
+                        de 12px media mal numa frase de 300+ caracteres) com
+                        medida tectada em `maxWidth: 640` (~72ch, SC 1.4.8 —
+                        o mesmo padrão de RoadmapView para o mesmo campo).
+                        `overflowWrap: 'break-word'` (NUNCA 'anywhere'): tokens
+                        como "-std=c11." quebram em limites de palavra e só
+                        partem quando não couberem de todo. WRAP TOTAL, sem
+                        clamp/ellipsis (política da casa: quebra, nunca
+                        recorta — o F104 do e2e-spacing reprova reticências). */}
+                    <Typography
+                      variant="body2"
+                      sx={{ color: 'text.secondary', overflowWrap: 'break-word', mt: 0.5, maxWidth: 640 }}
+                    >
                       {tr.description}
                     </Typography>
                   </Box>
-                  {/* S1 (onda-ux): o progresso ganhou UNIDADE — o MESMO texto
-                      de `roadmap.trackCount` ("{{done}} de {{total}} aulas
-                      concluídas") em vez do "{{done}}/{{total}}" cru, que media
-                      diferente do cartão de matéria para o mesmo conceito.
-                      Com o texto mais longo o rótulo QUEBRA em vez de truncar
-                      (SC 1.4.12 — política da casa: "quebra, nunca recorta"):
-                      sem nowrap e sem ellipsis, o chip cresce em altura e o
-                      cartão cresce com ele; `maxWidth: '100%'` segura o chip
-                      dentro do cartão em colunas estreitas. */}
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={tI('home.trackProgress', { done: tr.doneCount, total: tr.lessonCount })}
-                    sx={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      '& .MuiChip-label': {
-                        whiteSpace: 'normal',
-                        overflowWrap: 'anywhere',
-                        py: 0.25,
-                      },
-                    }}
-                  />
-                </Stack>
+                  <TrackProgressBadge done={tr.doneCount} total={tr.lessonCount} tI={tI} />
+                </Box>
               </CardContent>
             </CardActionArea>
           </Card>

@@ -22,10 +22,16 @@
  *      visualizador aberto é do fechar único; sem ele, Esc continua sendo do
  *      diálogo/popover — padrão MUI intacto).
  *
- * Não-colisão com e2e-lesson.spec.ts ("Fechar" lá): o visualizador SÓ existe
- * com `openSource` escolhido — no fluxo do e2e-lesson o item nunca é clicado,
- * então nenhum "Fechar" existe e o `.catch(() => Escape)` de lá segue
- * fechando o diálogo pela tecla, como antes.
+ * Não-colisão com e2e-lesson.spec.ts ("Fechar" lá) — ATUALIZADO na ONDA5-FONTES
+ * (finding-2): o diálogo de Fontes ganhou UM fechar VISÍVEL com nome acessível
+ * "Fechar" (IconButton do DialogTitle). O fluxo do e2e-lesson nunca escolhe
+ * item, então lá SÓ existe o fechar do diálogo e o
+ * `.catch(() => Escape)` passou a clicar nele direto — mesmo desfecho (o
+ * diálogo fecha), tecla de reserva intacta. O fechar do VISUALIZADOR continua
+ * a só existir com `openSource` escolhido; para os dois nunca colidirem (nem
+ * durante a transição de saída do diálogo, ~200ms em que ambos podem estar
+ * montados), os locators do visualizador ficam ancorados no tabpanel e os do
+ * diálogo em getByRole('dialog') — cada "Fechar" no seu escopo.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -65,6 +71,15 @@ test('e2e-fontes: fonte escolhida embebe no tabpanel; fechar (botão e Esc) reab
   await page.getByRole('button', { name: 'Fontes' }).click();
   await expect(page.getByRole('heading', { name: 'Fontes desta aula' })).toBeVisible();
 
+  // ONDA5-FONTES (finding-2): saída VISÍVEL no diálogo — "Fechar" com nome
+  // acessível exatamente "Fechar" (alvo 44px). Esc/backdrop continuam a
+  // funcionar, mas não são mais o único caminho.
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Fechar' })).toBeVisible();
+  // ONDA5-FONTES (finding-1): o destino aparece ANTES do clique — o host da
+  // fonte (fixture: url https://example.org → "example.org").
+  await expect(dialog.getByText('example.org')).toBeVisible();
+
   // Escolher a fonte = botão do item (ListItemButton; o Link externo saiu —
   // o link de reserva agora mora DENTRO do visualizador).
   await page.getByRole('button', { name: /MDN/ }).click();
@@ -72,8 +87,11 @@ test('e2e-fontes: fonte escolhida embebe no tabpanel; fechar (botão e Esc) reab
   // O visualizador cobre o tabpanel inteiro: iframe com src/title da fonte…
   await expect(frame).toHaveCount(1);
   await expect(frame).toBeVisible();
-  // …"Fechar" com nome acessível (e o item de lista não está mais em cena)…
-  await expect(page.getByRole('button', { name: 'Fechar' })).toBeVisible();
+  // …"Fechar" com nome acessível (e o item de lista não está mais em cena).
+  // Escopo = tabpanel: o fechar do visualizador mora nele (portal) e o do
+  // diálogo está a desmontar — ver nota de não-colisão no topo do arquivo.
+  const fecharViewer = page.locator('[role="tabpanel"]').getByRole('button', { name: 'Fechar' });
+  await expect(fecharViewer).toBeVisible();
   // …o link de RESERVA (site que recusa embed)…
   await expect(page.getByRole('link', { name: 'Abrir no navegador' })).toBeVisible();
   // …e o aviso de frame bloqueado (rota de fuga anunciada). Existência de UI —
@@ -81,7 +99,7 @@ test('e2e-fontes: fonte escolhida embebe no tabpanel; fechar (botão e Esc) reab
   await expect(page.getByText('proíbe ser exibido dentro do app')).toBeVisible();
 
   // FECHAR PELO BOTÃO: visualizador sai E o diálogo de Fontes volta.
-  await page.getByRole('button', { name: 'Fechar' }).click();
+  await fecharViewer.click();
   await expect(frame).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Fontes desta aula' })).toBeVisible();
 

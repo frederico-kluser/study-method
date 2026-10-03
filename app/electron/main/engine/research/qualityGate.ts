@@ -56,6 +56,7 @@ export const REPROVACOES = {
   SEM_AFIRMACAO: 'SEM_AFIRMACAO',
   FONTE_SEM_URL: 'FONTE_SEM_URL',
   FONTE_SEM_TITULO: 'FONTE_SEM_TITULO',
+  FONTE_TITULO_PADRAO_IA: 'FONTE_TITULO_PADRAO_IA',
   AFIRMACAO_VAZIA: 'AFIRMACAO_VAZIA',
   AFIRMACAO_SEM_FONTE: 'AFIRMACAO_SEM_FONTE',
   AFIRMACAO_COM_FONTE_DESCONHECIDA: 'AFIRMACAO_COM_FONTE_DESCONHECIDA',
@@ -111,8 +112,36 @@ function descricaoDaFonte(f: FonteComProcedencia): string {
 }
 
 /**
- * As FONTES: URL citável (senão reprova), título (senão reprova), descrição
- * (sem ela é AVISO — a Brave às vezes devolve resultado sem trecho).
+ * ONDA5-FONTES (anti-regressão, `.recon/ux-audit/findings-5-fontes.md`
+ * finding-3): o "tell" de texto gerado é o travessão em `sources[].title`
+ * ("Nome — qualificador") somado ao recheio repetido ("a referência oficial
+ * da linguagem", "o rascunho público do padrão") — 696 de ~820 títulos do
+ * conteúdo atual têm a forma. O VISUALIZADOR já normaliza na exibição
+ * (`src/lib/sourceTitle.ts`); este portão impede que conteúdo NOVO nasça
+ * assim. Reprova com a dica de reparo ("use só o nome real da fonte;
+ * qualificador específico vai em description") — o autor/generator tem aqui
+ * o ponto único onde o padrão é apanhado antes de virar aula.
+ * Deteta: travessão (—) com espaços aos lados, " -- ", ou uma das frases de
+ * recheio conhecidas. A EN-RAYA (–) NÃO reprova — medida, não opinião: o
+ * título real do surf usa " – <site>" como sufixo legítimo ("Your Guide to
+ * the Python print() Function – Real Python", fixture da execução real de
+ * 2026-09-05 em tests/engineResearchCamadas.test.ts:93); régua sobre a
+ * en-raya reprovaria colheita HONESTA e matava a geração inteira (medido:
+ * 9 testes da orquestração caíam com GATE_REPROVADO). O tell da LLM é o
+ * TRAVESSÃO mais o recheio — é aí que a régua entra.
+ */
+const PADRAO_IA_NO_TITULO = / — | -- |a referência oficial da linguagem|o rascunho público do padrão/i;
+
+/** O trecho do título que delata o padrão, ou null se o título está limpo. */
+function padraoIaNoTitulo(titulo: string): string | null {
+  const at = titulo.search(PADRAO_IA_NO_TITULO);
+  return at === -1 ? null : titulo.slice(at).trim().slice(0, 60);
+}
+
+/**
+ * As FONTES: URL citável (senão reprova), título (senão reprova), título sem
+ * padrão de IA (senão reprova — ONDA5-FONTES), descrição (sem ela é AVISO —
+ * a Brave às vezes devolve resultado sem trecho).
  */
 function avaliarFontes(
   fontes: readonly FonteComProcedencia[],
@@ -137,6 +166,17 @@ function avaliarFontes(
         motivo: REPROVACOES.FONTE_SEM_TITULO,
         alvo: url,
         mensagem: 'fonte sem título — o schema da aula exige title e url (content/trackTypes.ts)',
+      });
+      continue;
+    }
+    const padrao = padraoIaNoTitulo(titulo);
+    if (padrao !== null) {
+      reprovacoes.push({
+        motivo: REPROVACOES.FONTE_TITULO_PADRAO_IA,
+        alvo: url,
+        mensagem:
+          `título de fonte com padrão de texto gerado ("${padrao}") — use só o nome real da fonte; ` +
+          'qualificador específico vai em description',
       });
       continue;
     }

@@ -12,8 +12,15 @@
  * MuiBadge nasce `flex-shrink: 0` (o botão não encolhia) e a bolha do badge
  * passava da borda do sidebar (`overflowX: 'hidden'` do SessionFrame),
  * recortada. O conserto: `sx={{ maxWidth: '100%' }}` na raiz do Badge (prende
- * a bolha à linha) e `whiteSpace: 'normal'` + `overflowWrap: 'anywhere'` nos
+ * a bolha à linha) e `whiteSpace: 'normal'` + `overflowWrap` nos
  * DOIS botões ("Desafios" e "Fontes" — o rótulo quebra em vez de estourar).
+ * ONDA-UX-AUDIT-2-AULA (finding-5): o valor do `overflowWrap` desses rótulos
+ * evoluiu de `anywhere` para `break-word` (+ `minWidth: 0` nos botões): o
+ * `anywhere` comprimia a largura min-content a ~1 glifo e o flexbox esmagava
+ * a caixa ("Challe/nges"); `break-word` só quebra quando a palavra não cabe
+ * de todo e o `minWidth: 0` mantém a garantia de não-transbordo. As
+ * asserções acompanham o valor de HOJE; o que este arquivo tranca são as DUAS
+ * declarações na classe da instância (nunca a folha estática), em cada botão.
  * Antes deste conserto SÓ o e2e (que roda o Electron de verdade, mede layout
  * em pixel) pegava esse recorte — nenhum teste unitário dependia dessas três
  * declarações. Este arquivo fecha essa lacuna.
@@ -271,12 +278,12 @@ describe('1. a raiz do Badge de "Desafios" tem max-width:100% (a instância, nã
 
 /* ═══ BLOCO 2 — "DESAFIOS" QUEBRA O RÓTULO (não estoura a coluna) ═════════ */
 
-describe('2. o botão "Desafios" quebra o rótulo: white-space:normal + overflow-wrap:anywhere na instância', () => {
+describe('2. o botão "Desafios" quebra o rótulo: white-space:normal + overflow-wrap:break-word na instância', () => {
   it('pt-BR: as duas declarações na classe do PRÓPRIO botão "Desafios"', () => {
     const html = renderHeader();
     const cls = emotionClassOfTag(buttonTagByLabel(html, ptBR.lesson.challengesButton));
     assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal', '"Desafios" sem white-space:normal');
-    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere', '"Desafios" sem overflow-wrap:anywhere');
+    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word', '"Desafios" sem overflow-wrap:break-word');
   });
 
   it('en: "Challenges" — mesmas duas declarações (o CSS não muda, só o rótulo)', async () => {
@@ -285,7 +292,7 @@ describe('2. o botão "Desafios" quebra o rótulo: white-space:normal + overflow
       const html = renderHeader();
       const cls = emotionClassOfTag(buttonTagByLabel(html, en.lesson.challengesButton));
       assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal', '"Challenges" sem white-space:normal');
-      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere', '"Challenges" sem overflow-wrap:anywhere');
+      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word', '"Challenges" sem overflow-wrap:break-word');
     } finally {
       await i18next.changeLanguage('pt-BR');
     }
@@ -299,7 +306,7 @@ describe('3. o botão "Fontes" quebra o rótulo — presente com challengeCount>
     const html = renderHeader();
     const cls = emotionClassOfTag(buttonTagByLabel(html, ptBR.lesson.sourcesButton));
     assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal', '"Fontes" sem white-space:normal');
-    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere', '"Fontes" sem overflow-wrap:anywhere');
+    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word', '"Fontes" sem overflow-wrap:break-word');
   });
 
   it('pt-BR, SEM "Desafios" (challengeCount=0 → só "Fontes" existe): as duas propriedades continuam', () => {
@@ -309,7 +316,7 @@ describe('3. o botão "Fontes" quebra o rótulo — presente com challengeCount>
     assert.ok(!html.includes(ptBR.lesson.challengesButton), 'este cenário não pode ter o botão "Desafios"');
     const cls = emotionClassOfTag(buttonTagByLabel(html, ptBR.lesson.sourcesButton));
     assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal', '"Fontes" sozinho sem white-space:normal');
-    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere', '"Fontes" sozinho sem overflow-wrap:anywhere');
+    assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word', '"Fontes" sozinho sem overflow-wrap:break-word');
   });
 
   it('en, COM "Challenges" ao lado: "Sources" quebra', async () => {
@@ -318,7 +325,7 @@ describe('3. o botão "Fontes" quebra o rótulo — presente com challengeCount>
       const html = renderHeader();
       const cls = emotionClassOfTag(buttonTagByLabel(html, en.lesson.sourcesButton));
       assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal');
-      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere');
+      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word');
     } finally {
       await i18next.changeLanguage('pt-BR');
     }
@@ -331,7 +338,7 @@ describe('3. o botão "Fontes" quebra o rótulo — presente com challengeCount>
       assert.ok(!html.includes(en.lesson.challengesButton), 'este cenário não pode ter o botão "Challenges"');
       const cls = emotionClassOfTag(buttonTagByLabel(html, en.lesson.sourcesButton));
       assert.equal(finalDeclOf(html, cls, 'white-space'), 'normal');
-      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'anywhere');
+      assert.equal(finalDeclOf(html, cls, 'overflow-wrap'), 'break-word');
     } finally {
       await i18next.changeLanguage('pt-BR');
     }

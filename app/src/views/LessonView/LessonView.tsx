@@ -220,8 +220,13 @@ import { useTheme, type SxProps, type Theme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+// ONDA5-FONTES (finding-1): o chevron da linha de fonte — indicador de ação.
+import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+// ONDA-UX-AUDIT-2-AULA (finding-3): metáfora de DESAFIO é checklist funcional
+// (`AssignmentOutlined`), nunca troféu/gamificação — varredura de ícones, o
+// `EmojiEvents` foi aposentado do app inteiro.
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MicIcon from '@mui/icons-material/Mic';
@@ -338,6 +343,10 @@ import { LessonSidebarHeader } from '../../components/course/LessonSidebarHeader
 // ONDA11: o raio de PÍLULA da barra de entrada sai do token de forma do design
 // system (SHAPE.pill) — cor e forma são CONSUMIDAS, nunca redefinidas aqui.
 import { SHAPE } from '../../lib/designTokens';
+// ONDA5-FONTES (finding-3): normalizador de EXIBIÇÃO dos títulos de fonte —
+// "Nome — qualificador" vira Nome + tagline sem travessão, sem tocar nos 696
+// ficheiros de conteúdo (contrato completo em src/lib/sourceTitle.ts).
+import { dedupeQualifier, normalizeSourceTitle, sourceHost } from '../../lib/sourceTitle';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 // ONDA4 (quiz): confete + anúncio acessível ao CONCLUIR a aula (brilho/celebração).
@@ -649,16 +658,17 @@ export function LessonComposer({
         // ONDA-FIX-COMPOSER — A CONTA DO PISO (por que 128): a pior coluna
         // que o app suporta E PERSISTE (a razão do split é gravada em disco)
         // é: janela `minWidth: 900` (electron/main/index.ts, createWindow)
-        // − rail 104 (components/shell/NavigationRail.tsx, RAIL_WIDTH) =
-        // 796 de container do split; `usablePx = container − divider` com
+        // − rail 80 (components/shell/NavigationRail.tsx, RAIL_WIDTH — M3
+        // narrow, rail só-ícone desde ONDA-UX-RAIL-ICON; era 104) =
+        // 820 de container do split; `usablePx = container − divider` com
         // `dividerPx: 6` e `maxRatio: 0.5` (lib/splitRatio.ts,
-        // SHELL_SPLIT_CONSTRAINTS) ⇒ main = (796 − 6) × 0.5 = 395px; o
+        // SHELL_SPLIT_CONSTRAINTS) ⇒ main = (820 − 6) × 0.5 = 407px; o
         // padding do tabpanel no breakpoint md (default MUI = 900px) é
-        // `4` = 32 de cada lado (App.tsx) ⇒ coluna de 395 − 64 = 331px.
+        // `4` = 32 de cada lado (App.tsx) ⇒ coluna de 407 − 64 = 343px.
         // A linha nessa coluna precisa caber: mic 44 + 2 gaps de 8
         // (spacing 1) = 16 + min-content do botão "Avançar" com ícone
         // (~135 — `whiteSpace: 'nowrap'` + px 3) + este piso = 44 + 16 +
-        // 135 + 128 = 323 ≤ 331, com folga de 8px. O piso antigo de 240
+        // 135 + 128 = 323 ≤ 343, com folga de 20px. O piso antigo de 240
         // pedia ~435px de linha e estourava a coluna em TODAS as faixas de
         // padding (363/347/331 < 435) — scrollbar horizontal/botão cortado,
         // contrariando o contrato do App ("as views são flexíveis e nenhum
@@ -1139,7 +1149,7 @@ export function LessonActionRow(props: LessonActionRowProps): ReactElement {
               variant="contained"
               onClick={(e) => props.onChallenge(e.currentTarget)}
               disabled={busy}
-              startIcon={<EmojiEventsIcon />}
+              startIcon={<AssignmentOutlinedIcon />}
               aria-haspopup="true"
               /* Nome acessível PRÓPRIO (o do cabeçalho diz "Desafios da aula";
                  este diz o que ESTE clique faz) e que CONTÉM o rótulo visível
@@ -2177,7 +2187,11 @@ export function LessonView(props: ViewProps): ReactElement {
           // ONDA1-NAV-UI: a aula do erro também vira a "última aula aberta" —
           // voltar à aba Aula depois (sem report/pendência) a restaura.
           saveLastLesson(report.trackSlug, report.lessonId);
-          publishSession({ subject: report.lessonId, status: 'idle' });
+          // finding-4 (auditoria 2-aula): o assunto publicado é o TÍTULO da
+          // aula quando já está carregado; a id/slug é só o fallback de
+          // PRÉ-CARREGAMENTO (o efeito de republish logo abaixo a substitui
+          // pelo título assim que o payload resolve).
+          publishSession({ subject: lesson?.title ?? report.lessonId, status: 'idle' });
           // ONDA3 (chat-cache): o seed é APPEND-ONLY sobre o estado
           // RESTAURADO do cache — a teoria em curso permanece no histórico e
           // as bolhas do erro entram depois (dedupe por challengeId do seed:
@@ -2227,7 +2241,9 @@ export function LessonView(props: ViewProps): ReactElement {
         // ONDA1-NAV-UI: abre uma aula → grava como "última aberta" (a próxima
         // montagem sem alvo a restaura — pedido do dono).
         saveLastLesson(pending.trackSlug, pending.lessonId);
-        publishSession({ subject: pending.lessonId, status: 'idle' });
+        // finding-4 (auditoria 2-aula): título da aula como assunto; slug só
+        // como fallback de pré-carregamento (o republish do payload corrige).
+        publishSession({ subject: lesson?.title ?? pending.lessonId, status: 'idle' });
         // ONDA3 (chat-cache): o chat volta EXATAMENTE onde estava — o restore
         // devolve history/presentedSections completos (theoryDone incluso), e
         // o 'next' segue da seção seguinte sem código extra. Sem cache →
@@ -2256,7 +2272,9 @@ export function LessonView(props: ViewProps): ReactElement {
         // Re-save idempotente: mantém o store consistente (a restauração É
         // uma "abertura" — a próxima montagem restaura a mesma aula).
         saveLastLesson(last.trackSlug, last.lessonId);
-        publishSession({ subject: last.lessonId, status: 'idle' });
+        // finding-4 (auditoria 2-aula): título da aula como assunto; slug só
+        // como fallback de pré-carregamento (o republish do payload corrige).
+        publishSession({ subject: lesson?.title ?? last.lessonId, status: 'idle' });
         setChat(cached ?? createTrackLessonState());
         return loadLesson(last.trackSlug, last.lessonId);
       }
@@ -2271,6 +2289,19 @@ export function LessonView(props: ViewProps): ReactElement {
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadLesson, publishSession, markNew]);
+
+  // ONDA-UX-AUDIT-2-AULA (finding-4): o HUD "ASSUNTO" do shell mostrava o
+  // slug cru ("o-esqueleto") — parecia dado de debug vazado. Os publishes de
+  // montagem acima só conhecem a id/slug (o payload ainda não existe); este
+  // efeito REPUBLICA o assunto humano quando o título da aula chega, que é a
+  // forma pretendida já usada no finish handler. Fallback de slug continua
+  // existindo para o intervalo pré-carregamento. `lesson?.title` nas deps:
+  // refetch silencioso do MESMO título não repete o publish. (Acesso sempre
+  // com `?.` também respeita a guarda de fonte que exige `lesson.title` 1x no
+  // arquivo: aqui o título não desenha nada, só vira assunto publicado.)
+  useEffect(() => {
+    if (lesson?.title) publishSession({ subject: lesson?.title });
+  }, [lesson?.title, publishSession]);
 
   // FIX W1 (onda 4): canais de AÇÃO com withTimeout — se o IPC ficar MUDO
   // (main preso, resposta perdida), o `busy`/`pendingAction` SEMPRE limpam no
@@ -2663,10 +2694,17 @@ export function LessonView(props: ViewProps): ReactElement {
       setChat(createTrackLessonState);
       setDoneMarked(false);
       setLoadError(null);
-      publishSession({ subject: slug, status: 'idle' });
+      // finding-4 (auditoria 2-aula): o assunto da aula de DESTINO é o título
+      // dela (conhecido na lista de pré-requisitos da aula atual), nunca o
+      // slug cru; sem título conhecido, slug como fallback — o efeito de
+      // republicação sobrepõe o título assim que o payload resolve.
+      publishSession({
+        subject: lesson?.prerequisites.find((p) => p.slug === slug)?.title ?? slug,
+        status: 'idle',
+      });
       loadLesson(trackLesson.trackSlug, slug);
     },
-    [trackLesson, loadLesson, publishSession],
+    [trackLesson, lesson, loadLesson, publishSession],
   );
 
   // ─── ONDA4 (quiz): múltipla escolha por afirmação DURANTE a aula ──────────
@@ -3395,7 +3433,9 @@ export function LessonView(props: ViewProps): ReactElement {
     setChat(createTrackLessonState);
     setDoneMarked(false);
     setLoadError(null);
-    publishSession({ subject: proxima, status: 'idle' });
+    // finding-4 (auditoria 2-aula): o assunto publicado é o TÍTULO da próxima
+    // aula (o payload o traz), não o slug cru do HUD.
+    publishSession({ subject: nextLesson?.title ?? proxima, status: 'idle' });
     // ONDA2-PREFETCH: aquece a aula de destino já no clique (best-effort —
     // normalmente o payload desta aula já a pré-carregou; aqui é o reforço do
     // caminho direto, com o anti-burst do módulo decidindo).
@@ -3770,7 +3810,7 @@ export function LessonView(props: ViewProps): ReactElement {
                         variant="contained"
                         size="small"
                         onClick={() => openChallengeFromCard(cardDecision.challenge!)}
-                        startIcon={<EmojiEventsIcon />}
+                        startIcon={<AssignmentOutlinedIcon />}
                         /* ONDA2 (falha-ver-aula, achado do revisor da onda 1):
                            a aria-label EXISTE (challengeIntroCardTryAria) e não
                            tinha linha de código nenhuma — agora é o nome
@@ -4275,32 +4315,137 @@ export function LessonView(props: ViewProps): ReactElement {
           (ListItemButton): escolher uma fonte fecha o diálogo e abre o
           visualizador (iframe) no tabpanel inteiro — o link externo continua
           existindo como RESERVA, dentro do visualizador ("Abrir no
-          navegador"). */}
-      <Dialog open={sourcesOpen} onClose={() => setSourcesOpen(false)} aria-labelledby="lesson-sources-title" maxWidth="sm" fullWidth>
-        <DialogTitle id="lesson-sources-title">{t('translation:lesson.sourcesTitle')}</DialogTitle>
-        <DialogContent dividers>
-          {lesson.sources.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('translation:lesson.sourcesEmpty')}
-            </Typography>
-          ) : (
-            <List dense disablePadding>
-              {lesson.sources.map((s, i) => (
-                <ListItem key={i} disableGutters disablePadding>
-                  <ListItemButton
-                    onClick={() => {
-                      setSourcesOpen(false);
-                      setOpenSource(s);
-                    }}
-                  >
-                    <ListItemText primary={s.title} secondary={s.description} />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </DialogContent>
-      </Dialog>
+          navegador").
+          ONDA5-FONTES (auditoria .recon/ux-audit/findings-5-fontes.md):
+          - finding-1 (crítico): a linha era texto MORTO — botão sem sinal de
+            ação. Continua UM botão (mesmo clique, mesmas duas literais
+            inline) mas agora ANUNCIA a ação: título com degrau de peso (600),
+            host da fonte à vista (o destino, antes do clique) e chevron
+            accent no fim. O acento entra como PREENCHIMENTO de indicador,
+            nunca como cor de rótulo (regra 3b da casa). O chevron vive DENTRO
+            do ListItemButton de propósito: em `secondaryAction` o IconButton
+            engolia o clique da direita e criava zona morta dentro do alvo —
+            aqui a linha inteira é um só alvo.
+          - finding-2: saída VISÍVEL — o X do DialogTitle com nome acessível
+            exatamente "Fechar" (lesson.sourcesClose; "Close" em en). Esc e
+            backdrop continuam a funcionar (onClose intacto). Alvo 44px
+            (TOUCH_TARGET_PX — o IconButton do MUI nasce com 40).
+          - finding-3: o título "<Nome> — <qualificador>" do conteúdo vira
+            Nome + tagline SEM travessão (normalizador de exibição
+            src/lib/sourceTitle.ts; os 696 ficheiros de conteúdo não se
+            tocam). Qualificador de recheio sai de todo; se ele repetir a
+            abertura da descrição ("A página oficial…"), fica a descrição.
+          - finding-4: hierarquia real — título fontWeight 600 em text.primary
+            vs descrição em text.secondary (degrau de PESO, não só 2px).
+            Contraste medido (designTokens.ts): título text.primary sobre o
+            papel (surface.level1) = 16,83:1; tagline/descrição
+            text.secondary sobre level1 = 7,79:1 (AAA — piso AA folgado).
+          - finding-5: ritmo com UMA linguagem de separação — as linhas da
+            lista separam-se por espaço em branco explícito (mt: 1 entre
+            linhas, py 1.5 por linha, sem `dense`); as divisórias ficam só no
+            chrome do diálogo (DialogContent dividers). Nunca as duas na
+            mesma carta.
+          - finding-6: scroll="paper" + maxHeight — lista longa rola DENTRO
+            do papel e o título+fechar ficam sempre à vista (Fitts: a saída
+            nunca sai do alcance).
+          - SC 1.4.12 "quebra, nunca corta": sem ellipsis/noWrap em nenhum
+            texto daqui; overflowY:auto rola só o eixo vertical, o texto
+            quebra nas linhas que precisar. */}
+        <Dialog open={sourcesOpen} onClose={() => setSourcesOpen(false)} aria-labelledby="lesson-sources-title" maxWidth="sm" fullWidth scroll="paper">
+          <DialogTitle id="lesson-sources-title" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {t('translation:lesson.sourcesTitle')}
+            {/* finding-2: fechar VISÍVEL (o dono não adivinha Esc). Nome
+                acessível estável "Fechar"/"Close" — o e2e-lesson fecha o
+                diálogo por este botão (antes era .catch → Escape). */}
+            <IconButton
+              aria-label={t('translation:lesson.sourcesClose')}
+              onClick={() => setSourcesOpen(false)}
+              sx={{ ml: 'auto', minWidth: TOUCH_TARGET_PX, minHeight: TOUCH_TARGET_PX }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          {/* finding-5/6: divisórias só no chrome; o corpo rola com teto. */}
+          <DialogContent dividers sx={{ maxHeight: 'min(60vh, 480px)', overflowY: 'auto', px: 2 }}>
+            {lesson.sources.length === 0 ? (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('translation:lesson.sourcesEmpty')}
+              </Typography>
+            ) : (
+              <List disablePadding sx={{ '& > li + li': { mt: 1 } }}>
+                {lesson.sources.map((s, i) => {
+                  /* finding-3: separação Nome/qualificador na EXIBIÇÃO. O
+                     qualificador de recheio ("a referência oficial da
+                     linguagem") já saiu no normalizador; o que repete a
+                     abertura da descrição sai aqui (dedupeQualifier) — fica a
+                     descrição, que diz o que o aluno ganha. */
+                  const { name, qualifier } = normalizeSourceTitle(s.title);
+                  const tagline = dedupeQualifier(qualifier, s.description);
+                  const host = sourceHost(s.url);
+                  return (
+                    <ListItem key={s.url ?? i} disableGutters disablePadding>
+                      <ListItemButton
+                        /* finding-7: o NOME ACESSÍVEL da linha é ação + título
+                           (+ host, o destino) — nunca a concatenação
+                           título+descrição que um leitor de ecrã lia antes. */
+                        aria-label={`${t('translation:lesson.sourcesItemOpen')}: ${name}${host ? ` (${host})` : ''}`}
+                        onClick={() => {
+                          setSourcesOpen(false);
+                          setOpenSource(s);
+                        }}
+                        sx={{
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: 1,
+                          alignItems: 'flex-start',
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <ListItemText
+                          sx={{ my: 0 }}
+                          primary={
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                              {name}
+                            </Typography>
+                          }
+                          secondary={
+                            <>
+                              {host !== '' || tagline !== null ? (
+                                <Typography
+                                  component="span"
+                                  variant="caption"
+                                  sx={{ display: 'block', color: 'text.secondary', mt: 0.25 }}
+                                >
+                                  {host}
+                                  {tagline !== null ? ` · ${tagline}` : ''}
+                                </Typography>
+                              ) : null}
+                              <Typography
+                                component="span"
+                                variant="body2"
+                                sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}
+                              >
+                                {s.description}
+                              </Typography>
+                            </>
+                          }
+                        />
+                        {/* finding-1: chevron accent como PREENCHIMENTO de
+                            indicador (regra 3b). aria-hidden: o nome da linha
+                            vem do aria-label, nunca do ícone. */}
+                        <ChevronRightRounded
+                          aria-hidden
+                          fontSize="small"
+                          sx={{ color: 'primary.main', flexShrink: 0, ml: 1, mt: 0.25 }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            )}
+          </DialogContent>
+        </Dialog>
 
       {/* ONDA2-FONTES: O VISUALIZADOR DE FONTE — portal DENTRO do
           `role="tabpanel"` da aula (#sm-panel-lesson), cobrindo-o INTEIRO

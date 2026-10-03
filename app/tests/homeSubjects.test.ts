@@ -156,6 +156,13 @@ describe('i18n das matérias da Home — chaves novas presentes nos dois locales
     'home.switchDialog.description',
     'home.switchDialog.continueCurrent',
     'home.switchDialog.goToLesson',
+    // ONDA-UX-TRILHAS-2 (auditoria 1-trilhas, finding-2): o distintivo de
+    // progresso das TRILHAS passou a chaves separadas contagem/unidade
+    // (`trackProgressCount`/`trackProgressUnit` — contrato de largura i18n,
+    // cada linha quebra à sua vontade em limites de palavra). Convenção
+    // local: registar aqui as chaves novas da Home nos DOIS locales.
+    'home.trackProgressCount',
+    'home.trackProgressUnit',
   ];
 
   for (const dotted of requiredKeys) {
@@ -172,6 +179,16 @@ describe('i18n das matérias da Home — chaves novas presentes nos dois locales
       const template = valueAt(locale as JsonRecord, 'home.subjects.answeredOfTotal') as string;
       assert.ok(template.includes('{{answered}}'), 'deve interpolar {{answered}}');
       assert.ok(template.includes('{{total}}'), 'deve interpolar {{total}}');
+    }
+  });
+
+  it('trackProgressCount interpola done/total em ambos os locales (a unidade é chave própria, sem variáveis)', () => {
+    for (const locale of [ptBR, en]) {
+      const count = valueAt(locale as JsonRecord, 'home.trackProgressCount') as string;
+      assert.ok(count.includes('{{done}}'), 'deve interpolar {{done}}');
+      assert.ok(count.includes('{{total}}'), 'deve interpolar {{total}}');
+      const unit = valueAt(locale as JsonRecord, 'home.trackProgressUnit') as string;
+      assert.ok(!unit.includes('{{'), 'a linha de unidade não leva interpolação');
     }
   });
 });

@@ -293,7 +293,14 @@ export default function SessionFrame({
           `role="status"` + `aria-live="polite"` já montados ANTES de qualquer
           atualização — condição do SC 4.1.3. PRESERVADO: `role="status"`,
           `data-session-last-activity` e a ordem assunto→fase (o e2e-spacing
-          semeia o assunto no spans[1] do primeiro campo). */}
+          semeia o assunto no spans[1] do primeiro campo).
+
+          ONDA-UX-AUDIT-2-AULA (finding-4): o poço é chrome GLOBAL de sessão,
+          mas a 12px do slot da aula lia como um quinto bloco do painel da
+          aula. O `marginTop` extra (12px do gap + 8px = 20px) DESCOLA o poço
+          do slot e devolve o escopo certo: em cima, o contexto da aula; aqui,
+          o estado da sessão. Só o espaçamento muda — nenhum papel ARIA, nenhum
+          span e nenhuma ordem interna foi tocada. */}
       <Box
         role="status"
         aria-live="polite"
@@ -305,6 +312,7 @@ export default function SessionFrame({
           alignItems: 'stretch',
           gap: theme.spacing(1.5),
           minWidth: 0,
+          marginTop: theme.spacing(1),
           paddingInline: theme.spacing(1.5),
           paddingBlock: theme.spacing(1),
           borderRadius: `${SHAPE.md}px`,

@@ -51,7 +51,9 @@ import LockIcon from '@mui/icons-material/Lock';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+// ONDA-UX-AUDIT-2-AULA (finding-3): metáfora de DESAFIO é checklist funcional
+// (`AssignmentOutlined`), nunca troféu/gamificação — varredura de ícones.
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { getApi } from '../../lib/apiBridge';
@@ -353,7 +355,7 @@ function ModuleCard({
                 variant="outlined"
                 color="secondary"
                 onClick={() => onOpenModuleChallenge(mod)}
-                startIcon={<EmojiEventsIcon fontSize="small" />}
+                startIcon={<AssignmentOutlinedIcon fontSize="small" />}
                 aria-label={`${tI('roadmap.moduleChallenge')} ${mod.challenge.title}`}
                 sx={{ minHeight: TOUCH_TARGET_PX }}
               >

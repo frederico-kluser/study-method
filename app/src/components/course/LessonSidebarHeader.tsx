@@ -20,9 +20,12 @@
  *   · o RESUMO (body2, tinta secundária) — uma ou duas frases de contexto,
  *     não prosa longa (a regra 3 de designTokens.ts reserva prosa longa para
  *     os níveis 0 e 1; a tinta secundária é calibrada AA nos cinco níveis);
- *   · o PROGRESSO da teoria: barra + "Seção N de M" EMPILHADOS (lado a lado,
- *     como no cabeçalho antigo, a 180px a barra ficaria mais curta que o
- *     próprio contador);
+ *   · o PROGRESSO da teoria: barra + contador "{{current}} de {{total}} seções"
+ *     EMPILHADOS (lado a lado, como no cabeçalho antigo, a 180px a barra
+ *     ficaria mais curta que o próprio contador). O contador é CONTAGEM, não
+ *     posição ordinal (finding-1 da auditoria 2-aula): "Seção 0 de 3" lia
+ *     como uma seção zero fantasma e "3 de 3" prometia conclusão com quiz e
+ *     desafio ainda por fazer;
  *   · as AÇÕES "Desafios" (badge de pendentes) e "Fontes", em linha que
  *     QUEBRA: lado a lado quando a coluna comporta, uma embaixo da outra
  *     quando não;
@@ -44,13 +47,22 @@
  * `white-space: nowrap`, a causa nº 1 que a F104 nomeia. Na coluna estreita
  * isso recortaria quase todo título. Aqui título, resumo, contador e rótulos
  * — inclusive os dos botões "Desafios" e "Fontes" — QUEBRAM
- * (`whiteSpace: 'normal'` + `overflowWrap: 'anywhere'`, para nem um
+ * (`whiteSpace: 'normal'` + `overflowWrap`, para nem um
  * identificador longo sem espaços estourar a coluna) e a coluna cresce em
  * altura. Os chips de pré-requisito também: o rótulo do MuiChip nasce com
  * nowrap + ellipsis e aqui vira o "chip multilinha" (altura auto, rótulo que
  * quebra) — com `textOverflow: 'clip'` e `overflow: 'visible'` explícitos,
  * para não sobrar nem o `text-overflow: ellipsis` computado que a varredura
  * do SC 1.4.12 reprova em QUALQUER elemento do sidebar.
+ *
+ * ONDA-UX-AUDIT-2-AULA (finding-5): nos RÓTULOS de botão e chip a quebra é
+ * `overflow-wrap: break-word`, NÃO `anywhere`. O `anywhere` comprime a
+ * largura min-content a ~1 glifo e o flexbox esmagava a caixa
+ * ("Challe/nges"); `break-word` só quebra quando a palavra não cabe de
+ * todo e o `minWidth: 0` mantém a garantia de não-transbordo que o
+ * `anywhere` comprava (o botão continua a poder encolher até o
+ * `maxWidth: '100%'` do Badge). `anywhere` continua onde é legítimo:
+ * título, resumo, curso e contador (identificadores longos sem espaços).
  *
  * QUEM PROVA ISSO NO NAVEGADOR: tests/e2e/e2e-sidebar-aula-spacing.spec.ts —
  * abre uma aula de verdade, leva a divisória ao PISO de 180px, injeta os
@@ -66,12 +78,37 @@
  * tema pinta o rótulo com `accentText`, que o contrato calibrou só para os
  * níveis 0, 1 e 2; aqui ele é reapontado para `text.primary`. O acento sobra
  * onde a regra deixa: BORDA e ÍCONE do "Desafios" (a ação de destaque, como
- * era no cabeçalho antigo) e PREENCHIMENTO do badge de pendentes. "Fontes"
- * segue neutro (borda `nonText.neutral`, o mesmo desenho do cabeçalho antigo —
- * quem identifica o botão é o rótulo em tinta, a borda só desenha a moldura).
- * A barra de progresso é `color="inherit"`: toma a tinta secundária do
- * contêiner e não disputa acento. Cores sempre por `theme.vars.palette.*`
- * (referência `var(--mui-palette-*)` que troca sozinha com o esquema).
+ * era no cabeçalho antigo) e PREENCHIMENTO do badge de pendentes —
+ * `primary.fill`, NÃO o vermelho de `error` (finding-6: "N pendentes" é
+ * to-do neutro, não falha; e a fileira não pode carregar dois acentos). É a
+ * REGRA DE TINTA ÚNICA por nível de ação: uma ação destacada por fileira
+ * (Desafios: borda + ícone + badge no acento; Fontes: tudo em tinta neutra
+ * com borda `nonText.neutral`, o mesmo desenho do cabeçalho antigo — quem
+ * identifica o botão é o rótulo em tinta, a borda só desenha a moldura).
+ *
+ * ONDA-UX-AUDIT-2-AULA (finding-3): ícones são glifos FUNCIONAIS do MUI,
+ * nunca emoji nem metáfora de gamificação. O troféu (`EmojiEvents`) foi o
+ * 🏆 da interface e saiu; "Desafios" é `AssignmentOutlined` (checklist) e
+ * "Fontes" é `MenuBook`. `AutoStories` fica EXCLUSIVO da persona Tutor
+ * (chatSurfaces.tsx) — um glifo, um significado. Política registada em
+ * designTokens.ts.
+ *
+ * ONDA-UX-AUDIT-2-AULA (finding-2): a barra de progresso é o ÚNICO elemento
+ * dinâmico do painel e por isso é ela que leva o acento — `primary.fill` no
+ * preenchimento, `nonText.neutral` no trilho (antes `color="inherit"`, que a
+ * 0% lia como uma régua divisória e não como barra). Geometria de pílula de
+ * 6px mantida. [medido] em chrome nível 3 (surface.level3 do sidebar):
+ *   · preenchimento × contêiner = 3,58:1 (claro) · 3,31:1 (escuro) — piso de
+ *     3:1 do SC 1.4.11 cumprido nos dois esquemas;
+ *   · trilho × contêiner = 2,65:1 (claro) · 3,70:1 (escuro) — o claro fica
+ *     abaixo de 3:1 POR CAMADA (o NONTEXT_* só alcança 3:1 nos níveis 0/1,
+ *     fronteira 3b do contrato), e está correto assim: a barra é
+ *     suplementar, o estado está codificado três vezes (barra + contador
+ *     textual + aria-label), então o SC 1.4.11 isenta o objeto gráfico;
+ *   · preenchimento × trilho = 1,35:1 (claro) · 1,12:1 (escuro) — fronteira
+ *     fraca, coberta pela mesma redundância.
+ * Cores sempre por `theme.vars.palette.*` (referência `var(--mui-palette-*)`
+ * que troca sozinha com o esquema).
  *
  * ─── ACESSIBILIDADE ─────────────────────────────────────────────────────────
  *   · a raiz é `<section aria-labelledby>` apontando para o h1 — NUNCA
@@ -81,7 +118,8 @@
  *     nome acessível vira uma região nomeada pelo título da aula;
  *   · UM h1 só (o título), com o texto COMPLETO;
  *   · os nomes acessíveis dos botões são OS MESMOS do cabeçalho antigo — os
- *     e2e acham "Fontes", "Desafios da aula (1 pendentes)" e o heading pelo
+ *     e2e acham "Fontes", "Desafios da aula (1 pendente)" (plural CORRETO:
+ *     finding-10a, `_one`/`_other` na i18n) e o heading pelo
  *     título da aula;
  *   · "Desafios" declara `aria-haspopup` + `aria-expanded` refletindo o
  *     popover que a VIEW controla: o botão só avisa o clique entregando o
@@ -102,8 +140,14 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+// ONDA-UX-AUDIT-2-AULA (finding-3): glifos funcionais, sem metáfora de
+// emoji/gamificação. `AssignmentOutlined` (checklist) para "Desafios",
+// `MenuBook` para "Fontes" e `HistoryEdu` como marca de NAVEGAÇÃO dos chips
+// de pré-requisito (finding-9: o chip é clicável e precisa de afordância).
+// `AutoStories` ficou reservado à persona Tutor (chatSurfaces.tsx).
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 /**
  * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
@@ -141,9 +185,10 @@ export interface LessonSidebarHeaderProps {
   onSourcesClick: () => void;
   /** 0–100 — preenchimento da barra de progresso da teoria. */
   theoryProgress: number;
-  /** Seções apresentadas (contador "Seção N de M"). */
+  /** Seções apresentadas (contador "{{current}} de {{total}} seções" —
+   *  CONTAGEM apresentada, não posição ordinal; ver finding-1 no cabeçalho). */
   sectionCurrent: number;
-  /** Total de seções da teoria (contador "Seção N de M"). */
+  /** Total de seções da teoria (contador "{{current}} de {{total}} seções"). */
   sectionTotal: number;
   /** Aulas anteriores da trilha — chips clicáveis (só aparecem se houver). */
   prerequisites: ReadonlyArray<{ slug: string; title: string }>;
@@ -199,13 +244,22 @@ export function LessonSidebarHeader({
           regra de proximidade: os três são um bloco). O h1 continua sendo a
           variante h6 (18px, display 700 — o piso da escala de título): na
           coluna estreita um h5 quebraria em linhas demais. SEM noWrap/ellipsis/
-          overflow em nenhum dos três: QUEBRAM (SC 1.4.12). */}
+          overflow em nenhum dos três: QUEBRAM (SC 1.4.12).
+
+          ONDA-UX-AUDIT-2-AULA (finding-7): a linha do curso sobe de
+          `caption` para `body2` + peso 600 (tinta secundária mantida) — é a
+          âncora de ORIENTAÇÃO do painel (pedido do dono) e estava
+          tipograficamente igualada ao resto do meta. O separador virou
+          ponto médio ("Curso · {{course}}"): o dois-pontos colidia com os
+          dois-pontos do próprio título da trilha ("Curso: C Iniciante: do
+          primeiro printf…"). */}
       <Box sx={(theme) => ({ display: 'flex', flexDirection: 'column', gap: theme.spacing(0.5), minWidth: 0 })}>
         {(courseTitle ?? '').trim().length > 0 ? (
           <Typography
-            variant="caption"
+            variant="body2"
             sx={(theme) => ({
               minWidth: 0,
+              fontWeight: 600,
               color: theme.vars.palette.text.secondary,
               whiteSpace: 'normal',
               overflowWrap: 'anywhere',
@@ -242,9 +296,14 @@ export function LessonSidebarHeader({
 
       {/* ─── PROGRESSO DA TEORIA ─────────────────────────────────────────
           Barra em cima, contador embaixo (empilhados — ver o cabeçalho do
-          arquivo). `color="inherit"`: a barra toma a tinta secundária do
-          contêiner, não disputa o acento; o contador textual carrega a mesma
-          informação (ONDA13). O aria-label é o MESMO do cabeçalho antigo. */}
+          arquivo). ONDA-UX-AUDIT-2-AULA (finding-2): o preenchimento é
+          `primary.fill` e o trilho `nonText.neutral` — a barra é o único
+          elemento dinâmico do painel e leva o acento; a 0% o trilho desenhado
+          lê como barra, não como régua. Medições e a isenção do SC 1.4.11
+          estão no bloco FRONTEIRA DE NÍVEL do cabeçalho do arquivo. O
+          contador textual (agora "N de M seções", finding-1) e o aria-label
+          carregam a MESMA informação (ONDA13). O aria-label é o MESMO do
+          cabeçalho antigo. */}
       <Box
         sx={(theme) => ({
           display: 'flex',
@@ -256,9 +315,15 @@ export function LessonSidebarHeader({
       >
         <LinearProgress
           variant="determinate"
-          color="inherit"
           value={theoryProgress}
-          sx={{ height: 6, borderRadius: 3 }}
+          sx={(theme) => ({
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: theme.vars.palette.nonText.neutral,
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: theme.vars.palette.primary.fill,
+            },
+          })}
           aria-label={tI('lesson.theoryProgress', { percent: theoryProgress })}
         />
         <Typography
@@ -300,26 +365,48 @@ export function LessonSidebarHeader({
         })}
       >
         {challengeCount > 0 ? (
-          <Badge badgeContent={pendingChallengeCount} color="error" sx={{ maxWidth: '100%' }}>
+          // Badge em `primary.fill` + `onFill` (o par já medido do contrato:
+          // 4,70:1 claro · 5,42:1 escuro). ONDA-UX-AUDIT-2-AULA (finding-6):
+          // era `color="error"` — vermelho significa FALHA neste design system
+          // e "N pendentes" é to-do neutro; com ele a fileira levava dois
+          // acentos (azul + vermelho). A regra 3b quer o acento como
+          // PREENCHIMENTO da bolha, nunca como tinta de rótulo.
+          <Badge badgeContent={pendingChallengeCount} color="primary" sx={{ maxWidth: '100%' }}>
             <Button
               size="small"
               variant="outlined"
               onClick={(e) => onChallengesClick(e.currentTarget)}
               aria-haspopup="true"
               aria-expanded={challengesExpanded}
-              aria-label={tI('lesson.challengesButtonAria', { pending: pendingChallengeCount })}
-              startIcon={<EmojiEventsIcon />}
+              // finding-10a: plural correto do pt-BR ("(1 pendente)" vs
+              // "(N pendentes)"). A escolha é por CHAVE explícita, não pelo
+              // `count` do i18next: as regras CLDR do pt levam 0 para "one"
+              // ("0 pendente") e o contrato do app é "0 pendentes" — só o 1
+              // exato é singular. `_one`/`_other` existem nos DOIS locales
+              // (paridade de chaves); a base fica para fallback e para os
+              // testes que interpolam o dicionário.
+              aria-label={tI(
+                pendingChallengeCount === 1
+                  ? 'lesson.challengesButtonAria_one'
+                  : 'lesson.challengesButtonAria_other',
+                { pending: pendingChallengeCount },
+              )}
+              startIcon={<AssignmentOutlinedIcon />}
               sx={(theme) => ({
                 // Rótulo em TINTA (regra 3b); o acento fica na BORDA e no
-                // ÍCONE — a ação de destaque continua reconhecível.
+                // ÍCONE — a ação de destaque continua reconhecível (a regra
+                // da tinta única por nível de ação: só ESTE botão leva acento).
                 color: theme.vars.palette.text.primary,
                 borderColor: theme.vars.palette.primary.fill,
                 '& .MuiButton-startIcon': {
                   color: theme.vars.palette.primary.fill,
                 },
-                // Quebra, nunca recorta (ver o bloco AÇÕES acima).
+                // Quebra, nunca recorta (ver o bloco AÇÕES acima):
+                // `break-word` + `minWidth: 0` (finding-5) — nada de
+                // ellipsis, nada de quebra a meio da palavra por preguiça.
                 whiteSpace: 'normal',
-                overflowWrap: 'anywhere',
+                overflowWrap: 'break-word',
+                minWidth: 0,
                 // Piso de alvo de toque (TOUCH_TARGET_PX).
                 minHeight: TOUCH_TARGET_PX,
               })}
@@ -332,12 +419,14 @@ export function LessonSidebarHeader({
           size="small"
           variant="outlined"
           onClick={onSourcesClick}
-          startIcon={<AutoStoriesIcon />}
+          startIcon={<MenuBookIcon />}
           sx={(theme) => ({
             color: theme.vars.palette.text.primary,
             borderColor: theme.vars.palette.nonText.neutral,
+            // Quebra, nunca recorta: `break-word` + `minWidth: 0` (finding-5).
             whiteSpace: 'normal',
-            overflowWrap: 'anywhere',
+            overflowWrap: 'break-word',
+            minWidth: 0,
             // Piso de alvo de toque (TOUCH_TARGET_PX).
             minHeight: TOUCH_TARGET_PX,
           })}
@@ -350,9 +439,32 @@ export function LessonSidebarHeader({
           Rótulo em cima, chips embaixo — na coluna estreita o rótulo
           ("Não entendeu? Revisar:") já ocupa quase a largura toda. Chips
           MULTILINHA: altura auto e rótulo que quebra (ver o cabeçalho do
-          arquivo — o default do MuiChip é nowrap + ellipsis). */}
+          arquivo — o default do MuiChip é nowrap + ellipsis).
+
+          ONDA-UX-AUDIT-2-AULA (finding-8): `marginTop` extra empurra o
+          bloco para 20px do bloco anterior (12px do gap raiz + 8px): os
+          pré-requisitos são navegação PARA FORA da aula e não podiam ficar
+          à mesma distância das ações da própria aula (lei da proximidade).
+
+          ONDA-UX-AUDIT-2-AULA (finding-9): o chip é CLICÁVEL (navega para a
+          aula anterior) e lia como etiqueta estática. Afordância nova: glifo
+          de navegação `HistoryEdu` à esquerda + preenchimento no hover. O
+          hover usa `surface.level4` (o nível do contrato para "hover forte"),
+          NÃO `nonText.neutral` como pedia a auditoria: medido, a tinta do
+          rótulo sobre o `nonText.neutral` dá 4,83:1 no claro mas só 2,99:1 no
+          escuro (reprovado no piso AA de 4,5:1); sobre `surface.level4` são
+          12,01:1 (claro) e 9,50:1 (escuro), pares já medidos em
+          designTokens.ts. Regra da casa: AA medido, documentado. */}
       {prerequisites.length > 0 ? (
-        <Box sx={(theme) => ({ display: 'flex', flexDirection: 'column', gap: theme.spacing(0.75), minWidth: 0 })}>
+        <Box
+          sx={(theme) => ({
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing(0.75),
+            minWidth: 0,
+            marginTop: theme.spacing(1),
+          })}
+        >
           <Typography
             variant="caption"
             sx={(theme) => ({
@@ -369,6 +481,7 @@ export function LessonSidebarHeader({
                 key={pre.slug}
                 size="small"
                 variant="outlined"
+                icon={<HistoryEduIcon />}
                 label={pre.title}
                 onClick={() => onPrerequisiteClick(pre.slug)}
                 sx={(theme) => ({
@@ -379,9 +492,17 @@ export function LessonSidebarHeader({
                   // chip de uma linha cumpre o piso (min-height vence height).
                   minHeight: TOUCH_TARGET_PX,
                   maxWidth: '100%',
+                  // Afordância de navegação no hover (finding-9) — ver o
+                  // comentário do bloco para as medições de contraste.
+                  '&:hover': {
+                    backgroundColor: theme.vars.palette.surface.level4,
+                  },
                   '& .MuiChip-label': {
                     whiteSpace: 'normal',
-                    overflowWrap: 'anywhere',
+                    // Quebra, nunca recorta: `break-word` (finding-5) — só
+                    // quebra quando a palavra não cabe de todo; ellipsis
+                    // continua proibido (SC 1.4.12).
+                    overflowWrap: 'break-word',
                     overflow: 'visible',
                     textOverflow: 'clip',
                     paddingBlock: theme.spacing(0.25),

@@ -69,9 +69,18 @@ test('perf-settings: mede abertura de Settings (fria e morna)', async () => {
       const win = globalThis as unknown as DomWindow;
       const doc = win.document;
       const onClick = (ev: unknown): void => {
-        const target = ev as { target?: { closest?: (sel: string) => { textContent?: string | null } | null } };
+        // ONDA-UX-RAIL-ICON: as tabs do rail são SÓ-ÍCONE (textContent vazio);
+        // o nome do destino vive em `aria-label` — é por ele que este observador
+        // (e o getByRole('tab', { name }) lá em baixo) resolvem a tab.
+        const target = ev as {
+          target?: {
+            closest?: (
+              sel: string,
+            ) => { textContent?: string | null; getAttribute(name: string): string | null } | null;
+          };
+        };
         const tab = target.target?.closest?.('[role="tab"]');
-        if (tab && tab.textContent?.includes('Configurações') && g.__tClick === undefined) {
+        if (tab && tab.getAttribute('aria-label')?.includes('Configurações') && g.__tClick === undefined) {
           g.__tClick = performance.now();
         }
       };

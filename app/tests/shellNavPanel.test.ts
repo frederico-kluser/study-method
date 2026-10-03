@@ -251,12 +251,16 @@ describe('2. NavigationRail renderizado — o Desafio NÃO é tab, os 4 destinos
     );
   });
 
-  it('os rótulos vêm do i18n REAL (o mapa nav.* resolve nos DOIS locales)', () => {
+  it('os NOMES das tabs vêm do i18n REAL — como `aria-label` exato de cada tab', () => {
     const html = renderRail('home');
-    assert.ok(html.includes(ptBR.nav.home), 'rótulo Início (pt-BR)');
-    assert.ok(html.includes(ptBR.nav.settings), 'rótulo Settings');
-    assert.ok(html.includes(ptBR.nav.lesson), 'rótulo Aula');
-    assert.ok(html.includes(ptBR.nav.roadmap), 'rótulo Trilha');
+    // ONDA-UX-RAIL-ICON: o rail é só-ícone — o nome do destino vive em
+    // `aria-label` (rótulo visível: nenhum). Asserção EXATA do atributo para
+    // que uma queda silenciosa do aria-label (tab sem nome acessível) falhe
+    // aqui e não só nas specs e2e.
+    assert.ok(html.includes(`aria-label="${ptBR.nav.home}"`), 'aria-label Início (pt-BR)');
+    assert.ok(html.includes(`aria-label="${ptBR.nav.settings}"`), 'aria-label Configurações');
+    assert.ok(html.includes(`aria-label="${ptBR.nav.lesson}"`), 'aria-label Aula');
+    assert.ok(html.includes(`aria-label="${ptBR.nav.roadmap}"`), 'aria-label Trilha');
     assert.ok(!html.includes('translation:nav.'), 'nenhuma chave i18n crua pode vazar para o DOM');
     // O aria-label do rail também resolve (chave shell.rail.aria).
     assert.ok(html.includes(ptBR.shell.rail.aria), 'aria-label do rail resolvido do locale');

@@ -31,8 +31,12 @@
  *     `white-space:nowrap` nem `text-overflow:ellipsis` (o que a barra
  *     colapsada do CollapsibleLessonHeader, aposentado, tinha — o teste dele,
  *     apagado junto, provava o oposto lá, no bloco 4); tem
- *     `overflow-wrap:anywhere`. Os chips de pré-requisito ganham o rótulo
- *     multilinha (o default do MuiChip é nowrap + ellipsis).
+ *     `overflow-wrap:anywhere` (identificadores longos sem espaços — título,
+ *     resumo, curso e contador; os RÓTULOS de botão e chip usam
+ *     `overflow-wrap:break-word`, finding-5 da auditoria 2-aula: quebra
+ *     quando não cabe, nunca a meio da palavra por preguiça). Os chips de
+ *     pré-requisito ganham o rótulo multilinha (o default do MuiChip é
+ *     nowrap + ellipsis).
  *
  *   BLOCO 3 — AÇÕES. "Desafios" com badge de pendentes, aria-label
  *     interpolado, `aria-haspopup` e `aria-expanded` refletindo
@@ -216,8 +220,10 @@ function renderHeader(props: Partial<LessonSidebarHeaderProps> = {}): string {
 
 const TITLE = BASE.title;
 const SUMMARY = BASE.summary;
-/** O nome acessível que o e2e procura: "Desafios da aula (1 pendentes)". */
-const CHALLENGES_ARIA = `aria-label="${ptBR.lesson.challengesButtonAria.replace('{{pending}}', '1')}"`;
+/** O nome acessível que o e2e procura: "Desafios da aula (1 pendente)" —
+ *  plural CORRETO do pt-BR para 1 (finding-10a: chave `_one`); a base e a
+ *  `_other` ficam iguais para os demais valores. */
+const CHALLENGES_ARIA = `aria-label="${ptBR.lesson.challengesButtonAria_one.replace('{{pending}}', '1')}"`;
 
 before(async () => {
   process.env.I18NEXT_NO_SUPPORT_NOTICE = '1';
@@ -284,7 +290,7 @@ describe('1. estrutura: <section aria-labelledby> → h1, nenhum <header>', () =
     assert.match(html, /aria-valuenow="42"/);
     assert.ok(
       html.includes(ptBR.lesson.theoryCount.replace('{{current}}', '2').replace('{{total}}', '3')),
-      'contador "Seção N de M"',
+      'contador "{{current}} de {{total}} seções" (contagem, não posição)',
     );
     assert.ok(html.includes(ptBR.lesson.prerequisitesLabel), 'rótulo de pré-requisitos');
     assert.ok(html.includes('>Declarações<') && html.includes('>Escopo léxico<'), 'um chip por pré-requisito');
@@ -334,7 +340,7 @@ describe('2. SC 1.4.12 — o título quebra, nunca recorta (CSS emitido pelo emo
     );
     assert.ok(label, 'o override do rótulo do chip (".<chip> .MuiChip-label") existe');
     assert.match(label.body, /white-space:normal/);
-    assert.match(label.body, /overflow-wrap:anywhere/);
+    assert.match(label.body, /overflow-wrap:break-word/, 'rótulo quebra quando a palavra não cabe (sem ellipsis)');
     assert.match(label.body, /text-overflow:clip/, 'nem o text-overflow computado sobra (e2e-spacing)');
     assert.match(label.body, /overflow:visible/);
   });
@@ -441,7 +447,14 @@ describe('5. i18n — as chaves reusadas resolvem nos DOIS idiomas', () => {
       assert.ok(html.includes(`aria-label="${en.lesson.challengesButtonAria.replace('{{pending}}', '1')}"`));
       assert.ok(html.includes(`aria-label="${en.lesson.theoryProgress.replace('{{percent}}', '42')}"`));
       assert.ok(html.includes(en.lesson.theoryCount.replace('{{current}}', '2').replace('{{total}}', '3')));
-      assert.ok(html.includes(en.lesson.prerequisitesLabel));
+      // finding-10c (auditoria 2-aula): o rótulo EN novo ("Didn't get it?
+      // Review:") tem apóstrofo, e o renderToStaticMarkup escapa `'` como
+      // `&#x27;` no TEXTO — a presença é conferida na forma escapada, que é a
+      // que existe de fato no HTML.
+      assert.ok(
+        html.includes(en.lesson.prerequisitesLabel.replace(/'/g, '&#x27;')),
+        'rótulo de pré-requisitos em inglês (apóstrofo escapado pelo SSR)',
+      );
       assert.ok(!html.includes('lesson.'), 'chave i18n crua no HTML');
     } finally {
       await i18next.changeLanguage('pt-BR');

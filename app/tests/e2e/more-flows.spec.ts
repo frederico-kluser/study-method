@@ -95,7 +95,7 @@ test('more-flows: onboarding first-run — modal aparece e o Quick Start COMPLET
 
   // Modal de seleção (primeira execução) com as DUAS opções.
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
-  await page.getByRole('button', { name: /Quick Start/ }).click();
+  await page.getByTestId('tutorial-option-quick-start').click();
 
   const overlay = page.locator('[data-onboarding-panel]');
   await expect(overlay).toBeVisible();
@@ -137,7 +137,7 @@ test('more-flows: progresso do tutorial persiste entre reloads (retoma onde paro
   page = launched.page;
 
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
-  await page.getByRole('button', { name: /Tutorial Completo/ }).click();
+  await page.getByTestId('tutorial-option-full').click();
 
   const overlay = page.locator('[data-onboarding-panel]');
   await expect(overlay).toBeVisible();
